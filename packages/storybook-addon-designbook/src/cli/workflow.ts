@@ -27,6 +27,7 @@ import {
   completeStep,
   blockStep,
 } from '../workflow-store.js';
+import { captureLocation } from '../reference-capture.js';
 import { definitionContracts } from '../planning-contracts.js';
 
 function selectedTask(opts: { task?: string; step?: string }): string {
@@ -110,6 +111,16 @@ export function register(program: Command): void {
     .option('--config <path>', 'Effective draft configuration JSON for installation planning')
     .action(async (template: string, opts: { config?: string }) =>
       print(await discoverWorkflow(template, opts.config)),
+    );
+  workflow
+    .command('capture-location')
+    .requiredOption('--source-kind <kind>', 'Source identity namespace supplied by its skill')
+    .requiredOption('--source-identity <identity>', 'Stable identity of the selected design target')
+    .requiredOption('--workflow-id <id>', 'Unique fixed capture workflow ID; refresh uses a new ID')
+    .action((opts: { sourceKind: string; sourceIdentity: string; workflowId: string }) =>
+      print(
+        captureLocation(loadConfig().data, { kind: opts.sourceKind, identity: opts.sourceIdentity }, opts.workflowId),
+      ),
     );
   workflow.command('schema').action(() => print(workflowDefinitionSchema));
   workflow

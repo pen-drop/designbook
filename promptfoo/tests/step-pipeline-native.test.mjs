@@ -14,6 +14,9 @@ import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import yaml from "js-yaml";
 import { runStepPipeline } from "../scripts/step-pipeline.mjs";
+import { stateHash } from "../extensions/step-result.mjs";
+import { publishedCapture } from "./published-capture-fixture.mjs";
+import CliProvider from "../providers/cli-provider.mjs";
 
 const repo = fileURLToPath(new URL("../..", import.meta.url));
 const report = (path) => JSON.parse(readFileSync(path, "utf8"));
@@ -23,7 +26,7 @@ const literalMarkup =
 test(
   "real Promptfoo executes a pending planner handoff and two isolated native workers",
   { timeout: 120000 },
-  (t) => {
+  async (t) => {
     const root = mkdtempSync(join(tmpdir(), "step-pipeline-native-"));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const workspace = join(root, "workspace");
@@ -81,6 +84,8 @@ test(
     };
     const cataloguePath = join(workspace, ".designbook-intake/catalogue.json");
     writeFileSync(cataloguePath, JSON.stringify(catalogue));
+    const captured = publishedCapture(workspace);
+    const captureDocument = yaml.load(readFileSync(captured.workflow, "utf8"));
     const task = {
       title: "Write text",
       type: "data",
@@ -117,7 +122,7 @@ test(
       "workflows/changes/native-probe-planned/tasks.yml",
     );
     const table =
-      "| Subject | Reference selector | Story selector | Breakpoints | Evidence |\n| --- | --- | --- | --- | --- |\n| text | no reference | planned:.text | sm | Text-only accepted fixture |";
+      "| Subject | Reference selector | Story selector | Breakpoints | Evidence |\n| --- | --- | --- | --- | --- |\n| text | no reference | planned:.text | sm | Text-only accepted fixture |\n| header | header | planned:.header | sm, xl | rest: mobile.png and desktop.png show header |";
     const native = join(root, "intake.jsonl");
     writeFileSync(
       native,
@@ -135,6 +140,7 @@ test(
         catalogue: cataloguePath,
         native_log: native,
         rows: [],
+        fixed_workflows: { "capture-fixture": stateHash(captureDocument) },
         frozen_files: {
           ".designbook-intake/catalogue.json": createHash("sha256")
             .update(readFileSync(cataloguePath))
@@ -143,10 +149,14 @@ test(
       }),
     );
     const intakeReport = join(root, "intake-report.json");
+    const intakeArtifacts = await new CliProvider(
+      {},
+      { defaultModel: "fixture" },
+    ).collectArtifacts(workspace);
     writeFileSync(
       intakeReport,
       JSON.stringify({
-        results: { results: [{ response: { output: { fileHashes: {} } } }] },
+        results: { results: [{ response: { output: intakeArtifacts } }] },
       }),
     );
     const calls = join(root, "calls.jsonl");
@@ -296,6 +306,10 @@ emit({type:'turn.completed',usage:{input_tokens:100,cached_input_tokens:80,outpu
     }
     const final = yaml.load(readFileSync(workflow, "utf8"));
     assert.equal(final.state.status, "completed");
+    assert.equal(
+      stateHash(yaml.load(readFileSync(captured.workflow, "utf8"))),
+      stateHash(captureDocument),
+    );
     const nativeCalls = readFileSync(calls, "utf8")
       .trim()
       .split("\n")

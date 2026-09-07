@@ -50,14 +50,15 @@ failure. Keep quality thresholds fixed across baseline and candidates.
 
 For design intakes, Promptfoo first evaluates an intake-only part. It prepares the
 reference, presents the selector table and saves the effective discovery catalogue.
-Deterministic checks require concrete selectors, matching reference metadata,
-all declared capture files and no created/executed workflow. A passing intake
+Deterministic checks require concrete source locators, matching published reference
+metadata and every declared capture file. Intake may complete reference-capture
+workflows only; design workflows must not exist yet. A passing intake
 writes a compact external handoff; a failed intake prevents main execution.
 The planning call preserves that workspace, reuses the catalogue and reference
 evidence and authors the complete definition. Fresh executor calls then carry out
 one complete step each, receiving only the resolved work order for that step. Capture/asset/catalogue
-bytes remain fixed; YAML reference metadata must retain the same complete value
-across any result-writer formatting. The main gate checks the native intake
+bytes remain fixed, including meta.yml and extract.json. Completed capture
+workflow documents also remain unchanged throughout planning and execution. The main gate checks the native intake
 presentation before workflow creation and checks the declared selector scope.
 
 Only the first part provisions fixtures. For other workflows this is main.

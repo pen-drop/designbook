@@ -188,20 +188,21 @@ git diff --name-only        # see what changed
 
 Design cases run `intake → main → verify` (verification remains omitted only for
 cases whose existing contract explicitly selects none). Intake alone provisions
-the fresh workspace. It presents the selected reference/story selectors and
-breakpoints, prepares reference evidence and saves the effective planning
-catalogue. Static checks require matching metadata and every declared capture
-at its contract path. Before freezing, `reference validate` checks enriched
-extraction against the effective schemas, every declared subject/state/breakpoint
-cell, present package decisions and local dependency files. Its compact report
-is retained in the intake handoff; missing analysis fails before planning.
-Intake cannot create or execute a saved workflow.
+the fresh workspace. It presents the selected source locators, Storybook selectors
+and views, completes reference capture through the selected integration skill,
+and saves the effective design planning catalogue separately. Static checks require
+matching published metadata and every declared capture file. `reference validate`
+loads the publication's observation schemas and checks subject/state/view coverage
+and local dependency files. Its compact report and revision binding are retained
+in the intake handoff; missing evidence fails before planning. Intake may execute
+only reference-capture workflows. Figma locators remain native node IDs.
 
 Main runs only after intake passes. It reads the compact external handoff,
 reuses the same workspace and catalogue, then authors and executes its complete
-workflow. The harness checks native presentation order and declared selector
-coverage, preserves capture/asset/catalogue bytes, and compares YAML reference
-metadata by its complete parsed value so result-writer formatting is harmless.
+design workflow. The harness checks native presentation order and declared scope,
+preserves every capture/asset/catalogue byte (including meta.yml and extract.json),
+and requires completed capture workflow documents to remain unchanged. Planning
+leaves every design task pending; each worker completes only its assigned step.
 A failed intake leaves main explicitly skipped; requested separate verification
 still runs and the pipeline fails. No successful main report is invented.
 

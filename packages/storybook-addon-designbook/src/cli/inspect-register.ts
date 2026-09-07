@@ -16,15 +16,19 @@ export function register(program: Command): void {
     .description('Validate and query frozen reference packages without browser or network access.');
   reference
     .command('validate')
-    .description(
-      'Validate all declared intake subjects, samples, package decisions and local evidence before freezing.',
+    .description('Validate a published capture revision and its bounded observation queries.')
+    .requiredOption(
+      '--reference <folder>',
+      'Absolute published revision directory containing shared metadata and observations',
     )
-    .requiredOption('--reference <folder>', 'Absolute reference folder containing metadata and enriched extract')
-    .requiredOption('--contract <json>', 'JSON file with effective referenceSchema, extractSchema and definitions')
-    .action(async (opts: { reference: string; contract: string }) => {
-      const { validateReferenceIntake, ReferenceQueryError } = await import('../reference-query.js');
+    .option('--contract <json>', 'Optional effective schema contract; defaults to published capture workflow')
+    .action(async (opts: { reference: string; contract?: string }) => {
+      const { validateReferenceIntake, publishedReferenceContract, ReferenceQueryError } =
+        await import('../reference-query.js');
       try {
-        const contract = JSON.parse(readFileSync(opts.contract, 'utf8'));
+        const contract = opts.contract
+          ? JSON.parse(readFileSync(opts.contract, 'utf8'))
+          : publishedReferenceContract(opts.reference);
         console.log(JSON.stringify(validateReferenceIntake(opts.reference, contract)));
       } catch (error) {
         console.error(
@@ -46,17 +50,20 @@ export function register(program: Command): void {
       )
       .requiredOption(
         '--request <json>',
-        'JSON file containing the exact reference/package/subjects/states/breakpoints request',
+        'JSON file containing reference/package/subjects/states and either views or explicitly mapped breakpoints',
       )
-      .requiredOption(
+      .option(
         '--contract <json>',
         'JSON file with effective referenceSchema, extractSchema and definitions from the planning catalogue',
       )
-      .action(async (opts: { request: string; contract: string }) => {
-        const { prepareReferenceQuery, queryReference, ReferenceQueryError } = await import('../reference-query.js');
+      .action(async (opts: { request: string; contract?: string }) => {
+        const { prepareReferenceQuery, queryReference, publishedReferenceContract, ReferenceQueryError } =
+          await import('../reference-query.js');
         try {
           const request = JSON.parse(readFileSync(opts.request, 'utf8'));
-          const contract = JSON.parse(readFileSync(opts.contract, 'utf8'));
+          const contract = opts.contract
+            ? JSON.parse(readFileSync(opts.contract, 'utf8'))
+            : publishedReferenceContract(request.reference);
           console.log(
             JSON.stringify(
               operation === 'prepare' ? prepareReferenceQuery(request, contract) : queryReference(request, contract),

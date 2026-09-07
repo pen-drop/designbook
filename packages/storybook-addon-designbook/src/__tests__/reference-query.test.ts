@@ -1,409 +1,198 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { resolve } from 'node:path';
+import { join } from 'node:path';
 import { Command } from 'commander';
-import { dump } from 'js-yaml';
 import {
   prepareReferenceQuery,
   queryReference,
   validateReferenceIntake,
-  type ReferenceQueryContract,
   type ReferenceQueryRequest,
 } from '../reference-query.js';
-import { resolveAllStages } from '../workflow-resolve.js';
-import type { DesignbookConfig } from '../config.js';
 import { register } from '../cli/inspect-register.js';
-
-let contract: ReferenceQueryContract;
-const folders: string[] = [];
-beforeAll(async () => {
-  const agents = resolve(process.cwd(), '../../.agents');
-  const catalogue = await resolveAllStages(
-    resolve(agents, 'skills/designbook/skills/design-shell/workflows/design-shell.md'),
-    {
-      data: '/tmp/reference-query',
-      technology: 'html',
-      backend: 'drupal',
-      'frameworks.component': 'sdc',
-      'frameworks.css': 'tailwind',
-      extensions: [],
-    } as unknown as DesignbookConfig,
-    {},
-    agents,
-  );
-  const block = Object.values(catalogue.step_resolved)
-    .flatMap((v) => (Array.isArray(v) ? v : [v]))
-    .find((v) => v.task_file.endsWith('/extract-reference.md'))?.schema;
-  if (!block) throw new Error('Missing effective reference schema');
-  contract = {
-    referenceSchema: { $ref: block.result.reference!.$ref },
-    extractSchema: { $ref: block.result.reference_extract!.$ref },
-    definitions: block.definitions,
-  };
-});
+import { captureFixture } from './capture-fixture.js';
+const dirs: string[] = [];
 afterEach(() => {
-  for (const folder of folders.splice(0)) rmSync(folder, { recursive: true, force: true });
+  dirs.splice(0).forEach((dir) => rmSync(dir, { recursive: true, force: true }));
   vi.restoreAllMocks();
   process.exitCode = 0;
 });
-function fixture() {
-  const folder = mkdtempSync(resolve(tmpdir(), 'reference-query-'));
-  folders.push(folder);
-  mkdirSync(resolve(folder, 'assets'));
-  writeFileSync(resolve(folder, 'assets/logo.svg'), '<svg/>');
-  writeFileSync(resolve(folder, 'assets/inter.woff2'), 'font-binary');
-  const states = ['rest', 'open'];
-  const breakpoints = ['sm', 'xl'];
-  const sample = (state: string, breakpoint: string) => ({
-    state,
-    breakpoint,
-    observations: { structure: { dom: 'raw DOM '.repeat(1000) } },
-    component: {
-      structure: {
-        roots: ['header'],
-        nodes: [
-          { id: 'header', element: 'header', children: ['logo', 'navigation'] },
-          { id: 'logo', element: 'img', children: [], attributes: { src: '/logo.svg' } },
-          { id: 'navigation', element: 'nav', children: [], text: 'Home' },
-        ],
-      },
-      layout: { display: 'flex', gap: breakpoint === 'sm' ? '8px' : '24px' },
-      typography: [{ family: 'Inter', size: '16px' }],
-      content: [{ text: 'Home', href: '/' }],
-      interactions: [{ trigger: 'button', target: 'menu', state }],
-      dependencies: { parent_ids: ['page'], asset_ids: ['https://example.test/logo.svg'], font_families: ['Inter'] },
-    },
-    composition: {
-      structure: {
-        roots: ['shell'],
-        nodes: [{ id: 'shell', element: 'page', children: [], props: { content: '$content' } }],
-      },
-      layout: { slots: ['header', 'content', 'footer'] },
-      dependencies: { parent_ids: ['page'], asset_ids: [], font_families: [] },
-    },
-  });
-  const subjects = ['header', 'footer'].map((id) => ({
-    id,
-    selector: `body > ${id}`,
-    samples: states.flatMap((state) => breakpoints.map((bp) => sample(state, bp))),
-  }));
-  const extract = {
-    source: 'https://example.test',
-    extracted: '2026-09-07',
-    strategy: 'playwright+vision',
-    subjects,
-    parents: [
-      {
-        id: 'page',
-        samples: states.flatMap((state) =>
-          breakpoints.map((breakpoint) => ({
-            state,
-            breakpoint,
-            layout: { width: '100%', background: '#fff' },
-            asset_ids: [],
-            font_families: ['Inter'],
-          })),
-        ),
-      },
-    ],
-    images: [
-      {
-        url: 'https://example.test/logo.svg',
-        role: 'logo',
-        reference_path: 'assets/logo.svg',
-        local_path: '/logo.svg',
-      },
-    ],
-    fonts: [{ family: 'Inter', source: 'self-hosted', files: [{ local_path: 'assets/inter.woff2' }] }],
-    sections: [{ id: 'unrelated-body', content: 'unrelated data '.repeat(1000) }],
-  };
-  const meta = {
-    source: { url: extract.source },
-    extract: 'extract.json',
-    elements: subjects.map((s) => ({
-      id: s.id,
-      selector: s.selector,
-      states: states.map((name) => ({ name, steps: [] })),
-      breakpoints,
-    })),
-  };
-  const save = () => {
-    writeFileSync(resolve(folder, 'extract.json'), JSON.stringify(extract));
-    writeFileSync(resolve(folder, 'meta.yml'), dump(meta));
-  };
-  save();
-  const png = Buffer.from(
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a4l8AAAAASUVORK5CYII=',
-    'base64',
-  );
-  for (const id of ['header', 'footer'])
-    for (const state of states)
-      for (const bp of breakpoints) writeFileSync(resolve(folder, `${bp}--${id}--${state}.png`), png);
+async function fixture(kind = 'website') {
+  const root = mkdtempSync(join(tmpdir(), 'query-capture-'));
+  dirs.push(root);
+  const f = captureFixture(root, kind);
+  await f.complete();
   const request: ReferenceQueryRequest = {
-    reference: folder,
+    reference: f.folder,
     package: 'component',
     subjects: ['header'],
-    states,
-    breakpoints,
+    states: ['rest'],
+    views: ['mobile'],
   };
-  return { folder, request, extract, meta, save };
+  return { ...f, request };
 }
-describe('fixed reference packages', () => {
-  it('keeps all selected material and ancestor layout, excludes unrelated subjects and package decisions', () => {
-    const f = fixture();
-    const frozen = prepareReferenceQuery(f.request, contract);
-    const before = readFileSync(resolve(f.folder, 'extract.json'));
-    const result = queryReference(frozen, contract);
-    expect(result.subjects.map((s) => s.id)).toEqual(['header']);
-    expect(result.subjects[0]?.samples).toHaveLength(4);
-    expect(result.subjects[0]?.samples[3]?.component?.layout).toEqual({ display: 'flex', gap: '24px' });
-    expect(result.subjects[0]?.samples[0]?.composition).toBeUndefined();
-    expect(result.dependencies.parents[0]?.samples).toHaveLength(4);
-    expect(result.captures).toHaveLength(4);
-    expect(JSON.stringify(result)).not.toContain('unrelated-body');
-    expect(Buffer.byteLength(JSON.stringify(result))).toBeLessThan(before.length);
-    expect(readFileSync(resolve(f.folder, 'extract.json'))).toEqual(before);
-    expect(queryReference(frozen, contract)).toEqual(result);
-  });
-  it('keeps megabytes of observed DOM on disk while preserving every authored package decision', () => {
-    const f = fixture();
-    for (const subject of f.extract.subjects)
-      for (const sample of subject.samples) sample.observations.structure.dom = 'raw observed DOM '.repeat(40000);
-    f.save();
-    const result = queryReference(prepareReferenceQuery(f.request, contract), contract);
-    expect(result.subjects[0]!.samples.map((sample) => sample.component)).toEqual(
-      f.extract.subjects[0]!.samples.map((sample) => sample.component),
-    );
-    expect(result.subjects[0]!.samples.every((sample) => !('observations' in sample))).toBe(true);
-    const fullExtractBytes = readFileSync(resolve(f.folder, 'extract.json')).length;
-    const packageBytes = Buffer.byteLength(JSON.stringify(result));
-    expect(fullExtractBytes).toBeGreaterThan(4 * 1024 * 1024);
-    expect(packageBytes).toBeLessThan(12 * 1024);
-    console.info('reference package bytes', { fullExtractBytes, packageBytes });
-  });
-  it.each(['assets', 'tokens'] as const)('%s packages exclude component DOM and unrelated dependencies', (kind) => {
-    const f = fixture();
-    for (const sample of f.extract.subjects[0]!.samples)
-      Object.assign(sample, {
-        [kind]: {
-          ...(kind === 'tokens' ? { values: { 'color-primary': '#345678' } } : {}),
-          dependencies: { parent_ids: [], asset_ids: [], font_families: ['Inter'] },
-        },
-      });
-    f.request.package = kind;
-    f.save();
-    const result = queryReference(prepareReferenceQuery(f.request, contract), contract);
-    expect(result.dependencies.parents).toEqual([]);
-    expect(result.dependencies.assets).toEqual([]);
-    expect(result.dependencies.fonts).toHaveLength(1);
-    expect(JSON.stringify(result)).not.toContain('navigation');
-    expect(
-      result.subjects[0]!.samples.every(
-        (sample) => Object.keys(sample).sort().join(',') === ['state', 'breakpoint', kind].sort().join(','),
-      ),
-    ).toBe(true);
-  });
-  it.each(['oversize', 'raw-node', 'raw-string', 'unknown-field', 'broken-structure'] as const)(
-    'blocks %s work orders instead of silently discarding decisions',
-    (issue) => {
-      const f = fixture();
-      const component = f.extract.subjects[0]!.samples[0]!.component;
-      if (issue === 'oversize') Object.assign(component.layout, { description: 'x'.repeat(65536) });
-      if (issue === 'raw-node')
-        Object.assign(component.layout, {
-          sourceNode: { id: 'n_123', child_ids: [], bbox: { width: 640 }, source: { locator: 'body > header' } },
-        });
-      if (issue === 'raw-string')
-        Object.assign(component.layout, {
-          note: JSON.stringify({ child_ids: [], bbox: { width: 640 }, source: { locator: 'body > header' } }),
-        });
-      if (issue === 'unknown-field') Object.assign(component, { invented: 'do not silently discard me' });
-      if (issue === 'broken-structure') component.structure.nodes[0]!.children = ['missing'];
-      f.save();
-      expect(() => prepareReferenceQuery(f.request, contract)).toThrow(
-        issue === 'oversize'
-          ? 'byte package limit'
-          : issue === 'raw-node' || issue === 'raw-string'
-            ? 'raw captured PropertyNode'
-            : issue === 'broken-structure'
-              ? 'missing node'
-              : 'additional properties',
-      );
-    },
-  );
-  it('deduplicates shared dependencies across subjects', () => {
-    const f = fixture();
-    f.request.subjects.push('footer');
-    const result = queryReference(prepareReferenceQuery(f.request, contract), contract);
-    expect(result.subjects).toHaveLength(2);
+describe('published observation queries', () => {
+  it('projects selected observed facts and deduplicates dependencies without target decisions or writes', async () => {
+    const f = await fixture();
+    const before = readFileSync(join(f.folder, 'extract.json'));
+    const frozen = prepareReferenceQuery(f.request, f.contract);
+    const result = queryReference(frozen, f.contract);
+    expect(result.subjects[0]!.samples).toHaveLength(1);
+    expect(result.subjects[0]!.samples[0]!.component!.layout).toEqual({ display: 'flex', gap: '8px' });
     expect(result.dependencies.assets).toHaveLength(1);
     expect(result.dependencies.fonts).toHaveLength(1);
-    expect(result.dependencies.parents).toHaveLength(1);
+    expect(result.captures[0]!.view).toBe('mobile');
+    expect(result.provenance.binding.id).toBe(f.location.id);
+    expect(readFileSync(join(f.folder, 'extract.json'))).toEqual(before);
+    expect(queryReference(frozen, f.contract)).toEqual(result);
   });
-  it('keeps the fingerprint when the workflow adds unrelated schemas or reorders schema keys', () => {
-    const f = fixture();
-    const frozen = prepareReferenceQuery(f.request, contract);
-    const reordered = Object.fromEntries(Object.entries(contract.definitions).reverse());
-    expect(
-      queryReference(frozen, { ...contract, definitions: { ...reordered, OtherTaskOutput: { type: 'string' } } })
-        .provenance.fingerprint,
-    ).toBe(frozen.fingerprint);
+  it('maps explicit breakpoints while preserving native Figma node and view identities', async () => {
+    const f = await fixture('figma');
+    delete f.request.views;
+    f.request.breakpoints = ['sm'];
+    const result = queryReference(prepareReferenceQuery(f.request, f.contract), f.contract);
+    expect(result.subjects[0]!.locator).toEqual({ kind: 'node', value: '12:34' });
+    expect(result.subjects[0]!.samples[0]!.view).toBe('mobile');
+    expect(JSON.stringify(result)).not.toContain('selector');
   });
-  it('rejects raw extraction and incomplete required design fields via the effective schema', () => {
-    const f = fixture();
-    writeFileSync(resolve(f.folder, 'extract.json'), JSON.stringify({ url: 'https://example.test', landmarks: [] }));
-    expect(() => prepareReferenceQuery(f.request, contract)).toThrow('subjects');
-    f.save();
-    Reflect.deleteProperty(f.extract.subjects[0]!.samples[0]!.component, 'layout');
-    f.save();
-    expect(() => prepareReferenceQuery(f.request, contract)).toThrow('layout');
+  it.each(['assets', 'tokens', 'composition'] as const)('selects %s observed projection', async (kind) => {
+    const f = await fixture();
+    f.request.package = kind;
+    const result = queryReference(prepareReferenceQuery(f.request, f.contract), f.contract);
+    expect(result.subjects[0]!.samples[0]![kind]).toBeDefined();
+    expect(result.subjects[0]!.samples[0]!.component).toBeUndefined();
   });
-  it.each(['subject', 'state', 'selector', 'asset', 'font', 'parent', 'capture', 'duplicate', 'package'] as const)(
-    'rejects missing or ambiguous %s',
-    (issue) => {
-      const f = fixture();
-      if (issue === 'subject') f.request.subjects = ['unknown'];
-      if (issue === 'state') f.request.states = ['unknown'];
-      if (issue === 'selector') f.meta.elements[0]!.selector = '.wrong';
-      if (issue === 'asset') rmSync(resolve(f.folder, 'assets/logo.svg'));
-      if (issue === 'font') f.extract.fonts[0]!.files = [];
-      if (issue === 'parent') f.extract.parents = [];
-      if (issue === 'capture') rmSync(resolve(f.folder, 'sm--header--rest.png'));
-      if (issue === 'duplicate') f.extract.subjects.push(f.extract.subjects[0]!);
-      if (issue === 'package') f.request.package = 'tokens';
-      f.save();
-      expect(() => prepareReferenceQuery(f.request, contract)).toThrow();
+  it('keeps extra raw measured properties out of a component package', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'query-raw-'));
+    dirs.push(root);
+    const f = captureFixture(root);
+    f.extract.subjects[0]!.samples[0]!.observations.properties = { raw: 'raw DOM '.repeat(700000) };
+    await f.complete();
+    const request: ReferenceQueryRequest = {
+      reference: f.folder,
+      package: 'component',
+      subjects: ['header'],
+      states: ['rest'],
+      views: ['mobile'],
+    };
+    const result = queryReference(prepareReferenceQuery(request, f.contract), f.contract);
+    expect(JSON.stringify(result).length).toBeLessThan(10000);
+    expect(readFileSync(join(f.folder, 'extract.json')).length).toBeGreaterThan(4 * 1024 * 1024);
+    expect(() => prepareReferenceQuery({ ...request, package: 'tokens' }, f.contract)).toThrow('package limit');
+  });
+  it.each(['subject', 'state', 'view', 'mapping', 'ambiguous'] as const)(
+    'rejects invalid %s selection',
+    async (issue) => {
+      const f = await fixture();
+      if (issue === 'subject') f.request.subjects = ['missing'];
+      if (issue === 'state') f.request.states = ['missing'];
+      if (issue === 'view') f.request.views = ['missing'];
+      if (issue === 'mapping') {
+        delete f.request.views;
+        f.request.breakpoints = ['md'];
+      }
+      if (issue === 'ambiguous') f.request.breakpoints = ['sm'];
+      expect(() => prepareReferenceQuery(f.request, f.contract)).toThrow();
     },
   );
-  it('rejects modified source bytes, dependency bytes, scope and effective contracts', () => {
-    const f = fixture();
-    const frozen = prepareReferenceQuery(f.request, contract);
-    expect(() => queryReference({ ...frozen, breakpoints: ['sm'] }, contract)).toThrow('fingerprint');
+  it('binds exact scope and effective schemas, ignoring unrelated schema additions', async () => {
+    const f = await fixture();
+    const frozen = prepareReferenceQuery(f.request, f.contract);
+    expect(
+      queryReference(frozen, { ...f.contract, definitions: { ...f.contract.definitions, Other: { type: 'string' } } })
+        .checks.schema,
+    ).toBe(true);
+    expect(() => queryReference({ ...frozen, views: ['desktop'] }, f.contract)).toThrow('fingerprint');
     expect(() =>
-      queryReference(frozen, { ...contract, extractSchema: { ...contract.extractSchema, title: 'changed' } }),
+      queryReference(frozen, { ...f.contract, extractSchema: { ...f.contract.extractSchema, title: 'changed' } }),
     ).toThrow('fingerprint');
-    writeFileSync(resolve(f.folder, 'assets/logo.svg'), '<svg>changed</svg>');
-    expect(() => queryReference(frozen, contract)).toThrow('fingerprint');
   });
-  it('rejects escaping dependency paths and parent cycles', () => {
-    const f = fixture();
-    f.extract.images[0]!.reference_path = '../outside.svg';
-    f.save();
-    expect(() => prepareReferenceQuery(f.request, contract)).toThrow('file ../outside.svg');
-    f.extract.images[0]!.reference_path = 'assets/logo.svg';
-    Object.assign(f.extract.parents[0]!, { parent: 'page' });
-    f.save();
-    expect(() => prepareReferenceQuery(f.request, contract)).toThrow('cycle');
+  it.each(['extract.json', 'assets/logo.svg', 'mobile--header--rest.png'])(
+    'rejects changed published bytes: %s',
+    async (file) => {
+      const f = await fixture();
+      const frozen = prepareReferenceQuery(f.request, f.contract);
+      const path = join(f.folder, file);
+      writeFileSync(path, Buffer.concat([readFileSync(path), Buffer.from('\n')]));
+      expect(() => queryReference(frozen, f.contract)).toThrow('fingerprint');
+    },
+  );
+  it('requires a complete capture publication before a reference can be queried', async () => {
+    const f = await fixture();
+    rmSync(join(f.folder, 'publication.json'));
+    expect(() => prepareReferenceQuery(f.request, f.contract)).toThrow('incomplete');
   });
-  it('exposes thin prepare/query CLI commands and precise failure JSON', async () => {
-    const f = fixture();
-    writeFileSync(resolve(f.folder, 'request.json'), JSON.stringify(f.request));
-    writeFileSync(resolve(f.folder, 'contract.json'), JSON.stringify(contract));
+  it('validates all published cells and returns compact frozen scopes', async () => {
+    const f = await fixture();
+    const result = validateReferenceIntake(f.folder, f.contract);
+    expect(result.checks).toEqual({ schema: true, subjects: 1, cells: 4, packages: 16 });
+    expect(result.binding.revision).toBe(f.location.revision);
+    expect(result.scopes.every((scope) => queryReference(scope, f.contract).checks.scope)).toBe(true);
+  });
+  it('CLI derives the authoritative contract from the published capture workflow', async () => {
+    const f = await fixture();
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const run = async (op: string) => {
+    const run = async (args: string[]) => {
       const program = new Command();
       register(program);
-      await program.parseAsync(
-        [
-          'reference',
-          op,
-          '--request',
-          resolve(f.folder, 'request.json'),
-          '--contract',
-          resolve(f.folder, 'contract.json'),
-        ],
-        { from: 'user' },
-      );
+      await program.parseAsync(args, { from: 'user' });
     };
-    await run('prepare');
-    const frozen = JSON.parse(log.mock.calls[0]![0] as string);
-    expect(frozen.fingerprint).toMatch(/^[a-f0-9]{64}$/);
-    writeFileSync(resolve(f.folder, 'request.json'), JSON.stringify(frozen));
-    await run('query');
-    expect(JSON.parse(log.mock.calls[1]![0] as string).subjects).toHaveLength(1);
-    rmSync(resolve(f.folder, 'sm--header--rest.png'));
-    await run('query');
+    await run(['reference', 'validate', '--reference', f.folder]);
+    expect(JSON.parse(log.mock.calls[0]![0] as string).checks.cells).toBe(4);
+    const request = join(f.root, 'request.json');
+    writeFileSync(request, JSON.stringify(f.request));
+    await run(['reference', 'prepare', '--request', request]);
+    writeFileSync(request, log.mock.calls[1]![0] as string);
+    await run(['reference', 'query', '--request', request]);
+    expect(JSON.parse(log.mock.calls[2]![0] as string).subjects).toHaveLength(1);
+    rmSync(join(f.folder, 'mobile--header--rest.png'));
+    await run(['reference', 'query', '--request', request]);
     expect(process.exitCode).toBe(1);
-    expect(JSON.parse(error.mock.calls[0]![0] as string).findings[0]).toContain('sm--header--rest.png');
+    expect(error).toHaveBeenCalled();
   });
-});
-
-describe('pre-freeze reference intake validation', () => {
-  it('validates all cells and only their declared kinds, returning compact frozen scopes', () => {
-    const f = fixture();
-    Reflect.deleteProperty(f.extract.subjects[0]!.samples[0]!, 'composition');
-    f.save();
-    const before = readFileSync(resolve(f.folder, 'extract.json'));
-    const result = validateReferenceIntake(f.folder, contract);
-    expect(result.pass).toBe(true);
-    expect(result.checks).toEqual({ schema: true, subjects: 2, cells: 8, packages: 15 });
-    expect(result.scopes).toHaveLength(15);
-    expect(result.scopes.every((scope) => queryReference(scope, contract).checks.schema)).toBe(true);
-    expect(JSON.stringify(result)).not.toContain('typography');
-    expect(readFileSync(resolve(f.folder, 'extract.json'))).toEqual(before);
-  });
-  it.each([
-    'absent-extract',
-    'raw-extract',
-    'missing-cell',
-    'missing-decisions',
-    'invalid-kind',
-    'missing-font',
-    'missing-asset',
-    'missing-capture',
-    'selector-drift',
-    'missing-subject',
-    'extra-subject',
-    'extra-cell',
-    'empty-matrix',
-  ] as const)('blocks %s before handoff', (issue) => {
-    const f = fixture();
-    const sample = f.extract.subjects[1]!.samples[3]!;
-    if (issue === 'missing-cell') f.extract.subjects[1]!.samples.pop();
-    if (issue === 'missing-decisions') {
-      Reflect.deleteProperty(sample, 'component');
-      Reflect.deleteProperty(sample, 'composition');
+  it('keeps unrelated manifest files out of a narrow query while validating every published byte', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'query-many-assets-'));
+    dirs.push(root);
+    const f = captureFixture(root);
+    for (let index = 0; index < 450; index++) {
+      const path = `assets/unrelated-${index}.svg`;
+      writeFileSync(join(f.folder, path), '<svg/>');
+      f.extract.images.push({
+        url: `unrelated-${index}`,
+        reference_path: path,
+        local_path: `/unrelated-${index}.svg`,
+        role: 'logo',
+      });
+      f.definition.tasks[0]!.outputs[path] = {
+        required: true,
+        schema: {},
+        path: join(f.folder, path),
+        submission: 'direct',
+        validators: [],
+      };
     }
-    if (issue === 'missing-font') f.extract.fonts[0]!.files = [];
-    if (issue === 'selector-drift') f.extract.subjects[1]!.selector = '.different';
-    if (issue === 'missing-subject') f.extract.subjects.pop();
-    if (issue === 'extra-subject') f.extract.subjects.push({ ...f.extract.subjects[0]!, id: 'unplanned' });
-    if (issue === 'extra-cell') f.extract.subjects[1]!.samples.push({ ...sample, state: 'unplanned' });
-    if (issue === 'empty-matrix') f.meta.elements[1]!.breakpoints = [];
-    f.save();
-    if (issue === 'absent-extract') rmSync(resolve(f.folder, 'extract.json'));
-    if (issue === 'raw-extract')
-      writeFileSync(resolve(f.folder, 'extract.json'), JSON.stringify({ url: 'https://example.test', landmarks: [] }));
-    if (issue === 'invalid-kind') {
-      const extract = JSON.parse(readFileSync(resolve(f.folder, 'extract.json'), 'utf8'));
-      extract.subjects[1].samples[3].composition = {};
-      writeFileSync(resolve(f.folder, 'extract.json'), JSON.stringify(extract));
-    }
-    if (issue === 'missing-font') rmSync(resolve(f.folder, 'assets/inter.woff2'));
-    if (issue === 'missing-asset') rmSync(resolve(f.folder, 'assets/logo.svg'));
-    if (issue === 'missing-capture') rmSync(resolve(f.folder, 'xl--footer--open.png'));
-    expect(() => validateReferenceIntake(f.folder, contract)).toThrow();
-  });
-  it('provides the validate CLI without a query request or full extract output', async () => {
-    const f = fixture();
-    writeFileSync(resolve(f.folder, 'contract.json'), JSON.stringify(contract));
-    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const run = async () => {
-      const program = new Command();
-      register(program);
-      await program.parseAsync(
-        ['reference', 'validate', '--reference', f.folder, '--contract', resolve(f.folder, 'contract.json')],
-        { from: 'user' },
-      );
+    await f.complete();
+    const request: ReferenceQueryRequest = {
+      reference: f.folder,
+      package: 'component',
+      subjects: ['header'],
+      states: ['rest'],
+      views: ['mobile'],
     };
-    await run();
-    expect(JSON.parse(log.mock.calls[0]![0] as string).checks.cells).toBe(8);
-    rmSync(resolve(f.folder, 'xl--footer--open.png'));
-    await run();
-    expect(process.exitCode).toBe(1);
-    expect(JSON.parse(error.mock.calls[0]![0] as string).findings[0]).toContain('xl--footer--open.png');
+    const frozen = prepareReferenceQuery(request, f.contract);
+    const result = queryReference(frozen, f.contract);
+    expect(Object.keys(result.provenance.files).sort()).toEqual([
+      'assets/inter.woff2',
+      'assets/logo.svg',
+      'extract.json',
+      'meta.yml',
+      'mobile--header--rest.png',
+    ]);
+    expect(result.provenance.binding).not.toHaveProperty('files');
+    expect(JSON.stringify(result)).not.toContain('unrelated-');
+    expect(Buffer.byteLength(JSON.stringify(result))).toBeLessThan(10000);
+    writeFileSync(join(f.folder, 'assets/unrelated-449.svg'), '<svg>changed</svg>');
+    expect(() => queryReference(frozen, f.contract)).toThrow('fingerprint');
   });
 });

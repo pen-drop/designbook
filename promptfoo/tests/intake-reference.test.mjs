@@ -9,61 +9,73 @@ function fixture(t) {
   const root = mkdtempSync(join(tmpdir(), "intake-reference-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   return {
-    rows: [{ subject: "header", "reference selector": "header" }],
-    metadata: {
-      "designbook/references/site/meta.yml": {
-        elements: [{ id: "header", selector: "header" }],
+    rows: [
+      {
+        subject: "header",
+        "reference selector": "node-42",
+        breakpoints: "mobile-frame, xl",
       },
-    },
-    dataDir: join(root, "data"),
-    evidenceDir: root,
-    workspace: root,
-    catalogue: {
-      blocks: {
-        extract: [
+    ],
+    metadata: {
+      "designbook/references/site/rev/meta.yml": {
+        role: "reference",
+        elements: [
           {
-            outputs: {
-              reference: { schema: { type: "object" } },
-              reference_extract: {
-                schema: { $ref: "#/definitions/CompleteExtract" },
-              },
-            },
-            schemas: {
-              CompleteExtract: { type: "object", required: ["subjects"] },
-            },
+            id: "header",
+            locator: { kind: "figma-node", value: "node-42" },
+            views: [
+              { id: "mobile-frame" },
+              { id: "desktop-frame", breakpoint: "xl" },
+            ],
           },
         ],
       },
     },
+    publications: [
+      {
+        id: "site",
+        revision: "rev",
+        directory: join(root, "data/references/site/rev"),
+      },
+    ],
+    dataDir: join(root, "data"),
+    evidenceDir: root,
+    workspace: root,
   };
 }
 
-test("intake checks exact effective schemas through the CLI before returning compact validation", (t) => {
+test("intake validates the published writer contract through the source-neutral CLI", (t) => {
   const f = fixture(t);
   const result = validateIntakeReferences(f, (args) => {
-    assert.deepEqual(args.slice(0, 3), [
+    assert.deepEqual(args, [
       "reference",
       "validate",
       "--reference",
+      f.publications[0].directory,
     ]);
-    assert.equal(args[3], join(f.dataDir, "references/site"));
-    const contract = JSON.parse(readFileSync(args[5], "utf8"));
-    assert.deepEqual(contract.extractSchema, {
-      $ref: "#/definitions/CompleteExtract",
+    return JSON.stringify({
+      pass: true,
+      binding: f.publications[0],
+      samples: 2,
     });
-    assert.deepEqual(contract.definitions.CompleteExtract.required, [
-      "subjects",
-    ]);
-    return JSON.stringify({ pass: true, samples: 2 });
   });
   assert.equal(result.pass, true);
-  assert.equal(result.references.length, 1);
   assert.equal(result.references[0].samples, 2);
 });
 
-test("missing contract, ambiguous subject and CLI validation errors fail intake", (t) => {
+test("missing publication, view, ambiguous locator and CLI failures block intake", (t) => {
   const f = fixture(t);
-  assert.equal(validateIntakeReferences({ ...f, catalogue: {} }).pass, false);
+  assert.match(
+    validateIntakeReferences({ ...f, publications: [] }).reason,
+    /no completed capture/,
+  );
+  assert.match(
+    validateIntakeReferences({
+      ...f,
+      rows: [{ ...f.rows[0], breakpoints: "missing" }],
+    }).reason,
+    /omits view/,
+  );
   const duplicate = {
     ...f.metadata,
     "designbook/references/other/meta.yml": Object.values(f.metadata)[0],
@@ -76,17 +88,25 @@ test("missing contract, ambiguous subject and CLI validation errors fail intake"
     throw new Error("missing font binary");
   });
   assert.equal(failed.pass, false);
-  assert.match(failed.reason, /missing font binary/);
   assert.match(
     readFileSync(join(f.evidenceDir, "reference-validation-error.txt"), "utf8"),
-    /font binary/,
+    /missing font binary/,
+  );
+  assert.equal(
+    validateIntakeReferences(f, () =>
+      JSON.stringify({
+        pass: true,
+        binding: { id: "site", revision: "another" },
+      }),
+    ).pass,
+    false,
   );
 });
 
 test("explicit text-only intake does not invent reference requirements", (t) => {
   const f = fixture(t);
   const result = validateIntakeReferences(
-    { ...f, rows: [{ "reference selector": "no reference" }], catalogue: {} },
+    { ...f, rows: [{ "reference selector": "no reference" }] },
     () => {
       throw new Error("must not run");
     },

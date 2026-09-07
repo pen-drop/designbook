@@ -1,33 +1,18 @@
 ---
 title: Design Verify
-description: Measure existing scenes against the design reference and report the complete issue list
+description: Compare completed source and actual observation revisions using explicit correspondences
 params:
   story_id:
     type: string
-  reference_url:
-    type: string
-    default: ''
-  reference_dir:
-    type: string
 stages:
-  setup-compare:
-    steps:
-      - setup-compare
-  reference:
-    steps:
-      - ensure-baseline
-  capture:
-    steps:
-      - capture
   compare:
-    steps:
-      - compare
+    steps: [compare-observations]
   triage:
-    steps:
-      - triage
+    steps: [triage]
   outtake:
-    steps:
-      - outtake
+    steps: [outtake]
 ---
 
-Template for the planning agent. Use the ordered steps as building blocks. Enumerate repeated targets during intake and write each concrete task explicitly; these stages do not execute or expand at runtime.
+Source and actual captures are completed before this comparison definition is
+created. Enumerate each subject/view/state correspondence explicitly. Comparison
+consumes published observations and images without capture or metadata writes.

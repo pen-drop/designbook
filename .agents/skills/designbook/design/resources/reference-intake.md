@@ -1,44 +1,29 @@
+---
+name: reference-intake
+description: Consume a completed observation revision before fixing the design inventory.
+---
+
 # Prepare the design reference during intake
 
-Use before fixing the component inventory for any design intake with a visual reference.
-Reference analysis supplies structural decisions, so it must finish before the
-saved workflow definition is authored.
+1. Select the source integration and complete the
+   [capture workflow intake](../../skills/capture-reference/resources/intake.md).
+   Reuse an already completed revision only when its selected scope supports the
+   request. A refresh uses a new fixed capture workflow and revision.
+2. Inspect bounded observations and the associated images from that completed
+   revision. Confirm every source locator identifies the intended subject and
+   state, not merely an existing node. Establish explicit correspondences with
+   planned implementation selectors and views. Clarify required missing evidence.
+3. The design planner now decides component decomposition, target structure,
+   concrete styling, assets and behavior. Store these decisions in task work orders
+   and context; the immutable extract contains only observed facts. Use
+   [reference packages](reference-packages.md) for typed read-only bindings.
+4. Present the selected source locators, implementation selectors, views, states
+   and evidence through [write planning](write-planning.md). Save the exact
+   completed revision binding with the design definition. If an `extract-reference`
+   dependency task is needed, it returns only `reference_dir`; it has no reference
+   file write outputs. Design execution never resubmits the captured metadata,
+   extract or binary files.
 
-1. Load `workflow discover <template>` through the shared builder. Read the
-   effective `extract-reference` task instructions, schemas and matched
-   integration rules from that catalogue. Use the resolved instructions rather
-   than only reading the core task file. Missing extraction instructions block
-   planning when a reference was supplied.
-2. Resolve the original reference, persistent reference directory, requested
-   subjects and breakpoints. Apply the loaded extraction/capture instructions
-   now as intake preparation. Inspect `extract.json`, the scoped reference
-   screenshots and the overview images. Follow the task's frozen-baseline reuse
-   behavior when the same scope is already prepared. Keep evidence in the
-   workspace reference directory.
-3. Derive the concrete inventory from that evidence: shell landmarks and nested
-   regions, entity fields/component assignments, or section layout and content.
-   Open the scoped screenshots and check the DOM at every requested breakpoint.
-   Each reference selector must visibly identify the intended subject, including
-   its defining content; a nonzero match count alone is insufficient. Record the
-   screenshot paths and observed subject content. Resolve wrong or ambiguous
-   matches before fixing the inventory. Keep reference selectors separate from
-   planned story selectors, whose DOM may not exist yet.
-   Resolve assets, navigation states and responsive differences before committing
-   to component IDs, slots, variants or task counts. Inspect targeted
-   extraction fields instead of putting raw browser dumps into the context.
-4. Record the reference paths, fixed capture scope and resulting design decisions
-   in the definition's inputs and relevant embedded context. Present the selector
-   choices through the [write planning contract](write-planning.md) before saving
-   the plan. The builder can now
-   enumerate the complete component/mapping/scene graph.
-5. Keep the template's declared extraction task as the producer of its reference
-   results. It reuses the already prepared extract/meta/baselines with the same
-   fixed params; it does not discover new targets during saved-workflow execution.
-   If the prepared reference no longer supports the planned structure, return to
-   intake and create a new complete definition.
-
-When the request intentionally has no design reference, follow the task's
-no-reference branch and record that limitation explicitly. Do not invent reference
-measurements. A requested reference comparison fails when no valid comparison reference is
-available. Text-only cases use the concrete build/browser criteria selected by
-the test case instead.
+A deliberately reference-free request records its limitation explicitly and uses
+concrete build/browser criteria. A requested visual comparison requires valid
+reference evidence.

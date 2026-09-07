@@ -604,7 +604,12 @@ export function designbookLoadPlugin(
 
           const storyJson = story.toJSON();
           const ref = storyJson.reference ? Reference.load(config, storyJson.reference) : null;
-          const payload = { ...storyJson, referenceElements: ref ? ref.toJSON().elements : [] };
+          const referenceJson = ref?.toJSON();
+          const payload = {
+            ...storyJson,
+            referenceElements: referenceJson?.elements ?? [],
+            referenceCaptures: referenceJson?.captures ?? [],
+          };
           res.setHeader('Content-Type', 'application/json');
           res.statusCode = 200;
           res.end(JSON.stringify(payload));

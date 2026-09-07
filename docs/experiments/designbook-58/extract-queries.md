@@ -4,6 +4,12 @@ Status: user-confirmed implementation contract. DESIGNBOOK-58 remains in coding.
 The user accepted the final recommendations and requested one subagent per
 workstream; this is not a new GAIA spec/review state.
 
+The 2026-09-08 [reference capture workflow specification](reference-capture-workflows.md)
+supersedes the placement of target decisions in reference packages and repeated
+reference writes during design execution. It defines source-skill capture through
+`workflow done`, a shared source/Storybook observation schema and immutable
+reference revisions. Bounded queries and complete step work orders remain required.
+
 ## Observed problem
 
 The reference analysis contains structure, typography, colors, assets, fonts,

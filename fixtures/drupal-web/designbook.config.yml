@@ -1,6 +1,9 @@
 workspace: .
 
 backend: drupal
+extensions:
+  - id: website
+  - id: storybook
 frameworks:
   component: sdc
   css: tailwind

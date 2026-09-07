@@ -1,4 +1,3 @@
-import { posix } from "node:path";
 import { parse as parseShell } from "shell-quote";
 const headers = [
   "subject",
@@ -69,7 +68,12 @@ export function selectorTable(text) {
       .split(/(?<!\\)\|/)
       .map(clean);
   const start = lines.findIndex((line, index) => {
-    const row = cells(line).map((cell) => cell.toLowerCase());
+    const row = cells(line).map((cell) => {
+      const label = cell.toLowerCase();
+      if (label === "source locator") return "reference selector";
+      if (label === "views") return "breakpoints";
+      return label;
+    });
     return (
       row.length === headers.length &&
       row.every((cell, i) => cell === headers[i]) &&
@@ -100,43 +104,16 @@ export function selectorTable(text) {
     : null;
 }
 
-/** Check the declared reference matrix before execution consumes it. */
-export function referenceInventoryError(rows, metadata, hashes) {
-  for (const row of rows) {
-    if (row["reference selector"] === "no reference") continue;
-    const match = Object.entries(metadata).find(([, meta]) =>
-      meta?.elements?.some(
-        (element) =>
-          element.id === row.subject &&
-          (element.selector || "full page") === row["reference selector"],
-      ),
-    );
-    if (!match)
-      return `Reference metadata does not bind the presented selector for ${row.subject}`;
-    const [path, meta] = match;
-    const element = meta.elements.find((item) => item.id === row.subject);
-    if (!element.states?.length)
-      return `Reference states are missing for ${row.subject}`;
-    for (const bp of row.breakpoints.split(/[\s,]+/).filter(Boolean)) {
-      if (!element.breakpoints?.includes(bp))
-        return `Reference metadata omits ${bp} for ${row.subject}`;
-      for (const state of element.states) {
-        const screenshot = posix.join(
-          posix.dirname(path),
-          `${bp}--${row.subject}--${state.name}.png`,
-        );
-        if (!state.name || !hashes[screenshot])
-          return `Missing declared reference capture: ${screenshot}`;
-      }
-    }
-  }
-  return null;
-}
-
-/** The first pipeline part ends with a complete selector inventory, before any saved workflow. */
-export function validateIntakePresentation(events) {
+/** Intake presents its source inventory; completed capture workflows are checked separately. */
+export function validateIntakePresentation(
+  events,
+  { captureWorkflows = false } = {},
+) {
   const entries = nativeEntries(events);
-  if (entries.some((entry) => workflowCommand(entry.command || "")))
+  if (
+    !captureWorkflows &&
+    entries.some((entry) => workflowCommand(entry.command || ""))
+  )
     return {
       pass: false,
       reason: "Intake-only phase created or executed a workflow",
@@ -155,6 +132,28 @@ export function validateIntakePresentation(events) {
         pass: false,
         reason: "Missing complete user-visible selector table in intake",
       };
+}
+
+/** Every published reference scope cell must appear in the native intake. */
+export function validateCapturePresentation(rows, workflows = {}) {
+  const fail = (reason) => ({ pass: false, reason });
+  for (const workflow of Object.values(workflows)) {
+    if (workflow.definition?.capture?.role !== "reference") continue;
+    for (const cell of workflow.definition.capture.scope || []) {
+      const row = rows?.find((candidate) => candidate.subject === cell.subject);
+      if (!row || row["reference selector"] !== cell.locator.value)
+        return fail(`Intake omits the source locator for ${cell.subject}`);
+      const views = row.breakpoints.split(/[\s,]+/);
+      if (!views.includes(cell.view) && !views.includes(cell.breakpoint))
+        return fail(`Intake omits view ${cell.view} for ${cell.subject}`);
+      const state = cell.state.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (!new RegExp(`(?:^|\\W)${state}(?:$|\\W)`, "i").test(row.evidence))
+        return fail(
+          `Intake evidence omits state ${cell.state} for ${cell.subject}`,
+        );
+    }
+  }
+  return { pass: true };
 }
 
 /** Deterministic transcript/order and declared-scope check; visual truth is audited separately. */
@@ -178,24 +177,8 @@ export function validateDesignIntake(events, workflows = {}) {
       "Selector presentation must precede workflow create and execution",
     );
   const rows = selectorTable(entries[presented].text);
-  for (const workflow of Object.values(workflows)) {
-    for (const task of workflow.definition?.tasks || []) {
-      for (const element of task.params?.elements || []) {
-        if (!element.id || typeof element.selector !== "string") continue;
-        const row = rows.find((candidate) => candidate.subject === element.id);
-        if (
-          !row ||
-          row["reference selector"] !== (element.selector || "full page")
-        )
-          return fail(
-            `Intake does not present the declared reference selector for ${element.id}`,
-          );
-        for (const bp of element.breakpoints || task.params.breakpoints || [])
-          if (!row.breakpoints.split(/[\s,]+/).includes(bp))
-            return fail(`Intake omits breakpoint ${bp} for ${element.id}`);
-      }
-    }
-  }
+  const coverage = validateCapturePresentation(rows, workflows);
+  if (!coverage.pass) return coverage;
   return {
     pass: true,
     reason: "Selector inventory presented before workflow creation",

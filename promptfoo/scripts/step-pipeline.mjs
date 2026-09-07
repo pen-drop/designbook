@@ -32,6 +32,7 @@ export function executorConfig(
     final,
     output,
     document,
+    fixedWorkflows = {},
   },
 ) {
   const config = copy(base);
@@ -70,6 +71,7 @@ export function executorConfig(
       workflow: document.definition.id,
       step: step.id,
       taskIds: step.tasks.map((t) => t.id),
+      fixedWorkflows,
       stateHashes: Object.fromEntries(
         Object.entries(document.state.tasks).map(([id, state]) => [
           id,
@@ -143,8 +145,8 @@ export function runStepPipeline({
   plan.prompts = [
     `You are the planning model, already inside Promptfoo. Produce a complete, precise saved plan for a separate simple executor. Do not execute its tasks in this invocation.\n` +
       `Goal for the executor:\n${requestPrompt}\n\n` +
-      `Intake is complete: read ${JSON.stringify(intakeHandoff)} and reuse its frozen catalogue ${JSON.stringify(handoff.catalogue)} and reference evidence. Preserve the presented subjects/selectors/states/breakpoints. Load the copied domain planning instructions and author all structural/design decisions, parameters, independent step batches, dependencies, exact outputs and acceptance observations now.\n` +
-      `Reference measurements stay on disk. Every task receives only its own concrete work order and typed task.reference package; resolved packages, raw DOM and broad measurement arrays never belong in shared context or params. Asset/font provisioning uses its own dependency package, not a header component package. Split independent work into smaller steps when needed; preserve all exact catalogue contracts.\n` +
+      `Intake is complete: read ${JSON.stringify(intakeHandoff)} and reuse its frozen catalogue ${JSON.stringify(handoff.catalogue)} and published reference revisions. Keep completed capture workflows unchanged; consume their bindings without resubmitting reference outputs or creating extraction tasks. Preserve the presented subjects/selectors/states/breakpoints. Load the copied domain planning instructions and author all structural/design decisions, parameters, independent step batches, dependencies, exact outputs and acceptance observations now.\n` +
+      `Reference observations stay on disk and remain distinct from your target decisions. Author complete target decisions in the plan. Every task receives only its own concrete work order and typed task.reference observation package; resolved packages, raw DOM and broad measurement arrays never belong in shared context or params. Asset/font provisioning uses its own dependency package, not a header component package. Split independent work into smaller steps when needed; preserve all exact catalogue contracts.\n` +
       `The full worker prompt has a configured maximum of ${base.tags.step_prompt_max_bytes ?? 262144} UTF-8 bytes, including resolved data. Limit scope before saving; never truncate required instructions or decisions.\n` +
       `Use registry references without shortening any required instruction or weakening a discovered schema. Prepare each reference data package through the CLI before saving; missing information must be resolved in planning. The executor will receive only one step's resolved instructions/data and cannot recover omitted decisions from the full catalogue or extract.\n` +
       `Use definition.id ${JSON.stringify(workflowId)}. Run workflow validate and workflow create with --catalogue ${JSON.stringify(handoff.catalogue)}. Save the workflow at exactly ${JSON.stringify(workflowPath)}, then run node ${JSON.stringify(join(repo, "promptfoo/scripts/snapshot-definition.mjs"))} ${JSON.stringify(workflowPath)}.\n` +
@@ -158,10 +160,14 @@ export function runStepPipeline({
     catalogue.config,
     intakeArtifacts.fileHashes,
   );
+  plan.tests[0].vars.plan_contract = {
+    workflow: workflowId,
+    fixedWorkflows: handoff.fixed_workflows || {},
+  };
   plan.tests[0].assert = [
     {
       type: "javascript",
-      value: `output.pendingWorkflows[${JSON.stringify(workflowId)}]?.state.status === 'pending' && Object.values(output.pendingWorkflows[${JSON.stringify(workflowId)}]?.state.tasks || {}).length > 0 && Object.values(output.pendingWorkflows[${JSON.stringify(workflowId)}]?.state.tasks || {}).every(t => t.status === 'pending' && t.attempts === 0 && Object.keys(t.results).length === 0) && Object.keys(output.completedWorkflows).length === 0 && Object.keys(output.pendingWorkflows).length === 1`,
+      value: `file://${join(repo, "promptfoo/extensions/plan-result.mjs")}`,
     },
     {
       type: "javascript",
@@ -251,6 +257,7 @@ export function runStepPipeline({
         final: i === initialCount - 1,
         output: base.outputPath,
         document: plannedDocument,
+        fixedWorkflows: handoff.fixed_workflows || {},
       });
       checkContext(config, context, step, i);
     }
@@ -284,6 +291,7 @@ export function runStepPipeline({
         final,
         output,
         document,
+        fixedWorkflows: handoff.fixed_workflows || {},
       });
       checkContext(config, context, step, i);
       const configPath = join(runDir, "steps", `${i + 1}-${step.id}.yaml`);

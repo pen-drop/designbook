@@ -4,11 +4,10 @@ import {
   selectorTable,
   workflowCommand,
   validateIntakePresentation,
-  referenceInventoryError,
   validateDesignIntake,
 } from "../extensions/design-intake.mjs";
 const text =
-  "Selected subjects:\n| Subject | Reference selector | Story selector | Breakpoints | Evidence |\n| --- | --- | --- | --- | --- |\n| header | app-site-header | planned: .page__header | sm, xl | header-sm.png, header-xl.png: logo and navigation observed |";
+  "Selected subjects:\n| Subject | Reference selector | Story selector | Breakpoints | Evidence |\n| --- | --- | --- | --- | --- |\n| header | app-site-header | planned: .page__header | sm, xl | header-sm.png, header-xl.png: rest: logo and navigation observed |";
 const message = {
   type: "item.completed",
   item: { type: "agent_message", text },
@@ -24,19 +23,15 @@ const create = {
 const workflows = {
   shell: {
     definition: {
-      tasks: [
-        {
-          params: {
-            elements: [
-              {
-                id: "header",
-                selector: "app-site-header",
-                breakpoints: ["sm", "xl"],
-              },
-            ],
-          },
-        },
-      ],
+      capture: {
+        role: "reference",
+        scope: ["sm", "xl"].map((view) => ({
+          subject: "header",
+          locator: { kind: "css", value: "app-site-header" },
+          view,
+          state: "rest",
+        })),
+      },
     },
   },
 };
@@ -145,34 +140,26 @@ test("intake-only part requires a complete presentation and forbids workflow exe
   assert.equal(validateIntakePresentation([]).pass, false);
 });
 
-test("intake statically validates selector bindings and capture paths against reference metadata", () => {
-  const rows = selectorTable(text);
-  const metadata = {
-    "designbook/references/site/meta.yml": {
-      elements: [
-        {
-          id: "header",
-          selector: "app-site-header",
-          breakpoints: ["sm", "xl"],
-          states: [{ name: "rest" }],
-        },
-      ],
-    },
-  };
-  const hashes = {
-    "designbook/references/site/sm--header--rest.png": "sm",
-    "designbook/references/site/xl--header--rest.png": "xl",
-  };
-  assert.equal(referenceInventoryError(rows, metadata, hashes), null);
-  assert.match(
-    referenceInventoryError(rows, metadata, {}),
-    /Missing declared reference capture/,
+test("source-neutral headings preserve concrete non-CSS locators and view identities", () => {
+  const rows = selectorTable(
+    text
+      .replace("Reference selector", "Source locator")
+      .replace("Breakpoints", "Views")
+      .replace("app-site-header", "file-A/node-42")
+      .replace("sm, xl", "mobile-frame, desktop-frame"),
   );
-  const wrong = structuredClone(metadata);
-  wrong["designbook/references/site/meta.yml"].elements[0].selector = "footer";
-  assert.match(referenceInventoryError(rows, wrong, hashes), /does not bind/);
+  assert.equal(rows[0]["reference selector"], "file-A/node-42");
+  assert.equal(rows[0].breakpoints, "mobile-frame, desktop-frame");
+});
+
+test("capture-enabled intake checks presentation while workflow publication is checked separately", () => {
   assert.equal(
-    referenceInventoryError([{ "reference selector": "no reference" }], {}, {}),
-    null,
+    validateIntakePresentation([create, message], { captureWorkflows: true })
+      .pass,
+    true,
+  );
+  assert.equal(
+    validateIntakePresentation([create], { captureWorkflows: true }).pass,
+    false,
   );
 });

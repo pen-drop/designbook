@@ -25,6 +25,7 @@ Choose the matching domain sub-skill below. Each intake resolves its complete sc
 | `shape-section` | [skills/shape-section/](skills/shape-section/SKILL.md) | Specify one section — flows, UI requirements, scope |
 | `sample-data` | [skills/sample-data/](skills/sample-data/SKILL.md) | Generate per-bundle sample data |
 | `css-generate` | [skills/css-generate/](skills/css-generate/SKILL.md) | Generate CSS token files from design tokens |
+| `capture-reference` | [skills/capture-reference/](skills/capture-reference/SKILL.md) | Capture selected source or actual observations into an immutable revision |
 | `design-component` | [skills/design-component/](skills/design-component/SKILL.md) | Create or change a UI component (explicit invocation only) |
 | `design-screen` | [skills/design-screen/](skills/design-screen/SKILL.md) | Create or change a named section screen |
 | `design-entity` | [skills/design-entity/](skills/design-entity/SKILL.md) | Create or change one view/form mode + preview |

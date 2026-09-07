@@ -7,6 +7,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import yaml from "js-yaml";
 import Provider from "../providers/codex-cli.mjs";
 import caseResult from "../extensions/case-result.mjs";
+import { publishedCapture } from "./published-capture-fixture.mjs";
 
 async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), "promptfoo-contract-"));
@@ -1134,89 +1135,38 @@ test("provider retains deterministic intake failure beside successful CLI usage"
   assert.equal(evidence.pass, false);
 });
 
-test("separate intake handoff preserves native presentation and freezes reference evidence", async (t) => {
-  const { provider, root, workspace, stub } = await fixture(t);
-  const reference = join(workspace, "designbook/references/site/extract.json");
-  await mkdir(join(workspace, "designbook/references/site"), {
-    recursive: true,
-  });
-  const analysis = {
-    subjects: [
-      {
-        id: "header",
-        selector: "header",
-        samples: ["sm", "xl"].map((breakpoint) => ({
-          state: "rest",
-          breakpoint,
-          component: {
-            structure: {
-              roots: ["header"],
-              nodes: [{ id: "header", element: "header", children: [] }],
-            },
-            layout: { display: "flex" },
-            typography: [],
-            content: [],
-            interactions: [],
-            dependencies: { parent_ids: [], asset_ids: [], font_families: [] },
-          },
-        })),
-      },
-    ],
-    parents: [],
-    images: [],
-    fonts: [],
-  };
-  await writeFile(reference, JSON.stringify(analysis));
-  const metadata = join(workspace, "designbook/references/site/meta.yml");
-  await writeFile(
-    metadata,
-    "source: example\nextract: extract.json\nelements:\n  - id: header\n    selector: header\n    breakpoints: [sm, xl]\n    states: [{name: rest}]\n",
-  );
-  for (const bp of ["sm", "xl"])
-    await writeFile(
-      join(workspace, `designbook/references/site/${bp}--header--rest.png`),
-      Buffer.from(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==",
-        "base64",
-      ),
-    );
+test("separate intake handoff retains published capture workflows and exact reference bytes", async (t) => {
+  const { root, workspace, provider, stub } = await fixture(t);
+  const capture = publishedCapture(workspace);
+  const reference = join(capture.directory, "extract.json");
+  const metadata = join(capture.directory, "meta.yml");
+  const original = await readFile(reference);
   const handoff = join(root, "intake-handoff.json");
   const table =
-    "| Subject | Reference selector | Story selector | Breakpoints | Evidence |\n|---|---|---|---|---|\n| header | header | planned: .header | sm, xl | header.png: logo observed |";
-  provider.config.requireDesignIntake = true;
-  provider.config.intakeOnly = true;
-  provider.config.intakeHandoffOutput = handoff;
-  provider.config.intakeCatalogue = join(
-    workspace,
-    ".designbook-intake/catalogue.json",
-  );
+    "| Subject | Source locator | Story selector | Views | Evidence |\n|---|---|---|---|---|\n| header | header | planned: .header | sm, xl | mobile/desktop rest PNGs: header observed |";
+  Object.assign(provider.config, {
+    requireDesignIntake: true,
+    intakeOnly: true,
+    intakeHandoffOutput: handoff,
+    intakeCatalogue: join(workspace, ".designbook-intake/catalogue.json"),
+  });
   await mkdir(join(workspace, ".designbook-intake"));
   await writeFile(
     provider.config.intakeCatalogue,
     JSON.stringify({
-      template: { content: "Complete template" },
-      blocks: {
-        extract: [
-          {
-            outputs: {
-              reference: {
-                schema: { type: "object", required: ["extract", "elements"] },
-              },
-              reference_extract: {
-                schema: {
-                  type: "object",
-                  required: ["subjects", "parents", "images", "fonts"],
-                },
-              },
-            },
-            schemas: {},
-          },
-        ],
-      },
+      template: { content: "Design planning catalogue" },
+      blocks: { design: [{}] },
     }),
   );
   await stub(
     emit([
+      {
+        type: "item.started",
+        item: {
+          type: "command_execution",
+          command: `node cli.js workflow done ${capture.workflow} --step capture --data-file capture-results.json`,
+        },
+      },
       { type: "item.completed", item: { type: "agent_message", text: table } },
       ...completed,
     ]),
@@ -1228,15 +1178,20 @@ test("separate intake handoff preserves native presentation and freezes referenc
   assert.equal(incomplete.output.designIntake.pass, false);
   assert.match(
     incomplete.output.designIntake.reason,
-    /Enriched reference validation failed/,
+    /Published reference validation failed/,
   );
   assert.equal(incomplete.tokenUsage.total, 110);
   await assert.rejects(readFile(handoff, "utf8"), /ENOENT/);
-  await writeFile(reference, JSON.stringify(analysis));
+  await writeFile(reference, original);
   const intake = await provider.callApi("Intake", { vars: { workspace } });
-  assert.equal(intake.output.designIntake.pass, true);
+  assert.equal(
+    intake.output.designIntake.pass,
+    true,
+    intake.output.designIntake.reason,
+  );
   const saved = JSON.parse(await readFile(handoff, "utf8"));
-  assert.ok(saved.frozen_files["designbook/references/site/extract.json"]);
+  assert.ok(saved.fixed_workflows["capture-fixture"]);
+  assert.equal(saved.references[0].binding.directory, capture.directory);
   provider.config.intakeOnly = false;
   provider.config.intakeHandoffInput = handoff;
   delete provider.config.intakeHandoffOutput;
@@ -1253,19 +1208,23 @@ test("separate intake handoff preserves native presentation and freezes referenc
       ...completed,
     ]),
   );
-  await writeFile(
-    metadata,
-    "elements: [{id: header, selector: header, breakpoints: [sm, xl], states: [{name: rest}]}]\nextract: extract.json\nsource: example\n",
-  );
   const main = await provider.callApi("Execute", { vars: { workspace } });
-  assert.equal(main.output.designIntake.pass, true);
-  await writeFile(reference, '{"header":"changed"}');
-  const changed = await provider.callApi("Execute", { vars: { workspace } });
-  assert.equal(changed.output.designIntake.pass, false);
-  assert.match(
-    changed.output.designIntake.reason,
-    /changed frozen intake evidence/,
+  assert.equal(
+    main.output.designIntake.pass,
+    true,
+    main.output.designIntake.reason,
   );
+  for (const path of [metadata, reference]) {
+    const bytes = await readFile(path);
+    await writeFile(path, Buffer.concat([bytes, Buffer.from("\n")]));
+    const changed = await provider.callApi("Execute", { vars: { workspace } });
+    assert.equal(changed.output.designIntake.pass, false);
+    assert.match(
+      changed.output.designIntake.reason,
+      /changed frozen intake evidence/,
+    );
+    await writeFile(path, bytes);
+  }
 });
 
 for (const cli of ["codex", "claude"]) {

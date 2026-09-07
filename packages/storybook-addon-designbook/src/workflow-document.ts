@@ -2,9 +2,15 @@
 import Ajv from 'ajv';
 import { createHash } from 'node:crypto';
 import { isAbsolute } from 'node:path';
-import { queryReference, type FrozenReferenceQuery } from './reference-query.js';
+import { queryReference, publishedReferenceContract, type FrozenReferenceQuery } from './reference-query.js';
 import { validateAuthoredContext } from './workflow-context-boundary.js';
 import { getValidatorKeys } from './validation-registry.js';
+import {
+  captureDefinitionSchema,
+  validateCaptureDefinition,
+  type CaptureDefinition,
+  type CaptureBinding,
+} from './reference-capture.js';
 
 export interface EmbeddedContent {
   source: string;
@@ -42,6 +48,7 @@ export interface TaskDefinition {
 }
 
 export interface WorkflowDefinition {
+  capture?: CaptureDefinition;
   id: string;
   title: string;
   template: EmbeddedContent;
@@ -78,6 +85,7 @@ export interface TaskState {
 export interface WorkflowDocument {
   definition: WorkflowDefinition;
   state: {
+    capture?: CaptureBinding;
     status: 'pending' | 'running' | 'blocked' | 'completed';
     /** Digest of the definition as saved; any later edit to it invalidates the run. */
     definition_digest: string;
@@ -115,6 +123,7 @@ export const workflowDefinitionSchema = {
     'tasks',
   ],
   properties: {
+    capture: captureDefinitionSchema,
     id: { ...text, pattern: '^[a-z0-9][a-z0-9_-]*$' },
     title: text,
     template: content,
@@ -164,13 +173,14 @@ export const workflowDefinitionSchema = {
               query: {
                 type: 'object',
                 additionalProperties: false,
-                required: ['reference', 'package', 'subjects', 'states', 'breakpoints', 'fingerprint'],
+                required: ['reference', 'package', 'subjects', 'states', 'fingerprint'],
                 properties: {
                   reference: text,
                   package: { enum: ['component', 'composition', 'tokens', 'assets'] },
                   subjects: { ...stringList, minItems: 1 },
                   states: { ...stringList, minItems: 1 },
                   breakpoints: { ...stringList, minItems: 1 },
+                  views: { ...stringList, minItems: 1 },
                   fingerprint: { type: 'string', pattern: '^[a-f0-9]{64}$' },
                 },
               },
@@ -214,6 +224,17 @@ export function schemaValidator(schemas: Record<string, object>): Ajv {
   return ajv;
 }
 
+/** Annotation-only schemas describe binary evidence without parsing its bytes as text. */
+export function isBinarySchema(schema: object, schemas: Record<string, object>, seen = new Set<string>()): boolean {
+  return Object.entries(schema).every(([key, value]) => {
+    if (['title', 'description', '$comment', 'examples'].includes(key)) return true;
+    if (key !== '$ref' || typeof value !== 'string' || !value.startsWith('#/definitions/') || seen.has(value))
+      return false;
+    const target = schemas[value.slice('#/definitions/'.length)];
+    return Boolean(target) && isBinarySchema(target!, schemas, new Set([...seen, value]));
+  });
+}
+
 function assertConcrete(value: unknown, label: string): void {
   if (/\{\{|\$DESIGNBOOK_|\$\{/.test(JSON.stringify(value))) {
     throw new Error(`${label} contains unresolved structural inputs`);
@@ -224,6 +245,7 @@ export function validateDefinition(raw: unknown): asserts raw is WorkflowDefinit
   const structural = new Ajv({ allErrors: true }).compile(workflowDefinitionSchema);
   if (!structural(raw)) throw new Error(`Invalid workflow definition: ${JSON.stringify(structural.errors)}`);
   const def = raw as unknown as WorkflowDefinition;
+  validateCaptureDefinition(def);
   if (!isAbsolute(def.workspace_root)) throw new Error('workspace_root must be absolute');
   assertConcrete(def.inputs, 'Workflow inputs');
   const ajv = schemaValidator(def.schemas);
@@ -284,7 +306,7 @@ export function validateDefinition(raw: unknown): asserts raw is WorkflowDefinit
       if (!Object.hasOwn(def.context, ref)) throw new Error(`Unknown context ${ref} in ${task.id}`);
     }
     for (const input of Object.values(task.inputs)) {
-      if (input.result === 'reference_extract')
+      if (!def.capture && input.result === 'reference_extract')
         throw new Error(
           `Task ${task.id} must consume reference_extract through a scoped task.reference query, not predecessor inputs`,
         );
@@ -298,7 +320,7 @@ export function validateDefinition(raw: unknown): asserts raw is WorkflowDefinit
       if (
         (/\.png$/i.test(output.path ?? '') || output.validators.includes('image')) &&
         (output.submission !== 'direct' ||
-          Object.keys(output.schema).length !== 0 ||
+          !isBinarySchema(output.schema, def.schemas) ||
           !output.validators.includes('image'))
       )
         throw new Error(`PNG output in ${task.id} requires direct submission, an empty schema and the image validator`);
@@ -430,27 +452,19 @@ export function validateCatalogueDefinition(def: WorkflowDefinition, catalogue: 
     ]),
   ]);
   for (const task of def.tasks) {
-    if (
-      task.reference &&
-      !blocks.some(
-        (block) =>
-          block.outputs.reference &&
-          block.outputs.reference_extract &&
-          equivalentSchemas(
-            task.reference!.reference_schema,
-            block.outputs.reference.schema,
-            def.schemas,
-            block.schemas,
-          ) &&
-          equivalentSchemas(
-            task.reference!.extract_schema,
-            block.outputs.reference_extract.schema,
-            def.schemas,
-            block.schemas,
-          ),
+    if (task.reference) {
+      const contract = publishedReferenceContract(task.reference.query.reference);
+      if (
+        !equivalentSchemas(
+          task.reference.reference_schema,
+          contract.referenceSchema,
+          def.schemas,
+          contract.definitions,
+        ) ||
+        !equivalentSchemas(task.reference.extract_schema, contract.extractSchema, def.schemas, contract.definitions)
       )
-    )
-      throw new Error(`Task ${task.id} reference schemas differ from catalogue`);
+        throw new Error(`Task ${task.id} reference schemas differ from published capture contract`);
+    }
   }
   validateDefinitionReferences(def);
   for (const task of def.tasks) {

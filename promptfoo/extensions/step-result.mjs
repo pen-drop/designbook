@@ -16,6 +16,16 @@ export const stateHash = (state) =>
     .update(JSON.stringify(canonical(state)))
     .digest("hex");
 
+/** Completed intake captures remain fixed throughout planning and execution. */
+export function fixedWorkflowsUnchanged(output, fixedWorkflows = {}) {
+  return Object.entries(fixedWorkflows).every(
+    ([id, hash]) =>
+      output?.completedWorkflows?.[id]?.state?.status === "completed" &&
+      !output?.pendingWorkflows?.[id] &&
+      stateHash(output.completedWorkflows[id]) === hash,
+  );
+}
+
 /** Check batch completion and ensure the worker touched no other task's state. */
 export default function stepResult(output, context) {
   const expected = context?.vars?.step_contract;
@@ -26,7 +36,14 @@ export default function stepResult(output, context) {
     ...output?.completedWorkflows,
     ...output?.pendingWorkflows,
   };
-  if (Object.keys(workflows).length !== 1 || !workflows[expected.workflow])
+  const fixed = expected.fixedWorkflows || {};
+  if (!fixedWorkflowsUnchanged(output, fixed))
+    return fail("Executor changed a completed capture workflow");
+  if (
+    Object.hasOwn(fixed, expected.workflow) ||
+    Object.keys(workflows).length !== Object.keys(fixed).length + 1 ||
+    !workflows[expected.workflow]
+  )
     return fail("Executor changed the workflow scope");
   const doc = workflows[expected.workflow];
   const selected = doc.definition.tasks

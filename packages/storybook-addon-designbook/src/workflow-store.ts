@@ -9,6 +9,7 @@ import {
   definitionDigest,
   validateDocument,
   schemaValidator,
+  isBinarySchema,
   type WorkflowDefinition,
   type WorkflowDocument,
   type TaskDefinition,
@@ -16,6 +17,7 @@ import {
 import { stepContext } from './workflow-steps.js';
 import { serializeForPath, type SchemaProperty } from './workflow-serialize.js';
 import { validateByKeys } from './validation-registry.js';
+import { assertUnpublishedTarget, publishCapture, discardPublication, reserveCapture } from './reference-capture.js';
 import type { DesignbookConfig } from './config.js';
 
 export async function readDocument(path: string): Promise<WorkflowDocument> {
@@ -75,9 +77,13 @@ export async function saveDefinition(path: string, definition: WorkflowDefinitio
   await mkdir(dirname(path), { recursive: true });
   // Exclusive create prevents replacing an existing run, including its immutable definition.
   const tmp = `${path}.${randomUUID()}.tmp`;
+  const release = reserveCapture(definition, path);
   try {
     await writeFile(tmp, dump(doc, { noRefs: true }), { flag: 'wx' });
     await link(tmp, path);
+  } catch (error) {
+    release?.();
+    throw error;
   } finally {
     await unlink(tmp).catch(() => {});
   }
@@ -96,13 +102,36 @@ async function mutate<T>(path: string, action: (doc: WorkflowDocument) => Promis
     let result: T;
     try {
       result = await action(doc);
+      if (doc.definition.capture && doc.state.status === 'completed' && !doc.state.capture) {
+        try {
+          doc.state.capture = publishCapture(doc, path);
+        } catch (error) {
+          doc.state.status = 'blocked';
+          delete doc.state.completed_at;
+          // Reopen the most recent submitted task using the existing corrective lifecycle.
+          const latest = Object.entries(doc.state.tasks).sort((a, b) =>
+            (b[1].completed_at ?? '').localeCompare(a[1].completed_at ?? ''),
+          )[0];
+          if (latest) {
+            latest[1].status = 'pending';
+            latest[1].errors.push((error as Error).message);
+            delete latest[1].completed_at;
+          }
+          throw error;
+        }
+      }
     } catch (error) {
       assertUnchanged(error);
       await writeAtomic(path, doc);
       throw error;
     }
     assertUnchanged();
-    await writeAtomic(path, doc);
+    try {
+      await writeAtomic(path, doc);
+    } catch (error) {
+      if (doc.state.capture) discardPublication(doc.state.capture);
+      throw error;
+    }
     return result;
   });
 }
@@ -214,6 +243,7 @@ async function completeInDocument(
   const ajv = schemaValidator(doc.definition.schemas);
   try {
     for (const [key, output] of Object.entries(task.outputs)) {
+      if (output.path) assertUnpublishedTarget(output.path);
       let value: unknown;
       let sha256: string | undefined;
       const errors: string[] = [];
@@ -228,7 +258,7 @@ async function completeInDocument(
           const bytes = await readFile(output.path!);
           sha256 = createHash('sha256').update(bytes).digest('hex');
           const extension = extname(output.path!).toLowerCase();
-          value = Object.keys(output.schema).length
+          value = !isBinarySchema(output.schema, doc.definition.schemas)
             ? extension === '.yml' || extension === '.yaml'
               ? load(bytes.toString('utf8'))
               : extension === '.json'

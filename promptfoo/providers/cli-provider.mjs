@@ -1,11 +1,12 @@
 import { validateIntakeReferences } from "../extensions/intake-reference.mjs";
+import { validateIntakeCaptures } from "../extensions/intake-capture.mjs";
+import { fixedWorkflowsUnchanged } from "../extensions/step-result.mjs";
 import { workflowMarkdown } from "../extensions/workflow-markdown.mjs";
 import { writeContextLog } from "./context-log.mjs";
 import {
   nativeEntries,
   validateDesignIntake,
   validateIntakePresentation,
-  referenceInventoryError,
 } from "../extensions/design-intake.mjs";
 /**
  * Shared workspace, artifact and evidence handling for CLI providers.
@@ -193,16 +194,7 @@ class CliProvider {
         await readFile(join(dataDir, path.slice("designbook/".length)), "utf8"),
       );
       if (path.endsWith("/meta.yml")) metadata[path] = value;
-      // Result writers may reformat YAML; preserve its complete value, and preserve
-      // captures, assets, extraction and catalogue bytes exactly.
-      const canonical = JSON.stringify(value, (_key, child) =>
-        child && typeof child === "object" && !Array.isArray(child)
-          ? Object.fromEntries(
-              Object.entries(child).sort(([a], [b]) => a.localeCompare(b)),
-            )
-          : child,
-      );
-      files[path] = createHash("sha256").update(canonical).digest("hex");
+      // Published capture results have one writer and remain byte-identical.
     }
     return { files, metadata };
   }
@@ -396,35 +388,34 @@ class CliProvider {
               .filter(Boolean)
               .map(JSON.parse)
           : [];
+        const presentationEvents = nativeEntries(intakeEvents)
+          .filter((entry) => entry.text)
+          .map((entry) => ({
+            type: "item.completed",
+            item: { type: "agent_message", text: entry.text },
+          }));
         artifacts.designIntake = this.config.intakeOnly
-          ? validateIntakePresentation(events)
-          : validateDesignIntake([...intakeEvents, ...events], {
+          ? validateIntakePresentation(events, { captureWorkflows: true })
+          : validateDesignIntake([...presentationEvents, ...events], {
               ...artifacts.completedWorkflows,
               ...artifacts.pendingWorkflows,
             });
+        const captures = this.config.intakeOnly
+          ? validateIntakeCaptures(artifacts, artifacts.designIntake.rows)
+          : null;
+        if (captures && !captures.pass) artifacts.designIntake = captures;
         if (
-          this.config.intakeOnly &&
-          Object.keys({
-            ...artifacts.completedWorkflows,
-            ...artifacts.pendingWorkflows,
-          }).length
+          intakeHandoff &&
+          !fixedWorkflowsUnchanged(artifacts, intakeHandoff.fixed_workflows)
         )
           artifacts.designIntake = {
             pass: false,
-            reason: "Intake-only phase persisted a workflow",
+            reason: "Execution changed a completed capture workflow",
           };
         const { files: frozenFiles, metadata } = await this.intakeFingerprints(
           cwd,
           artifacts,
         );
-        if (this.config.intakeOnly && artifacts.designIntake.pass) {
-          const reason = referenceInventoryError(
-            artifacts.designIntake.rows,
-            metadata,
-            artifacts.fileHashes,
-          );
-          if (reason) artifacts.designIntake = { pass: false, reason };
-        }
         if (
           intakeHandoff &&
           Object.entries(intakeHandoff.frozen_files).some(
@@ -458,6 +449,7 @@ class CliProvider {
           const validation = validateIntakeReferences({
             rows: artifacts.designIntake.rows,
             metadata,
+            publications: captures.references,
             dataDir: await this.resolveDesignbookDir(cwd),
             catalogue: JSON.parse(
               await readFile(this.config.intakeCatalogue, "utf8"),
@@ -490,6 +482,7 @@ class CliProvider {
                 native_log: join(evidenceDir, logName),
                 catalogue: this.config.intakeCatalogue,
                 frozen_files: frozenFiles,
+                fixed_workflows: captures.fixed_workflows,
               },
               null,
               2,

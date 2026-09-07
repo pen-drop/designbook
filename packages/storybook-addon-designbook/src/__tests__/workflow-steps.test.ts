@@ -1,3 +1,4 @@
+import { captureFixture } from './capture-fixture.js';
 import { afterEach, expect, it, vi } from 'vitest';
 import { mkdtemp, rm, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -277,61 +278,15 @@ it('compares reference targets with siblings even for shared schema object ident
   expect(() => validateCatalogueDefinition(def, expected)).toThrow('contracts or required context');
 });
 
-it('resolves one frozen packet per step, excludes reference schemas and rejects changed reference files', async () => {
-  const folder = await mkdtemp(join(tmpdir(), 'step-reference-'));
-  directories.push(folder);
-  const subjects = ['header', 'footer'].map((id) => ({
-    id,
-    selector: id,
-    samples: [
-      {
-        state: 'rest',
-        breakpoint: 'sm',
-        observations: { note: 'OBSERVATION_SECRET' },
-        component: {
-          structure: {
-            roots: ['root'],
-            nodes: [{ id: 'root', element: 'div', children: [], text: `EXACT_${id}_DECISION` }],
-          },
-          layout: { display: 'block' },
-          typography: [],
-          content: [],
-          interactions: [],
-          dependencies: { parent_ids: [], asset_ids: [], font_families: [] },
-        },
-        composition: { unused: 'COMPOSITION_SECRET' },
-      },
-    ],
-  }));
-  const extract = { subjects, parents: [], images: [], fonts: [], irrelevant: 'UNRELATED_EXTRACT_SECRET' };
-  await writeFile(join(folder, 'extract.json'), JSON.stringify(extract));
-  await writeFile(
-    join(folder, 'meta.yml'),
-    JSON.stringify({
-      source: 'https://example.test',
-      extract: 'extract.json',
-      elements: subjects.map((subject) => ({
-        id: subject.id,
-        selector: subject.selector,
-        states: [{ name: 'rest' }],
-        breakpoints: ['sm'],
-      })),
-    }),
-  );
-  await writeFile(
-    join(folder, 'sm--header--rest.png'),
-    Buffer.from(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a4l8AAAAASUVORK5CYII=',
-      'base64',
-    ),
-  );
-  const contract = {
-    referenceSchema: { $ref: '#/definitions/Reference' },
-    extractSchema: { $ref: '#/definitions/Extract' },
-    definitions: { Reference: { type: 'object', description: 'REFERENCE_SCHEMA_SECRET' }, Extract: { type: 'object' } },
-  };
+it('resolves one frozen observed packet per step from its capture contract and rejects changed reference bytes', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'step-reference-'));
+  directories.push(root);
+  const fixture = captureFixture(root);
+  fixture.extract.subjects[0]!.samples[0]!.observations.content = [{ text: 'EXACT_HEADER_OBSERVATION' }];
+  await fixture.complete();
+  const { contract, folder } = fixture;
   const query = prepareReferenceQuery(
-    { reference: folder, package: 'component', subjects: ['header'], states: ['rest'], breakpoints: ['sm'] },
+    { reference: folder, package: 'component', subjects: ['header'], states: ['rest'], views: ['mobile'] },
     contract,
   );
   const def = definition();
@@ -339,16 +294,7 @@ it('resolves one frozen packet per step, excludes reference schemas and rejects 
   for (const task of def.tasks.slice(0, 2))
     task.reference = { query, reference_schema: contract.referenceSchema, extract_schema: contract.extractSchema };
   const source = catalogue(def);
-  expect(() => validateCatalogueDefinition(def, source)).toThrow('reference schemas differ');
-  source.blocks.reference = [
-    {
-      ...source.blocks.header![0]!,
-      outputs: {
-        reference: { required: false, submission: 'data', validators: [], schema: contract.referenceSchema },
-        reference_extract: { required: false, submission: 'data', validators: [], schema: contract.extractSchema },
-      },
-    },
-  ];
+  // Capture writer schemas are authoritative; the design catalogue needs no rewrite task.
   expect(() => validateCatalogueDefinition(def, source)).not.toThrow();
   const weak = structuredClone(def);
   weak.tasks[0]!.reference!.extract_schema = {};
@@ -358,17 +304,11 @@ it('resolves one frozen packet per step, excludes reference schemas and rejects 
   expect(Object.keys(step.references)).toHaveLength(1);
   expect(step.tasks[0]!.task.reference).toBe(step.tasks[1]!.task.reference);
   const text = stepMarkdown(step);
-  expect(text.split('EXACT_header_DECISION').length - 1).toBe(1);
-  for (const excluded of [
-    'EXACT_footer_DECISION',
-    'COMPOSITION_SECRET',
-    'UNRELATED_EXTRACT_SECRET',
-    'REFERENCE_SCHEMA_SECRET',
-    'reference_schema',
-  ])
-    expect(text).not.toContain(excluded);
+  expect(text.split('EXACT_HEADER_OBSERVATION').length - 1).toBe(1);
+  expect(text).not.toContain('reference_schema');
   expect(stepContext(doc, 'scene').references).toEqual({});
-  await writeFile(join(folder, 'extract.json'), JSON.stringify({ ...extract, irrelevant: 'changed' }));
+  const file = join(folder, 'extract.json');
+  await writeFile(file, (await readFile(file, 'utf8')) + '\n');
   expect(() => stepContext(doc, 'components')).toThrow('fingerprint');
   expect(() => createDocument(def)).toThrow('fingerprint');
 });

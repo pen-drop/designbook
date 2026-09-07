@@ -148,25 +148,20 @@ Element: &Element
 
 Reference:
   type: object
-  title: Reference
-  description: >
-    First-class design reference, serialized to `references/<hash>/meta.yml`
-    (<hash> = SHA256 of source url, first 12 hex). Owns the stable baseline: each
-    (element, state, breakpoint) is captured once into `<bp>--<element>--<state>.png`
-    beside this file and frozen. Accumulates across runs; re-captured only on
-    explicit refresh.
-  required: [source, elements]
+  title: Captured observation metadata
+  additionalProperties: false
+  description: One source-neutral snapshot shared by reference and actual Storybook capture. Publication identity is supplied by the CLI binding manifest.
+  required: [source, role, elements, extract, assets_dir]
   properties:
-    source:
-      type: object
-      properties:
-        url: { type: string }
-        origin: { type: string }
-        screenId: { type: string }
-        hasMarkup: { type: boolean }
-    elements: { type: array, items: *Element }
-    extract: { type: string, default: "extract.json", description: "Relative path to the DesignReference extract." }
-    assets_dir: { type: string, default: "assets/" }
+    source: { $ref: "#/ObservationSource" }
+    role: { type: string, enum: [reference, actual] }
+    elements:
+      type: array
+      minItems: 1
+      description: Selected subjects with their observed state and view coverage.
+      items: { $ref: "#/ObservationElement" }
+    extract: { type: string, const: extract.json, description: Shared extract written by workflow done. }
+    assets_dir: { type: string, const: assets, description: Revision-relative asset directory. }
 
 ReferenceFolder:
   type: string
@@ -245,11 +240,15 @@ VerifyResult:
         minor:    { type: integer, examples: [3] }
     checks:
       type: array
-      description: Per-check breakdown (one per breakpoint × element).
+      description: Per-check breakdown for an observed native view or an explicitly mapped responsive breakpoint.
       items:
         type: object
-        required: [breakpoint, element, score, passed]
+        required: [element, score, passed]
+        anyOf:
+          - required: [view]
+          - required: [breakpoint]
         properties:
+          view:         { type: string, description: Actual native view identity for an observation comparison. }
           breakpoint:   { $ref: "#/BreakpointId" }
           element:      { $ref: "#/ElementId" }
           score:        { type: integer, minimum: 0 }
@@ -347,7 +346,7 @@ StoryMeta:
   properties:
     reference:
       type: string
-      description: "Reference hash (SHA256 of source url, first 12 hex) — folder references/<hash>/."
+      description: "Published id/revision binding — folder references/<id>/<revision>/."
     elements:
       type: array
       default: []
@@ -482,27 +481,25 @@ EntityMapping:
 
 DesignReference:
   type: object
-  title: Enriched design reference
-  required: [source, extracted, strategy, subjects, parents, images, fonts]
+  title: Shared captured observations
+  additionalProperties: false
+  description: Source and actual observations only. The design plan separately owns target structure, styling and implementation decisions.
+  required: [subjects, parents, images, fonts, captures]
   properties:
     subjects:
       type: array
       minItems: 1
-      description: Exact intake subjects with complete planned material for every declared state and breakpoint.
+      description: Selected subjects, each with observations for its declared views and states.
       items: { $ref: "#/ReferenceSubject" }
     parents:
       type: array
-      description: Ancestor layout dependencies, keyed by exact id; empty when subjects have no external parent layout.
+      description: Observed ancestor layout dependencies; empty when none.
       items: { $ref: "#/ReferenceParent" }
-    source: { type: string }
-    extracted: { type: string }
-    strategy: { type: string, enum: [vision, playwright+vision] }
-    assets_dir:
-      type: string
-      description: >
-        Directory (relative to the reference folder) where downloaded static assets
-        (logos, icons, SVGs) are stored. Typically `assets/`.
-      examples: [assets]
+    captures:
+      type: array
+      minItems: 1
+      description: Exact screenshot associations for selected subject, view and state cells.
+      items: { $ref: "#/ObservationCapture" }
     fonts:
       type: array
       description: >
@@ -545,150 +542,6 @@ DesignReference:
                     Path (relative to the reference folder, typically under
                     `{assets_dir}/fonts/`) where the binary was written.
                   examples: ["assets/fonts/Reef-Regular.woff2"]
-    typography:
-      type: array
-      items:
-        type: object
-        properties:
-          element: { type: string }
-          font_family: { type: string }
-          font_size: { type: string }
-          line_height: { type: string }
-          letter_spacing: { type: string }
-          font_weight: { type: number }
-          color: { type: string }
-    colors:
-      type: array
-      items:
-        type: object
-        properties:
-          hex: { type: string }
-          usage: { type: array, items: { type: string } }
-    css_variables:
-      type: array
-      items:
-        type: object
-        properties:
-          name: { type: string }
-          value: { type: string }
-    spacing:
-      type: object
-      properties:
-        container_max_width: { type: string }
-        edge_padding: { type: string }
-        section_gap: { type: string }
-        values: { type: array, items: { type: string } }
-    landmarks:
-      type: object
-      properties:
-        header:
-          type: object
-          properties:
-            rows:
-              type: array
-              items:
-                type: object
-                properties:
-                  tag: { type: string }
-                  bg: { type: string }
-                  height: { type: string }
-                  padding: { type: string }
-                  content: { type: string }
-                  layout: { type: string }
-                  gap: { type: string }
-        footer:
-          type: object
-          properties:
-            rows:
-              type: array
-              items:
-                type: object
-                properties:
-                  tag: { type: string }
-                  bg: { type: string }
-                  height: { type: string }
-                  padding: { type: string }
-                  content: { type: string }
-                  layout: { type: string }
-                  gap: { type: string }
-    interactive:
-      type: array
-      items:
-        type: object
-        properties:
-          element: { type: string }
-          selector: { type: string }
-          bg: { type: string }
-          color: { type: string }
-          border_radius: { type: string }
-          padding: { type: string }
-          font: { type: string }
-          box_shadow: { type: string }
-          border: { type: string }
-          behavior:
-            type: string
-            description: >
-              Interaction pattern when the element does more than restyle on
-              hover/focus. Drives which non-rest states exist and signals that the
-              component needs behavior (JS or a native disclosure element).
-            enum: [toggle, disclosure, overlay, menu, tabs, accordion]
-          target:
-            type: string
-            description: >
-              Selector of the element the behavior shows/hides/activates (the
-              panel, menu, or overlay the trigger controls).
-          aria:
-            type: string
-            default: aria-expanded
-            description: ARIA attribute on the trigger that flips between states.
-          states:
-            type: array
-            description: >
-              Capture states this element exposes. Defaults to rest-only; add the
-              activated state(s) so the open/expanded condition can be built and
-              verified.
-            default: [{ name: rest }]
-            items: *CaptureState
-    tokens:
-      type: object
-      properties:
-        colors:
-          type: object
-        fonts:
-          type: object
-        spacing:
-          type: array
-          items: { type: string }
-        radii:
-          type: array
-          items: { type: string }
-    navigation:
-      type: array
-      description: Navigation structures detected in the design reference.
-      items:
-        type: object
-        properties:
-          role:
-            type: string
-            description: "Navigation context: main, footer, breadcrumb, sidebar, utility."
-            enum: [main, footer, breadcrumb, sidebar, utility]
-          items:
-            type: array
-            description: Ordered list of navigation entries.
-            items:
-              type: object
-              properties:
-                label: { type: string }
-                url: { type: string }
-                active: { type: boolean, description: "True if this item appears as the active/current page." }
-                children:
-                  type: array
-                  description: Sub-navigation items (one level deep).
-                  items:
-                    type: object
-                    properties:
-                      label: { type: string }
-                      url: { type: string }
     images:
       type: array
       description: Static images and brand assets detected in the design reference (logos, icons, illustrations).
@@ -719,110 +572,6 @@ DesignReference:
               this path (e.g. `<img src="/logo.svg">`) instead of text placeholders
               when it is set.
             examples: ["/logo.svg", "/assets/partner-bmbf.svg"]
-    components:
-      type: array
-      description: UI components identified in the design reference.
-      items:
-        type: object
-        properties:
-          name:
-            type: string
-            description: "Component type as it would be named in the design system (e.g. button, card, navigation, hero, badge)."
-          count:
-            type: number
-            description: Number of distinct instances detected.
-          location:
-            type: array
-            description: "Regions where the component appears."
-            items: { type: string }
-          variants:
-            type: array
-            description: Visual variants observed (e.g. primary/secondary, filled/outline, horizontal/vertical).
-            items: { type: string }
-          props:
-            type: object
-            description: Key visual properties extracted from the observed instances (colors, sizes, labels, etc.).
-    sections:
-      type: array
-      description: >
-        Page-level content zones between header and footer (hero, features grid, CTA, testimonials, etc.).
-        Provides layout context for story structure decisions.
-      items:
-        type: object
-        properties:
-          type:
-            type: string
-            description: "Section type (e.g. hero, features, cta, testimonials, pricing, faq, gallery, contact)."
-          bg: { type: string, description: "Background color or gradient." }
-          layout:
-            type: string
-            description: "Layout pattern (e.g. full-width, two-column, grid-3, centered)."
-          content_summary:
-            type: string
-            description: "One-sentence description of what this section contains."
-          order:
-            type: integer
-            description: "Top-to-bottom position of the section on the page (1-based)."
-    shadows:
-      type: array
-      description: >
-        Elevation / box-shadow tokens detected in the design reference.
-        Maps to CSS custom properties (e.g. --shadow-card, --shadow-modal).
-      items:
-        type: object
-        properties:
-          value: { type: string, description: "Full CSS box-shadow value." }
-          usage:
-            type: array
-            description: "Contexts where this shadow appears (e.g. card, modal, dropdown, button, header)."
-            items: { type: string }
-          token: { type: string, description: "Suggested CSS custom property name (e.g. --shadow-sm)." }
-    forms:
-      type: array
-      description: >
-        Form patterns detected in the design reference — input fields, labels, error states, etc.
-        Extracted per distinct form or form section observed.
-      items:
-        type: object
-        properties:
-          context:
-            type: string
-            description: "Where the form appears or its purpose (e.g. login, newsletter, contact, search)."
-          fields:
-            type: array
-            description: "Detected input fields."
-            items:
-              type: object
-              properties:
-                type: { type: string, description: "Input type (text, email, password, select, checkbox, radio, textarea)." }
-                label_position: { type: string, description: "Label placement (above, inline, placeholder-only)." }
-                style:
-                  type: object
-                  properties:
-                    bg: { type: string }
-                    border: { type: string }
-                    border_radius: { type: string }
-                    padding: { type: string }
-                    font_size: { type: string }
-          error_color: { type: string, description: "Color used for validation error messages." }
-          submit_button: { type: string, description: "Description of the submit CTA style." }
-    breakpoints:
-      type: array
-      description: >
-        Responsive breakpoints observed in the design reference (e.g. when multiple viewport
-        widths are shown). Maps detected px values to design-token breakpoint identifiers.
-      items:
-        type: object
-        properties:
-          px:
-            type: integer
-            description: "Viewport width in pixels at which the layout changes."
-          token_id:
-            type: string
-            description: "Suggested breakpoint token identifier (e.g. sm, md, lg, xl)."
-          description:
-            type: string
-            description: "What changes at this breakpoint (e.g. nav collapses, grid switches to single column)."
 
 DesignHint:
   type: object
@@ -1185,190 +934,265 @@ StorybookChecks:
         description: Observed values keyed by the intake's declared appearance, behavior and responsive criteria, supported by browser logs or captures.
         additionalProperties: true
 
+ObservationSource:
+  type: object
+  title: Source provenance
+  additionalProperties: false
+  required: [kind, identity, revision]
+  properties:
+    kind: { type: string, minLength: 1, description: Opaque source kind declared by its integration skill. }
+    identity: { type: string, minLength: 1, description: Stable source identity supplied by the skill; may be a URL or file identity. }
+    revision: { type: [string, 'null'], description: Observed source version, or null when unavailable. }
+
+ObservationLocator:
+  type: object
+  title: Native source locator
+  additionalProperties: false
+  required: [kind, value]
+  properties:
+    kind: { type: string, minLength: 1, description: Integration-defined locator kind such as css or figma-node. }
+    value: { type: string, minLength: 1, description: Exact native identity; a Figma node is not a CSS selector. }
+
+ObservationView:
+  type: object
+  title: Selected source view
+  additionalProperties: false
+  required: [id, width, height]
+  properties:
+    id: { type: string, minLength: 1, description: Stable selected viewport or frame identity. }
+    width: { type: number, exclusiveMinimum: 0, description: Capture width in pixels. }
+    height: { type: number, exclusiveMinimum: 0, description: Capture height in pixels. }
+    breakpoint: { $ref: "#/BreakpointId", description: Explicit responsive mapping when established during intake. }
+
+ObservationElement:
+  type: object
+  title: Observed subject coverage
+  additionalProperties: false
+  required: [id, locator, states, views]
+  properties:
+    id: { $ref: "#/ElementId" }
+    locator: { $ref: "#/ObservationLocator" }
+    states:
+      type: array
+      minItems: 1
+      description: Explicit observed states; source-specific replay details belong in the source workflow.
+      items:
+        type: object
+        additionalProperties: false
+        required: [name]
+        properties:
+          name: { type: string, minLength: 1, description: Exact state identity. }
+    views:
+      type: array
+      minItems: 1
+      description: Selected views; no implicit frame-to-breakpoint mapping.
+      items: { $ref: "#/ObservationView" }
+
+ObservationCapture:
+  type: object
+  title: Captured visual evidence
+  additionalProperties: false
+  required: [subject, view, state, path, width, height]
+  properties:
+    subject: { $ref: "#/ElementId" }
+    view: { type: string, minLength: 1, description: Exact selected view identity. }
+    state: { type: string, minLength: 1, description: Exact observed state identity. }
+    path: { type: string, minLength: 1, description: Screenshot path relative to the CLI-owned revision directory. }
+    width: { type: number, exclusiveMinimum: 0, description: Actual image width in pixels. }
+    height: { type: number, exclusiveMinimum: 0, description: Actual image height in pixels. }
+
 ReferenceMaterial:
   type: object
-  title: Concrete design material
-  minProperties: 1
-  description: Complete planner-resolved target values for this concern. Keys describe concrete dimensions, spacing, colors, typography, content or implementation decisions. Raw source observations live outside packages. Preserve every authored decision; oversized material fails rather than being summarized.
+  title: Observed properties
+  description: Measured source values keyed by their native or normalized property names. Contains observed facts, not planned implementation decisions.
   additionalProperties: true
 
-ReferenceParentSample:
+ReferenceStructure:
   type: object
-  title: Parent layout in one observed condition
+  title: Observed source structure
   additionalProperties: false
-  required: [state, breakpoint, layout, asset_ids, font_families]
+  required: [roots, nodes]
+  description: Observed hierarchy with native locators. Target component structure belongs in the plan.
   properties:
-    state: { type: string, minLength: 1, description: Exact recorded state name. }
-    breakpoint: { $ref: "#/BreakpointId" }
-    layout: { $ref: "#/ReferenceMaterial" }
-    asset_ids:
+    roots:
       type: array
+      minItems: 1
       uniqueItems: true
-      description: Exact images[].url identities required by this layout; empty means none.
+      description: Ordered observed root node IDs.
       items: { type: string, minLength: 1 }
-    font_families:
+    nodes:
       type: array
-      uniqueItems: true
-      description: Exact fonts[].family identities required by this layout; empty means none.
-      items: { type: string, minLength: 1 }
+      minItems: 1
+      description: Reachable observed nodes; IDs and ordered children preserve source relationships.
+      items:
+        type: object
+        additionalProperties: false
+        required: [id, kind, locator, children]
+        properties:
+          id: { type: string, minLength: 1, description: Unique local observed node ID. }
+          kind: { type: string, minLength: 1, description: Observed native or normalized node category. }
+          locator: { $ref: "#/ObservationLocator" }
+          children:
+            type: array
+            uniqueItems: true
+            description: Ordered child node IDs, empty for leaves.
+            items: { type: string, minLength: 1 }
 
 ReferenceDependencies:
   type: object
-  title: Exact package dependencies
+  title: Exact observation dependencies
   additionalProperties: false
   required: [parent_ids, asset_ids, font_families]
   properties:
     parent_ids:
       type: array
       uniqueItems: true
-      description: Exact ancestor layout IDs needed by this package. Empty for independent packages and asset provisioning.
+      description: Exact observed ancestor layout IDs.
       items: { type: string, minLength: 1 }
     asset_ids:
       type: array
       uniqueItems: true
-      description: Exact images[].url identities used by this package, empty when none.
+      description: Exact images[].url identities required by this sample.
       items: { type: string, minLength: 1 }
     font_families:
       type: array
       uniqueItems: true
-      description: Exact fonts[].family identities used by this package, empty when none.
+      description: Exact fonts[].family identities required by this sample.
       items: { type: string, minLength: 1 }
-
-ReferenceStructure:
-  type: object
-  title: Planned target structure
-  additionalProperties: false
-  required: [roots, nodes]
-  description: Concrete target markup or component hierarchy, using local node IDs rather than a copied source DOM. Every node is reachable from a root. Preserve all deliberate target nodes and their values.
-  properties:
-    roots:
-      type: array
-      minItems: 1
-      uniqueItems: true
-      description: Ordered root node IDs.
-      items: { type: string, minLength: 1 }
-    nodes:
-      type: array
-      minItems: 1
-      description: Planned target nodes, with exact attributes/props and ordered child IDs. Raw browser observations stay outside packages.
-      items:
-        type: object
-        additionalProperties: false
-        required: [id, element, children]
-        properties:
-          id: { type: string, minLength: 1, description: Unique local node identity. }
-          element: { type: string, minLength: 1, description: Exact target tag or qualified component identity; use $content for the shell injection point. }
-          children:
-            type: array
-            uniqueItems: true
-            description: Ordered child node IDs, empty for leaves.
-            items: { type: string, minLength: 1 }
-          attributes:
-            type: object
-            description: Exact target markup attributes, keyed by attribute name.
-            additionalProperties: { type: [string, number, boolean] }
-          props:
-            type: object
-            description: Exact component prop values keyed by prop name; complete planned values, not source observations.
-            additionalProperties: true
-          text: { type: string, description: Exact visible leaf text when applicable. }
-          slot: { type: string, description: Exact target parent slot receiving this node. }
-
-ReferenceComponentPackage:
-  type: object
-  title: Component work order
-  additionalProperties: false
-  required: [structure, layout, typography, content, interactions, dependencies]
-  description: Complete concrete decisions for constructing the selected component. This object is returned intact; source DOM/style dumps belong in sample observations, not here.
-  properties:
-    structure: { $ref: "#/ReferenceStructure" }
-    layout: { $ref: "#/ReferenceMaterial" }
-    typography:
-      type: array
-      description: Exact text treatment decisions for this component; empty when it contains no text.
-      items: { $ref: "#/ReferenceMaterial" }
-    content:
-      type: array
-      description: Exact ordered content and bindings for this component; empty when none.
-      items: { $ref: "#/ReferenceMaterial" }
-    interactions:
-      type: array
-      description: Exact trigger, target, behavior and accessibility implementation decisions; empty when none.
-      items: { $ref: "#/ReferenceMaterial" }
-    dependencies: { $ref: "#/ReferenceDependencies" }
-
-ReferenceCompositionPackage:
-  type: object
-  title: Composition work order
-  additionalProperties: false
-  required: [structure, layout, dependencies]
-  description: Concrete target component hierarchy, slots and composition layout. Child components' internal DOM and styling are supplied by their own component packages.
-  properties:
-    structure: { $ref: "#/ReferenceStructure" }
-    layout: { $ref: "#/ReferenceMaterial" }
-    dependencies: { $ref: "#/ReferenceDependencies" }
-
-ReferenceTokensPackage:
-  type: object
-  title: Token work order
-  additionalProperties: false
-  required: [values, dependencies]
-  description: Exact token names and values selected by the planner, with required font/asset dependencies. Carries no source DOM or component structure.
-  properties:
-    values: { $ref: "#/ReferenceMaterial" }
-    dependencies: { $ref: "#/ReferenceDependencies" }
-
-ReferenceAssetsPackage:
-  type: object
-  title: Asset provisioning work order
-  additionalProperties: false
-  required: [dependencies]
-  description: Only the exact local assets and font binaries to provision. Parent layout IDs must be empty; no component/DOM material is loaded for file provisioning.
-  properties:
-    dependencies: { $ref: "#/ReferenceDependencies" }
 
 ReferenceSample:
   type: object
-  title: Scoped reference analysis and work orders
+  title: Observed subject condition
   additionalProperties: false
-  required: [state, breakpoint]
-  description: Exact observed cell with independently complete task-kind work orders. Raw observations remain on disk and are excluded from every worker package. Each declared cell needs at least one package; required consuming kinds are fixed by the planner.
+  required: [view, state, structure, observations, dependencies, unavailable]
   properties:
-    state: { type: string, minLength: 1, description: Exact recorded state identity. }
+    view: { type: string, minLength: 1, description: Exact selected view identity. }
+    state: { type: string, minLength: 1, description: Exact observed state identity. }
     breakpoint: { $ref: "#/BreakpointId" }
+    structure: { $ref: "#/ReferenceStructure" }
     observations:
       type: object
-      description: Raw source DOM, computed style measurements and visual analysis retained for planner inspection only. Never returned by package queries.
-      additionalProperties: true
-    component: { $ref: "#/ReferenceComponentPackage" }
-    composition: { $ref: "#/ReferenceCompositionPackage" }
-    tokens: { $ref: "#/ReferenceTokensPackage" }
-    assets: { $ref: "#/ReferenceAssetsPackage" }
+      additionalProperties: false
+      description: Measured facts only; raw unmapped properties remain available for targeted inspection.
+      properties:
+        layout: { $ref: "#/ReferenceMaterial" }
+        typography:
+          type: array
+          description: Observed text treatments.
+          items: { $ref: "#/ReferenceMaterial" }
+        content:
+          type: array
+          description: Observed content in reading order.
+          items: { $ref: "#/ReferenceMaterial" }
+        interactions:
+          type: array
+          description: Observed interaction evidence; absent states are recorded as unavailable.
+          items: { $ref: "#/ReferenceMaterial" }
+        properties: { $ref: "#/ReferenceMaterial" }
+    dependencies: { $ref: "#/ReferenceDependencies" }
+    unavailable:
+      type: array
+      description: Explicit observation gaps; a required gap blocks publication.
+      items:
+        type: object
+        additionalProperties: false
+        required: [property, reason, required]
+        properties:
+          property: { type: string, minLength: 1, description: Missing observation identity. }
+          reason: { type: string, minLength: 1, description: Why the selected source cannot supply it. }
+          required: { type: boolean, description: Whether the agreed capture scope requires this information. }
 
 ReferenceSubject:
   type: object
-  title: Exact reference subject
+  title: Exact observed subject
   additionalProperties: false
-  required: [id, selector, samples]
+  required: [id, locator, samples]
   properties:
     id: { $ref: "#/ElementId" }
-    selector: { type: string, description: Exact selector recorded for this identity in reference metadata. }
+    locator: { $ref: "#/ObservationLocator" }
     samples:
       type: array
       minItems: 1
-      description: One complete sample for every planned state × breakpoint; duplicate cells are invalid.
+      description: One sample for each selected view and state; duplicate cells are invalid.
       items: { $ref: "#/ReferenceSample" }
+
+ReferenceParentSample:
+  type: object
+  title: Observed ancestor condition
+  additionalProperties: false
+  required: [view, state, layout, asset_ids, font_families]
+  properties:
+    view: { type: string, minLength: 1, description: Exact selected view identity. }
+    state: { type: string, minLength: 1, description: Exact observed state identity. }
+    layout: { $ref: "#/ReferenceMaterial" }
+    asset_ids:
+      type: array
+      uniqueItems: true
+      description: Exact images[].url dependencies.
+      items: { type: string, minLength: 1 }
+    font_families:
+      type: array
+      uniqueItems: true
+      description: Exact fonts[].family dependencies.
+      items: { type: string, minLength: 1 }
 
 ReferenceParent:
   type: object
-  title: Required ancestor layout
+  title: Observed ancestor layout
   additionalProperties: false
   required: [id, samples]
   properties:
-    id: { type: string, minLength: 1, description: Exact dependency identity fixed by the planner. }
+    id: { type: string, minLength: 1, description: Exact observed dependency identity. }
     parent: { type: string, minLength: 1, description: Exact ancestor dependency identity when needed. }
     samples:
       type: array
       minItems: 1
-      description: Complete ancestor layout for the consuming state × breakpoint scope, without unrelated sibling content.
+      description: Observed ancestor layout for the selected view and state.
       items: { $ref: "#/ReferenceParentSample" }
+
+CaptureFile:
+  title: Captured binary artifact
+  description: Declared direct screenshot or asset file; workflow done records its exact file integrity.
+
+FrozenObservationQuery:
+  type: object
+  title: Bound observation cell
+  additionalProperties: false
+  required: [reference, package, subjects, states, views, fingerprint]
+  properties:
+    reference: { type: string, description: Absolute directory of the published revision. }
+    package: { type: string, enum: [component] }
+    subjects: { type: array, minItems: 1, maxItems: 1, items: { type: string }, description: Exactly one observed subject for this comparison. }
+    states: { type: array, minItems: 1, maxItems: 1, items: { type: string }, description: Exactly one observed state for this comparison. }
+    views: { type: array, minItems: 1, maxItems: 1, items: { type: string }, description: Exactly one native view, explicitly mapped to the other side. }
+    fingerprint: { type: string, pattern: '^[a-f0-9]{64}$', description: Fingerprint returned by reference prepare. }
+
+ObservationComparison:
+  type: object
+  title: Explicit correspondence between captured source and actual observations
+  additionalProperties: false
+  required: [reference_query, actual_query, threshold, diff_path]
+  properties:
+    reference_query: { $ref: '#/FrozenObservationQuery' }
+    actual_query: { $ref: '#/FrozenObservationQuery' }
+    threshold: { type: number, minimum: 0, maximum: 1, description: Maximum measured pixel deviation accepted by this check. }
+    diff_path: { type: string, description: Absolute planned path for the comparison diff outside either published revision. }
+
+ObservationCompareArtifact:
+  type: object
+  title: Measured comparison of two published observation cells
+  required: [story_id, reference_subject, reference_view, reference_state, actual_subject, actual_view, actual_state, passed, diff_percent, severity, reference_path, screenshot_path]
+  properties:
+    story_id: { $ref: '../scenes/schemas.yml#/StoryId' }
+    reference_subject: { type: string, description: Selected source subject identity. }
+    reference_view: { type: string, description: Selected native source view identity. }
+    reference_state: { type: string, description: Selected observed source state. }
+    actual_subject: { type: string, description: Corresponding actual subject identity. }
+    actual_view: { type: string, description: Corresponding actual view identity. }
+    actual_state: { type: string, description: Corresponding observed actual state. }
+    passed: { type: boolean, description: Measured diff is within the declared threshold and all evidence is valid. }
+    diff_percent: { type: number, description: Measured pixel deviation from compare-images. }
+    severity: { type: string, enum: [pass, minor, major, critical] }
+    reference_path: { type: string, description: Exact source image path returned by the frozen query. }
+    screenshot_path: { type: string, description: Exact actual image path returned by the frozen query. }
+    diff_path: { type: string, description: Written comparison diff path. }
