@@ -451,3 +451,72 @@ is absent because those phases never started. Both CSV rows, raw reports,
 `summary.json`, `log-validation.json` and `friction.json` are retained under
 `promptfoo/reports/designbook-58-astra-sonnet-03/`. This run establishes an intake
 presentation-contract mismatch, not a regression in Sonnet or the transport fix.
+
+## Skill-only presentation clarification: Astra / Sonnet
+
+`designbook-58-astra-sonnet-04` used 74bcf523 plus the shared write-planning
+instruction to present one row per subject, grouping states and evidence.
+Fresh workspace, Storybook port 6134; scripts unchanged. Astra followed the
+new presentation rule with two rows, header and footer, each listing sm and xl.
+
+Intake failed with `Reference metadata omits xl for scene-header`. The reference
+uses separate `sm/meta.yml` and `xl/meta.yml`, each binding the same subject IDs
+to its own breakpoint and capture files. `referenceInventoryError` selects only
+the first matching metadata entry, then requires all row breakpoints there;
+the actual xl metadata/captures are ignored. The extract-reference contract
+places one meta.yml, extract.json and all breakpoint captures in the resolved
+reference folder. Astra split that single reference contrary to the intended
+layout; the intake should clarify this existing contract. This is not another
+duplicate-row presentation failure. Neither
+planning nor Sonnet execution started. The original artifacts remain unchanged.
+
+Automatic verification confirmed the missing main definition and shell scene
+on disk and in this workspace's Storybook index. All four checks are blocked;
+there are no rendered captures, comparisons or visual score. One failed initial
+browser/Python extraction command was recovered using browser eval and Python
+standard-library JSON/regex; native evidence retains both attempts.
+
+Total usage is 4,294,187 tokens: 4,271,621 input (4,091,776 cached) and 22,566
+output. Intake accounts for 3,607,738, verification for 686,449. Native durations
+sum to 965,427 ms excluding setup/harness overhead. Reports and audit JSONs are
+under `promptfoo/reports/designbook-58-astra-sonnet-04/`. The skill clarification
+was observed working; complete design execution remains unproven by this run.
+
+## Parallel Grok 4.6 planner / worker diagnostic
+
+`designbook-58-grok46-01` ran alongside Astra/Sonnet04 from the same 74bcf523
+plus skill-only clarification, with its own fresh workspace and Storybook 6136.
+The copied write-planning.md SHA-256 matches source and Astra04:
+`5a39cab8247dbe90cde1b9a8ae3cdf43657a7ed6ef2e3be88352710fb1d3c8f3`.
+Both roles used Grok `grok-4.6`; native terminal modelUsage identifies
+`grok-4.6-build`. Intake passed with one row per subject, two subjects, six
+capture cells and 24 packages in a common reference folder.
+
+The formal plan gate passed: 38 tasks in 20 steps, tasks.yml 408,126 bytes.
+All complete step prompts passed the byte preflight, 14,040–152,519 bytes.
+However, the planner read earlier Astra/Luna and Astra/Sonnet plans and concrete
+decision/context contracts from sibling workspaces and reports. The verifier
+also read previous verification contracts. This violates the fresh-input
+boundary: the run is excluded from independent model comparisons even where
+formal assertions pass. Those native calls/results remain in the audit.
+
+The first worker completed only its assigned `extract-reference` batch and
+preserved the definition, but failed `Execution changed frozen intake evidence`.
+Submission reserialized meta.yml and extract.json. Parsed metadata is identical;
+the extract changed only by one trailing newline (156,810 to 156,811 bytes),
+and removing that newline reconstructs the original hash. The measured failure
+is therefore a byte-level rewrite, not a semantic change to reference measurements. The remaining 19 worker
+steps never started; no shell was built.
+
+Automatic verification failed all six comparisons. Actual captures show the
+Storybook missing-story page with absent target selectors; these are invalid
+design captures and provide no accepted visual score. No successful design
+quality or execution baseline results from this run.
+
+Reported usage: intake 6,164,073; plan 4,821,592; worker 1,830,456; verification
+8,256,887. Total 21,073,008 tokens: 20,915,432 input (19,595,648 cached) and
+157,576 output. No separate reasoning counter is reported. Phase-report durations
+sum to 3,148,009 ms, excluding external setup/harness overhead. Four CSV rows,
+native logs and audit artifacts are retained under
+`promptfoo/reports/designbook-58-grok46-01/`. Services remain available for
+inspection. No saved input was repaired or rerun by the tester.
