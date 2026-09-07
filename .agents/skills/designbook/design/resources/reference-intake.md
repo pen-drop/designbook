@@ -1,6 +1,6 @@
 # Prepare the design reference during intake
 
-Use before fixing a design-shell, design-entity or design-screen component inventory.
+Use before fixing the component inventory for any design intake with a visual reference.
 Reference analysis supplies structural decisions, so it must finish before the
 saved workflow definition is authored.
 
@@ -17,11 +17,19 @@ saved workflow definition is authored.
    workspace reference directory.
 3. Derive the concrete inventory from that evidence: shell landmarks and nested
    regions, entity fields/component assignments, or section layout and content.
-   Resolve assets, navigation states, selectors and responsive differences before
-   committing to component IDs, slots, variants or task counts. Inspect targeted
+   Open the scoped screenshots and check the DOM at every requested breakpoint.
+   Each reference selector must visibly identify the intended subject, including
+   its defining content; a nonzero match count alone is insufficient. Record the
+   screenshot paths and observed subject content. Resolve wrong or ambiguous
+   matches before fixing the inventory. Keep reference selectors separate from
+   planned story selectors, whose DOM may not exist yet.
+   Resolve assets, navigation states and responsive differences before committing
+   to component IDs, slots, variants or task counts. Inspect targeted
    extraction fields instead of putting raw browser dumps into the context.
 4. Record the reference paths, fixed capture scope and resulting design decisions
-   in the definition's inputs and relevant embedded context. The builder can now
+   in the definition's inputs and relevant embedded context. Present the selector
+   choices through the [write planning contract](write-planning.md) before saving
+   the plan. The builder can now
    enumerate the complete component/mapping/scene graph.
 5. Keep the template's declared extraction task as the producer of its reference
    results. It reuses the already prepared extract/meta/baselines with the same

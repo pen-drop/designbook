@@ -111,6 +111,11 @@ const workspace = resolve(
   repo,
   opts.workspace || `promptfoo/workspaces/${opts.suite}-${opts.case}`,
 );
+const designIntake =
+  opts.phase === "main" &&
+  /^(design-shell|design-entity|design-screen|design-section|design-component)(?:-|$)/.test(
+    caseDoc.workflow || opts.case,
+  );
 let prompt = opts["prompt-file"]
   ? readFileSync(resolve(repo, opts["prompt-file"]), "utf8")
   : caseDoc.prompt;
@@ -121,6 +126,11 @@ const workflowId =
     ? caseDoc.workflow || opts.case
     : opts.validate || "design-verify";
 prompt = prompt.replaceAll("{{workspace}}", workspace);
+if (designIntake)
+  prompt =
+    "First part: design intake. Before workflow create or any saved-task execution, present the selected comparison subjects to the user in an assistant message with this Markdown table header: | Subject | Reference selector | Story selector | Breakpoints | Evidence |. Use exact element IDs and reference selectors, comma-separated breakpoint IDs, and screenshot paths plus observed subject content as evidence. Label story selectors for new DOM as planned. Use full page for an empty reference selector, or no reference for text-only work. Include every selected subject. Complete reference inspection and resolve ambiguous targets before presenting this table. This presentation is required even though the case asks no questions. Only after presenting it may you save the complete plan and execute it.\n\n" +
+    prompt;
+
 prompt +=
   caseDoc.repeat && opts.phase === "main"
     ? `\nUse distinct saved definition IDs ${JSON.stringify(workflowId + "-1")} through ${JSON.stringify(workflowId + "-" + caseDoc.repeat.count)} for the ordered repetitions in this single evaluation. Setup occurs once.`
@@ -142,6 +152,7 @@ const providers = base.providers.map((p) => ({
   config: {
     ...p.config,
     model,
+    requireDesignIntake: designIntake,
     evidenceDir: join(runDir, "evidence"),
     definitionSnapshotDir: join(runDir, "definitions"),
     ...(caseDoc.evidence && opts.phase === "main"
@@ -168,6 +179,11 @@ const assertions =
           value: `Object.values(output.completedWorkflows).some(w => w.definition.id === ${JSON.stringify(workflowId)})`,
         },
       ];
+if (designIntake)
+  assertions.push({
+    type: "javascript",
+    value: `file://${join(repo, "promptfoo/extensions/design-intake.mjs")}`,
+  });
 assertions.push(
   { type: "javascript", value: "output.workflowErrors.length === 0" },
   {
@@ -293,6 +309,7 @@ if (
         ...provider.config,
         evidenceDir: join(runDir, "verify-evidence"),
         caseFile: undefined,
+        requireDesignIntake: false,
       },
     })),
     tags: {

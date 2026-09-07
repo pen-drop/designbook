@@ -1,3 +1,8 @@
+import {
+  nativeEntries,
+  selectorTable,
+  validateDesignIntake,
+} from "../extensions/design-intake.mjs";
 /**
  * Shared workspace, artifact and evidence handling for CLI providers.
  * This uses the user's CLI subscription (OAuth auth) instead of an API key.
@@ -253,6 +258,26 @@ class CliProvider {
             }
           },
         );
+        if (this.config.requireDesignIntake) {
+          let pending = "";
+          child.stdout?.setEncoding("utf8");
+          child.stdout?.on("data", (chunk) => {
+            pending += chunk.toString();
+            const lines = pending.split(/\r?\n/);
+            pending = lines.pop();
+            for (const line of lines) {
+              let event;
+              try {
+                event = JSON.parse(line);
+              } catch {
+                continue;
+              }
+              for (const entry of nativeEntries([event]))
+                if (entry.text && selectorTable(entry.text))
+                  console.log(entry.text);
+            }
+          });
+        }
         // The prompt is passed as an argv value. Close stdin so the CLI does not
         // wait for an additional prompt after completing that request.
         child.stdin?.end();
@@ -291,6 +316,16 @@ class CliProvider {
 
       // Collect all workspace artifacts after the run
       const artifacts = await this.collectArtifacts(cwd);
+      if (this.config.requireDesignIntake) {
+        artifacts.designIntake = validateDesignIntake(events, {
+          ...artifacts.completedWorkflows,
+          ...artifacts.pendingWorkflows,
+        });
+        await writeFile(
+          join(evidenceDir, "design-intake.json"),
+          JSON.stringify(artifacts.designIntake, null, 2),
+        );
+      }
 
       const tokenUsage = {
         prompt: usage.input_tokens,

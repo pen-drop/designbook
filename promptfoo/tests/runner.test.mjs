@@ -102,6 +102,13 @@ test("text-only design cases retain semantic evidence through the Promptfoo runn
       ).trim();
       const config = yaml.load(await readFile(path, "utf8"));
       assert.equal(config.tags.verify_config, undefined);
+      assert.equal(config.providers[0].config.requireDesignIntake, true);
+      assert.match(config.prompts[0], /^First part: design intake/);
+      assert.ok(
+        config.tests[0].assert.some((assertion) =>
+          assertion.value.endsWith("/design-intake.mjs"),
+        ),
+      );
       assert.match(
         config.providers[0].config.caseFile,
         new RegExp(`${caseName}\\.yaml$`),
@@ -1139,4 +1146,22 @@ test("nested runner refuses before provisioning or writing reports", async (t) =
   assert.match(result.stderr, /Already inside the Promptfoo CLI driver/);
   assert.equal(await readFile(marker, "utf8"), "active fixture");
   await assert.rejects(readFile(join(root, "nested.json")), { code: "ENOENT" });
+});
+
+test("provider retains deterministic intake failure beside successful CLI usage", async (t) => {
+  const { provider, workspace, stub } = await fixture(t);
+  provider.config.requireDesignIntake = true;
+  await stub(emit(completed));
+  const response = await provider.callApi("Design intake", {
+    vars: { workspace },
+  });
+  assert.equal(response.output.designIntake.pass, false);
+  assert.equal(response.tokenUsage.total, 110);
+  const evidence = JSON.parse(
+    await readFile(
+      join(response.metadata.evidenceDir, "design-intake.json"),
+      "utf8",
+    ),
+  );
+  assert.equal(evidence.pass, false);
 });

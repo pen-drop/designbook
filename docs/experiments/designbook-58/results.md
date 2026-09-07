@@ -109,3 +109,28 @@ The next correctness change exposes definition-ready parameter/output contracts
 in `workflow discover` and gives the shared final validation task required build
 and browser-evidence outputs. This changes the catalogue interface and requires
 fresh baseline runs. No compatibility conversion is introduced.
+
+
+## Grok Promptfoo preflight
+
+On source `3f68f2b9`, `drupal-petshop/vision` passed through the real Grok 4.6
+adapter and Promptfoo runner. The saved definition remained unchanged and the
+vision artifact passed the case assertions. Native per-message usage matched the
+terminal counters: 2,440,787 input tokens (2,327,040 cached) plus 14,634 output,
+2,455,421 total; measured CLI duration 310,789 ms. This nonvisual preflight proves
+runner/usage integration, not the final Grok design-quality acceptance.
+Evidence: `promptfoo/reports/designbook-58-grok-preflight/summary.json`.
+
+## User-required intake presentation
+
+The user clarified during coding that design intakes must show selector choices
+before building, and that this must be the first part of the Promptfoo main run
+with deterministic validation. The shared write-planning contract now requires
+a visible inventory. Reference intake requires observed screenshot/DOM evidence
+at every requested breakpoint and keeps reference/story selectors distinct.
+Promptfoo checks the assistant's table against declared reference selectors and
+breakpoints, requires it before the first native workflow create/start/done
+command, and fails closed when ordering evidence is absent. It also emits the
+table during the CLI run. This static check establishes presentation and scope;
+visual correctness still requires the screenshot audit and separate verifier.
+These are user-requested correctness/measurement changes, not accepted token wins.
