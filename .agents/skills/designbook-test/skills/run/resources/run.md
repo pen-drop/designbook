@@ -45,6 +45,8 @@ CLI JSONL, stderr, prompt, usage and available `dbo.log` copies are saved beside
 the report. CLI commands run from the workspace root containing
 `designbook.config.yml`; the theme directory is its own git repository.
 
+The driver uses only the fresh fixture inputs and copied skills; previous test
+workspaces, saved definitions and reports are not case inputs.
 The driver loads the case's domain skill, prepares a complete definition and
 executes the saved path. The prompt requires a `definition-before.yml` copy of the saved `definition`
 object in the same directory as each created `tasks.yml`, before execution. Inspect those copies after execution; absence or mutation

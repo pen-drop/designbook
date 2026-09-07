@@ -117,7 +117,8 @@ prompt +=
     ? `\nUse distinct saved definition IDs ${JSON.stringify(workflowId + "-1")} through ${JSON.stringify(workflowId + "-" + caseDoc.repeat.count)} for the ordered repetitions in this single evaluation. Setup occurs once.`
     : `\nUse ${JSON.stringify(workflowId)} as the primary saved workflow definition.id for this phase.`;
 prompt +=
-  "\nRun all Designbook CLI commands from the workspace root with its designbook.config.yml.\n" +
+  "\nUse this fresh workspace’s fixture inputs and copied skills. Prior test workspaces, saved definitions, generated artifacts and reports are not inputs; do not read or copy them. Repository test helpers and this case file remain available.\n" +
+  "Run all Designbook CLI commands from the workspace root with its designbook.config.yml.\n" +
   `After workflow create returns the saved tasks.yml path, run node ${JSON.stringify(join(repo, "promptfoo/scripts/snapshot-definition.mjs"))} <saved-tasks.yml> before execute-workflow. This helper saves the unchanged definition beside tasks.yml. ` +
   "Execute the saved path through execute-workflow. Report every saved path, failure, retry and unanswered input. " +
   "If required inputs are missing, record the failure and end the run; this test has no interactive user.";

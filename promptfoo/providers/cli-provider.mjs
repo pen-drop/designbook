@@ -39,6 +39,7 @@ import { createRequire } from "node:module";
 import {
   collectCaseArtifacts,
   collectRuns,
+  savedWorkflows,
 } from "../../.agents/skills/designbook-test/resources/eval-score.mjs";
 
 const require = createRequire(import.meta.url);
@@ -424,50 +425,40 @@ class CliProvider {
       }
 
       // Completion follows saved state. Run IDs remain exact; retries are evidence.
-      for (const folder of ["changes", "archive"]) {
-        const files = await this.walkDir(
-          join(designbookDir, "workflows", folder),
-          workspaceDir,
-          () => true,
-        );
-        for (const f of files.filter((file) =>
-          file.path.endsWith("/tasks.yml"),
-        )) {
+      for (const { path, document: parsed, error } of savedWorkflows(designbookDir)) {
+        const file = relative(workspaceDir, path);
+        try {
+          if (error) throw new Error(error);
+          workflowPaths.push(path);
+          if (!parsed?.definition?.id || !parsed?.state?.status)
+            throw new Error("Invalid workflow document");
+          const target =
+            parsed.state.status === "completed"
+              ? result.completedWorkflows
+              : result.pendingWorkflows;
+          if (
+            result.completedWorkflows[parsed.definition.id] ||
+            result.pendingWorkflows[parsed.definition.id]
+          )
+            throw new Error(`Duplicate workflow id: ${parsed.definition.id}`);
+          target[parsed.definition.id] = parsed;
           try {
-            const parsed = yaml.load(
-              await readFile(join(workspaceDir, f.path), "utf-8"),
+            const before = yaml.load(
+              await readFile(
+                join(workspaceDir, dirname(file), "definition-before.yml"),
+                "utf-8",
+              ),
             );
-            workflowPaths.push(resolve(workspaceDir, f.path));
-            if (!parsed?.definition?.id || !parsed?.state?.status)
-              throw new Error("Invalid workflow document");
-            const target =
-              parsed.state.status === "completed"
-                ? result.completedWorkflows
-                : result.pendingWorkflows;
-            if (
-              result.completedWorkflows[parsed.definition.id] ||
-              result.pendingWorkflows[parsed.definition.id]
-            )
-              throw new Error(`Duplicate workflow id: ${parsed.definition.id}`);
-            target[parsed.definition.id] = parsed;
-            try {
-              const before = yaml.load(
-                await readFile(
-                  join(workspaceDir, dirname(f.path), "definition-before.yml"),
-                  "utf-8",
-                ),
-              );
-              if (!isDeepStrictEqual(before, parsed.definition))
-                throw new Error("Definition changed during execution");
-            } catch (err) {
-              result.definitionErrors.push({
-                path: f.path,
-                error: err.message,
-              });
-            }
+            if (!isDeepStrictEqual(before, parsed.definition))
+              throw new Error("Definition changed during execution");
           } catch (err) {
-            result.workflowErrors.push({ path: f.path, error: err.message });
+            result.definitionErrors.push({
+              path: file,
+              error: err.message,
+            });
           }
+        } catch (err) {
+          result.workflowErrors.push({ path: file, error: err.message });
         }
       }
     } catch (err) {

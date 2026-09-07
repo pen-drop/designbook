@@ -104,6 +104,7 @@ test("text-only design cases retain semantic evidence through the Promptfoo runn
         new RegExp(`${caseName}\\.yaml$`),
       );
       assert.match(config.prompts[0], /case-runs\.json/);
+      assert.match(config.prompts[0], /Prior test workspaces, saved definitions, generated artifacts and reports are not inputs/);
       assert.equal(
         config.tests[0].vars.case_file,
         config.providers[0].config.caseFile,
@@ -898,4 +899,19 @@ process.exitCode = Number(config.tags.phase === 'main' ? process.env.TEST_MAIN_E
       assert.match(verify.prompts[0], /threshold 3%/);
     assert.match(verify.prompts[0], /original reference/);
   }
+});
+
+
+test("pending documents at noncanonical paths cannot disappear from workflow gates", async (t) => {
+  const {provider, workspace, workflow} = await fixture(t);
+  await workflow("changes", "completed", "main", "completed");
+  const root = join(workspace, "designbook/workflows");
+  await writeFile(join(root, "changes/initial-attempt"), yaml.dump({definition: {id: "main"}, state: {status: "pending", tasks: {}}}));
+  await mkdir(join(root, "attempts"));
+  await writeFile(join(root, "attempts/blocked.yml"), yaml.dump({definition: {id: "blocked"}, state: {status: "blocked", tasks: {}}}));
+  await writeFile(join(root, "notes.md"), "Not a workflow");
+  const result = await provider.collectArtifacts(workspace);
+  assert.equal(result.definitionUnchanged, false);
+  assert.equal(result.pendingWorkflows.blocked.state.status, "blocked");
+  assert.ok(result.workflowErrors.some(error => error.error.includes("Duplicate workflow id: main")));
 });

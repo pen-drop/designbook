@@ -187,6 +187,29 @@ export function componentPrerequisites(document) {
   return {passed: failures.length === 0, failures};
 }
 
+// workflow create accepts an explicit file path. Inspect the whole reserved
+// workflow directory so a misplaced or archived attempt cannot evade the gates.
+export function savedWorkflows(dataDir) {
+  const found = [];
+  const visit = directory => {
+    if (!existsSync(directory)) return;
+    for (const entry of readdirSync(directory, {withFileTypes: true})) {
+      const path = resolve(directory, entry.name);
+      if (entry.isDirectory()) { visit(path); continue; }
+      if (!entry.isFile()) continue;
+      try {
+        const document = parseYaml(readFileSync(path, "utf8"));
+        if (document?.definition && document?.state) found.push({path, document});
+        else if (entry.name === "tasks.yml") found.push({path, error: "Invalid workflow document"});
+      } catch (error) {
+        if (entry.name === "tasks.yml") found.push({path, error: error.message});
+      }
+    }
+  };
+  visit(resolve(dataDir, "workflows"));
+  return found;
+}
+
 export function collectRuns(entries, summarize = () => undefined) {
   const paths = new Set();
   return entries.map((entry) => {
@@ -284,17 +307,12 @@ async function main() {
   const themeDir = arg("theme-dir", process.cwd());
   const completedWorkflows = {},
     pendingWorkflows = {};
-  for (const folder of ["changes", "archive"]) {
-    const root = `${dataDir}/workflows/${folder}`;
-    if (!existsSync(root)) continue;
-    for (const name of readdirSync(root)) {
-      const file = `${root}/${name}/tasks.yml`;
-      if (!existsSync(file)) continue;
-      const doc = parseYaml(readFileSync(file, "utf8"));
-      (doc.state.status === "completed"
-        ? completedWorkflows
-        : pendingWorkflows)[doc.definition.id] = doc;
-    }
+  for (const {path, document: doc, error} of savedWorkflows(dataDir)) {
+    if (error || !doc?.definition?.id || !doc?.state?.status)
+      throw new Error(`${path}: ${error || "Invalid workflow document"}`);
+    if (completedWorkflows[doc.definition.id] || pendingWorkflows[doc.definition.id])
+      throw new Error(`Duplicate workflow id: ${doc.definition.id} (${path})`);
+    (doc.state.status === "completed" ? completedWorkflows : pendingWorkflows)[doc.definition.id] = doc;
   }
   const artifacts = await collectCaseArtifacts(
     themeDir,
