@@ -205,3 +205,19 @@ The generated configs identify the intake report, handoff and native evidence.
 CSV stores `intake`, `main` and `verify` as separate rows under one `run_id`.
 Efficiency totals must include every phase; compare this pipeline only against
 a baseline established with the same phase structure and gates.
+
+### Context logs
+
+Every CLI phase writes `context.jsonl` and `context-summary.json` beside its raw
+CLI log, and links the summary from `run.json` as `contextLog`. Request rows use
+native per-request input tokens, including cached input, rather than cumulative
+phase usage. Summaries report peak/last input tokens, observed context-window
+limits and compaction events. These are root-thread observations; subagent
+context is not included. Unavailable values are `null`, never estimated from
+phase totals. On failed or timed-out runs the log covers only available events.
+
+Codex sessions are persisted and their native session log is copied to
+`codex-session.jsonl` so request usage and compaction remain inspectable. Earlier
+`--ephemeral` runs cannot be reconstructed from terminal totals. Claude/Grok use
+native assistant-message usage, deduplicated by message ID; context limits are
+recorded only when the CLI reports them. No missing context limits are inferred.

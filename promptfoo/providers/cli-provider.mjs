@@ -1,3 +1,4 @@
+import { writeContextLog } from "./context-log.mjs";
 import {
   nativeEntries,
   validateDesignIntake,
@@ -248,6 +249,7 @@ class CliProvider {
     const label = this.runtime.label;
     const logName = `${this.runtime.name}.jsonl`;
     let measured;
+    let contextLog;
 
     try {
       const raw = await new Promise((resolve, reject) => {
@@ -279,6 +281,7 @@ class CliProvider {
                 writeFile(join(evidenceDir, logName), stdout),
                 writeFile(join(evidenceDir, "stderr.log"), stderr),
               ]);
+              contextLog = await writeContextLog(this.runtime.name, stdout, evidenceDir);
             } catch (logError) {
               reject(logError);
               return;
@@ -474,6 +477,7 @@ class CliProvider {
         workspace: cwd,
         usage,
         durationMs: Date.now() - started,
+        contextLog,
         evidenceDir,
       };
       await writeFile(
@@ -536,6 +540,7 @@ class CliProvider {
         workspace: cwd,
         durationMs: Date.now() - started,
         usage: null,
+        contextLog,
         ...measured,
         evidenceDir,
         error: err.message,

@@ -8,7 +8,6 @@ export const codexRuntime = {
   args: (cwd, prompt, model, config = {}) => [
     "exec",
     "--json",
-    "--ephemeral",
     "--dangerously-bypass-approvals-and-sandbox",
     "--skip-git-repo-check",
     "--model",
