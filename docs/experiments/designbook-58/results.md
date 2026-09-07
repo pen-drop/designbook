@@ -157,3 +157,30 @@ and parses shell quoting so documentation searches do not become lifecycle
 commands. Intake text is displayed even when its table is invalid; validation
 still fails. `pnpm check` passes 783 tests; separate runner checks pass 38 tests.
 No efficiency gain is claimed from this incomplete run.
+
+## Diagnostic 04 audit and intake phase correction
+
+Source `06b1d20f`; fresh workspace/report suffix `designbook-58-shell-diagnostic-04`,
+Storybook port 6122. The complete selector table was emitted with concrete planned
+`.page__header`/`.page__footer` selectors and real reference screenshots. Main
+again ended at the table without creating a workflow: 783,596 tokens, 148,959 ms.
+Separate verify correctly blocked on the missing main workflow/scene and misplaced
+baseline paths; it produced no rendered score: 1,880,048 tokens, 232,842 ms.
+Total: 2,663,644 tokens and 381,801 ms. This is failed work, not a token saving.
+
+After two terminations at user-facing intake output, the runner now makes intake
+an explicit first Promptfoo evaluation. It statically validates the complete
+selector table, reference metadata and canonical capture paths, saves the effective
+planning catalogue, and creates an external handoff only on success. Main then
+uses the same workspace and fixed selections. Intake alone provisions fixtures;
+failed intake skips main explicitly, while requested separate verification remains.
+All phases retain separate native usage rows under the same run ID. This changes
+the measurement pipeline and requires a new baseline; it is not an accepted
+workflow-splitting efficiency hypothesis.
+
+Capture, asset, extraction and catalogue bytes are frozen between intake and main.
+YAML reference metadata is compared by complete parsed value to permit formatting
+by the normal result writer. The native intake transcript remains the presentation
+proof; main's declared selectors/breakpoints must agree. Pipeline tests cover
+intake/main/verify failures, setup isolation, handoff scope, metadata formatting
+and changed-reference rejection. Separate runner tests pass 41 checks.

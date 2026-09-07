@@ -1,6 +1,8 @@
 import {
   nativeEntries,
   validateDesignIntake,
+  validateIntakePresentation,
+  referenceInventoryError,
 } from "../extensions/design-intake.mjs";
 /**
  * Shared workspace, artifact and evidence handling for CLI providers.
@@ -172,18 +174,57 @@ class CliProvider {
     return { cwd, prompt };
   }
 
+  async intakeFingerprints(cwd, artifacts) {
+    const files = Object.fromEntries(
+      Object.entries(artifacts.fileHashes).filter(
+        ([path]) =>
+          path.startsWith("designbook/references/") ||
+          path === ".designbook-intake/catalogue.json",
+      ),
+    );
+    const metadata = {};
+    const dataDir = await this.resolveDesignbookDir(cwd);
+    for (const path of Object.keys(files)) {
+      if (!/\.ya?ml$/.test(path)) continue;
+      const value = yaml.load(
+        await readFile(join(dataDir, path.slice("designbook/".length)), "utf8"),
+      );
+      if (path.endsWith("/meta.yml")) metadata[path] = value;
+      // Result writers may reformat YAML; preserve its complete value, and preserve
+      // captures, assets, extraction and catalogue bytes exactly.
+      const canonical = JSON.stringify(value, (_key, child) =>
+        child && typeof child === "object" && !Array.isArray(child)
+          ? Object.fromEntries(
+              Object.entries(child).sort(([a], [b]) => a.localeCompare(b)),
+            )
+          : child,
+      );
+      files[path] = createHash("sha256").update(canonical).digest("hex");
+    }
+    return { files, metadata };
+  }
+
   async callApi(prompt, context) {
     const evidenceRoot = resolve(
       this.config.evidenceDir || "promptfoo/reports/evidence",
     );
     await mkdir(evidenceRoot, { recursive: true });
     const evidenceDir = await mkdtemp(join(evidenceRoot, "run-"));
-    let cwd, resolvedPrompt;
+    let cwd, resolvedPrompt, intakeHandoff;
     try {
       ({ cwd, prompt: resolvedPrompt } = this.setupWorkspace(
         context?.vars,
         prompt,
       ));
+      if (this.config.intakeHandoffInput) {
+        intakeHandoff = JSON.parse(
+          await readFile(this.config.intakeHandoffInput, "utf8"),
+        );
+        if (intakeHandoff.pass !== true || intakeHandoff.workspace !== cwd)
+          throw new Error(
+            "Execution requires a passing intake for this workspace",
+          );
+      }
       if (this.config.definitionSnapshotDir)
         snapshotExistingDefinitions(
           savedWorkflows(await this.resolveDesignbookDir(cwd)),
@@ -321,14 +362,95 @@ class CliProvider {
       // Collect all workspace artifacts after the run
       const artifacts = await this.collectArtifacts(cwd);
       if (this.config.requireDesignIntake) {
-        artifacts.designIntake = validateDesignIntake(events, {
-          ...artifacts.completedWorkflows,
-          ...artifacts.pendingWorkflows,
-        });
+        const intakeEvents = intakeHandoff
+          ? (await readFile(intakeHandoff.native_log, "utf8"))
+              .trim()
+              .split(/\r?\n/)
+              .filter(Boolean)
+              .map(JSON.parse)
+          : [];
+        artifacts.designIntake = this.config.intakeOnly
+          ? validateIntakePresentation(events)
+          : validateDesignIntake([...intakeEvents, ...events], {
+              ...artifacts.completedWorkflows,
+              ...artifacts.pendingWorkflows,
+            });
+        if (
+          this.config.intakeOnly &&
+          Object.keys({
+            ...artifacts.completedWorkflows,
+            ...artifacts.pendingWorkflows,
+          }).length
+        )
+          artifacts.designIntake = {
+            pass: false,
+            reason: "Intake-only phase persisted a workflow",
+          };
+        const { files: frozenFiles, metadata } = await this.intakeFingerprints(
+          cwd,
+          artifacts,
+        );
+        if (this.config.intakeOnly && artifacts.designIntake.pass) {
+          const reason = referenceInventoryError(
+            artifacts.designIntake.rows,
+            metadata,
+            artifacts.fileHashes,
+          );
+          if (reason) artifacts.designIntake = { pass: false, reason };
+        }
+        if (
+          intakeHandoff &&
+          Object.entries(intakeHandoff.frozen_files).some(
+            ([path, hash]) => frozenFiles[path] !== hash,
+          )
+        )
+          artifacts.designIntake = {
+            pass: false,
+            reason: "Execution changed frozen intake evidence",
+          };
+        if (this.config.intakeOnly && this.config.intakeCatalogue) {
+          let catalogue;
+          try {
+            catalogue = JSON.parse(
+              await readFile(this.config.intakeCatalogue, "utf8"),
+            );
+          } catch {
+            /* Report the failed gate with measured usage. */
+          }
+          if (
+            !catalogue?.template?.content ||
+            !catalogue.blocks ||
+            !Object.keys(catalogue.blocks).length
+          )
+            artifacts.designIntake = {
+              pass: false,
+              reason: "Intake requires its complete saved planning catalogue",
+            };
+        }
         await writeFile(
           join(evidenceDir, "design-intake.json"),
           JSON.stringify(artifacts.designIntake, null, 2),
         );
+        if (
+          this.config.intakeOnly &&
+          artifacts.designIntake.pass &&
+          this.config.intakeHandoffOutput
+        )
+          await writeFile(
+            this.config.intakeHandoffOutput,
+            JSON.stringify(
+              {
+                ...artifacts.designIntake,
+                workspace: cwd,
+                native_log: join(evidenceDir, logName),
+                catalogue: this.config.intakeCatalogue,
+                frozen_files: frozenFiles,
+              },
+              null,
+              2,
+            ),
+            { flag: "wx" },
+          );
       }
 
       const tokenUsage = {

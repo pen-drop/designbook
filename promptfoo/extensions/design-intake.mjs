@@ -1,3 +1,4 @@
+import { posix } from "node:path";
 import { parse as parseShell } from "shell-quote";
 const headers = [
   "subject",
@@ -97,6 +98,63 @@ export function selectorTable(text) {
     new Set(rows.map((row) => row.subject)).size === rows.length
     ? rows
     : null;
+}
+
+/** Check the declared reference matrix before execution consumes it. */
+export function referenceInventoryError(rows, metadata, hashes) {
+  for (const row of rows) {
+    if (row["reference selector"] === "no reference") continue;
+    const match = Object.entries(metadata).find(([, meta]) =>
+      meta?.elements?.some(
+        (element) =>
+          element.id === row.subject &&
+          (element.selector || "full page") === row["reference selector"],
+      ),
+    );
+    if (!match)
+      return `Reference metadata does not bind the presented selector for ${row.subject}`;
+    const [path, meta] = match;
+    const element = meta.elements.find((item) => item.id === row.subject);
+    if (!element.states?.length)
+      return `Reference states are missing for ${row.subject}`;
+    for (const bp of row.breakpoints.split(/[\s,]+/).filter(Boolean)) {
+      if (!element.breakpoints?.includes(bp))
+        return `Reference metadata omits ${bp} for ${row.subject}`;
+      for (const state of element.states) {
+        const screenshot = posix.join(
+          posix.dirname(path),
+          `${bp}--${row.subject}--${state.name}.png`,
+        );
+        if (!state.name || !hashes[screenshot])
+          return `Missing declared reference capture: ${screenshot}`;
+      }
+    }
+  }
+  return null;
+}
+
+/** The first pipeline part ends with a complete selector inventory, before any saved workflow. */
+export function validateIntakePresentation(events) {
+  const entries = nativeEntries(events);
+  if (entries.some((entry) => workflowCommand(entry.command || "")))
+    return {
+      pass: false,
+      reason: "Intake-only phase created or executed a workflow",
+    };
+  const presentation = entries.find(
+    (entry) => entry.text && selectorTable(entry.text),
+  );
+  return presentation
+    ? {
+        pass: true,
+        reason: "Complete selector intake presented",
+        text: presentation.text,
+        rows: selectorTable(presentation.text),
+      }
+    : {
+        pass: false,
+        reason: "Missing complete user-visible selector table in intake",
+      };
 }
 
 /** Deterministic transcript/order and declared-scope check; visual truth is audited separately. */

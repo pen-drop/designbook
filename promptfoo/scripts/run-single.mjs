@@ -126,11 +126,7 @@ const workflowId =
     ? caseDoc.workflow || opts.case
     : opts.validate || "design-verify";
 prompt = prompt.replaceAll("{{workspace}}", workspace);
-if (designIntake)
-  prompt =
-    "First part: design intake. Before workflow create or any saved-task execution, present the selected comparison subjects to the user in an assistant message with this Markdown table header: | Subject | Reference selector | Story selector | Breakpoints | Evidence |. Use exact element IDs and reference selectors, comma-separated breakpoint IDs, and screenshot paths plus observed subject content as evidence. Label story selectors for new DOM as planned. Use full page for an empty reference selector, or no reference for text-only work. Include every selected subject. Complete reference inspection and resolve ambiguous targets before presenting this table. This presentation is required even though the case asks no questions. Second part: immediately continue in the same invocation, save the complete plan and execute all its tasks through execute-workflow. Finish both parts; the intake table is an intermediate assistant message, not the final response. Story selectors must be concrete CSS selectors (for example planned: .page__header), not descriptive placeholders.\n\n" +
-    prompt;
-
+const requestPrompt = prompt;
 prompt +=
   caseDoc.repeat && opts.phase === "main"
     ? `\nUse distinct saved definition IDs ${JSON.stringify(workflowId + "-1")} through ${JSON.stringify(workflowId + "-" + caseDoc.repeat.count)} for the ordered repetitions in this single evaluation. Setup occurs once.`
@@ -145,6 +141,10 @@ prompt +=
 if (caseDoc.evidence && opts.phase === "main") {
   prompt += `\nFollow the Case evidence and scoring contract in ${JSON.stringify(join(repo, ".agents/skills/designbook-test/skills/run/resources/run.md"))}. Save ${JSON.stringify(join(workspace, "case-runs.json"))} as a JSON array in execution order, with one entry per saved run: {workflow, definitionBefore, evidence, artifactSnapshot}, each an absolute file path. Each evidence file contains the actual build output and browser observations. Capture each artifact snapshot before the next repetition; preserve the fixture git baseline. Include every attempt. The Promptfoo provider reads this manifest and uses the shared scorer to inspect artifacts and evaluate the case assertions.`;
 }
+const intakeOutput = join(runDir, "intake.json");
+const intakeHandoff = join(runDir, "intake-handoff.json");
+if (designIntake)
+  prompt += `\nThe first intake part is already complete for this same run. Read the compact validated handoff at ${JSON.stringify(intakeHandoff)} and use its exact subjects, reference selectors, planned story selectors and breakpoints. Reuse the effective catalogue at the handoff catalogue path instead of rediscovering unchanged context. Its catalogue and reference files are frozen inputs: reuse them without modifying them. Continue with complete workflow definition authoring and execute-workflow in this invocation. The handoff's selector table has already been presented to the user; complete the remaining work now.`;
 const providers = base.providers.map((p) => ({
   ...p,
   id: `file://${join(repo, "promptfoo/providers", `${cli}-cli.mjs`)}`,
@@ -153,6 +153,7 @@ const providers = base.providers.map((p) => ({
     ...p.config,
     model,
     requireDesignIntake: designIntake,
+    ...(designIntake ? { intakeHandoffInput: intakeHandoff } : {}),
     evidenceDir: join(runDir, "evidence"),
     definitionSnapshotDir: join(runDir, "definitions"),
     ...(caseDoc.evidence && opts.phase === "main"
@@ -261,6 +262,60 @@ const config = {
 };
 if (caseDoc.evidence && opts.phase === "main")
   config.tests[0].vars.case_file = join(cases, `${opts.case}.yaml`);
+let intakeConfigPath;
+if (designIntake) {
+  intakeConfigPath = join(runDir, "intake-promptfooconfig.yaml");
+  const intakeConfig = {
+    ...config,
+    description: `${opts.suite}/${opts.case}: intake`,
+    outputPath: intakeOutput,
+    tags: {
+      ...config.tags,
+      phase: "intake",
+      report: relative(repo, intakeOutput),
+    },
+    prompts: [
+      `This is the first, intake-only part of the design pipeline. Load the requested design intake, complete reference analysis and select concrete comparison subjects/selectors at all requested breakpoints. Save the effective workflow discover catalogue to ${join(workspace, ".designbook-intake/catalogue.json")} (create the directory first). Reuse that catalogue during intake. Complete and inspect the reference evidence in the workspace. Store each declared baseline PNG beside its reference meta.yml using the discovered element/state/breakpoint filename contract; ensure the metadata binds every presented subject and selector. Present your final intake as a Markdown table with exactly these columns: | Subject | Reference selector | Story selector | Breakpoints | Evidence |. Use exact element IDs, concrete reference CSS selectors (full page for an empty selector, no reference for text-only work), concrete story CSS selectors (prefix planned: for new DOM), comma-separated breakpoint IDs, and screenshot paths plus observed subject content as evidence. Resolve ambiguous or wrong subjects. The subsequent execution phase uses this table and the frozen reference artifacts.\n\nCase request:\n${requestPrompt}\n\nFor this invocation complete only intake. End after presenting the complete table. Create no saved workflow and execute no design tasks; the next pipeline part performs those using your handoff. Do not run fixture setup or Promptfoo yourself. Use this fresh workspace's inputs and copied skills only; earlier workspaces and reports are not inputs.`,
+    ],
+    providers: providers.map((provider) => ({
+      ...provider,
+      config: {
+        ...provider.config,
+        intakeOnly: true,
+        intakeCatalogue: join(workspace, ".designbook-intake/catalogue.json"),
+        intakeHandoffInput: undefined,
+        intakeHandoffOutput: intakeHandoff,
+        caseFile: undefined,
+        evidenceDir: join(runDir, "intake-evidence"),
+      },
+    })),
+    tests: [
+      {
+        vars: { ...config.tests[0].vars },
+        assert: [
+          {
+            type: "javascript",
+            value: `file://${join(repo, "promptfoo/extensions/design-intake.mjs")}`,
+          },
+          {
+            type: "javascript",
+            value: "output.usage != null && output.workflowErrors.length === 0",
+          },
+        ],
+      },
+    ],
+  };
+  // Only intake provisions fixtures. Execution preserves its workspace and evidence.
+  delete config.tests[0].vars.suite;
+  delete config.tests[0].vars.case;
+  delete config.tests[0].vars.storybook_port;
+  config.tags.intake_config = intakeConfigPath;
+  config.tags.intake_report = intakeOutput;
+  writeFileSync(
+    intakeConfigPath,
+    yaml.dump(intakeConfig, { lineWidth: 120, noRefs: true }),
+  );
+}
 const configPath = join(runDir, "promptfooconfig.yaml");
 let verifyConfig;
 let verifyConfigPath;
@@ -310,6 +365,7 @@ if (
         evidenceDir: join(runDir, "verify-evidence"),
         caseFile: undefined,
         requireDesignIntake: false,
+        intakeHandoffInput: undefined,
       },
     })),
     tags: {
@@ -365,19 +421,34 @@ if (!opts["config-only"]) {
     if (child.error) throw child.error;
     return child.status ?? 1;
   };
-  const mainStatus = evaluate(configPath);
-  if (!verifyConfig) process.exit(mainStatus);
-  // A failed main assertion still gets a separate verification attempt. Its
-  // failure remains in the original report and in the combined exit status.
-  const verifyStatus = evaluate(verifyConfigPath);
-  const passed = mainStatus === 0 && verifyStatus === 0;
+  const intakeStatus = intakeConfigPath ? evaluate(intakeConfigPath) : 0;
+  const mainStatus = intakeStatus === 0 ? evaluate(configPath) : null;
+  // Verification remains a separate attempt, including when earlier design parts fail.
+  const verifyStatus = verifyConfig ? evaluate(verifyConfigPath) : null;
+  const passed =
+    intakeStatus === 0 &&
+    mainStatus === 0 &&
+    (!verifyConfig || verifyStatus === 0);
   writeFileSync(
     join(runDir, "pipeline.json"),
     JSON.stringify(
       {
         passed,
-        main: { report: output, exitCode: mainStatus },
-        verify: { report: verifyConfig.outputPath, exitCode: verifyStatus },
+        ...(intakeConfigPath
+          ? { intake: { report: intakeOutput, exitCode: intakeStatus } }
+          : {}),
+        main:
+          mainStatus === null
+            ? { skipped: true, reason: "Intake validation failed" }
+            : { report: output, exitCode: mainStatus },
+        ...(verifyConfig
+          ? {
+              verify: {
+                report: verifyConfig.outputPath,
+                exitCode: verifyStatus,
+              },
+            }
+          : {}),
       },
       null,
       2,

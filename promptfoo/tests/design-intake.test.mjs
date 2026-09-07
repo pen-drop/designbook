@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import {
   selectorTable,
   workflowCommand,
+  validateIntakePresentation,
+  referenceInventoryError,
   validateDesignIntake,
 } from "../extensions/design-intake.mjs";
 const text =
@@ -134,5 +136,43 @@ test("ordering checks actual shell commands rather than documentation searches",
       `node /app/dist/cli.js workflow start tasks.yml --task header`,
     ),
     true,
+  );
+});
+
+test("intake-only part requires a complete presentation and forbids workflow execution", () => {
+  assert.equal(validateIntakePresentation([message]).pass, true);
+  assert.equal(validateIntakePresentation([message, create]).pass, false);
+  assert.equal(validateIntakePresentation([]).pass, false);
+});
+
+test("intake statically validates selector bindings and capture paths against reference metadata", () => {
+  const rows = selectorTable(text);
+  const metadata = {
+    "designbook/references/site/meta.yml": {
+      elements: [
+        {
+          id: "header",
+          selector: "app-site-header",
+          breakpoints: ["sm", "xl"],
+          states: [{ name: "rest" }],
+        },
+      ],
+    },
+  };
+  const hashes = {
+    "designbook/references/site/sm--header--rest.png": "sm",
+    "designbook/references/site/xl--header--rest.png": "xl",
+  };
+  assert.equal(referenceInventoryError(rows, metadata, hashes), null);
+  assert.match(
+    referenceInventoryError(rows, metadata, {}),
+    /Missing declared reference capture/,
+  );
+  const wrong = structuredClone(metadata);
+  wrong["designbook/references/site/meta.yml"].elements[0].selector = "footer";
+  assert.match(referenceInventoryError(rows, wrong, hashes), /does not bind/);
+  assert.equal(
+    referenceInventoryError([{ "reference selector": "no reference" }], {}, {}),
+    null,
   );
 });

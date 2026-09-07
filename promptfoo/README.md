@@ -182,3 +182,26 @@ cd promptfoo/workspaces/drupal-petshop-design-screen/web/themes/custom/test_inte
 git diff --name-only        # see what changed
 # copy changed files to fixtures/drupal-petshop/<fixture-name>/
 ```
+
+
+### Design intake gate
+
+Design cases run `intake → main → verify` (verification remains omitted only for
+cases whose existing contract explicitly selects none). Intake alone provisions
+the fresh workspace. It presents the selected reference/story selectors and
+breakpoints, prepares reference evidence and saves the effective planning
+catalogue. Static checks require matching metadata and every declared capture
+at its contract path. Intake cannot create or execute a saved workflow.
+
+Main runs only after intake passes. It reads the compact external handoff,
+reuses the same workspace and catalogue, then authors and executes its complete
+workflow. The harness checks native presentation order and declared selector
+coverage, preserves capture/asset/catalogue bytes, and compares YAML reference
+metadata by its complete parsed value so result-writer formatting is harmless.
+A failed intake leaves main explicitly skipped; requested separate verification
+still runs and the pipeline fails. No successful main report is invented.
+
+The generated configs identify the intake report, handoff and native evidence.
+CSV stores `intake`, `main` and `verify` as separate rows under one `run_id`.
+Efficiency totals must include every phase; compare this pipeline only against
+a baseline established with the same phase structure and gates.

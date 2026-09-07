@@ -15,7 +15,7 @@ calling tester; invoking them inside a driver would rebuild its active fixtures.
 ## Inputs
 
 Parse `run <suite> [<case>] [--workspace <path>] [--validate <workflow>]`.
-Accept `--provider codex|claude` and `--model <id>` and forward them to the runner.
+Accept `--provider codex|claude|grok` and `--model <id>` and forward them to the runner.
 For requested parallel model comparisons, use two independent Promptfoo runs as in
 [the Promptfoo guide](../../../../../../promptfoo/README.md#automated-testing-promptfoo).
 Resolve paths from the ticket's repository/worktree root. The default workspace
@@ -40,6 +40,18 @@ failure. Keep quality thresholds fixed across baseline and candidates.
   --workspace "$WORKSPACE" --output "$RUN_DIR/main.json"
 ```
 
+For design intakes, Promptfoo first evaluates an intake-only part. It prepares the
+reference, presents the selector table and saves the effective discovery catalogue.
+Deterministic checks require concrete selectors, matching reference metadata,
+all declared capture files and no created/executed workflow. A passing intake
+writes a compact external handoff; a failed intake prevents main execution.
+The execution part preserves that workspace, reuses the catalogue and reference
+evidence, authors the complete definition and executes it. Capture/asset/catalogue
+bytes remain fixed; YAML reference metadata must retain the same complete value
+across any result-writer formatting. The main gate checks the native intake
+presentation before workflow creation and checks the declared selector scope.
+
+Only the first part provisions fixtures. For other workflows this is main.
 The provider rebuilds the workspace with `setup-workspace.sh`, layers fixtures
 with `setup-test.sh`, then invokes the selected CLI using the configured model and
 one-hour timeout. For `sync-*` cases it provisions Drupal and imports the committed
@@ -70,7 +82,11 @@ case still requests that separate phase. Only the verifier case's prompt is reus
 layered over the main output. Both CSV rows share a `run_id`; the verification row
 has `workflow_id=design-verify` and its own CLI tokens and measured score.
 
-Read both `main.json` and `verify.json` plus the generated `pipeline.json`.
+Read the intake report/handoff when present, `main.json`, `verify.json` and the
+generated `pipeline.json`; their exact paths are in the generated configurations.
+A failed intake records main as skipped rather than fabricating a main report.
+Sum native usage and duration across intake, main and verify, including failed
+parts; all phase rows share `run_id` in the versioned CSV.
 The runner returns success only when both evaluations pass. Verification requires
 a validated score-report, passing comparison thresholds and unchanged main
 artifacts. The evidence audit below remains required. Missing references or

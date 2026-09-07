@@ -103,7 +103,13 @@ test("text-only design cases retain semantic evidence through the Promptfoo runn
       const config = yaml.load(await readFile(path, "utf8"));
       assert.equal(config.tags.verify_config, undefined);
       assert.equal(config.providers[0].config.requireDesignIntake, true);
-      assert.match(config.prompts[0], /^First part: design intake/);
+      const intake = yaml.load(
+        await readFile(config.tags.intake_config, "utf8"),
+      );
+      assert.match(intake.prompts[0], /^This is the first, intake-only part/);
+      assert.equal(intake.tests[0].vars.suite, "drupal-petshop");
+      assert.equal(config.tests[0].vars.suite, undefined);
+      assert.equal(intake.providers[0].config.intakeOnly, true);
       assert.ok(
         config.tests[0].assert.some((assertion) =>
           assertion.value.endsWith("/design-intake.mjs"),
@@ -490,7 +496,9 @@ test("generated main/verify configs isolate setup and preserve paths", async (t)
     return yaml.load(await readFile(path, "utf8"));
   };
   const main = await generate([]);
-  assert.equal(main.tests[0].vars.case, "design-shell");
+  const mainIntake = yaml.load(await readFile(main.tags.intake_config, "utf8"));
+  assert.equal(mainIntake.tests[0].vars.case, "design-shell");
+  assert.equal(main.tests[0].vars.case, undefined);
   assert.equal(main.providers[0].config.timeout, 3600000);
   assert.equal(main.providers[0].config.model, "gpt-5.6-luna");
   const claude = await generate([
@@ -501,7 +509,11 @@ test("generated main/verify configs isolate setup and preserve paths", async (t)
   ]);
   assert.equal(claude.providers[0].config.model, "claude-opus-5");
   assert.match(claude.providers[0].id, /claude-cli\.mjs$/);
-  assert.equal(claude.tests[0].vars.storybook_port, 41201);
+  const claudeIntake = yaml.load(
+    await readFile(claude.tags.intake_config, "utf8"),
+  );
+  assert.equal(claudeIntake.tests[0].vars.storybook_port, 41201);
+  assert.equal(claude.tests[0].vars.storybook_port, undefined);
   const automaticVerify = yaml.load(
     await readFile(claude.tags.verify_config, "utf8"),
   );
@@ -1019,20 +1031,21 @@ const yaml = require(${JSON.stringify(resolve("node_modules/js-yaml"))});
 const config = yaml.load(fs.readFileSync(process.argv[process.argv.indexOf('-c') + 1], 'utf8'));
 fs.appendFileSync(${JSON.stringify(calls)}, JSON.stringify(config) + '\\n');
 fs.writeFileSync(config.outputPath, '{}');
-process.exitCode = Number(config.tags.phase === 'main' ? process.env.TEST_MAIN_EXIT : process.env.TEST_VERIFY_EXIT);
+process.exitCode = Number(config.tags.phase === 'intake' ? process.env.TEST_INTAKE_EXIT : config.tags.phase === 'main' ? process.env.TEST_MAIN_EXIT : process.env.TEST_VERIFY_EXIT);
 `,
     { mode: 0o755 },
   );
-  for (const [caseName, mainExit, verifyExit] of [
-    ["design-shell", 0, 0],
-    ["design-shell", 100, 0],
-    ["design-shell", 0, 100],
-    ["design-entity", 0, 0],
-    ["design-screen", 0, 0],
+  for (const [caseName, intakeExit, mainExit, verifyExit] of [
+    ["design-shell", 0, 0, 0],
+    ["design-shell", 0, 100, 0],
+    ["design-shell", 0, 0, 100],
+    ["design-entity", 0, 0, 0],
+    ["design-screen", 0, 0, 0],
+    ["design-shell", 100, 0, 0],
   ]) {
     const report = join(
       root,
-      `${caseName}-${mainExit}-${verifyExit}`,
+      `${caseName}-${intakeExit}-${mainExit}-${verifyExit}`,
       "main.json",
     );
     const child = spawnSync(
@@ -1052,12 +1065,17 @@ process.exitCode = Number(config.tags.phase === 'main' ? process.env.TEST_MAIN_E
         env: {
           ...process.env,
           PATH: `${bin}:${process.env.PATH}`,
+          TEST_INTAKE_EXIT: String(intakeExit),
           TEST_MAIN_EXIT: String(mainExit),
           TEST_VERIFY_EXIT: String(verifyExit),
         },
       },
     );
-    assert.equal(child.status, mainExit || verifyExit ? 1 : 0, child.stderr);
+    assert.equal(
+      child.status,
+      intakeExit || mainExit || verifyExit ? 1 : 0,
+      child.stderr,
+    );
   }
   const configs = (await readFile(calls, "utf8"))
     .trim()
@@ -1066,21 +1084,19 @@ process.exitCode = Number(config.tags.phase === 'main' ? process.env.TEST_MAIN_E
   assert.deepEqual(
     configs.map((c) => c.tags.phase),
     [
-      "main",
-      "verify",
-      "main",
-      "verify",
-      "main",
-      "verify",
-      "main",
-      "verify",
-      "main",
+      ...Array.from({ length: 5 }, () => ["intake", "main", "verify"]).flat(),
+      "intake",
       "verify",
     ],
   );
-  for (let index = 0; index < configs.length; index += 2) {
-    const main = configs[index],
-      verify = configs[index + 1];
+  for (let index = 0; index < configs.length - 2; index += 3) {
+    const intake = configs[index],
+      main = configs[index + 1],
+      verify = configs[index + 2];
+    assert.equal(intake.tags.run_id, main.tags.run_id);
+    assert.equal(intake.tests[0].vars.suite, "drupal-web");
+    assert.equal(main.tests[0].vars.suite, undefined);
+    assert.equal(verify.providers[0].config.intakeHandoffInput, undefined);
     assert.equal(main.tags.run_id, verify.tags.run_id);
     assert.equal(verify.tags.workflow_id, "design-verify");
     assert.equal(verify.tests[0].vars.workspace, workspace);
@@ -1164,4 +1180,80 @@ test("provider retains deterministic intake failure beside successful CLI usage"
     ),
   );
   assert.equal(evidence.pass, false);
+});
+
+test("separate intake handoff preserves native presentation and freezes reference evidence", async (t) => {
+  const { provider, root, workspace, stub } = await fixture(t);
+  const reference = join(workspace, "designbook/references/site/extract.json");
+  await mkdir(join(workspace, "designbook/references/site"), {
+    recursive: true,
+  });
+  await writeFile(reference, '{"header":"observed"}');
+  const metadata = join(workspace, "designbook/references/site/meta.yml");
+  await writeFile(
+    metadata,
+    "source: example\nelements:\n  - id: header\n    selector: header\n    breakpoints: [sm, xl]\n    states: [{name: rest}]\n",
+  );
+  for (const bp of ["sm", "xl"])
+    await writeFile(
+      join(workspace, `designbook/references/site/${bp}--header--rest.png`),
+      "reference capture",
+    );
+  const handoff = join(root, "intake-handoff.json");
+  const table =
+    "| Subject | Reference selector | Story selector | Breakpoints | Evidence |\n|---|---|---|---|---|\n| header | header | planned: .header | sm, xl | header.png: logo observed |";
+  provider.config.requireDesignIntake = true;
+  provider.config.intakeOnly = true;
+  provider.config.intakeHandoffOutput = handoff;
+  provider.config.intakeCatalogue = join(
+    workspace,
+    ".designbook-intake/catalogue.json",
+  );
+  await mkdir(join(workspace, ".designbook-intake"));
+  await writeFile(
+    provider.config.intakeCatalogue,
+    JSON.stringify({
+      template: { content: "Complete template" },
+      blocks: { write: [{}] },
+    }),
+  );
+  await stub(
+    emit([
+      { type: "item.completed", item: { type: "agent_message", text: table } },
+      ...completed,
+    ]),
+  );
+  const intake = await provider.callApi("Intake", { vars: { workspace } });
+  assert.equal(intake.output.designIntake.pass, true);
+  const saved = JSON.parse(await readFile(handoff, "utf8"));
+  assert.ok(saved.frozen_files["designbook/references/site/extract.json"]);
+  provider.config.intakeOnly = false;
+  provider.config.intakeHandoffInput = handoff;
+  delete provider.config.intakeHandoffOutput;
+  await stub(
+    emit([
+      {
+        type: "item.started",
+        item: {
+          type: "command_execution",
+          command:
+            "npx storybook-addon-designbook workflow create plan.yml --output tasks.yml",
+        },
+      },
+      ...completed,
+    ]),
+  );
+  await writeFile(
+    metadata,
+    "elements: [{id: header, selector: header, breakpoints: [sm, xl], states: [{name: rest}]}]\nsource: example\n",
+  );
+  const main = await provider.callApi("Execute", { vars: { workspace } });
+  assert.equal(main.output.designIntake.pass, true);
+  await writeFile(reference, '{"header":"changed"}');
+  const changed = await provider.callApi("Execute", { vars: { workspace } });
+  assert.equal(changed.output.designIntake.pass, false);
+  assert.match(
+    changed.output.designIntake.reason,
+    /changed frozen intake evidence/,
+  );
 });
