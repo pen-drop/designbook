@@ -2,6 +2,17 @@
 
 Planning: `workflow discover <template>`, `workflow schema`, `workflow validate <definition.yml>`, `workflow create <definition.yml> --output <path>`.
 
-Runtime: `workflow read <path>`, `workflow instructions <path> --task <id>`, `workflow start <path> --task <id>`, `workflow done <path> --task <id> --data-file <json>`, `workflow block <path> --task <id> --reason <text> --correction <action>`, `workflow summary <path>`.
+Runtime: `workflow steps <path>`, `workflow instructions <path> --step <id> --format md`, `workflow start <path> --step <id>`, `workflow done <path> --step <id> --data-file <json>`, `workflow block <path> --step <id> --reason <text> --correction <action>`, `workflow summary <path>`.
 
 Read the [builder](workflow-building.md) for definition fields and the [executor](workflow-execution.md) for task processing.
+
+
+Execution uses `workflow steps <path>` for a compact routing overview and
+`workflow instructions <path> --step <id> --format md` for all tasks of that step.
+`workflow start|done|block <path> --step <id>` operates on the complete batch.
+For `done`, `--data-file` contains an object keyed by every task ID of the step;
+values are per-task output objects. Every result must pass before any task in
+the batch is marked done. Lifecycle replies contain only the status overview.
+
+Human inspection: `workflow read <path> --format md` prints the full saved plan
+as Markdown; the default format is JSON. Execution does not load this full export.

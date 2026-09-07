@@ -26,6 +26,7 @@ function definition(): WorkflowDefinition {
     schemas: {},
     tasks: [
       {
+        step: 'write',
         id: 'write',
         title: 'Write vision',
         target: 'vision',
@@ -193,6 +194,7 @@ describe('fixed task lifecycle', () => {
     def.tasks.push({
       ...structuredClone(def.tasks[0]!),
       id: 'third',
+      step: 'third',
       depends_on: ['write', 'second'],
       inputs: { previous: { task: 'write', result: 'vision' } },
     });
@@ -248,6 +250,7 @@ describe('completion and reference boundaries', () => {
     def.tasks.push({
       ...structuredClone(def.tasks[0]!),
       id: 'read',
+      step: 'read',
       depends_on: ['write'],
       inputs: { source: { task: 'write', result: 'missing' } },
     });
@@ -372,7 +375,7 @@ describe('artifact and verification contracts', () => {
 
   it('keeps an uncorrectable task blocked and its consumer pending', async () => {
     const def = definition();
-    def.tasks.push({ ...structuredClone(def.tasks[0]!), id: 'consumer', depends_on: ['write'] });
+    def.tasks.push({ ...structuredClone(def.tasks[0]!), id: 'consumer', step: 'consumer', depends_on: ['write'] });
     const path = await setup(def);
     await startTask(path, 'write');
     await expect(completeTask(path, 'write', { vision: '' })).rejects.toThrow();
@@ -390,9 +393,9 @@ it('accepts ordered shared writers regardless of array order, but rejects siblin
   const def = definition();
   def.tasks[0]!.outputs.vision!.path = '/tmp/shared-output.yml';
   const parent = structuredClone(def.tasks[0]!);
-  def.tasks = [{ ...structuredClone(parent), id: 'child-a', depends_on: ['write'] }, parent];
+  def.tasks = [{ ...structuredClone(parent), id: 'child-a', step: 'child-a', depends_on: ['write'] }, parent];
   expect(() => validateDefinition(def)).not.toThrow();
-  def.tasks.push({ ...structuredClone(parent), id: 'child-b', depends_on: ['write'] });
+  def.tasks.push({ ...structuredClone(parent), id: 'child-b', step: 'child-b', depends_on: ['write'] });
   expect(() => validateDefinition(def)).toThrow('Unordered writers');
 });
 

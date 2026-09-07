@@ -15,6 +15,7 @@ function document() {
     schemas: {},
     tasks: [
       {
+        step: 'write',
         id: 'compare',
         title: 'Compare',
         type: 'compare',

@@ -19,6 +19,7 @@ export interface OutputDefinition {
 
 export interface TaskDefinition {
   id: string;
+  step: string;
   title: string;
   type: string;
   target: string;
@@ -122,6 +123,7 @@ export const workflowDefinitionSchema = {
         additionalProperties: false,
         required: [
           'id',
+          'step',
           'title',
           'type',
           'target',
@@ -135,6 +137,7 @@ export const workflowDefinitionSchema = {
         ],
         properties: {
           id: { ...text, pattern: '^[a-z0-9][a-z0-9_-]*$' },
+          step: { ...text, pattern: '^[a-z0-9][a-z0-9_-]*$' },
           title: text,
           type: text,
           target: text,
@@ -209,6 +212,27 @@ export function validateDefinition(raw: unknown): asserts raw is WorkflowDefinit
     visited.add(id);
   }
   def.tasks.forEach((task) => visit(task.id));
+  const stepDependencies = new Map<string, Set<string>>();
+  for (const task of def.tasks) {
+    const dependencies = stepDependencies.get(task.step) ?? new Set<string>();
+    for (const id of task.depends_on) {
+      const predecessor = tasks.get(id)!;
+      if (predecessor.step === task.step) throw new Error(`Dependent tasks must use separate steps: ${id}, ${task.id}`);
+      dependencies.add(predecessor.step);
+    }
+    stepDependencies.set(task.step, dependencies);
+  }
+  const stepVisited = new Set<string>();
+  const stepVisiting = new Set<string>();
+  function visitStep(id: string): void {
+    if (stepVisiting.has(id)) throw new Error(`Step dependency cycle at ${id}`);
+    if (stepVisited.has(id)) return;
+    stepVisiting.add(id);
+    stepDependencies.get(id)!.forEach(visitStep);
+    stepVisiting.delete(id);
+    stepVisited.add(id);
+  }
+  stepDependencies.forEach((_, id) => visitStep(id));
   function predecessors(task: TaskDefinition): Set<string> {
     return new Set(task.depends_on.flatMap((id) => [id, ...predecessors(tasks.get(id)!)]));
   }

@@ -213,3 +213,42 @@ establish full reference/extract schema validity or that planned story selectors
 match rendered DOM. The shell structure and verifier subject preservation remain
 open correctness issues. No valid baseline or efficiency improvement is claimed.
 Detailed phase accounting is saved beside the reports in `summary.json`.
+
+## Context logging and step execution requested during coding
+
+Commit `6fc87d6e` retains per-request context logs per Promptfoo phase. Codex
+now persists its native session; the harness archives it and emits request
+input counts, context-window observations and compaction events. Claude/Grok
+use native message usage including cache reads/writes, deduplicated by message
+ID and excluding subagent messages. Missing counters remain unknown. Context
+summaries are root-thread observations, not cumulative phase token usage.
+A real Codex smoke reported 17,371 input + 5 output tokens, a 258,400-token
+context window and no compaction; evidence is in
+`promptfoo/reports/designbook-58-context-smoke/`. It is not a design score.
+
+The user requested full-plan Markdown exports, then clarified that execution
+must load only a step and produce all its tasks before a joint completion.
+The implementation adds explicit task `step` IDs, compact step routing,
+step-scoped Markdown/JSON context and joint start/done/block operations.
+Independent tasks share a step; dependencies cross steps and step cycles are
+rejected. A failed batch preserves validation evidence and leaves all batch
+tasks pending. Lifecycle responses no longer return the entire definition.
+The full Markdown plan remains an explicit human inspection command.
+This changes the execution contract and requires fresh workflows and a new
+measurement baseline. It introduces no conversion for earlier saved documents.
+
+Inspection of diagnostic 05's saved plan found shortened instructions for all
+seven tasks and zero embedded shared schemas, despite the intake catalogue
+containing full instructions and schemas. Definition immutability alone did
+not detect this initial omission. Detailed evidence and a full Markdown reading
+view are beside its reports. This remains an open planning-fidelity issue.
+
+The user selected Opus as the reference model. A fresh `claude-opus-5` shell
+run was launched on `6fc87d6e` before the step API changes, with the original
+CLI bundle kept fixed during execution. Intake passed: 12,263,084 total tokens,
+92 root message requests, peak input 228,466 tokens, reported context window
+1,000,000 and zero observed compactions. Main reached 28 completed saved tasks
+but its CLI invocation timed out after 3,600,000 ms without a successful terminal
+result; final phase usage is unknown. Its observed 148 root message requests
+peaked at 487,178 input tokens, with no observed compaction. Separate verification
+is still running. No successful reference baseline or efficiency gain is claimed.

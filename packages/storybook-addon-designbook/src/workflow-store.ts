@@ -150,24 +150,26 @@ export async function taskContext(path: string, id: string) {
 }
 
 export async function startTask(path: string, id: string, correction?: string): Promise<WorkflowDocument> {
-  return mutate(path, async (doc) => {
-    const task = taskDefinition(doc, id);
-    assertReady(doc, task);
-    const state = doc.state.tasks[id]!;
-    // Every resumption — blocked, claimed by another agent, or failed validation — needs a new
-    // action, so an identical attempt can never be repeated as if it were progress.
-    if ((state.status !== 'pending' || state.attempts > 0) && !correction?.trim())
-      throw new Error(
-        `Task ${id} was already attempted (status ${state.status}, ${state.attempts} attempt(s)); resuming it requires a concrete corrective action`,
-      );
-    if (correction) state.corrections.push({ at: new Date().toISOString(), action: correction });
-    state.status = 'in-progress';
-    state.started_at ??= new Date().toISOString();
-    delete state.blocker;
-    doc.state.status = workflowStatus(doc);
-    doc.state.started_at ??= state.started_at;
-    return doc;
-  });
+  return mutate(path, async (doc) => startInDocument(doc, id, correction));
+}
+
+function startInDocument(doc: WorkflowDocument, id: string, correction?: string): WorkflowDocument {
+  const task = taskDefinition(doc, id);
+  assertReady(doc, task);
+  const state = doc.state.tasks[id]!;
+  // Every resumption — blocked, claimed by another agent, or failed validation — needs a new
+  // action, so an identical attempt can never be repeated as if it were progress.
+  if ((state.status !== 'pending' || state.attempts > 0) && !correction?.trim())
+    throw new Error(
+      `Task ${id} was already attempted (status ${state.status}, ${state.attempts} attempt(s)); resuming it requires a concrete corrective action`,
+    );
+  if (correction) state.corrections.push({ at: new Date().toISOString(), action: correction });
+  state.status = 'in-progress';
+  state.started_at ??= new Date().toISOString();
+  delete state.blocker;
+  doc.state.status = workflowStatus(doc);
+  doc.state.started_at ??= state.started_at;
+  return doc;
 }
 
 export async function blockTask(
@@ -194,105 +196,200 @@ export async function completeTask(
   payload: Record<string, unknown>,
   summary?: string,
 ): Promise<WorkflowDocument> {
-  return mutate(path, async (doc) => {
-    const task = taskDefinition(doc, id);
-    assertReady(doc, task);
-    const state = doc.state.tasks[id]!;
-    if (state.status !== 'in-progress') throw new Error(`Start task ${id} before submitting results`);
-    const unknown = Object.keys(payload).filter((key) => !Object.hasOwn(task.outputs, key));
-    if (unknown.length) throw new Error(`Unknown output keys: ${unknown.join(', ')}`);
-    state.attempts++;
-    state.errors = [];
-    state.results = {};
-    const staged: Array<{ path: string; target: string }> = [];
-    const ajv = schemaValidator(doc.definition.schemas);
-    try {
-      for (const [key, output] of Object.entries(task.outputs)) {
-        let value: unknown;
-        let sha256: string | undefined;
-        const errors: string[] = [];
-        const submitted = Object.hasOwn(payload, key);
-        if (!submitted && output.submission === 'data') {
-          if (output.required) errors.push('Required result was not submitted');
-          else continue;
+  return mutate(path, async (doc) => completeInDocument(doc, id, payload, summary));
+}
+
+async function completeInDocument(
+  doc: WorkflowDocument,
+  id: string,
+  payload: Record<string, unknown>,
+  summary?: string,
+): Promise<WorkflowDocument> {
+  const task = taskDefinition(doc, id);
+  assertReady(doc, task);
+  const state = doc.state.tasks[id]!;
+  if (state.status !== 'in-progress') throw new Error(`Start task ${id} before submitting results`);
+  const unknown = Object.keys(payload).filter((key) => !Object.hasOwn(task.outputs, key));
+  if (unknown.length) throw new Error(`Unknown output keys: ${unknown.join(', ')}`);
+  state.attempts++;
+  state.errors = [];
+  state.results = {};
+  const staged: Array<{ path: string; target: string }> = [];
+  const ajv = schemaValidator(doc.definition.schemas);
+  try {
+    for (const [key, output] of Object.entries(task.outputs)) {
+      let value: unknown;
+      let sha256: string | undefined;
+      const errors: string[] = [];
+      const submitted = Object.hasOwn(payload, key);
+      if (!submitted && output.submission === 'data') {
+        if (output.required) errors.push('Required result was not submitted');
+        else continue;
+      }
+      let validationPath = output.path;
+      try {
+        if (output.submission === 'direct') {
+          const bytes = await readFile(output.path!);
+          sha256 = createHash('sha256').update(bytes).digest('hex');
+          const extension = extname(output.path!).toLowerCase();
+          value = Object.keys(output.schema).length
+            ? extension === '.yml' || extension === '.yaml'
+              ? load(bytes.toString('utf8'))
+              : extension === '.json'
+                ? JSON.parse(bytes.toString('utf8'))
+                : bytes.toString('utf8')
+            : null;
+        } else value = payload[key];
+        const validate = ajv.compile(output.schema);
+        if (!validate(value)) errors.push(ajv.errorsText(validate.errors));
+        if (submitted && output.path && output.submission === 'data' && errors.length === 0) {
+          // Staged beside the target under its own directory, so the file name a validator
+          // sees — extension included — is exactly the one it will have on disk.
+          validationPath = join(stageDir(output.path, doc.definition.id, id), basename(output.path));
+          await mkdir(dirname(validationPath), { recursive: true });
+          await writeFile(validationPath, serializeForPath(output.path, value, output.schema as SchemaProperty));
+          staged.push({ path: validationPath, target: output.path });
         }
-        let validationPath = output.path;
-        try {
-          if (output.submission === 'direct') {
-            const bytes = await readFile(output.path!);
-            sha256 = createHash('sha256').update(bytes).digest('hex');
-            const extension = extname(output.path!).toLowerCase();
-            value = Object.keys(output.schema).length
-              ? extension === '.yml' || extension === '.yaml'
-                ? load(bytes.toString('utf8'))
-                : extension === '.json'
-                  ? JSON.parse(bytes.toString('utf8'))
-                  : bytes.toString('utf8')
-              : null;
-          } else value = payload[key];
-          const validate = ajv.compile(output.schema);
-          if (!validate(value)) errors.push(ajv.errorsText(validate.errors));
-          if (submitted && output.path && output.submission === 'data' && errors.length === 0) {
-            // Staged beside the target under its own directory, so the file name a validator
-            // sees — extension included — is exactly the one it will have on disk.
-            validationPath = join(stageDir(output.path, doc.definition.id, id), basename(output.path));
-            await mkdir(dirname(validationPath), { recursive: true });
-            await writeFile(validationPath, serializeForPath(output.path, value, output.schema as SchemaProperty));
-            staged.push({ path: validationPath, target: output.path });
-          }
-          if (!sha256 && validationPath && errors.length === 0)
-            sha256 = createHash('sha256')
-              .update(await readFile(validationPath))
-              .digest('hex');
-          if (validationPath && output.validators.length && errors.length === 0) {
-            const findings = await validateByKeys(
-              output.validators,
-              validationPath,
-              doc.definition.config as unknown as DesignbookConfig,
-            );
-            if (findings.valid !== true) errors.push(findings.error ?? 'File validation did not pass');
-          }
-          if (
-            sha256 &&
-            validationPath &&
-            createHash('sha256')
-              .update(await readFile(validationPath))
-              .digest('hex') !== sha256
-          )
-            errors.push('Artifact changed during validation');
-        } catch (error) {
-          if (!output.required && output.submission === 'direct' && (error as NodeJS.ErrnoException).code === 'ENOENT')
-            continue;
-          errors.push((error as Error).message);
+        if (!sha256 && validationPath && errors.length === 0)
+          sha256 = createHash('sha256')
+            .update(await readFile(validationPath))
+            .digest('hex');
+        if (validationPath && output.validators.length && errors.length === 0) {
+          const findings = await validateByKeys(
+            output.validators,
+            validationPath,
+            doc.definition.config as unknown as DesignbookConfig,
+          );
+          if (findings.valid !== true) errors.push(findings.error ?? 'File validation did not pass');
         }
-        state.results[key] = {
-          ...(value !== undefined ? { value } : {}),
-          ...(sha256 && errors.length === 0 ? { sha256 } : {}),
-          valid: errors.length === 0,
-          errors,
-          validated_at: new Date().toISOString(),
-        };
-        state.errors.push(...errors.map((error) => `${key}: ${error}`));
+        if (
+          sha256 &&
+          validationPath &&
+          createHash('sha256')
+            .update(await readFile(validationPath))
+            .digest('hex') !== sha256
+        )
+          errors.push('Artifact changed during validation');
+      } catch (error) {
+        if (!output.required && output.submission === 'direct' && (error as NodeJS.ErrnoException).code === 'ENOENT')
+          continue;
+        errors.push((error as Error).message);
       }
-      if (state.errors.length) {
-        // The attempt ended; only a start carrying a corrective action reopens the task.
-        state.status = 'pending';
-        throw new Error(`Task ${id} validation failed: ${state.errors.join('; ')}`);
-      }
-      for (const file of staged) await rename(file.path, file.target);
-      state.status = 'done';
-      state.completed_at = new Date().toISOString();
-      if (summary) state.summary = summary;
-      if (Object.values(doc.state.tasks).every((task) => task.status === 'done')) {
-        doc.state.status = 'completed';
-        doc.state.completed_at = state.completed_at;
-      }
-      return doc;
-    } finally {
-      const stageDirs = new Set(staged.map((file) => dirname(file.path)));
-      await Promise.all([...stageDirs].map((dir) => rm(dir, { recursive: true, force: true })));
-      // Best-effort: the shared parent disappears once the last task released its own directory.
-      await Promise.all([...new Set([...stageDirs].map(dirname))].map((dir) => rmdir(dir).catch(() => {})));
+      state.results[key] = {
+        ...(value !== undefined ? { value } : {}),
+        ...(sha256 && errors.length === 0 ? { sha256 } : {}),
+        valid: errors.length === 0,
+        errors,
+        validated_at: new Date().toISOString(),
+      };
+      state.errors.push(...errors.map((error) => `${key}: ${error}`));
     }
+    if (state.errors.length) {
+      // The attempt ended; only a start carrying a corrective action reopens the task.
+      state.status = 'pending';
+      throw new Error(`Task ${id} validation failed: ${state.errors.join('; ')}`);
+    }
+    for (const file of staged) await rename(file.path, file.target);
+    state.status = 'done';
+    state.completed_at = new Date().toISOString();
+    if (summary) state.summary = summary;
+    if (Object.values(doc.state.tasks).every((task) => task.status === 'done')) {
+      doc.state.status = 'completed';
+      doc.state.completed_at = state.completed_at;
+    }
+    return doc;
+  } finally {
+    const stageDirs = new Set(staged.map((file) => dirname(file.path)));
+    await Promise.all([...stageDirs].map((dir) => rm(dir, { recursive: true, force: true })));
+    // Best-effort: the shared parent disappears once the last task released its own directory.
+    await Promise.all([...new Set([...stageDirs].map(dirname))].map((dir) => rmdir(dir).catch(() => {})));
+  }
+}
+
+function stepTasks(doc: WorkflowDocument, step: string): TaskDefinition[] {
+  const tasks = doc.definition.tasks.filter((task) => task.step === step);
+  if (!tasks.length) throw new Error(`Unknown step ${step}`);
+  return tasks;
+}
+
+export async function startStep(path: string, step: string, correction?: string): Promise<WorkflowDocument> {
+  return mutate(path, async (doc) => {
+    const draft = structuredClone(doc);
+    for (const task of stepTasks(draft, step)) startInDocument(draft, task.id, correction);
+    doc.state = draft.state;
+    return doc;
+  });
+}
+
+export async function completeStep(
+  path: string,
+  step: string,
+  payload: Record<string, Record<string, unknown>>,
+  summary?: string,
+): Promise<WorkflowDocument> {
+  return mutate(path, async (doc) => {
+    const tasks = stepTasks(doc, step);
+    if (
+      !payload ||
+      typeof payload !== 'object' ||
+      Array.isArray(payload) ||
+      Object.keys(payload).length !== tasks.length ||
+      tasks.some((task) => !Object.hasOwn(payload, task.id))
+    )
+      throw new Error(`Submit exactly all task IDs of step ${step}`);
+    for (const task of tasks) {
+      assertReady(doc, task);
+      if (doc.state.tasks[task.id]!.status !== 'in-progress')
+        throw new Error(`Start step ${step} before submitting results`);
+      if (!payload[task.id] || typeof payload[task.id] !== 'object' || Array.isArray(payload[task.id]))
+        throw new Error(`Expected output object for ${task.id}`);
+    }
+    const errors: string[] = [];
+    for (const task of tasks) {
+      const attempts = doc.state.tasks[task.id]!.attempts;
+      try {
+        await completeInDocument(doc, task.id, payload[task.id]!, summary);
+      } catch (error) {
+        const message = (error as Error).message;
+        const state = doc.state.tasks[task.id]!;
+        if (state.attempts === attempts) {
+          state.attempts++;
+          state.errors = [message];
+        }
+        errors.push(message);
+      }
+    }
+    if (errors.length) {
+      // Persist validation evidence, but no task in a failed batch is done.
+      for (const task of tasks) {
+        doc.state.tasks[task.id]!.status = 'pending';
+        delete doc.state.tasks[task.id]!.completed_at;
+      }
+      delete doc.state.completed_at;
+      doc.state.status = workflowStatus(doc);
+      throw new Error(`Step ${step} validation failed: ${errors.join('; ')}`);
+    }
+    return doc;
+  });
+}
+
+export async function blockStep(
+  path: string,
+  step: string,
+  reason: string,
+  correction: string,
+): Promise<WorkflowDocument> {
+  if (!reason.trim() || !correction.trim()) throw new Error('Blockade requires a reason and attempted correction');
+  return mutate(path, async (doc) => {
+    const tasks = stepTasks(doc, step);
+    tasks.forEach((task) => assertReady(doc, task));
+    for (const task of tasks) {
+      const state = doc.state.tasks[task.id]!;
+      state.status = 'blocked';
+      state.blocker = reason;
+      state.corrections.push({ at: new Date().toISOString(), action: correction });
+    }
+    doc.state.status = 'blocked';
+    return doc;
   });
 }

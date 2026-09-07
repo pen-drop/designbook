@@ -221,3 +221,19 @@ Codex sessions are persisted and their native session log is copied to
 `--ephemeral` runs cannot be reconstructed from terminal totals. Claude/Grok use
 native assistant-message usage, deduplicated by message ID; context limits are
 recorded only when the CLI reports them. No missing context limits are inferred.
+
+### Workflow reading views and step batches
+
+Saved workflows carry an explicit `step` ID on every task. The executor reads
+`workflow steps <path>` for routing, then
+`workflow instructions <path> --step <id> --format md` for the current batch.
+This contains all tasks in that step, their shared context once, reachable
+schemas and predecessor results. Tasks in a step are independent; dependencies
+cross steps. `start`, `done` and `block` accept `--step` and return compact
+status, without the full definition. Batch `done` takes a JSON object keyed by
+all task IDs and marks them done together only when every result passes.
+
+For human inspection, `workflow read <path> --format md` exports the complete
+saved plan. Promptfoo also writes `workflow-<number>.md` beside each phase's
+CLI evidence and exposes its path in `output.workflowMarkdown`. Exported states
+reflect export time, not necessarily the state at a past model request.

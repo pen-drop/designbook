@@ -22,11 +22,11 @@ async function fixture(t) {
     await writeFile(
       join(path, "tasks.yml"),
       yaml.dump({
-        definition: { id },
+        definition: { id, tasks: [] },
         state: { status, tasks, created_at: "2026-09-07T12:00:00Z" },
       }),
     );
-    await writeFile(join(path, "definition-before.yml"), yaml.dump({ id }));
+    await writeFile(join(path, "definition-before.yml"), yaml.dump({ id, tasks: [] }));
   };
   const stub = async (body, command = "codex") => {
     const bin = join(root, "bin");

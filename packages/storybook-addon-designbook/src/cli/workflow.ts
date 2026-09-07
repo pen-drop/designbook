@@ -1,15 +1,32 @@
+import { stepOverview, stepContext } from '../workflow-steps.js';
 import { summarizeWorkflow } from '../workflow-summary.js';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import type { Command } from 'commander';
+import { Option, type Command } from 'commander';
+import { workflowMarkdown, stepMarkdown } from '../workflow-markdown.js';
 import { load } from 'js-yaml';
 import { findConfig, loadConfig, resolveSkillsRoot, type DesignbookConfig } from '../config.js';
 import { resolveSkillSources } from '../skill-resolver.js';
 import { resolveAllStages, buildEnvMap } from '../workflow-resolve.js';
 import { resolveWorkflowFile, listWorkflowDefinitions, loadWorkflowDefinition } from './workflow-discovery.js';
 import { workflowDefinitionSchema, validateDefinition, type WorkflowDefinition } from '../workflow-document.js';
-import { saveDefinition, readDocument, taskContext, startTask, completeTask, blockTask } from '../workflow-store.js';
+import {
+  saveDefinition,
+  readDocument,
+  taskContext,
+  startTask,
+  completeTask,
+  blockTask,
+  startStep,
+  completeStep,
+  blockStep,
+} from '../workflow-store.js';
 import { definitionContracts } from '../planning-contracts.js';
+
+function selectedTask(opts: { task?: string; step?: string }): string {
+  if (!opts.task || opts.step) throw new Error('Select exactly one of --step or --task');
+  return opts.task;
+}
 
 function print(value: unknown): void {
   console.log(JSON.stringify(value, null, 2));
@@ -102,33 +119,70 @@ export function register(program: Command): void {
       await saveDefinition(output, definition);
       print({ path: output });
     });
-  workflow.command('read <path>').action(async (path: string) => print(await readDocument(path)));
+  workflow
+    .command('read <path>')
+    .addOption(new Option('--format <format>', 'Output format').choices(['json', 'md']).default('json'))
+    .action(async (path: string, opts: { format: 'json' | 'md' }) => {
+      const document = await readDocument(path);
+      if (opts.format === 'md') process.stdout.write(workflowMarkdown(document));
+      else print(document);
+    });
+  workflow.command('steps <path>').action(async (path: string) => print(stepOverview(await readDocument(path))));
   workflow
     .command('instructions <path>')
-    .requiredOption('--task <id>', 'Existing task ID')
-    .action(async (path: string, opts: { task: string }) => print(await taskContext(path, opts.task)));
+    .option('--task <id>', 'Single task context')
+    .option('--step <id>', 'All tasks of one step')
+    .addOption(new Option('--format <format>', 'Output format').choices(['json', 'md']).default('json'))
+    .action(async (path: string, opts: { task?: string; step?: string; format: 'json' | 'md' }) => {
+      if (Boolean(opts.task) === Boolean(opts.step)) throw new Error('Select exactly one of --step or --task');
+      if (opts.format === 'md') {
+        if (!opts.step) throw new Error('Markdown instructions require --step');
+        process.stdout.write(stepMarkdown(stepContext(await readDocument(path), opts.step)));
+      } else print(opts.step ? stepContext(await readDocument(path), opts.step) : await taskContext(path, opts.task!));
+    });
   workflow
     .command('start <path>')
-    .requiredOption('--task <id>', 'Existing task ID')
+    .addOption(new Option('--task <id>', 'Existing task ID').conflicts('step'))
+    .addOption(new Option('--step <id>', 'All tasks of the step').conflicts('task'))
     .option('--correction <action>', 'Action enabling a retry')
-    .action(async (path: string, opts: { task: string; correction?: string }) =>
-      print(await startTask(path, opts.task, opts.correction)),
+    .action(async (path: string, opts: { task?: string; step?: string; correction?: string }) =>
+      print(
+        stepOverview(
+          await (opts.step
+            ? startStep(path, opts.step, opts.correction)
+            : startTask(path, selectedTask(opts), opts.correction)),
+        ),
+      ),
     );
   workflow
     .command('done <path>')
-    .requiredOption('--task <id>', 'Existing task ID')
+    .addOption(new Option('--task <id>', 'Existing task ID').conflicts('step'))
+    .addOption(new Option('--step <id>', 'All tasks of the step').conflicts('task'))
     .requiredOption('--data-file <path>', 'JSON result object')
     .option('--summary <text>')
-    .action(async (path: string, opts: { task: string; dataFile: string; summary?: string }) =>
-      print(await completeTask(path, opts.task, JSON.parse(readFileSync(opts.dataFile, 'utf8')), opts.summary)),
+    .action(async (path: string, opts: { task?: string; step?: string; dataFile: string; summary?: string }) =>
+      print(
+        stepOverview(
+          await (opts.step
+            ? completeStep(path, opts.step, JSON.parse(readFileSync(opts.dataFile, 'utf8')), opts.summary)
+            : completeTask(path, selectedTask(opts), JSON.parse(readFileSync(opts.dataFile, 'utf8')), opts.summary)),
+        ),
+      ),
     );
   workflow
     .command('block <path>')
-    .requiredOption('--task <id>')
+    .addOption(new Option('--task <id>').conflicts('step'))
+    .addOption(new Option('--step <id>').conflicts('task'))
     .requiredOption('--reason <text>')
     .requiredOption('--correction <action>')
-    .action(async (path: string, opts: { task: string; reason: string; correction: string }) =>
-      print(await blockTask(path, opts.task, opts.reason, opts.correction)),
+    .action(async (path: string, opts: { task?: string; step?: string; reason: string; correction: string }) =>
+      print(
+        stepOverview(
+          await (opts.step
+            ? blockStep(path, opts.step, opts.reason, opts.correction)
+            : blockTask(path, selectedTask(opts), opts.reason, opts.correction)),
+        ),
+      ),
     );
   workflow.command('summary <path>').action(async (path: string) => print(summarizeWorkflow(await readDocument(path))));
 }

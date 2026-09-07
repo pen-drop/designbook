@@ -39,6 +39,7 @@ function definitionFor(key: string, schema: object, definitions: Record<string, 
     schemas: definitions,
     tasks: [
       {
+        step: 'write',
         id: 'probe',
         title: 'Probe',
         type: 'data',
