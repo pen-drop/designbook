@@ -1,1474 +1,40 @@
 /**
- * Planning catalogue discovery.
+ * Planning catalogue composition.
  *
- * Resolves task, rule, blueprint and schema sources for the authoring agent.
- * Saved workflow execution does not use this module.
+ * Combines source discovery (planning-sources) with schema resolution
+ * (planning-schema, schema-block, workflow-schema-merge) into the per-step
+ * catalogue the authoring agent reads. Saved workflow execution does not use
+ * this module.
  */
 
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve, relative, dirname } from 'node:path';
-import fm from 'front-matter';
-import { globSync } from 'glob';
-import { load as parseYaml } from 'js-yaml';
-import { normalizeExtensions, getExtensionIds, getExtensionSkillIds, type DesignbookConfig } from './config.js';
+import { resolve } from 'node:path';
+import type { DesignbookConfig } from './config.js';
 import type { SkillSource } from './skill-sources.js';
-import { buildSchemaBlock } from './schema-block.js';
-import type { SchemaBlock } from './schema-block.js';
-import { computeMergedSchema, parseSchemaExtension, widenDefinitionEnums } from './workflow-schema-merge.js';
+import { buildSchemaBlock, type SchemaBlock } from './schema-block.js';
+import { computeMergedSchema } from './workflow-schema-merge.js';
+import {
+  buildEnvMap,
+  matchBlueprintFiles,
+  matchRuleFiles,
+  parseFrontmatter,
+  resolveConfigForStep,
+  resolveTaskFilesRich,
+} from './planning-sources.js';
+import { resolveParamsRef, validateParamFormats } from './planning-schema.js';
+
+export { buildEnvMap, parseFrontmatter } from './planning-sources.js';
 
 // ── Types ──────────────────────────────────────────────────────────
 
-export interface ResolvedFile {
-  path: string;
-  name: string;
-  specificity: number;
-  frontmatter: Record<string, unknown> | null;
-}
-
-/** Result declaration entry in task frontmatter — file results have `path:`, data results don't. */
-export interface ResultDeclaration {
-  path?: string; // file result path template
-  $ref?: string; // schema reference (e.g. ../schemas.yml#/Check)
-  validators?: string[]; // semantic validator keys
-  /** Who produces the content. `data` (default) = AI submits via --data; `direct` = task code writes the file. */
-  submission?: 'data' | 'direct';
-  /** When the file lands on disk. `deferred` (default) = at stage flush; `immediate` = on `workflow done`. Ignored when `submission: direct`. */
-  flush?: 'deferred' | 'immediate';
-  /** Backend-neutral prepare step: run a command before AI submission and bind its output as `as`. */
-  prepare?: { cmd: string; as: string };
-  /** Backend-neutral generator: a JSONata expression file that produces the result value. */
-  generator?: { jsonata: string };
-  type?: string; // inline JSON Schema type
-  items?: unknown; // inline JSON Schema items (for arrays)
-  [key: string]: unknown; // additional JSON Schema properties
-}
-
-interface TaskFileFrontmatter {
-  trigger?: Record<string, unknown>;
-  filter?: Record<string, unknown>;
-  params?: {
-    type?: string; // always 'object'
-    required?: string[];
-    properties?: Record<string, unknown>;
-    $ref?: string;
-    [key: string]: unknown;
-  };
-  result?: {
-    type?: string; // always 'object'
-    required?: string[];
-    properties?: Record<string, ResultDeclaration>;
-    [key: string]: unknown;
-  };
-  each?: Record<string, unknown>; // iteration declaration { <scope-key>: <schema> }
-}
-
-interface StageDefinitionFm {
+interface StageDefinition {
   steps?: string[];
-  workflow?: string;
-  each?: string;
   domain?: string[];
-  isolate?: boolean;
-  params?: Record<string, { type: string; prompt: string }>;
 }
 
 interface WorkflowFrontmatter {
-  // New grouped format: stages map stage names to step lists
   title?: string;
-  stages?: Record<string, StageDefinitionFm> | string[];
-  engine?: string;
-  // Legacy nested format: workflow.title, workflow.stages
-  workflow?: {
-    title?: string;
-    stages?: string[];
-  };
+  stages?: Record<string, StageDefinition>;
 }
-
-// ── Plugin Skill Source Helpers ───────────────────────────────────────
-
-/** Keep only plugin-origin sources — project layout is covered by the agentsDir glob. */
-function pluginSources(sources?: SkillSource[]): SkillSource[] {
-  return (sources ?? []).filter((s) => s.origin === 'plugin');
-}
-
-/**
- * Strip the leading `skills/**\/` segment from a project glob pattern so it can
- * be globbed against a plugin SkillSource root (which has no `skills/` prefix and
- * no skill-name segment). E.g. `skills/**\/tasks/*.md` → `**\/tasks/*.md`.
- */
-function toSourcePattern(globPattern: string): string {
-  return globPattern.replace(/^skills\/\*\*\//, '**/');
-}
-
-/**
- * Derive a namespaced artifact name for a file found under a plugin SkillSource.
- *
- * The concern is the directory **directly containing** the kind dir
- * (`tasks/`|`rules/`|`blueprints/`|`workflows/`) — i.e. the segment two levels
- * above the artifact file. This holds for both the flat concern layout and the
- * nested sub-skill layout (`skills/<wf>/<kind>/<artifact>.md` → concern `<wf>`).
- *
- * - `<concern>/<kind>/<artifact>.md`        → `${name}:${concern}:${artifact}`
- * - `skills/<wf>/<kind>/<artifact>.md`      → `${name}:${wf}:${artifact}`
- * - flat `<kind>/<artifact>.md`             → `${name}:${artifact}`
- */
-function derivePluginArtifactName(source: SkillSource, filePath: string): string {
-  const rel = relative(source.root, filePath).replace(/\\/g, '/');
-  const parts = rel.split('/');
-  const artifact = (parts[parts.length - 1] ?? '').replace(/\.md$/, '');
-  // <…>/<concern>/<kind>/<artifact>.md → 3+ segments
-  if (parts.length >= 3) {
-    const concern = parts[parts.length - 3]!;
-    return `${source.name}:${concern}:${artifact}`;
-  }
-  // flat <kind>/<artifact>.md → 2 segments
-  return `${source.name}:${artifact}`;
-}
-
-// ── Schema Infrastructure ─────────────────────────────────────────────
-
-/**
- * Load a schemas.yml file and return a map of PascalCase type names to JSON Schema definitions.
- * Validates that all keys are PascalCase and all values are objects.
- */
-export function loadSchemaFile(schemaFilePath: string): Record<string, object> {
-  if (!existsSync(schemaFilePath)) {
-    throw new Error(`Schema file not found: ${schemaFilePath}`);
-  }
-  const raw = readFileSync(schemaFilePath, 'utf-8');
-  const parsed = parseYaml(raw) as Record<string, unknown>;
-  if (!parsed || typeof parsed !== 'object') {
-    throw new Error(`Schema file is not a valid YAML map: ${schemaFilePath}`);
-  }
-  const schemas: Record<string, object> = {};
-  for (const [key, value] of Object.entries(parsed)) {
-    if (!/^[A-Z][a-zA-Z0-9]*$/.test(key)) {
-      throw new Error(`Schema key '${key}' in ${schemaFilePath} must be PascalCase`);
-    }
-    if (!value || typeof value !== 'object') {
-      throw new Error(`Schema '${key}' in ${schemaFilePath} must be a JSON Schema object`);
-    }
-    schemas[key] = value as object;
-  }
-  return schemas;
-}
-
-/**
- * Re-anchor a relative `$ref` that crossed into a sibling plugin SkillSource.
- *
- * Cross-skill relative refs (e.g. `../../designbook/css-generate/schemas.yml`
- * authored in skill `designbook-css-tailwind`) are written for the *project*
- * `skills/` layout, where `../../` walks `tasks/ → <skill>/ → skills/` and the
- * next segment is a sibling skill name. In the **plugin-cache** layout each skill
- * sits under an extra `<hash>` segment (`<mp>/<skill>/<hash>/...`), so `../../`
- * lands one level short — inside the *current* skill dir instead of the
- * marketplace dir — producing a bogus path like
- * `<mp>/designbook-css-tailwind/designbook/css-generate/schemas.yml`.
- *
- * To recover, scan the bogus path for a segment that names a known env
- * SkillSource and re-anchor the remainder against that source's (hashed) content
- * root: `<source.root>/<rest-after-skill-name>`. The LAST matching segment wins
- * — it is the closest to the file and corresponds to the ref's intended target.
- *
- * Returns the re-anchored absolute path, or `undefined` when no env source name
- * appears in the path (so the caller keeps the original resolution).
- */
-function reanchorRelativeRefToPluginSource(resolvedPath: string, sources?: SkillSource[]): string | undefined {
-  const plugins = pluginSources(sources);
-  if (plugins.length === 0) return undefined;
-  const byName = new Map(plugins.map((s) => [s.name, s]));
-  const segments = resolvedPath.replace(/\\/g, '/').split('/');
-  for (let i = segments.length - 2; i >= 0; i--) {
-    const source = byName.get(segments[i]!);
-    if (!source) continue;
-    const rest = segments.slice(i + 1).join('/');
-    const candidate = resolve(source.root, rest);
-    if (existsSync(candidate)) return candidate;
-  }
-  return undefined;
-}
-
-/**
- * Resolve a $ref path to a schema definition.
- * Supports two forms:
- *   - Relative: `../schemas.yml#/Check` — resolved from the task file's directory
- *   - Skill-qualified: `designbook/design/schemas.yml#/Check` — resolved from skills root
- *
- * @param ref - The $ref string (e.g. "../schemas.yml#/Check")
- * @param taskFilePath - Absolute path to the task file containing the $ref
- * @param skillsRoot - Absolute path to the skills root directory (.agents/skills/)
- * @returns The resolved JSON Schema object
- */
-export function resolveSchemaRef(
-  ref: string,
-  taskFilePath: string,
-  skillsRoot: string,
-  sources?: SkillSource[],
-): { typeName: string; schema: object; schemaFilePath: string; fileSchemas: Record<string, object> } {
-  const hashIdx = ref.indexOf('#/');
-  if (hashIdx === -1) {
-    throw new Error(`Invalid $ref '${ref}' — must contain '#/' fragment (e.g. ../schemas.yml#/TypeName)`);
-  }
-  const filePart = ref.slice(0, hashIdx);
-  const typeName = ref.slice(hashIdx + 2);
-
-  // Resolve file path: relative (starts with . or /) vs skill-qualified
-  let schemaFilePath: string;
-  if (filePart.startsWith('.') || filePart.startsWith('/')) {
-    schemaFilePath = resolve(dirname(taskFilePath), filePart);
-    // Plugin-cache layout: a relative ref that crosses into a sibling skill is
-    // off-by-one (extra `<hash>` segment) and resolves to a non-existent path.
-    // Re-anchor it via the plugin SkillSource that owns the target skill name.
-    if (!existsSync(schemaFilePath)) {
-      const reanchored = reanchorRelativeRefToPluginSource(schemaFilePath, sources);
-      if (reanchored) schemaFilePath = reanchored;
-    }
-  } else {
-    // Skill-qualified: `<skillName>/sub/schemas.yml`. When <skillName> matches an
-    // plugin SkillSource, resolve against that source's content root; otherwise keep
-    // the legacy resolution relative to the project skills root.
-    const skillName = filePart.split('/')[0] ?? '';
-    const pluginSource = pluginSources(sources).find((s) => s.name === skillName);
-    if (pluginSource) {
-      const rest = filePart.slice(skillName.length + 1); // strip `<skillName>/`
-      schemaFilePath = resolve(pluginSource.root, rest);
-    } else {
-      schemaFilePath = resolve(skillsRoot, filePart);
-    }
-  }
-
-  const fileSchemas = loadSchemaFile(schemaFilePath);
-  if (!(typeName in fileSchemas)) {
-    const available = Object.keys(fileSchemas).join(', ');
-    throw new Error(`Type '${typeName}' not found in ${schemaFilePath}. Available: ${available}`);
-  }
-  return { typeName, schema: fileSchemas[typeName]!, schemaFilePath, fileSchemas };
-}
-
-/**
- * Walk a schema object and collect all local `#/TypeName` refs into the target
- * `schemas` map by resolving them from the schemas file they originated from.
- * Handles transitive references — if a resolved type itself references others.
- *
- * Example: Component's schema has `{ $ref: "#/DesignHint" }`. After hoisting
- * Component into the workflow's top-level schemas map, `DesignHint` also needs
- * to live there so AJV can resolve the ref.
- */
-export function collectLocalRefsFromSchema(
-  node: unknown,
-  fileSchemas: Record<string, object>,
-  schemas: Record<string, object>,
-  visited: Set<string>,
-  schemaFilePath: string,
-  skillsRoot: string,
-  sources?: SkillSource[],
-): void {
-  if (Array.isArray(node)) {
-    for (const item of node)
-      collectLocalRefsFromSchema(item, fileSchemas, schemas, visited, schemaFilePath, skillsRoot, sources);
-    return;
-  }
-  if (!node || typeof node !== 'object') return;
-
-  const obj = node as Record<string, unknown>;
-  if (typeof obj.$ref === 'string') {
-    const ref = obj.$ref;
-    if (ref.startsWith('#/')) {
-      const typeName = ref.slice(2);
-      if (typeName && !(typeName in schemas) && typeName in fileSchemas && !visited.has(typeName)) {
-        visited.add(typeName);
-        schemas[typeName] = fileSchemas[typeName]!;
-        collectLocalRefsFromSchema(
-          fileSchemas[typeName],
-          fileSchemas,
-          schemas,
-          visited,
-          schemaFilePath,
-          skillsRoot,
-          sources,
-        );
-      }
-    } else if (ref.includes('#/')) {
-      // Cross-file ref nested inside a resolved schema — resolve relative to the
-      // file the outer schema was loaded from, then rewrite to local AJV form.
-      const resolved = resolveSchemaRef(ref, schemaFilePath, skillsRoot, sources);
-      obj.$ref = `#/${resolved.typeName}`;
-      if (!(resolved.typeName in schemas) && !visited.has(resolved.typeName)) {
-        visited.add(resolved.typeName);
-        schemas[resolved.typeName] = resolved.schema;
-        collectLocalRefsFromSchema(
-          resolved.schema,
-          resolved.fileSchemas,
-          schemas,
-          visited,
-          resolved.schemaFilePath,
-          skillsRoot,
-          sources,
-        );
-      }
-    }
-  }
-
-  for (const value of Object.values(obj)) {
-    collectLocalRefsFromSchema(value, fileSchemas, schemas, visited, schemaFilePath, skillsRoot, sources);
-  }
-}
-
-/** Minimal shape of a task with enough fields for schema resolution. */
-export interface TaskForSchemaResolution {
-  task_file?: string;
-  params?: Record<string, unknown>;
-  result?: Record<string, { path?: string; schema?: object; validators?: string[]; flush?: string }>;
-  /** Matched rule/blueprint files — used for definition-level `extends:` enum-union (DESIGNBOOK-46). */
-  rules?: string[];
-  blueprints?: string[];
-}
-
-/**
- * Resolve $ref entries for a set of tasks and merge them into an existing schemas map.
- * Mutates both the tasks (`result[key].schema`) and the provided schemas map.
- *
- * Used at plan time (via `collectAndResolveSchemas`) and again at runtime when new
- * tasks are expanded during stage transitions (e.g. via `expandTasksFromParams`).
- *
- * Component-existence is NOT enforced here via a schema enum: the `scene` validator's
- * live-index inventory walk (`validateSceneAgainstInventory`) checks every `component:`
- * reference against the current Storybook index at `workflow done` time, which stays
- * correct as components are created within a run.
- */
-export function resolveSchemasForTasks(
-  tasks: TaskForSchemaResolution[],
-  skillsRoot: string,
-  schemas: Record<string, object>,
-  sources?: SkillSource[],
-): Record<string, object> {
-  for (const task of tasks) {
-    if (!task.result || !task.task_file) continue;
-    const taskFilePath = task.task_file;
-
-    // Re-read frontmatter to get the original $ref strings
-    const taskFm = parseFrontmatter(taskFilePath) as TaskFileFrontmatter | null;
-    if (!taskFm?.result) continue;
-
-    const resultProperties = (taskFm.result as Record<string, unknown>).properties as
-      | Record<string, Record<string, unknown>>
-      | undefined;
-    if (!resultProperties) continue;
-
-    for (const [key, resultDecl] of Object.entries(resultProperties)) {
-      // Save original $ref before resolveRefsInDeclaration rewrites it to AJV-local form
-      const originalRef = resultDecl.$ref as string | undefined;
-
-      // Resolve $ref in the frontmatter copy (populates schemas map)
-      resolveRefsInDeclaration(resultDecl, taskFilePath, skillsRoot, schemas, sources);
-
-      // Update the task's actual result schema:
-      // For top-level $ref, replace schema with the resolved definition
-      if (task.result[key] && originalRef) {
-        const { typeName, schema, fileSchemas, schemaFilePath } = resolveSchemaRef(
-          originalRef,
-          taskFilePath,
-          skillsRoot,
-          sources,
-        );
-        schemas[typeName] = schema;
-        collectLocalRefsFromSchema(
-          schema,
-          fileSchemas,
-          schemas,
-          new Set([typeName]),
-          schemaFilePath,
-          skillsRoot,
-          sources,
-        );
-        task.result[key]!.schema = schema;
-      }
-
-      // For nested $ref (e.g. items.$ref, properties.foo.$ref at any depth),
-      // rewrite file-system refs to AJV-compatible local refs in the task's schema
-      if (task.result[key]?.schema && typeof task.result[key]!.schema === 'object') {
-        rewriteRefsInSchema(
-          task.result[key]!.schema as Record<string, unknown>,
-          taskFilePath,
-          skillsRoot,
-          schemas,
-          sources,
-        );
-      }
-    }
-
-    // Collect $ref from each: declaration
-    if (taskFm.each) {
-      for (const eachValue of Object.values(taskFm.each)) {
-        if (eachValue && typeof eachValue === 'object') {
-          resolveRefsInDeclaration(eachValue as Record<string, unknown>, taskFilePath, skillsRoot, schemas, sources);
-        }
-      }
-    }
-
-    // Collect $ref from params: declaration
-    if (taskFm.params && typeof taskFm.params === 'object' && '$ref' in taskFm.params) {
-      const ref = (taskFm.params as Record<string, unknown>)['$ref'] as string;
-      const {
-        typeName,
-        schema: refSchema,
-        fileSchemas,
-        schemaFilePath,
-      } = resolveSchemaRef(ref, taskFilePath, skillsRoot, sources);
-      schemas[typeName] = refSchema;
-      collectLocalRefsFromSchema(
-        refSchema,
-        fileSchemas,
-        schemas,
-        new Set([typeName]),
-        schemaFilePath,
-        skillsRoot,
-        sources,
-      );
-    }
-
-    // DESIGNBOOK-46: apply definition-level `extends:` enum-union. A loaded skill (rule or
-    // blueprint) registers a value into a closed enum living on a shared DEFINITION that a task
-    // references only through a nested $ref (e.g. a `units` array whose items.$ref a shared
-    // definition carrying a closed enum). Such a definition is never a top-level result key, so
-    // the result-key composition merge never reaches it — widen it here, directly in the schemas
-    // map that `workflow done` validates against. This unions enum members only; it never adds
-    // properties or alters `required`.
-    for (const extFile of [...(task.blueprints ?? []), ...(task.rules ?? [])]) {
-      const ext = parseSchemaExtension(extFile);
-      if (ext?.extends) widenDefinitionEnums(ext.extends, schemas);
-    }
-  }
-
-  return schemas;
-}
-
-/**
- * Collect all $ref entries from resolved tasks and resolve them into a schemas map.
- * Called at workflow create time to inline all schemas into tasks.yml.
- */
-export function collectAndResolveSchemas(
-  tasks: TaskForSchemaResolution[],
-  skillsRoot: string,
-  sources?: SkillSource[],
-): Record<string, object> {
-  return resolveSchemasForTasks(tasks, skillsRoot, {}, sources);
-}
-
-/**
- * Derive the skills root (`.agents/skills`) from an absolute task file path.
- * Task files are always located under `<skillsRoot>/<skill>/.../tasks/<name>.md`,
- * so splitting on `/skills/` yields the root. Returns `undefined` for paths
- * that don't match the expected layout.
- */
-export function deriveSkillsRootFromTaskFile(taskFilePath: string | undefined): string | undefined {
-  if (!taskFilePath) return undefined;
-  const marker = '/skills/';
-  const idx = taskFilePath.indexOf(marker);
-  if (idx === -1) return undefined;
-  return taskFilePath.slice(0, idx + marker.length - 1);
-}
-
-/** Recursively resolve $ref entries in a declaration object.
- * Replaces file-system $ref (e.g. ../schemas.yml#/Component) with
- * local AJV-compatible $ref (e.g. #/Component) so validation works. */
-function resolveRefsInDeclaration(
-  obj: Record<string, unknown>,
-  taskFilePath: string,
-  skillsRoot: string,
-  schemas: Record<string, object>,
-  sources?: SkillSource[],
-): void {
-  if (obj.$ref && typeof obj.$ref === 'string') {
-    const { typeName, schema, fileSchemas, schemaFilePath } = resolveSchemaRef(
-      obj.$ref,
-      taskFilePath,
-      skillsRoot,
-      sources,
-    );
-    schemas[typeName] = schema;
-    // Pull in transitive local refs from the same schema file (e.g. Component → #/DesignHint)
-    collectLocalRefsFromSchema(schema, fileSchemas, schemas, new Set([typeName]), schemaFilePath, skillsRoot, sources);
-    // Replace file-system $ref with local AJV reference
-    obj.$ref = `#/${typeName}`;
-  }
-  // Check nested objects and arrays (e.g. items: { $ref: ... }, allOf: [{ $ref }])
-  for (const value of Object.values(obj)) {
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        if (item && typeof item === 'object') {
-          resolveRefsInDeclaration(item as Record<string, unknown>, taskFilePath, skillsRoot, schemas, sources);
-        }
-      }
-    } else if (value && typeof value === 'object') {
-      resolveRefsInDeclaration(value as Record<string, unknown>, taskFilePath, skillsRoot, schemas, sources);
-    }
-  }
-}
-
-/**
- * Rewrite file-system $ref strings to AJV-compatible local refs in a schema object.
- * Walks the schema tree at any depth, converting e.g. `../schemas.yml#/Component`
- * to `#/Component` (matching the key used in `ajv.addSchema`).
- *
- * Unlike `resolveRefsInDeclaration`, this does NOT load schema files — it relies
- * on the schemas map being already populated. Any $ref not matching an existing
- * schema key is resolved from disk and added.
- */
-export function rewriteRefsInSchema(
-  obj: Record<string, unknown>,
-  taskFilePath: string,
-  skillsRoot: string,
-  schemas: Record<string, object>,
-  sources?: SkillSource[],
-): void {
-  if (obj.$ref && typeof obj.$ref === 'string') {
-    const ref = obj.$ref as string;
-    // Only rewrite file-system $ref (contains '#/'); skip already-local refs like '#/TypeName'
-    if (ref.includes('#/') && !ref.startsWith('#/')) {
-      const {
-        typeName,
-        schema,
-        fileSchemas,
-        schemaFilePath: refFilePath,
-      } = resolveSchemaRef(ref, taskFilePath, skillsRoot, sources);
-      schemas[typeName] = schema;
-      // Also pull in transitive local refs (e.g. Component → #/DesignHint)
-      collectLocalRefsFromSchema(schema, fileSchemas, schemas, new Set([typeName]), refFilePath, skillsRoot, sources);
-      obj.$ref = `#/${typeName}`;
-    }
-  }
-  for (const value of Object.values(obj)) {
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        if (item && typeof item === 'object') {
-          rewriteRefsInSchema(item as Record<string, unknown>, taskFilePath, skillsRoot, schemas, sources);
-        }
-      }
-    } else if (value && typeof value === 'object') {
-      rewriteRefsInSchema(value as Record<string, unknown>, taskFilePath, skillsRoot, schemas, sources);
-    }
-  }
-}
-
-// ── Workflow Steps ────────────────────────────────────────────────────
-
-/**
- * Extract steps from workflow frontmatter.
- * Supports three formats:
- * - Grouped: stages: { execute: { steps: [...] }, test: { steps: [...] } }
- * - Flat: stages: [step1, step2, ...] (legacy)
- * - Nested: workflow.stages: [...] (legacy)
- */
-function getWorkflowSteps(fm: WorkflowFrontmatter): string[] | undefined {
-  const stages = fm.stages ?? fm.workflow?.stages;
-  if (!stages) return undefined;
-  if (Array.isArray(stages)) return stages;
-  // Grouped format: flatten all steps from all stages in order
-  const steps: string[] = [];
-  for (const def of Object.values(stages)) {
-    steps.push(...(def.steps ?? []));
-  }
-  return steps;
-}
-
-/** Extract grouped stage definitions from frontmatter (new format only). */
-function getWorkflowStageDefinitions(fm: WorkflowFrontmatter): Record<string, StageDefinitionFm> | undefined {
-  if (fm.stages && !Array.isArray(fm.stages)) return fm.stages;
-  return undefined;
-}
-
-/** Extract title from workflow frontmatter (supports both flat and nested format). */
-function getWorkflowTitle(fm: WorkflowFrontmatter): string {
-  return fm.title ?? fm.workflow?.title ?? '';
-}
-
-// ── Artifact Name Derivation ──────────────────────────────────────
-
-/**
- * Derive namespaced artifact name from file path relative to agentsDir.
- *
- * Convention: `<skill>:<concern>:<artifact>` for nested skills,
- * `<skill>:<artifact>` for flat skills.
- *
- * The concern is the directory directly containing the kind dir — covering both
- * the flat concern layout (integration skills) and the nested sub-skill layout
- * (core skill: `skills/designbook/skills/<wf>/<kind>/x`).
- *
- * Examples:
- * - `skills/designbook/skills/tokens/tasks/create-tokens.md` → `designbook:tokens:create-tokens`  (nested sub-skill)
- * - `skills/designbook/design/tasks/capture-storybook.md` → `designbook:design:capture-storybook`  (shared content root, parent-level)
- * - `skills/designbook-stitch/tasks/stitch-inspect.md` → `designbook-stitch:stitch-inspect`
- * - `skills/designbook-drupal/components/rules/foo.md` → `designbook-drupal:components:foo`
- * - `skills/designbook-sdc/blueprints/component.md` with type=component, name=section → `designbook-sdc:blueprints:component/section`
- */
-export function deriveArtifactName(
-  filePath: string,
-  agentsDir: string,
-  frontmatter?: Record<string, unknown> | null,
-  /**
-   * When the file was discovered under an plugin SkillSource (not the project
-   * `agentsDir`), pass the source so the namespace is derived from the source
-   * name + the path relative to the source root, instead of relative to
-   * `<agentsDir>/skills`.
-   */
-  source?: SkillSource,
-): string {
-  // Blueprint legacy: derive from type+name (check BEFORE explicit name,
-  // because blueprint `name` is the short component name, not a namespace)
-  if (frontmatter?.type && typeof frontmatter.type === 'string') {
-    // If name contains ':', it's an explicit namespaced name — use it directly
-    if (frontmatter.name && typeof frontmatter.name === 'string' && frontmatter.name.includes(':')) {
-      return frontmatter.name;
-    }
-    const bpName = frontmatter.name ?? filePath.replace(/\\/g, '/').split('/').pop()?.replace(/\.md$/, '') ?? '';
-    const skill = source
-      ? source.name
-      : (relative(resolve(agentsDir, 'skills'), filePath).replace(/\\/g, '/').split('/')[0] ?? '');
-    return `${skill}:blueprints:${frontmatter.type}/${bpName}`;
-  }
-
-  // Use explicit name if set in frontmatter (non-blueprint)
-  if (frontmatter?.name && typeof frontmatter.name === 'string') {
-    return frontmatter.name;
-  }
-
-  // Plugin-source file: derive namespace from source name + rel-within-root path.
-  if (source) {
-    return derivePluginArtifactName(source, filePath);
-  }
-
-  // Derive from filesystem path: skills/<skill>[/…]/<kind>/<artifact>.md
-  const rel = relative(resolve(agentsDir, 'skills'), filePath).replace(/\\/g, '/');
-  const parts = rel.split('/');
-  const skill = parts[0] ?? '';
-  const artifact = (parts[parts.length - 1] ?? '').replace(/\.md$/, '');
-
-  // Concern = the directory directly containing the kind dir (tasks/rules/
-  // blueprints/workflows) — the segment two levels above the artifact file.
-  // Covers both the flat concern layout (skills/<skill>/<concern>/<kind>/x) and
-  // the nested sub-skill layout (skills/<skill>/skills/<wf>/<kind>/x → concern <wf>).
-  // Flat (skills/<skill>/<kind>/x → 3 parts) has no concern.
-  if (parts.length >= 4) {
-    const concern = parts[parts.length - 3]!;
-    return `${skill}:${concern}:${artifact}`;
-  }
-
-  // Flat: skill/kind/artifact.md
-  return `${skill}:${artifact}`;
-}
-
-/**
- * Resolve short name to full namespaced name within the same skill context.
- * E.g., `design:screenshot-reference` in skill `designbook` → `designbook:design:screenshot-reference`
- */
-export function resolveShortName(shortName: string, skillName: string): string {
-  const segments = shortName.split(':');
-  if (segments.length >= 3) return shortName; // Already fully qualified
-  return `${skillName}:${shortName}`;
-}
-
-// ── Frontmatter Parsing ────────────────────────────────────────────
-
-/**
- * Extract YAML frontmatter from a markdown file.
- * Returns parsed YAML object, or null if no frontmatter found.
- */
-export function parseFrontmatter(filePath: string): Record<string, unknown> | null {
-  const content = readFileSync(filePath, 'utf-8');
-  const result = fm<Record<string, unknown>>(content);
-  if (!result.frontmatter) return null;
-  return result.attributes ?? {};
-}
-
-// ── When Condition Matching ────────────────────────────────────────
-
-/**
- * Look up a key in context first, then config. Config supports dot-path traversal
- * as fallback (e.g. `frameworks.css` walks into `config.frameworks.css`).
- */
-export function lookup(key: string, context: Record<string, unknown>, config: Record<string, unknown>): unknown {
-  if (context[key] !== undefined) return context[key];
-  if (config[key] !== undefined) return config[key];
-  // Dot-path traversal into config (forward-compat for non-flattened configs)
-  return key
-    .split('.')
-    .reduce(
-      (obj, part) => (obj != null && typeof obj === 'object' ? (obj as Record<string, unknown>)[part] : undefined),
-      config as unknown,
-    );
-}
-
-type MatchOutcome = 'match' | 'nomatch' | 'defer';
-
-function matchConditionKey(
-  key: string,
-  value: unknown,
-  context: Record<string, unknown>,
-  config: Record<string, unknown>,
-): MatchOutcome {
-  if (key === 'domain') {
-    const domains = context['domain'];
-    if (domains === undefined) return 'defer';
-    const effectiveDomains: string[] = Array.isArray(domains) ? domains.map(String) : [String(domains)];
-    const ruleDomains: string[] = Array.isArray(value) ? (value as string[]).map(String) : [String(value)];
-    return ruleDomains.some((rd) => matchDomain(rd, effectiveDomains)) ? 'match' : 'nomatch';
-  }
-
-  const actual = lookup(key, context, config);
-  if (actual === undefined) return 'defer';
-  if (Array.isArray(value)) {
-    return value.map(String).includes(String(actual ?? '')) ? 'match' : 'nomatch';
-  }
-  if (Array.isArray(actual)) {
-    return actual.map(String).includes(String(value)) ? 'match' : 'nomatch';
-  }
-  return String(actual ?? '') === String(value) ? 'match' : 'nomatch';
-}
-
-/**
- * Check whether a `trigger:` + `filter:` pair matches against context + config.
- *
- * - `trigger:` keys (`steps`, `domain`) declare WHEN the rule/blueprint becomes active.
- *   They are OR-connected and STRICT: at least one trigger must explicitly match.
- *   A trigger key whose context value is undefined does NOT pass — strict semantics
- *   ensure that e.g. `trigger.domain: components` never matches a task that did not
- *   declare a domain.
- * - `filter:` keys (`backend`, `frameworks.*`, `extensions`, `type`, …) declare
- *   WHERE (project config) the rule/blueprint is applicable. They are AND-connected
- *   and deferring: an undefined config/context value is treated as a pass.
- *
- * Lookup order per key: context first, config fallback (with dot-path traversal).
- * Matching rules:
- * - Array value → looked-up value must be one of those values
- * - Array looked-up value → condition value must be present in that array
- * - Scalar vs scalar → exact string match
- * - `domain` → prefix matching via matchDomain()
- *
- * Returns specificity count (number of declared keys) on success, or `false` on mismatch.
- */
-export function checkConditions(
-  trigger: Record<string, unknown> | undefined,
-  filter: Record<string, unknown> | undefined,
-  context: Record<string, unknown>,
-  config: Record<string, unknown>,
-): number | false {
-  if (filter) {
-    for (const [key, value] of Object.entries(filter)) {
-      const outcome = matchConditionKey(key, value, context, config);
-      if (outcome === 'nomatch') return false;
-    }
-  }
-
-  if (trigger && Object.keys(trigger).length > 0) {
-    let anyMatch = false;
-    for (const [key, value] of Object.entries(trigger)) {
-      const outcome = matchConditionKey(key, value, context, config);
-      if (outcome === 'match') {
-        anyMatch = true;
-        break;
-      }
-    }
-    if (!anyMatch) return false;
-  }
-
-  const triggerCount = trigger ? Object.keys(trigger).length : 0;
-  const filterCount = filter ? Object.keys(filter).length : 0;
-  return triggerCount + filterCount;
-}
-
-/**
- * Check whether a rule's domain matches any of the effective domains.
- *
- * Matching rules (dot-delimited prefix matching):
- * - Exact: "components" matches "components"
- * - Rule is child of need: need "components" matches rule "components.layout"
- * - Rule is parent of need: need "components.layout" matches rule "components"
- * - No partial segment: "components" does NOT match "components-extra"
- */
-export function matchDomain(ruleDomain: string, effectiveDomains: string[]): boolean {
-  for (const need of effectiveDomains) {
-    if (ruleDomain === need) return true;
-    if (ruleDomain.startsWith(need + '.')) return true;
-    if (need.startsWith(ruleDomain + '.')) return true;
-  }
-  return false;
-}
-
-/**
- * Build runtime context for trigger/filter evaluation (step-specific, not config).
- * Sets both `steps` (canonical) and `stages` (legacy alias) keys so rule files
- * declaring `trigger.stages:` continue to match during migration.
- */
-export function buildRuntimeContext(step?: string, extraConditions?: Record<string, string>): Record<string, unknown> {
-  const context: Record<string, unknown> = {};
-  if (step !== undefined) {
-    context['steps'] = step;
-    context['stages'] = step; // Legacy compat: rule files may use when: stages:
-  }
-  if (extraConditions) Object.assign(context, extraConditions);
-  return context;
-}
-
-/**
- * Enrich config with derived DESIGNBOOK_* env vars and normalized extensions array.
- */
-export function buildEnrichedConfig(config: DesignbookConfig): Record<string, unknown> {
-  const enriched: Record<string, unknown> = { ...(config as Record<string, unknown>) };
-  Object.assign(enriched, buildEnvMap(config));
-  const extensions = normalizeExtensions(config['extensions']);
-  enriched['extensions'] = getExtensionIds(extensions).split(',').filter(Boolean);
-  return enriched;
-}
-
-// ── Environment Variable Map ───────────────────────────────────────
-
-/**
- * Build a map of DESIGNBOOK_* env vars from config for template expansion.
- *
- * Emits:
- * - DESIGNBOOK_WORKSPACE from `workspace`
- * - DESIGNBOOK_HOME / DESIGNBOOK_DATA / DESIGNBOOK_URL / DESIGNBOOK_CMD from `designbook.*` keys
- * - DESIGNBOOK_DIRS_* from `dirs.*` keys
- * - All other scalar config values → DESIGNBOOK_<KEY>
- */
-export function buildEnvMap(config: DesignbookConfig): Record<string, string> {
-  const env: Record<string, string> = {};
-
-  // Dynamic: all scalar config values → DESIGNBOOK_<KEY>
-  // Dot-path keys are split and rejoined with '_'. The 'frameworks' segment is
-  // renamed to 'FRAMEWORK' (singular) to match the shell `config` output
-  // (e.g. frameworks.css → DESIGNBOOK_FRAMEWORK_CSS).
-  // Skip internal properties and designbook.* keys (handled explicitly below)
-  for (const [key, value] of Object.entries(config)) {
-    if (value == null || typeof value === 'object') continue;
-    if (key === 'data' || key === 'workspace') continue;
-    if (key.startsWith('designbook.')) continue;
-    const parts = key.split('.');
-    const envParts = parts.map((p) => (p === 'frameworks' ? 'FRAMEWORK' : p.toUpperCase()));
-    env[`DESIGNBOOK_${envParts.join('_')}`] = String(value);
-  }
-
-  // Explicit: DESIGNBOOK_WORKSPACE, DESIGNBOOK_HOME, DESIGNBOOK_DATA, DESIGNBOOK_URL, DESIGNBOOK_CMD
-  if (config.workspace) env['DESIGNBOOK_WORKSPACE'] = String(config.workspace);
-  if (config['designbook.home']) env['DESIGNBOOK_HOME'] = String(config['designbook.home']);
-  if (config['designbook.data']) env['DESIGNBOOK_DATA'] = String(config['designbook.data']);
-  if (config['designbook.url']) env['DESIGNBOOK_URL'] = String(config['designbook.url']);
-  if (config['designbook.cmd']) env['DESIGNBOOK_CMD'] = String(config['designbook.cmd']);
-
-  // Derived: extensions as comma-sep IDs + skill IDs
-  const extensions = normalizeExtensions(config['extensions']);
-  env['DESIGNBOOK_EXTENSIONS'] = getExtensionIds(extensions);
-  env['DESIGNBOOK_EXTENSION_SKILLS'] = getExtensionSkillIds(extensions);
-
-  return env;
-}
-
-// ── Unified File Resolution ─────────────────────────────────────────
-
-/**
- * Find markdown files matching a glob pattern and filter by `trigger:` +
- * `filter:` frontmatter conditions against context (runtime) and config (project).
- *
- * Returns all matches with their specificity (number of declared keys matched).
- *
- * When `requireConditions` is true (default), files without any conditions are
- * skipped — at least one declared key across `trigger:` or `filter:` is required.
- * Set to false for task files where unconditional matching is expected.
- *
- * Semantics:
- * - `trigger:` keys (`steps`, `domain`) are OR-connected — at least one must match.
- * - `filter:` keys (`backend`, `frameworks.*`, `extensions`, `type`) are AND-connected.
- *
- * Domain matching is handled inside `checkConditions()` via the `domain` key in
- * context (set to the effective domains array). Rule/blueprint files declare
- * `trigger.domain:` and `checkConditions` uses `matchDomain()` prefix logic.
- */
-export function resolveFiles(
-  globPattern: string,
-  context: Record<string, unknown>,
-  config: Record<string, unknown>,
-  agentsDir: string,
-  requireWhen = true,
-  sources?: SkillSource[],
-): ResolvedFile[] {
-  const results: ResolvedFile[] = [];
-
-  // Each candidate carries its source (undefined = project layout under agentsDir).
-  const candidates: Array<{ filePath: string; source?: SkillSource }> = [];
-  for (const filePath of globSync(globPattern, { cwd: agentsDir, absolute: true })) {
-    candidates.push({ filePath });
-  }
-  const sourcePattern = toSourcePattern(globPattern);
-  for (const source of pluginSources(sources)) {
-    for (const filePath of globSync(sourcePattern, { cwd: source.root, absolute: true })) {
-      candidates.push({ filePath, source });
-    }
-  }
-
-  for (const { filePath, source } of candidates) {
-    const frontmatter = parseFrontmatter(filePath);
-    const trigger = frontmatter?.trigger as Record<string, unknown> | undefined;
-    const filter = frontmatter?.filter as Record<string, unknown> | undefined;
-    const name = deriveArtifactName(filePath, agentsDir, frontmatter, source);
-
-    const triggerCount = trigger ? Object.keys(trigger).length : 0;
-    const filterCount = filter ? Object.keys(filter).length : 0;
-    if (triggerCount + filterCount === 0) {
-      if (requireWhen) {
-        continue;
-      }
-      results.push({ path: filePath, name, specificity: 0, frontmatter });
-      continue;
-    }
-
-    const specificity = checkConditions(trigger, filter, context, config);
-    if (specificity !== false) {
-      results.push({ path: filePath, name, specificity, frontmatter });
-    }
-  }
-
-  return results;
-}
-
-// ── Root Precedence ──────────────────────────────────────────────────
-
-/** Path lives under a plugin-cache skills root (installed plugin / user copy). */
-function isPluginRootPath(p: string): boolean {
-  return /\/(?:\.cli-skills-root[^/]*|plugins\/cache)\//.test(p.replace(/\\/g, '/'));
-}
-
-/**
- * Apply project-over-user (plugin) root precedence: first hit wins by root.
- *
- * Search order is project first, then user. If the project root yields ANY
- * match, the user/plugin matches are discarded wholesale — never merged. The
- * installed plugin is only a fallback for steps the project does not define.
- *
- * Without this, the same step resolves task files from BOTH roots, and
- * `each:`-expansion materializes every task once per root (a `write-component`
- * present in both roots expands every component twice; sample-data runs twice,
- * the stale plugin copy writing the legacy per-section data.yml).
- */
-export function preferProjectRoot(files: ResolvedFile[]): ResolvedFile[] {
-  const projectMatches = files.filter((f) => !isPluginRootPath(f.path));
-  return projectMatches.length > 0 ? projectMatches : files;
-}
-
-// ── Name/As Deduplication & Priority Sorting ─────────────────────────
-
-/**
- * Apply name/as deduplication and priority sorting to resolved files.
- *
- * 1. Collect all files
- * 2. Group by effective name (own `name` for standalone, `as` target for overrides)
- * 3. Within each group, highest `priority` wins (tiebreak: alphabetical skill name, last wins)
- * 4. Return remaining files sorted by priority (lowest first)
- *
- * Emits warnings for `as` targets that don't exist in the resolved set.
- */
-export function deduplicateByNameAs(files: ResolvedFile[], agentsDir: string, warnings: string[] = []): ResolvedFile[] {
-  // Separate files into standalone (no `as`) and overrides (with `as`)
-  const standalone: ResolvedFile[] = [];
-  const overrides: Array<{ file: ResolvedFile; asTarget: string; priority: number }> = [];
-
-  for (const file of files) {
-    const asValue = file.frontmatter?.as as string | undefined;
-    if (asValue) {
-      // Resolve short name: derive skill from file path
-      const rel = relative(resolve(agentsDir, 'skills'), file.path).replace(/\\/g, '/');
-      const skill = rel.split('/')[0] ?? '';
-      const resolvedAs = resolveShortName(asValue, skill);
-      const priority = typeof file.frontmatter?.priority === 'number' ? (file.frontmatter.priority as number) : 0;
-      overrides.push({ file, asTarget: resolvedAs, priority });
-    } else {
-      standalone.push(file);
-    }
-  }
-
-  // Build a map of standalone files by name for override lookup
-  const standaloneByName = new Map<string, ResolvedFile>();
-  for (const file of standalone) {
-    standaloneByName.set(file.name, file);
-  }
-
-  // Apply overrides: group by asTarget, highest priority wins
-  const overridesByTarget = new Map<string, Array<{ file: ResolvedFile; priority: number }>>();
-  for (const o of overrides) {
-    if (!overridesByTarget.has(o.asTarget)) {
-      overridesByTarget.set(o.asTarget, []);
-    }
-    overridesByTarget.get(o.asTarget)!.push({ file: o.file, priority: o.priority });
-  }
-
-  for (const [target, candidates] of overridesByTarget) {
-    const original = standaloneByName.get(target);
-    if (!original) {
-      // as target doesn't exist — warn and run as additive
-      warnings.push(`as target '${target}' not found — task runs as additive`);
-      for (const c of candidates) {
-        standalone.push(c.file);
-      }
-      continue;
-    }
-
-    // Compare original priority with override candidates
-    const originalPriority =
-      typeof original.frontmatter?.priority === 'number' ? (original.frontmatter.priority as number) : 0;
-
-    // Find highest priority override
-    candidates.sort((a, b) => b.priority - a.priority);
-    const winner = candidates[0]!;
-
-    if (winner.priority > originalPriority) {
-      // Override wins — remove original, add winner
-      standaloneByName.delete(target);
-      standalone.splice(standalone.indexOf(original), 1);
-      standalone.push(winner.file);
-    } else if (winner.priority === originalPriority) {
-      // Equal priority — alphabetical tiebreak (last wins)
-      const originalSkill = original.name.split(':')[0] ?? '';
-      const winnerSkill = winner.file.name.split(':')[0] ?? '';
-      if (winnerSkill >= originalSkill) {
-        standaloneByName.delete(target);
-        standalone.splice(standalone.indexOf(original), 1);
-        standalone.push(winner.file);
-      }
-      // else original wins
-    }
-    // else original priority is higher — original stays
-  }
-
-  // Sort by priority (lowest first)
-  standalone.sort((a, b) => {
-    const pa = typeof a.frontmatter?.priority === 'number' ? (a.frontmatter.priority as number) : 0;
-    const pb = typeof b.frontmatter?.priority === 'number' ? (b.frontmatter.priority as number) : 0;
-    return pa - pb;
-  });
-
-  return standalone;
-}
-
-// ── Task File Resolution ────────────────────────────────────────────
-
-/**
- * Resolve a stage name to task file paths.
- *
- * Named stages (skill:task format): first try direct skill-dir resolution, then
- * fall back to glob for workflow-qualified tasks (task--workflow-id.md pattern).
- * Named stages always return at most one result.
- *
- * Generic stages return ALL matching task files (multiple skills can contribute).
- * Returns empty array if no task files match (callers skip the step).
- */
-/**
- * Try to resolve an explicit `skill:task` path against plugin SkillSource roots.
- * Checks the flat `<source.root>/tasks/<name>.md` first, then `**\/tasks/<name>.md`.
- */
-function resolveExplicitTaskInPluginSources(
-  skillName: string,
-  taskName: string,
-  sources?: SkillSource[],
-): string | undefined {
-  const source = pluginSources(sources).find((s) => s.name === skillName);
-  if (!source) return undefined;
-  const flat = resolve(source.root, 'tasks', `${taskName}.md`);
-  if (existsSync(flat)) return flat;
-  const nested = globSync(`**/tasks/${taskName}.md`, { cwd: source.root, absolute: true });
-  if (nested.length > 0) return nested[0]!;
-  return undefined;
-}
-
-export function resolveTaskFiles(
-  stage: string,
-  config: DesignbookConfig,
-  agentsDir: string,
-  sources?: SkillSource[],
-): string[] {
-  const context = buildRuntimeContext(stage);
-  const enrichedConfig = buildEnrichedConfig(config);
-
-  // Primary: broad scan — find all tasks with trigger.steps matching this stage
-  const broadMatches = resolveFiles('skills/**/tasks/*.md', context, enrichedConfig, agentsDir, true, sources);
-
-  // Named stage (skill:task format): return single best match
-  if (stage.includes(':')) {
-    if (broadMatches.length > 0) {
-      broadMatches.sort((a, b) => b.specificity - a.specificity);
-      return [broadMatches[0]!.path];
-    }
-    // Fallback: direct skill-dir resolution (e.g. designbook-drupal:write-component)
-    const parts = stage.split(':', 2);
-    const skillName = parts[0] ?? '';
-    const taskName = parts[1] ?? '';
-    const taskPath = resolve(agentsDir, 'skills', skillName, 'tasks', `${taskName}.md`);
-    if (existsSync(taskPath)) {
-      console.warn(
-        `[designbook] task "${taskPath}" resolved by filename — add trigger.steps: [${stage}] to frontmatter`,
-      );
-      return [taskPath];
-    }
-    const pluginTaskPath = resolveExplicitTaskInPluginSources(skillName, taskName, sources);
-    if (pluginTaskPath) {
-      console.warn(
-        `[designbook] task "${pluginTaskPath}" resolved by filename — add trigger.steps: [${stage}] to frontmatter`,
-      );
-      return [pluginTaskPath];
-    }
-    return [];
-  }
-
-  // Generic stage: return ALL broad-scan matches
-  if (broadMatches.length > 0) {
-    return broadMatches.map((m) => m.path);
-  }
-
-  // Fallback: filename-based resolution with deprecation warning
-  const filenameMatches = resolveFiles(
-    `skills/**/tasks/${stage}.md`,
-    context,
-    enrichedConfig,
-    agentsDir,
-    false,
-    sources,
-  );
-  if (filenameMatches.length > 0) {
-    for (const m of filenameMatches) {
-      console.warn(`[designbook] task "${m.path}" resolved by filename — add trigger.steps: [${stage}] to frontmatter`);
-    }
-    return filenameMatches.map((m) => m.path);
-  }
-
-  return [];
-}
-
-/**
- * Resolve a stage name to ResolvedFile[] with name/as deduplication and priority sorting.
- * Used by resolveAllStages for the unified extension model.
- */
-export function resolveTaskFilesRich(
-  stage: string,
-  config: DesignbookConfig,
-  agentsDir: string,
-  sources?: SkillSource[],
-): ResolvedFile[] {
-  const context = buildRuntimeContext(stage);
-  const enrichedConfig = buildEnrichedConfig(config);
-
-  // Primary: broad scan — find all tasks with trigger.steps matching this stage
-  const broadMatches = resolveFiles('skills/**/tasks/*.md', context, enrichedConfig, agentsDir, true, sources);
-
-  // Named stage (skill:task format): return single best match, no dedup needed
-  if (stage.includes(':')) {
-    if (broadMatches.length > 0) {
-      broadMatches.sort((a, b) => b.specificity - a.specificity);
-      return [broadMatches[0]!];
-    }
-    // Fallback: direct skill-dir resolution
-    const parts = stage.split(':', 2);
-    const skillName = parts[0] ?? '';
-    const taskName = parts[1] ?? '';
-    const taskPath = resolve(agentsDir, 'skills', skillName, 'tasks', `${taskName}.md`);
-    if (existsSync(taskPath)) {
-      console.warn(
-        `[designbook] task "${taskPath}" resolved by filename — add trigger.steps: [${stage}] to frontmatter`,
-      );
-      const frontmatter = parseFrontmatter(taskPath);
-      const name = deriveArtifactName(taskPath, agentsDir, frontmatter);
-      return [{ path: taskPath, name, specificity: 0, frontmatter }];
-    }
-    const pluginTaskPath = resolveExplicitTaskInPluginSources(skillName, taskName, sources);
-    if (pluginTaskPath) {
-      console.warn(
-        `[designbook] task "${pluginTaskPath}" resolved by filename — add trigger.steps: [${stage}] to frontmatter`,
-      );
-      const frontmatter = parseFrontmatter(pluginTaskPath);
-      const pluginSource = pluginSources(sources).find((s) => s.name === skillName);
-      const name = deriveArtifactName(pluginTaskPath, agentsDir, frontmatter, pluginSource);
-      return [{ path: pluginTaskPath, name, specificity: 0, frontmatter }];
-    }
-    return [];
-  }
-
-  // Generic stage: return ALL broad-scan matches, deduplicated.
-  // Collapse same-logical-file copies across roots (project + plugin cache) first,
-  // so each-expansion does not materialize a task once per source root.
-  if (broadMatches.length > 0) {
-    return deduplicateByNameAs(preferProjectRoot(broadMatches), agentsDir);
-  }
-
-  // Fallback: filename-based resolution with deprecation warning
-  const filenameMatches = resolveFiles(
-    `skills/**/tasks/${stage}.md`,
-    context,
-    enrichedConfig,
-    agentsDir,
-    false,
-    sources,
-  );
-  if (filenameMatches.length > 0) {
-    for (const m of filenameMatches) {
-      console.warn(`[designbook] task "${m.path}" resolved by filename — add trigger.steps: [${stage}] to frontmatter`);
-    }
-    return deduplicateByNameAs(preferProjectRoot(filenameMatches), agentsDir);
-  }
-
-  return [];
-}
-
-// ── Rule File Matching ──────────────────────────────────────────────
-
-/**
- * Scan all rule files and return paths matching the given stage and config.
- *
- * Domain matching is handled via `trigger.domain` in each rule file, evaluated
- * by `checkConditions()` using `matchDomain()` prefix logic. The `effectiveDomains`
- * are injected into the runtime context as `context.domain`.
- */
-export function matchRuleFiles(
-  stage: string,
-  config: DesignbookConfig,
-  agentsDir: string,
-  extraConditions?: Record<string, string>,
-  effectiveDomains?: string[],
-  sources?: SkillSource[],
-): string[] {
-  const context = buildRuntimeContext(stage, extraConditions);
-  if (effectiveDomains && effectiveDomains.length > 0) {
-    context['domain'] = effectiveDomains;
-  }
-  const enrichedConfig = buildEnrichedConfig(config);
-  const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true, sources);
-  return matches.map((m) => m.path);
-}
-
-// ── Blueprint File Matching ───────────────────────────────────────────
-
-/**
- * Scan all blueprint files and return paths matching the given stage and config.
- * Blueprints use the same trigger/filter frontmatter matching as rules.
- *
- * Unlike rules (which are additive), blueprints are unique per `type`+`name`.
- * If multiple skills define the same type+name blueprint, the one with the
- * highest `priority` frontmatter field wins (default: 0). Equal priority
- * uses last-match-wins (skills are globbed alphabetically).
- *
- * Domain matching is handled via `trigger.domain` in each blueprint file, evaluated
- * by `checkConditions()` using `matchDomain()` prefix logic.
- */
-export function matchBlueprintFiles(
-  stage: string,
-  config: DesignbookConfig,
-  agentsDir: string,
-  extraConditions?: Record<string, string>,
-  effectiveDomains?: string[],
-  sources?: SkillSource[],
-): string[] {
-  const context = buildRuntimeContext(stage, extraConditions);
-  if (effectiveDomains && effectiveDomains.length > 0) {
-    context['domain'] = effectiveDomains;
-  }
-  const enrichedConfig = buildEnrichedConfig(config);
-  const matches = resolveFiles('skills/**/blueprints/*.md', context, enrichedConfig, agentsDir, true, sources);
-
-  // Deduplicate by type+name — highest priority wins, equal priority = last match wins
-  const byKey = new Map<string, { path: string; priority: number }>();
-  for (const m of matches) {
-    const type = m.frontmatter?.['type'] as string | undefined;
-    const name = m.frontmatter?.['name'] as string | undefined;
-    if (type && name) {
-      const key = `${type}:${name}`;
-      const priority = typeof m.frontmatter?.['priority'] === 'number' ? (m.frontmatter['priority'] as number) : 0;
-      const existing = byKey.get(key);
-      if (!existing || priority >= existing.priority) {
-        byKey.set(key, { path: m.path, priority });
-      }
-    }
-  }
-  return Array.from(byKey.values()).map((v) => v.path);
-}
-
-// ── Config Resolution ───────────────────────────────────────────────
-
-/**
- * Resolve workflow config rules and instructions for a step.
- * Extension skills (from extensions[].skill in config) are injected into
- * config_instructions at lower priority than explicit step instructions.
- */
-export function resolveConfigForStep(
-  stage: string,
-  rawConfig: Record<string, unknown>,
-): { config_rules: string[]; config_instructions: string[] } {
-  const workflow = rawConfig.workflow as Record<string, unknown> | undefined;
-
-  const rules = workflow?.rules as Record<string, unknown> | undefined;
-  const tasks = workflow?.tasks as Record<string, unknown> | undefined;
-
-  const configRules = rules?.[stage];
-  const configInstructions = tasks?.[stage];
-
-  const explicitInstructions = Array.isArray(configInstructions) ? configInstructions.map(String) : [];
-
-  const extensionSkills = getExtensionSkillIds(normalizeExtensions(rawConfig['extensions'])).split(',').filter(Boolean);
-
-  return {
-    config_rules: Array.isArray(configRules) ? configRules.map(String) : [],
-    config_instructions: [...explicitInstructions, ...extensionSkills],
-  };
-}
-
-// ── Params Validation ───────────────────────────────────────────────
-
-/**
- * Validate and merge item params against task file's params schema.
- * Required params (value is null/~) must be provided.
- * Optional params (value is a default) are filled from schema if absent.
- */
-/**
- * Resolve a `$ref` in a `params:` declaration.
- * Extracts `properties` from the referenced schema and merges with explicit entries (explicit wins).
- */
-export function resolveParamsRef(
-  params: Record<string, unknown>,
-  taskFilePath: string,
-  skillsRoot: string,
-  sources?: SkillSource[],
-): Record<string, unknown> {
-  const ref = params['$ref'] as string;
-  const { schema } = resolveSchemaRef(ref, taskFilePath, skillsRoot, sources);
-
-  const schemaObj = schema as Record<string, unknown>;
-  const schemaProps = schemaObj.properties as Record<string, unknown> | undefined;
-  if (!schemaProps) {
-    throw new Error(
-      `$ref '${ref}' in params: resolved to a schema without 'properties'. ` +
-        `params: $ref must point to an object schema with properties.`,
-    );
-  }
-
-  // Merge properties: $ref first, explicit overrides
-  const explicitProps = (params.properties ?? {}) as Record<string, unknown>;
-  const mergedProperties: Record<string, unknown> = { ...schemaProps, ...explicitProps };
-
-  // Concatenate required arrays
-  const schemaRequired = (schemaObj.required ?? []) as string[];
-  const explicitRequired = (params.required ?? []) as string[];
-  const mergedRequired = [...schemaRequired, ...explicitRequired];
-
-  // Build merged result: copy all non-special keys, then set merged values
-  const resolved: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(params)) {
-    if (key === '$ref' || key === 'properties' || key === 'required') continue;
-    resolved[key] = value;
-  }
-  resolved.properties = mergedProperties;
-  if (mergedRequired.length > 0) {
-    resolved.required = mergedRequired;
-  }
-
-  return resolved;
-}
-
-/**
- * Check whether a param value is a valid inline JSON Schema object.
- * Valid: object with a `type` property (e.g. `{ type: 'string' }`, `{ type: 'array', default: [] }`).
- * Invalid (old format): null, bare array, bare object without `type`, scalar.
- */
-export function isJsonSchemaParam(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value) && ('type' in value || '$ref' in value);
-}
-
-/**
- * Validate that all params in a task file use inline JSON Schema format.
- * Throws with descriptive error on old-format params.
- */
-export function validateParamFormats(params: Record<string, unknown>, taskFile: string): void {
-  const properties = params.properties as Record<string, unknown> | undefined;
-  if (!properties) {
-    // Check if this looks like a flat map (has keys that look like param names)
-    const hasParamLikeKeys = Object.keys(params).some(
-      (k) => k !== 'type' && k !== 'required' && k !== 'properties' && k !== '$ref',
-    );
-    if (hasParamLikeKeys) {
-      throw new Error(
-        `Params in ${taskFile} must use wrapper format: { type: object, properties: { ... } }. ` +
-          `Found flat map keys: ${Object.keys(params).join(', ')}.`,
-      );
-    }
-    return; // Truly empty params — OK
-  }
-
-  for (const [key, value] of Object.entries(properties)) {
-    if (isJsonSchemaParam(value)) continue;
-
-    const got =
-      value === null
-        ? 'null'
-        : Array.isArray(value)
-          ? 'array'
-          : typeof value === 'object'
-            ? 'object without "type"'
-            : typeof value;
-    throw new Error(
-      `Invalid param "${key}" in ${taskFile}: expected JSON Schema object with "type" property, got ${got}. ` +
-        `Migrate to inline JSON Schema (e.g. { type: string } or { type: array, default: [] }).`,
-    );
-  }
-}
-
-/**
- * Extract the default value from a JSON Schema param, or undefined if required.
- */
-function extractParamDefault(schema: Record<string, unknown>): { hasDefault: boolean; default?: unknown } {
-  if ('default' in schema) {
-    return { hasDefault: true, default: schema.default };
-  }
-  return { hasDefault: false };
-}
-
-export function validateAndMergeParams(
-  itemParams: Record<string, unknown>,
-  schemaParams: Record<string, unknown>,
-  step: string,
-): Record<string, unknown> {
-  const merged: Record<string, unknown> = { ...itemParams };
-  const properties = (schemaParams.properties ?? {}) as Record<string, unknown>;
-  const requiredKeys = new Set((schemaParams.required ?? []) as string[]);
-
-  const missing: string[] = [];
-  for (const [key, value] of Object.entries(properties)) {
-    if (merged[key] !== undefined) continue;
-
-    // Skip file-input params — they're read from disk by the AI, not provided via CLI
-    if (isJsonSchemaParam(value) && 'path' in value) continue;
-
-    if (isJsonSchemaParam(value)) {
-      const def = extractParamDefault(value);
-      if (def.hasDefault) {
-        merged[key] = def.default;
-      } else if (requiredKeys.has(key)) {
-        missing.push(key);
-      }
-      // Not required and no default → skip (optional, caller didn't provide)
-    } else if (requiredKeys.has(key)) {
-      missing.push(key);
-    }
-  }
-
-  if (missing.length > 0) {
-    const paramList = Object.entries(properties)
-      .filter(([, v]) => !(isJsonSchemaParam(v as Record<string, unknown>) && 'path' in (v as Record<string, unknown>)))
-      .map(([k]) => {
-        const isRequired = requiredKeys.has(k);
-        return `${k} (${isRequired ? 'required' : 'optional'})`;
-      })
-      .join(', ');
-    throw new Error(`Missing required param '${missing[0]}' for step '${step}'. Expected params: ${paramList}`);
-  }
-
-  return merged;
-}
-
-// ── Step Resolution (all steps at once) ────────────────────────────
 
 export interface ResolvedStep {
   task_file: string;
@@ -1478,32 +44,15 @@ export interface ResolvedStep {
   config_instructions: string[];
   /** Unified schema block (params, result, definitions). Only present when the task declares params/result. */
   schema?: SchemaBlock;
-  /** True when the step's stage declared `isolate: true`. Drives subagent dispatch in the driver. */
-  isolate?: boolean;
-}
-
-export interface ExpectedParam {
-  required: boolean;
-  from_step: string;
-  default?: unknown;
-  /** Name of a registered param resolver to run before stage-start. Declared by the task. */
-  resolve?: string;
-  /** Optional `from` param passed to the resolver (chained resolution). */
-  from?: string;
 }
 
 export interface ResolvedSteps {
-  title: string;
-  steps: string[];
-  stages?: Record<string, StageDefinitionFm>;
-  engine?: string;
+  stages: Record<string, StageDefinition>;
   step_resolved: Record<string, ResolvedStep | ResolvedStep[]>;
-  expected_params: Record<string, ExpectedParam>;
 }
 
-/**
- * Resolve ALL steps from a workflow file at create time.
- */
+// ── Helpers ────────────────────────────────────────────────────────
+
 function mergeSnapshot(target: Record<string, unknown>, source: Record<string, unknown>): void {
   for (const [key, value] of Object.entries(source)) {
     const current = target[key];
@@ -1522,6 +71,57 @@ function mergeSnapshot(target: Record<string, unknown>, source: Record<string, u
   }
 }
 
+/**
+ * Step names a rule or blueprint may declare for this step: the step itself plus
+ * its workflow-qualified and bare variants.
+ */
+function stepNameVariants(step: string, workflowId?: string): string[] {
+  const variants = [step];
+  if (step.includes(':')) {
+    const base = step.split(':').pop()!;
+    if (base !== step) variants.push(base);
+  } else if (workflowId) {
+    variants.push(`${workflowId}:${step}`);
+  }
+  return variants;
+}
+
+/** Union of the domains declared by the step's task files and its stage. */
+function effectiveDomainsFor(taskFilePaths: string[], stages: Record<string, StageDefinition>, step: string): string[] {
+  const domains: string[] = [];
+  const add = (value: unknown) => {
+    for (const d of Array.isArray(value) ? value.map(String) : [String(value)]) {
+      if (!domains.includes(d)) domains.push(d);
+    }
+  };
+  for (const taskFile of taskFilePaths) {
+    const taskFm = parseFrontmatter(taskFile);
+    if (taskFm?.domain !== undefined) add(taskFm.domain);
+  }
+  for (const stage of Object.values(stages)) {
+    if (stage.steps?.includes(step) && stage.domain) add(stage.domain);
+  }
+  return domains;
+}
+
+/**
+ * Reject task files whose `params:` still use the pre-JSON-Schema flat map, so the
+ * authoring agent fails at discovery instead of on an unvalidatable definition.
+ */
+function assertParamsAreJsonSchema(taskFilePaths: string[], skillsRoot: string, sources?: SkillSource[]): void {
+  for (const taskFile of taskFilePaths) {
+    let params = parseFrontmatter(taskFile)?.params as Record<string, unknown> | undefined;
+    if (!params) continue;
+    if ('$ref' in params) params = resolveParamsRef(params, taskFile, skillsRoot, sources);
+    validateParamFormats(params, taskFile);
+  }
+}
+
+// ── Step Resolution (all steps at once) ────────────────────────────
+
+/**
+ * Resolve every step of a workflow template into its effective planning blocks.
+ */
 export async function resolveAllStages(
   workflowFilePath: string,
   config: DesignbookConfig,
@@ -1530,24 +130,21 @@ export async function resolveAllStages(
   sources?: SkillSource[],
 ): Promise<ResolvedSteps> {
   const wfFm = parseFrontmatter(workflowFilePath) as WorkflowFrontmatter | null;
-  const stageDefs = wfFm ? getWorkflowStageDefinitions(wfFm) : undefined;
+  const stages = wfFm?.stages;
+  if (!stages) throw new Error(`No stages found in frontmatter of ${workflowFilePath}`);
 
-  const allSteps = wfFm ? getWorkflowSteps(wfFm) : undefined;
-  if (!allSteps && !stageDefs) {
-    throw new Error(`No steps found in frontmatter of ${workflowFilePath}`);
-  }
-
-  // Extract workflow ID from file path (e.g. vision/workflows/vision.md → "vision")
+  // Workflow ID from file path (e.g. vision/workflows/vision.md → "vision")
   const workflowId = workflowFilePath.replace(/\\/g, '/').split('/').pop()?.replace(/\.md$/, '');
+  const skillsRoot = resolve(agentsDir, 'skills');
+  const envMap = buildEnvMap(config);
 
   const stepResolved: Record<string, ResolvedStep | ResolvedStep[]> = {};
-  const resolvedSteps: string[] = [];
-  const expectedParams: Record<string, ExpectedParam> = {};
   const collectedSchemas: Record<string, object> = {};
+  const allExtensionFiles: string[] = [];
 
-  for (const step of allSteps ?? []) {
+  for (const step of Object.values(stages).flatMap((stage) => stage.steps ?? [])) {
     let resolvedTaskFiles = resolveTaskFilesRich(step, config, agentsDir, sources);
-    // If plain step didn't match, try workflow-qualified name (e.g. "intake" → "design-shell:intake")
+    // If the plain step didn't match, try the workflow-qualified name (e.g. "intake" → "design-shell:intake")
     if (resolvedTaskFiles.length === 0 && !step.includes(':') && workflowId) {
       resolvedTaskFiles = resolveTaskFilesRich(`${workflowId}:${step}`, config, agentsDir, sources);
     }
@@ -1556,134 +153,90 @@ export async function resolveAllStages(
       continue;
     }
     const taskFilePaths = resolvedTaskFiles.map((r) => r.path);
+    assertParamsAreJsonSchema(taskFilePaths, skillsRoot, sources);
 
-    // Compute effectiveDomains: union of domain: from task files + stage definition
-    const effectiveDomains: string[] = [];
-    for (const taskFile of taskFilePaths) {
-      const taskFm = parseFrontmatter(taskFile) as Record<string, unknown> | null;
-      const taskDomain = taskFm?.domain;
-      if (taskDomain !== undefined) {
-        const domains: string[] = Array.isArray(taskDomain)
-          ? (taskDomain as string[]).map(String)
-          : [String(taskDomain)];
-        for (const d of domains) {
-          if (!effectiveDomains.includes(d)) effectiveDomains.push(d);
-        }
-      }
-    }
-    // Also include domain from the stage definition (if any), and pick up the isolate/interactive flags
-    let isolate = false;
-    if (stageDefs) {
-      for (const [, stageDef] of Object.entries(stageDefs)) {
-        if (!stageDef.steps?.includes(step)) continue;
-        if (stageDef.domain) {
-          for (const d of stageDef.domain) {
-            if (!effectiveDomains.includes(d)) effectiveDomains.push(d);
-          }
-        }
-        if (stageDef.isolate) isolate = true;
-      }
-    }
+    const domains = effectiveDomainsFor(taskFilePaths, stages, step);
+    const effectiveDomains = domains.length > 0 ? domains : undefined;
 
-    // Match rules/blueprints for the step name AND variant names:
-    // - If step is plain (e.g. "intake"), also try workflow-qualified ("vision:intake")
-    // - If step is already qualified (e.g. "design-screen:map-entity"), also try base ("map-entity")
-    const isQualified = step.includes(':');
-    const baseStep = isQualified ? step.split(':').pop()! : step;
-    const qualifiedStep = isQualified ? step : workflowId ? `${workflowId}:${step}` : undefined;
-
-    // Collect from all name variants (step itself + base/qualified alternate)
-    const stepsToMatch = [step];
-    if (isQualified && baseStep !== step) stepsToMatch.push(baseStep);
-    if (qualifiedStep && qualifiedStep !== step) stepsToMatch.push(qualifiedStep);
-
-    const effectiveDomainsArg = effectiveDomains.length > 0 ? effectiveDomains : undefined;
     const ruleFiles: string[] = [];
-    for (const s of stepsToMatch) {
-      for (const r of matchRuleFiles(s, config, agentsDir, undefined, effectiveDomainsArg, sources)) {
-        if (!ruleFiles.includes(r)) ruleFiles.push(r);
-      }
-    }
     const blueprintFiles: string[] = [];
-    for (const s of stepsToMatch) {
-      for (const b of matchBlueprintFiles(s, config, agentsDir, undefined, effectiveDomainsArg, sources)) {
-        if (!blueprintFiles.includes(b)) blueprintFiles.push(b);
+    for (const name of stepNameVariants(step, workflowId)) {
+      for (const rule of matchRuleFiles(name, config, agentsDir, undefined, effectiveDomains, sources)) {
+        if (!ruleFiles.includes(rule)) ruleFiles.push(rule);
+      }
+      for (const blueprint of matchBlueprintFiles(name, config, agentsDir, undefined, effectiveDomains, sources)) {
+        if (!blueprintFiles.includes(blueprint)) blueprintFiles.push(blueprint);
       }
     }
+    for (const file of [...blueprintFiles, ...ruleFiles]) {
+      if (!allExtensionFiles.includes(file)) allExtensionFiles.push(file);
+    }
+
     const { config_rules, config_instructions } = resolveConfigForStep(step, rawConfig);
 
-    // Read frontmatter from primary task file for schema block
+    // The primary task file owns the step's params/result contract.
     const primaryTaskFile = taskFilePaths[0]!;
-    const taskFmForSchema = parseFrontmatter(primaryTaskFile) as TaskFileFrontmatter | null;
-
-    // Build unified schema block from task frontmatter
-    const envMap = buildEnvMap(config);
+    const taskFm = parseFrontmatter(primaryTaskFile);
     const schemaBlock = await buildSchemaBlock({
-      params: taskFmForSchema?.params as Record<string, unknown> | undefined,
-      result: taskFmForSchema?.result as Record<string, unknown> | undefined,
+      params: taskFm?.params as Record<string, unknown> | undefined,
+      result: taskFm?.result as Record<string, unknown> | undefined,
       taskFilePath: primaryTaskFile,
-      skillsRoot: resolve(agentsDir, 'skills'),
+      skillsRoot,
       envMap,
       sources,
     });
 
     // Schema composition: merge base result schemas with rule/blueprint extensions
+    const resultProps = (taskFm?.result as Record<string, unknown> | undefined)?.properties as
+      | Record<string, Record<string, unknown>>
+      | undefined;
     let mergedSchema: Record<string, object> | undefined;
-    if (ruleFiles.length > 0 || blueprintFiles.length > 0) {
-      if (taskFmForSchema?.result) {
-        const resultProps = (taskFmForSchema.result as Record<string, unknown>).properties as
-          | Record<string, Record<string, unknown>>
-          | undefined;
-        const baseResult: Record<string, { schema?: object }> = {};
-        const refMap: Record<string, string> = {};
-        if (resultProps) {
-          for (const [rk, rv] of Object.entries(resultProps)) {
-            // Build inline schema from result declaration (excluding path/$ref/validators)
-            const { path: _path, $ref: ref, validators: _validators, ...schemaProps } = rv;
-            // Always include the result key — even $ref-only entries need a merge target
-            // so that blueprint extends can contribute properties (e.g. component tokens)
-            const definitionName = schemaBlock.result[rk]?.$ref?.replace('#/definitions/', '');
-            baseResult[rk] = {
-              schema: definitionName ? structuredClone(schemaBlock.definitions[definitionName] ?? {}) : schemaProps,
-            };
-            // Map result key → definition name for schema-name-based matching
-            if (typeof ref === 'string') {
-              const defName = String(ref).split('#/').pop()?.split('/').pop();
-              if (defName) refMap[rk] = defName;
-            }
-          }
+    if (resultProps && (ruleFiles.length > 0 || blueprintFiles.length > 0)) {
+      const baseResult: Record<string, { schema?: object }> = {};
+      const refMap: Record<string, string> = {};
+      for (const [key, declaration] of Object.entries(resultProps)) {
+        // Build the inline schema from the result declaration (excluding path/$ref/validators).
+        // Always include the result key — even $ref-only entries need a merge target so a
+        // blueprint's extends can contribute properties (e.g. component tokens).
+        const { path: _path, $ref: ref, validators: _validators, ...schemaProps } = declaration;
+        const definitionName = schemaBlock.result[key]?.$ref?.replace('#/definitions/', '');
+        baseResult[key] = {
+          schema: definitionName ? structuredClone(schemaBlock.definitions[definitionName] ?? {}) : schemaProps,
+        };
+        // Map result key → definition name for schema-name-based matching
+        if (typeof ref === 'string') {
+          const defName = ref.split('#/').pop()?.split('/').pop();
+          if (defName) refMap[key] = defName;
         }
-        if (Object.keys(baseResult).length > 0) {
-          mergedSchema = computeMergedSchema(baseResult, {
-            blueprintFiles,
-            ruleFiles,
-            skillsRoot: resolve(agentsDir, 'skills'),
-            schemas: collectedSchemas,
-            refMap,
-            sources,
-          });
-        }
+      }
+      if (Object.keys(baseResult).length > 0) {
+        mergedSchema = computeMergedSchema(baseResult, {
+          blueprintFiles,
+          ruleFiles,
+          skillsRoot,
+          schemas: collectedSchemas,
+          refMap,
+          sources,
+        });
       }
     }
 
     // Merge schema composition results into schema block definitions
-    if (mergedSchema) {
-      for (const [resultKey, composedSchema] of Object.entries(mergedSchema)) {
-        const resultEntry = schemaBlock.result[resultKey];
-        if (resultEntry?.$ref) {
-          // Result references a definition — merge into that definition
-          const defName = resultEntry.$ref.replace('#/definitions/', '');
-          if (schemaBlock.definitions[defName]) {
-            mergeSnapshot(
-              schemaBlock.definitions[defName] as Record<string, unknown>,
-              composedSchema as Record<string, unknown>,
-            );
-          }
-        } else {
-          // Inline result — store composed schema in definitions keyed by result key
-          schemaBlock.definitions[resultKey] = composedSchema;
-          if (resultEntry) resultEntry.$ref = `#/definitions/${resultKey}`;
+    for (const [resultKey, composedSchema] of Object.entries(mergedSchema ?? {})) {
+      const resultEntry = schemaBlock.result[resultKey];
+      if (resultEntry?.$ref) {
+        // Result references a definition — merge into that definition
+        const defName = resultEntry.$ref.replace('#/definitions/', '');
+        if (schemaBlock.definitions[defName]) {
+          mergeSnapshot(
+            schemaBlock.definitions[defName] as Record<string, unknown>,
+            composedSchema as Record<string, unknown>,
+          );
         }
+      } else {
+        // Inline result — store composed schema in definitions keyed by result key
+        schemaBlock.definitions[resultKey] = composedSchema;
+        if (resultEntry) resultEntry.$ref = `#/definitions/${resultKey}`;
       }
     }
 
@@ -1692,264 +245,18 @@ export async function resolveAllStages(
       Object.keys(schemaBlock.params).length > 0 ||
       Object.keys(schemaBlock.result).length > 0;
 
-    if (taskFilePaths.length === 1) {
-      stepResolved[step] = {
-        task_file: taskFilePaths[0]!,
-        rules: ruleFiles,
-        blueprints: blueprintFiles,
-        config_rules,
-        config_instructions,
-        ...(hasSchema ? { schema: schemaBlock } : {}),
-        ...(isolate ? { isolate: true } : {}),
-      };
-    } else {
-      // Multiple tasks per step: ordered by priority (from deduplicateByNameAs)
-      stepResolved[step] = taskFilePaths.map((taskFile) => ({
-        task_file: taskFile,
-        rules: ruleFiles,
-        blueprints: blueprintFiles,
-        config_rules,
-        config_instructions,
-        ...(hasSchema ? { schema: schemaBlock } : {}),
-        ...(isolate ? { isolate: true } : {}),
-      }));
-    }
-    resolvedSteps.push(step);
+    const block = (taskFile: string): ResolvedStep => ({
+      task_file: taskFile,
+      rules: ruleFiles,
+      blueprints: blueprintFiles,
+      config_rules,
+      config_instructions,
+      ...(hasSchema ? { schema: schemaBlock } : {}),
+    });
 
-    // Aggregate expected_params from task file frontmatter
-    const skillsRoot = resolve(agentsDir, 'skills');
-    for (const taskFile of taskFilePaths) {
-      const taskFm = parseFrontmatter(taskFile) as Record<string, unknown> | null;
-      let params = taskFm?.params as Record<string, unknown> | undefined;
-      if (!params) continue;
-
-      // Resolve $ref in params before validation
-      if ('$ref' in params) {
-        params = resolveParamsRef(params, taskFile, skillsRoot, sources);
-      }
-
-      // Validate all params use inline JSON Schema format
-      validateParamFormats(params, taskFile);
-
-      const properties = (params.properties ?? {}) as Record<string, unknown>;
-      const requiredKeys = new Set((params.required ?? []) as string[]);
-
-      for (const [key, value] of Object.entries(properties)) {
-        const schema = value as Record<string, unknown>;
-        const def = extractParamDefault(schema);
-        const isRequired = requiredKeys.has(key) || !def.hasDefault;
-        const resolveName = typeof schema.resolve === 'string' ? (schema.resolve as string) : undefined;
-        const fromName = typeof schema.from === 'string' ? (schema.from as string) : undefined;
-
-        if (key in expectedParams) {
-          // If ANY step marks it required, it stays required
-          if (isRequired && !expectedParams[key]!.required) {
-            expectedParams[key]!.required = true;
-          }
-          // Task-declared resolver wins over an earlier task with no resolver.
-          if (resolveName && !expectedParams[key]!.resolve) {
-            expectedParams[key]!.resolve = resolveName;
-            if (fromName) expectedParams[key]!.from = fromName;
-          }
-        } else {
-          expectedParams[key] = {
-            required: isRequired,
-            from_step: step,
-            ...(def.hasDefault ? { default: def.default } : {}),
-            ...(resolveName ? { resolve: resolveName } : {}),
-            ...(resolveName && fromName ? { from: fromName } : {}),
-          };
-        }
-      }
-    }
+    // Multiple tasks per step are ordered by priority (from deduplicateByNameAs).
+    stepResolved[step] = taskFilePaths.length === 1 ? block(taskFilePaths[0]!) : taskFilePaths.map(block);
   }
 
-  return {
-    title: wfFm ? getWorkflowTitle(wfFm) : '',
-    steps: resolvedSteps,
-    ...(stageDefs ? { stages: stageDefs } : {}),
-    ...(wfFm?.engine ? { engine: wfFm.engine } : {}),
-    step_resolved: stepResolved,
-    expected_params: expectedParams,
-  };
-}
-
-/**
- * Resolve the ONE full-workflow validation schema map at `workflow create` time.
- *
- * DESIGNBOOK-51 (Ziel A): the validation schema map (`{TypeName: schemaObject}`, the shape AJV
- * registers as `#/<Type>` at `workflow done`) is generated ONCE here, over EVERY workflow step —
- * not first-task-only at create and re-merged again per stage transition at runtime. It is
- * persisted next to `tasks.yml` as `schema.yml` and is the single source every validation reads.
- *
- * The map is the static full picture (AC 4): every step's task file + matched rules/blueprints are
- * known at create from step name + config + domain — never from runtime data/scope. A runtime
- * stage expansion (e.g. a scene branch → N `ConfigNameUnit`s) instantiates N copies of an
- * already-known fixed shape; it introduces no new type, so no per-stage schema re-merge is needed.
- *
- * Per step this reproduces exactly what the create path (first task) and the removed runtime
- * re-merge (all other steps) produced between them:
- *   1. `resolveSchemasForTasks` — resolve each result key's `$ref` (top-level and nested), pull in
- *      transitive local `$ref` definitions, and apply the definition-level `extends:` enum-union
- *      (`widenDefinitionEnums`, DESIGNBOOK-46) — e.g. resolve-filter's `units` items.$ref →
- *      ConfigNameUnit widened by a loaded skill.
- *   2. `computeMergedSchema` — collect the `#/Type` definitions an `extends:` injects by `$ref`
- *      (DESIGNBOOK-30) into the same map, so AJV resolves the composed result schema's refs.
- *
- * The synthetic per-step task carries only the frontmatter result shape (inline schema incl. nested
- * `$ref`); no item params are needed, so a step whose task declares required params never forces a
- * value here — the schema shape is param-independent.
- */
-export function resolveWorkflowSchemaMap(
-  workflowFilePath: string,
-  config: DesignbookConfig,
-  rawConfig: Record<string, unknown>,
-  agentsDir: string,
-  sources?: SkillSource[],
-): Record<string, object> {
-  const wfFm = parseFrontmatter(workflowFilePath) as WorkflowFrontmatter | null;
-  const allSteps = wfFm ? getWorkflowSteps(wfFm) : undefined;
-  const stageDefs = wfFm ? getWorkflowStageDefinitions(wfFm) : undefined;
-  if (!allSteps && !stageDefs) {
-    throw new Error(`No steps found in frontmatter of ${workflowFilePath}`);
-  }
-
-  const workflowId = workflowFilePath.replace(/\\/g, '/').split('/').pop()?.replace(/\.md$/, '');
-  const skillsRoot = resolve(agentsDir, 'skills');
-  const schemas: Record<string, object> = {};
-  // Every step's matched rule/blueprint files — collected for one final definition-level
-  // enum-union pass after all steps are registered (see the closing loop for why).
-  const allExtendsFiles: string[] = [];
-
-  for (const step of allSteps ?? []) {
-    // Resolve task files (mirror resolveAllStages: try workflow-qualified name as fallback).
-    let resolvedTaskFiles = resolveTaskFilesRich(step, config, agentsDir, sources);
-    if (resolvedTaskFiles.length === 0 && !step.includes(':') && workflowId) {
-      resolvedTaskFiles = resolveTaskFilesRich(`${workflowId}:${step}`, config, agentsDir, sources);
-    }
-    if (resolvedTaskFiles.length === 0) continue;
-    const primaryTaskFile = resolvedTaskFiles[0]!.path;
-
-    // effectiveDomains: union of task-file domain(s) + stage-definition domain(s) (mirror resolveAllStages).
-    const effectiveDomains: string[] = [];
-    for (const r of resolvedTaskFiles) {
-      const taskDomain = (parseFrontmatter(r.path) as Record<string, unknown> | null)?.domain;
-      if (taskDomain === undefined) continue;
-      const domains = Array.isArray(taskDomain) ? (taskDomain as string[]).map(String) : [String(taskDomain)];
-      for (const d of domains) if (!effectiveDomains.includes(d)) effectiveDomains.push(d);
-    }
-    if (stageDefs) {
-      for (const [, stageDef] of Object.entries(stageDefs)) {
-        if (!stageDef.steps?.includes(step)) continue;
-        for (const d of stageDef.domain ?? []) if (!effectiveDomains.includes(d)) effectiveDomains.push(d);
-      }
-    }
-    const effectiveDomainsArg = effectiveDomains.length > 0 ? effectiveDomains : undefined;
-
-    // Match rules/blueprints across step name variants (plain + workflow-qualified/base).
-    const isQualified = step.includes(':');
-    const baseStep = isQualified ? step.split(':').pop()! : step;
-    const qualifiedStep = isQualified ? step : workflowId ? `${workflowId}:${step}` : undefined;
-    const stepsToMatch = [step];
-    if (isQualified && baseStep !== step) stepsToMatch.push(baseStep);
-    if (qualifiedStep && qualifiedStep !== step) stepsToMatch.push(qualifiedStep);
-
-    const ruleFiles: string[] = [];
-    const blueprintFiles: string[] = [];
-    for (const s of stepsToMatch) {
-      for (const rf of matchRuleFiles(s, config, agentsDir, undefined, effectiveDomainsArg, sources)) {
-        if (!ruleFiles.includes(rf)) ruleFiles.push(rf);
-      }
-      for (const bf of matchBlueprintFiles(s, config, agentsDir, undefined, effectiveDomainsArg, sources)) {
-        if (!blueprintFiles.includes(bf)) blueprintFiles.push(bf);
-      }
-    }
-
-    // Build the synthetic task result from the primary task's frontmatter result declarations.
-    // Each key carries its INLINE schema (path/$ref/validators/flush stripped), preserving any
-    // nested `$ref` so resolveSchemasForTasks resolves+rewrites it and widens its target enum.
-    const taskFm = parseFrontmatter(primaryTaskFile) as TaskFileFrontmatter | null;
-    const resultProps = (taskFm?.result as Record<string, unknown> | undefined)?.properties as
-      | Record<string, Record<string, unknown>>
-      | undefined;
-
-    const synthResult: Record<string, { schema?: object }> = {};
-    const baseResult: Record<string, { schema?: object }> = {};
-    const refMap: Record<string, string> = {};
-    if (resultProps) {
-      for (const [rk, rv] of Object.entries(resultProps)) {
-        const { path: _path, $ref: ref, validators: _validators, flush: _flush, ...inline } = rv;
-        const inlineSchema = Object.keys(inline).length > 0 ? (structuredClone(inline) as object) : {};
-        synthResult[rk] = { schema: inlineSchema };
-        baseResult[rk] = { schema: Object.keys(inline).length > 0 ? (inline as object) : {} };
-        if (typeof ref === 'string') {
-          const defName = ref.split('#/').pop()?.split('/').pop();
-          if (defName) refMap[rk] = defName;
-        }
-      }
-    }
-
-    for (const f of [...blueprintFiles, ...ruleFiles]) {
-      if (!allExtendsFiles.includes(f)) allExtendsFiles.push(f);
-    }
-
-    // 1. $ref resolution (top-level + nested) + transitive local refs + definition-level enum-union.
-    if (Object.keys(synthResult).length > 0) {
-      resolveSchemasForTasks(
-        [{ task_file: primaryTaskFile, result: synthResult, rules: ruleFiles, blueprints: blueprintFiles }],
-        skillsRoot,
-        schemas,
-        sources,
-      );
-    }
-
-    // 2. Collect the #/Type definitions an `extends:` injects by $ref into the shared map (the
-    //    composed result schema itself is a per-task concern persisted in tasks.yml — discard it).
-    if (Object.keys(baseResult).length > 0 && (ruleFiles.length > 0 || blueprintFiles.length > 0)) {
-      computeMergedSchema(baseResult, {
-        blueprintFiles,
-        ruleFiles,
-        skillsRoot,
-        schemas,
-        refMap,
-        sources,
-      });
-    }
-
-    // Also resolve a params-level `$ref` on the task (mirrors resolveSchemasForTasks' params branch),
-    // so param schemas referenced by later validation are registered too.
-    if (taskFm?.params && typeof taskFm.params === 'object' && '$ref' in taskFm.params) {
-      const ref = (taskFm.params as Record<string, unknown>)['$ref'] as string;
-      const {
-        typeName,
-        schema: refSchema,
-        fileSchemas,
-        schemaFilePath,
-      } = resolveSchemaRef(ref, primaryTaskFile, skillsRoot, sources);
-      schemas[typeName] = refSchema;
-      collectLocalRefsFromSchema(
-        refSchema,
-        fileSchemas,
-        schemas,
-        new Set([typeName]),
-        schemaFilePath,
-        skillsRoot,
-        sources,
-      );
-    }
-  }
-
-  // Final definition-level enum-union pass. Within a step, resolveSchemasForTasks widens after it
-  // registers the step's $ref'd definitions; but a LATER step that references the same shared
-  // definition re-registers it PRISTINE (rewriteRefsInSchema / resolveSchemaRef assign the on-disk
-  // def unconditionally), which would clobber an earlier step's widening in this single shared map.
-  // Re-applying every step's `extends:` enum-union once more, against the now-complete map, makes the
-  // result order-independent. widenDefinitionEnums is additive-enum-only and idempotent, so a def
-  // already widened in-loop is unchanged and one reset pristine is re-widened.
-  for (const extFile of allExtendsFiles) {
-    const ext = parseSchemaExtension(extFile);
-    if (ext?.extends) widenDefinitionEnums(ext.extends, schemas);
-  }
-
-  return schemas;
+  return { stages, step_resolved: stepResolved };
 }

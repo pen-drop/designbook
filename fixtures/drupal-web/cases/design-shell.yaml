@@ -1,3 +1,5 @@
+verify: design-verify-shell
+
 fixtures:
   - vision
   - data-model

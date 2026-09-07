@@ -28,7 +28,6 @@ interface TaskFile {
   key: string;
   validators: string[];
   validation_result?: ValidationFileResult;
-  flushed_at?: string;
 }
 
 interface TaskResult {
@@ -39,7 +38,6 @@ interface TaskResult {
   valid?: boolean;
   error?: string;
   last_validated?: string;
-  flushed_at?: string;
 }
 
 interface WorkflowTask {
@@ -60,7 +58,6 @@ interface WorkflowTask {
   blueprints?: string[];
   config_rules?: string[];
   config_instructions?: string[];
-  files?: TaskFile[];
   result?: Record<string, TaskResult>;
   description?: string;
   summary?: string;
@@ -229,16 +226,7 @@ function StatusDot({ status }: { status: string }) {
   );
 }
 
-const fileBadgeVariant = (f: TaskFile): 'green' | 'yellow' | 'gray' => {
-  if (f.flushed_at) return 'green';
-  if (!f.validation_result) return 'gray';
-  if (f.validation_result.valid === true) return 'green';
-  if (f.validation_result.valid === false) return 'yellow';
-  return 'gray';
-};
-
 const resultBadgeVariant = (r: TaskResult): 'green' | 'yellow' | 'gray' => {
-  if (r.flushed_at) return 'green';
   if (r.valid === true) return 'green';
   if (r.valid === false) return 'yellow';
   return 'gray';
@@ -701,24 +689,6 @@ function WorkflowSummaryTab({ wf }: { wf: WorkflowData }) {
               </div>
             </div>
           )}
-          {/* Files (legacy) */}
-          {activeTask.files && activeTask.files.length > 0 && !activeTask.result && (
-            <div>
-              <div style={S.overviewLabel}>Files</div>
-              <div style={S.taskFileBadges}>
-                {activeTask.files.map((f) => (
-                  <FileBadge
-                    key={f.path}
-                    path={f.path}
-                    isAbsolute={true}
-                    label={f.key}
-                    variant={fileBadgeVariant(f)}
-                    validation={f.validation_result ?? undefined}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
         </DeboCollapsible>
       )}
     </div>
@@ -858,43 +828,25 @@ interface FileEntry {
 function collectAllFiles(wf: WorkflowData): FileEntry[] {
   const entries: FileEntry[] = [];
   for (const task of wf.tasks) {
-    // Collect from result: entries (unified model — file results have path)
-    if (task.result) {
-      for (const [key, r] of Object.entries(task.result)) {
-        if (!r.path) continue; // data results have no path — skip
-        entries.push({
+    for (const [key, r] of Object.entries(task.result ?? {})) {
+      if (!r.path) continue; // data results have no path — skip
+      entries.push({
+        path: r.path,
+        key,
+        task: task.id,
+        stage: task.stage ?? '',
+        step: task.step ?? '',
+        taskTitle: task.title,
+        file: {
           path: r.path,
           key,
-          task: task.id,
-          stage: task.stage ?? '',
-          step: task.step ?? '',
-          taskTitle: task.title,
-          file: {
-            path: r.path,
-            key,
-            validators: r.validators ?? [],
-            validation_result:
-              r.valid !== undefined
-                ? { file: r.path, type: 'result', valid: r.valid, error: r.error, last_validated: r.last_validated }
-                : undefined,
-            flushed_at: r.flushed_at,
-          },
-        });
-      }
-    }
-    // Fallback: collect from legacy files: entries (only if no result:)
-    if (!task.result) {
-      for (const f of task.files ?? []) {
-        entries.push({
-          path: f.path,
-          key: f.key,
-          task: task.id,
-          stage: task.stage ?? '',
-          step: task.step ?? '',
-          taskTitle: task.title,
-          file: f,
-        });
-      }
+          validators: r.validators ?? [],
+          validation_result:
+            r.valid !== undefined
+              ? { file: r.path, type: 'result', valid: r.valid, error: r.error, last_validated: r.last_validated }
+              : undefined,
+        },
+      });
     }
   }
   return entries;
@@ -907,7 +859,6 @@ const fileRowColor = (f: TaskFile): string => {
 };
 
 const fileStatusDot = (f: TaskFile): string => {
-  if (f.flushed_at) return 'done';
   if (!f.validation_result) return 'pending';
   if (f.validation_result.valid === true) return 'done';
   return 'in-progress';

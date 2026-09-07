@@ -1,3 +1,7 @@
+verify: design-verify-entity
+
+workflow: design-screen
+
 fixtures:
   - vision
   - data-model
@@ -24,9 +28,10 @@ prompt: |
   The single node.article is the route-bearing main content; the hero is a block. Do NOT add a
   second route-bearing entity or a View as main content, and do NOT use `records: [...]`.
 
-  No design reference is available; infer the structure from the section spec and the
-  data model (state reference: none in the structure preview). Confirm in the structure
-  preview that node.article is labelled as the main content and block_content.hero as a block.
+  Use https://leando.de/ as the design reference for the main content region
+  (reference selector "main"). Extract the reference during intake, then adapt
+  its layout and visual treatment to the content structure specified above.
+  Use breakpoints sm and xl with comparison threshold 3%.
   Generate any UI components the entity and block need, the entity-mapping (JSONata) files,
   the sample data, and the scenes file. After generating all files, run
   `pnpm build-storybook` to verify everything renders.

@@ -5,4 +5,7 @@ workspaces/
 promptfooconfig.yaml
 
 # Test reports
-reports/*.json
+reports/
+
+# Transient history writer lock
+*.csv.lock

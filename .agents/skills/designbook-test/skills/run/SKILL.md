@@ -6,12 +6,8 @@ metadata:
   internal: true
 ---
 
-Parse `run <suite> [<case>] [--workspace <path>] [--validate <workflow>]` and follow [run procedure](resources/run.md).
+Parse `run <suite> [<case>] [--workspace <path>] [--validate <workflow>] [--provider codex|claude] [--model <id>]` and follow [run procedure](resources/run.md).
 
-`--workspace` selects the isolated workspace directory to rebuild and use for
-this run. Pass a distinct path for each concurrent run; when omitted, the
-default is `workspaces/<suite>`.
-
-The case driver performs domain intake, authors the complete immutable definition,
-persists it, and delegates only its declared tasks. A validator, when requested,
-is a separate saved workflow and its repair handoff stays separate.
+All workflow execution uses Promptfoo. The procedure owns workspace isolation,
+case-selected visual verification for rendered designs,
+evidence auditing and reporting.

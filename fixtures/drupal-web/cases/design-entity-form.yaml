@@ -1,3 +1,5 @@
+workflow: design-entity
+
 fixtures:
   - vision
   - tokens
@@ -9,8 +11,11 @@ prompt: |
   EDITING half — the non-default "edit" form mode (form_mode: edit; do NOT pass a view_mode).
   Do NOT ask any questions. The product is "LEANDO".
 
-  No design reference is available; infer the structure from the data model
-  (state reference: none). Do NOT capture or extract any reference URL.
+  Use https://leando.de/ as the design reference. Inspect its form controls
+  during intake and select the matching control regions for visual verification;
+  the editing form's fields and structure still come from the data model below.
+  Use breakpoints sm and xl with comparison threshold 3%.
+  If no matching reference control exists, report that comparison as unavailable.
 
   The bundle is fully pre-seeded: its reading half already exists
   (designbook/entity-mapping/block_content.hero.default.jsonata) and every component the

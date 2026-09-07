@@ -15,7 +15,7 @@ prompt: |
   The design reference is https://leando.de/.
   Verify ONE region: id "content", story selector ".page__content",
   reference_selector "main" (the page main-content area on the reference).
-  Use breakpoints sm and xl; pick the largest available breakpoint if asked.
+  Use breakpoints sm and xl with threshold 3%.
   Execute the workflow now.
 
 assert:

@@ -1,3 +1,5 @@
+verify: design-verify-entity-signage
+
 fixtures:
   - vision
   - tokens
@@ -11,7 +13,8 @@ prompt: |
     reference_url: https://leando.de/
     selector: app-signage
   The selector "app-signage" targets the exact Wegweiser element on the reference page —
-  use its captured region properties to drive the component's layout and styling.
+  Use breakpoints sm and xl with comparison threshold 3%.
+  Use its captured region properties to drive the component's layout and styling.
   Create a "signage" component: a signpost / topic-navigation section holding up to three
   navigation items, each with an icon, title, description, a list of links, and an anonymous
   and an authenticated call-to-action button.

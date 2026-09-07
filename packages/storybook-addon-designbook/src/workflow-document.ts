@@ -1,5 +1,6 @@
 /** Canonical agent-authored workflow definition and mutable execution state. */
 import Ajv from 'ajv';
+import { createHash } from 'node:crypto';
 import { isAbsolute } from 'node:path';
 import { getValidatorKeys } from './validation-registry.js';
 
@@ -66,6 +67,8 @@ export interface WorkflowDocument {
   definition: WorkflowDefinition;
   state: {
     status: 'pending' | 'running' | 'blocked' | 'completed';
+    /** Digest of the definition as saved; any later edit to it invalidates the run. */
+    definition_digest: string;
     created_at: string;
     started_at?: string;
     completed_at?: string;
@@ -244,12 +247,18 @@ export function validateDefinition(raw: unknown): asserts raw is WorkflowDefinit
   }
 }
 
+/** Stable fingerprint of a definition; key order is fixed by the authored document. */
+export function definitionDigest(definition: WorkflowDefinition): string {
+  return createHash('sha256').update(JSON.stringify(definition)).digest('hex');
+}
+
 export function createDocument(definition: WorkflowDefinition): WorkflowDocument {
   validateDefinition(definition);
   return {
     definition: structuredClone(definition),
     state: {
       status: 'pending',
+      definition_digest: definitionDigest(definition),
       created_at: new Date().toISOString(),
       tasks: Object.fromEntries(
         definition.tasks.map((task) => [
@@ -279,6 +288,8 @@ export function validateDocument(raw: unknown): asserts raw is WorkflowDocument 
   ) {
     throw new Error('Invalid workflow state');
   }
+  if (doc.state.definition_digest !== definitionDigest(doc.definition))
+    throw new Error('The workflow definition was edited after the run was created');
   const ids = doc.definition.tasks.map((task) => task.id).sort();
   if (JSON.stringify(Object.keys(doc.state.tasks).sort()) !== JSON.stringify(ids))
     throw new Error('Run state does not match the fixed task definition');

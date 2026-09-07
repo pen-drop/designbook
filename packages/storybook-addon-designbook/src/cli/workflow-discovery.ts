@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
 import { globSync } from 'glob';
 import { basename } from 'node:path';
 import { load as parseYaml } from 'js-yaml';
@@ -22,11 +22,11 @@ export interface WorkflowDefinition {
 
 export function resolveWorkflowFile(workflowId: string, agentsDir: string, sources?: SkillSource[]): string {
   const matches = globSync(`skills/**/workflows/${workflowId}.md`, { cwd: agentsDir, absolute: true });
-  if (matches.length > 0) return matches[0]!;
+  if (matches.length > 0) return realpathSync(matches[0]!);
 
   for (const source of pluginSources(sources)) {
     const found = globSync(`**/workflows/${workflowId}.md`, { cwd: source.root, absolute: true });
-    if (found.length > 0) return found[0]!;
+    if (found.length > 0) return realpathSync(found[0]!);
   }
 
   throw new Error(`Workflow file not found for "${workflowId}". No match for skills/**/workflows/${workflowId}.md`);

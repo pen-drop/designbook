@@ -30,6 +30,9 @@ params:
       - header
       - footer
 stages:
+  reference:
+    steps:
+      - extract-reference
   component:
     steps:
       - write-component

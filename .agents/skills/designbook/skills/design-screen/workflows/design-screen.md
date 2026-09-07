@@ -14,6 +14,9 @@ params:
   breakpoints:
     type: array
 stages:
+  reference:
+    steps:
+      - extract-reference
   component:
     steps:
       - write-component

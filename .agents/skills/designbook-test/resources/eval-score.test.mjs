@@ -59,6 +59,76 @@ const doc = () => ({
     },
   },
 });
+
+test("scorer CLI uses the current summary command and shared artifact collector", () => {
+  const dir = mkdtempSync(join(tmpdir(), "eval-cli-"));
+  try {
+    const git = (...args) => execFileSync("git", args, { cwd: dir });
+    git("init", "-q");
+    writeFileSync(join(dir, "neighbor.yml"), "title: Preserve\n");
+    git("add", ".");
+    git(
+      "-c",
+      "user.name=Test",
+      "-c",
+      "user.email=test@example.invalid",
+      "commit",
+      "-qm",
+      "fixture",
+    );
+    const document = doc();
+    const workflow = join(dir, "tasks.yml");
+    writeFileSync(workflow, JSON.stringify(document));
+    writeFileSync(join(dir, "before.yml"), JSON.stringify(document.definition));
+    writeFileSync(
+      join(dir, "summary.mjs"),
+      `
+      import assert from "node:assert/strict";
+      assert.deepEqual(process.argv.slice(2), [${JSON.stringify(workflow)}]);
+      console.log(JSON.stringify({flowRate: 1}));
+    `,
+    );
+    writeFileSync(
+      join(dir, "case.yml"),
+      JSON.stringify({
+        evidence: { files: ["neighbor.yml"] },
+        assert: [
+          {
+            type: "javascript",
+            value:
+              "output.runs[0].complete && output.definitionUnchanged && output.unchangedFiles.includes('neighbor.yml')",
+          },
+        ],
+      }),
+    );
+    const stdout = execFileSync(
+      process.execPath,
+      [
+        new URL("./eval-score.mjs", import.meta.url).pathname,
+        "--workflow",
+        workflow,
+        "--case",
+        join(dir, "case.yml"),
+        "--theme-dir",
+        dir,
+        "--data-dir",
+        dir,
+        "--definition-before",
+        join(dir, "before.yml"),
+        "--summary-cmd",
+        `${process.execPath} ${join(dir, "summary.mjs")}`,
+      ],
+      { encoding: "utf8" },
+    );
+    assert.deepEqual(JSON.parse(stdout).assertions, {
+      passed: 1,
+      total: 1,
+      failures: [],
+    });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
 test("completion rejects empty tasks/results, invalid results and undeclared state", () => {
   assert.equal(executionComplete(doc()), true);
   for (const mutate of [

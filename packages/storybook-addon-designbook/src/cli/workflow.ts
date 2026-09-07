@@ -126,10 +126,5 @@ export function register(program: Command): void {
     .action(async (path: string, opts: { task: string; reason: string; correction: string }) =>
       print(await blockTask(path, opts.task, opts.reason, opts.correction)),
     );
-  workflow
-    .command('summary <path>')
-    .option('--json')
-    .action(async (path: string) => {
-      print(summarizeWorkflow(await readDocument(path)));
-    });
+  workflow.command('summary <path>').action(async (path: string) => print(summarizeWorkflow(await readDocument(path))));
 }

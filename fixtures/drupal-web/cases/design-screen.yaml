@@ -1,3 +1,5 @@
+verify: design-verify-screen
+
 fixtures:
   - vision
   - data-model
@@ -18,8 +20,10 @@ prompt: |
   Do NOT list the landing pages as several equal-rank entity nodes and do NOT use
   `records: [...]` — the listing is the View.
 
-  No design reference is available; infer the structure from the section spec and the
-  data model (state reference: none in the structure preview).
+  Use https://leando.de/ as the design reference for the main content region
+  (reference selector "main"). Extract the reference during intake, then adapt
+  its layout and visual treatment to the content structure specified above.
+  Use breakpoints sm and xl with comparison threshold 3%.
   Generate any UI components the View rows need, the entity-mapping (JSONata) files,
   the sample data, and the scenes file. After generating all files, run
   `pnpm build-storybook` to verify everything renders.

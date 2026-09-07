@@ -13,7 +13,8 @@ prompt: |
   Verify ONE region: id "entity-paragraph-signage-full" (entity paragraph.signage,
   view mode full), story selector "" (the story is the isolated signage component),
   reference_selector "app-signage" (the Wegweiser element on the reference page).
-  Execute the workflow now and Do NOT ask any questions; pick the largest available breakpoint if asked.
+  Use breakpoints sm and xl with threshold 3%.
+  Execute the workflow now and Do NOT ask any questions.
 
 assert:
   - type: javascript

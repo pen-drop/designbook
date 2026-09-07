@@ -1,10 +1,12 @@
 /** Runtime operations consume only the saved definition, never skill discovery. */
-import { mkdir, readFile, rename, writeFile, unlink, link } from 'node:fs/promises';
-import { dirname, extname } from 'node:path';
+import { mkdir, readFile, rename, rm, rmdir, stat, writeFile, unlink, link, open } from 'node:fs/promises';
+import { basename, dirname, extname, join } from 'node:path';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { randomUUID } from 'node:crypto';
 import { dump, load } from 'js-yaml';
 import {
   createDocument,
+  definitionDigest,
   validateDocument,
   schemaValidator,
   type WorkflowDefinition,
@@ -31,21 +33,39 @@ async function writeAtomic(path: string, document: WorkflowDocument): Promise<vo
   }
 }
 
-/** flock holds a kernel-owned cross-process lock; process exit releases it. */
+/** A held lock waits this long for its holder before the caller gives up. */
+const LOCK_WAIT_MS = 30_000;
+/** A lock file older than this belongs to a process that died without releasing it. */
+const LOCK_STALE_MS = 120_000;
+
+/**
+ * Cross-process lock built from an exclusive create, so every platform that runs
+ * the CLI locks identically and no external binary is required.
+ */
 async function withLock<T>(path: string, action: () => Promise<T>): Promise<T> {
-  const { spawn } = await import('node:child_process');
-  const child = spawn('flock', ['-x', `${path}.lock`, 'sh', '-c', 'printf ready; cat >/dev/null'], {
-    stdio: ['pipe', 'pipe', 'pipe'],
-  });
-  await new Promise<void>((resolve, reject) => {
-    child.once('error', reject);
-    child.once('exit', (code) => reject(new Error(`Workflow lock failed (${code})`)));
-    child.stdout.once('data', () => resolve());
-  });
+  const lock = `${path}.lock`;
+  const deadline = Date.now() + LOCK_WAIT_MS;
+  for (;;) {
+    try {
+      const handle = await open(lock, 'wx');
+      await handle.writeFile(`${process.pid} ${new Date().toISOString()}\n`);
+      await handle.close();
+      break;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+      const age = await stat(lock).then(
+        (stats) => Date.now() - stats.mtimeMs,
+        () => 0,
+      );
+      if (age > LOCK_STALE_MS) await unlink(lock).catch(() => {});
+      else if (Date.now() > deadline) throw new Error(`Workflow lock ${lock} is still held after ${LOCK_WAIT_MS}ms`);
+      else await sleep(25);
+    }
+  }
   try {
     return await action();
   } finally {
-    child.stdin.end();
+    await unlink(lock).catch(() => {});
   }
 }
 
@@ -65,17 +85,22 @@ export async function saveDefinition(path: string, definition: WorkflowDefinitio
 
 async function mutate<T>(path: string, action: (doc: WorkflowDocument) => Promise<T>): Promise<T> {
   return withLock(path, async () => {
+    // readDocument already rejected any definition edited between two CLI calls; this guards the
+    // remaining window, where the running action itself would alter it.
     const doc = await readDocument(path);
-    const definition = JSON.stringify(doc.definition);
+    const assertUnchanged = (cause?: unknown) => {
+      if (doc.state.definition_digest !== definitionDigest(doc.definition))
+        throw new Error('Runtime modified the workflow definition', { cause });
+    };
     let result: T;
     try {
       result = await action(doc);
     } catch (error) {
-      if (definition !== JSON.stringify(doc.definition)) throw new Error('Runtime modified the workflow definition');
+      assertUnchanged(error);
       await writeAtomic(path, doc);
       throw error;
     }
-    if (definition !== JSON.stringify(doc.definition)) throw new Error('Runtime modified the workflow definition');
+    assertUnchanged();
     await writeAtomic(path, doc);
     return result;
   });
@@ -85,6 +110,16 @@ function taskDefinition(doc: WorkflowDocument, id: string): TaskDefinition {
   const task = doc.definition.tasks.find((task) => task.id === id);
   if (!task) throw new Error(`Unknown task ${id}`);
   return task;
+}
+
+/** Private staging directory for one task's submitted files, next to their target. */
+function stageDir(target: string, workflow: string, task: string): string {
+  return join(dirname(target), '.debo-stage', `${workflow}.${task}`);
+}
+
+/** A recorded blockade outranks the tasks still running around it. */
+function workflowStatus(doc: WorkflowDocument): WorkflowDocument['state']['status'] {
+  return Object.values(doc.state.tasks).some((task) => task.status === 'blocked') ? 'blocked' : 'running';
 }
 
 function assertReady(doc: WorkflowDocument, task: TaskDefinition): void {
@@ -119,13 +154,17 @@ export async function startTask(path: string, id: string, correction?: string): 
     const task = taskDefinition(doc, id);
     assertReady(doc, task);
     const state = doc.state.tasks[id]!;
-    if (state.status === 'blocked' && !correction?.trim())
-      throw new Error('Resuming a blocked task requires a concrete corrective action');
+    // Every resumption — blocked, claimed by another agent, or failed validation — needs a new
+    // action, so an identical attempt can never be repeated as if it were progress.
+    if ((state.status !== 'pending' || state.attempts > 0) && !correction?.trim())
+      throw new Error(
+        `Task ${id} was already attempted (status ${state.status}, ${state.attempts} attempt(s)); resuming it requires a concrete corrective action`,
+      );
     if (correction) state.corrections.push({ at: new Date().toISOString(), action: correction });
     state.status = 'in-progress';
     state.started_at ??= new Date().toISOString();
     delete state.blocker;
-    doc.state.status = 'running';
+    doc.state.status = workflowStatus(doc);
     doc.state.started_at ??= state.started_at;
     return doc;
   });
@@ -192,7 +231,9 @@ export async function completeTask(
           const validate = ajv.compile(output.schema);
           if (!validate(value)) errors.push(ajv.errorsText(validate.errors));
           if (submitted && output.path && output.submission === 'data' && errors.length === 0) {
-            validationPath = `${output.path}.${doc.definition.id}.${id}.debo`;
+            // Staged beside the target under its own directory, so the file name a validator
+            // sees — extension included — is exactly the one it will have on disk.
+            validationPath = join(stageDir(output.path, doc.definition.id, id), basename(output.path));
             await mkdir(dirname(validationPath), { recursive: true });
             await writeFile(validationPath, serializeForPath(output.path, value, output.schema as SchemaProperty));
             staged.push({ path: validationPath, target: output.path });
@@ -218,7 +259,11 @@ export async function completeTask(
         };
         state.errors.push(...errors.map((error) => `${key}: ${error}`));
       }
-      if (state.errors.length) throw new Error(`Task ${id} validation failed: ${state.errors.join('; ')}`);
+      if (state.errors.length) {
+        // The attempt ended; only a start carrying a corrective action reopens the task.
+        state.status = 'pending';
+        throw new Error(`Task ${id} validation failed: ${state.errors.join('; ')}`);
+      }
       for (const file of staged) await rename(file.path, file.target);
       state.status = 'done';
       state.completed_at = new Date().toISOString();
@@ -229,7 +274,10 @@ export async function completeTask(
       }
       return doc;
     } finally {
-      await Promise.all(staged.map((file) => unlink(file.path).catch(() => {})));
+      const stageDirs = new Set(staged.map((file) => dirname(file.path)));
+      await Promise.all([...stageDirs].map((dir) => rm(dir, { recursive: true, force: true })));
+      // Best-effort: the shared parent disappears once the last task released its own directory.
+      await Promise.all([...new Set([...stageDirs].map(dirname))].map((dir) => rmdir(dir).catch(() => {})));
     }
   });
 }

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // eval-score.mjs — the ONE eval scorer for design + sync cases. All eval-
 // execution lives here (skill layer), NOT in the addon CLI. Shells the pure
-// `workflow summary --json`, then applies the case metric + assertions.
+// `workflow summary`, then applies the case metric + assertions.
 import { readFileSync, readdirSync, existsSync, writeFileSync } from "node:fs";
 import { execSync, execFileSync } from "node:child_process";
 import vm from "node:vm";
@@ -146,7 +146,7 @@ export function executionComplete(document) {
   });
 }
 
-export function collectRuns(entries, summarize) {
+export function collectRuns(entries, summarize = () => undefined) {
   const paths = new Set();
   return entries.map((entry) => {
     const path = resolve(entry.workflow);
@@ -174,6 +174,55 @@ export function collectRuns(entries, summarize) {
   });
 }
 
+export async function collectCaseArtifacts(
+  themeDir,
+  caseDoc,
+  baseline = "HEAD",
+) {
+  const gitFiles = (args) =>
+    execFileSync("git", args, { cwd: themeDir, encoding: "utf8" })
+      .trim()
+      .split("\n")
+      .filter(Boolean);
+  const newFiles = gitFiles(["ls-files", "--others", "--exclude-standard"]);
+  const modifiedFiles = gitFiles(["diff", baseline, "--name-only"]);
+  const selected = caseDoc.evidence?.files ?? [];
+  const changed = [...newFiles, ...modifiedFiles].filter(
+    (file) =>
+      /^(components|designbook|css)\//.test(file) &&
+      !file.startsWith("designbook/workflows/"),
+  );
+  const artifacts = collectArtifacts(
+    themeDir,
+    [...selected, ...changed],
+    baseline,
+  );
+  const { componentIds, baselineComponentIds } = componentInventory(
+    themeDir,
+    baseline,
+  );
+  const mappingResults = {};
+  for (const mapping of caseDoc.evidence?.mappings ?? []) {
+    const source = artifacts.fileContents[mapping.file],
+      records = artifacts.fileContents[mapping.data];
+    try {
+      mappingResults[mapping.file] = await jsonata(source).evaluate(
+        records[mapping.record ?? 0],
+      );
+    } catch {
+      mappingResults[mapping.file] = null;
+    }
+  }
+  return {
+    newFiles,
+    modifiedFiles,
+    ...artifacts,
+    componentIds,
+    baselineComponentIds,
+    mappingResults,
+  };
+}
+
 async function main() {
   const summaryCmd = arg(
     "summary-cmd",
@@ -187,7 +236,7 @@ async function main() {
   const caseDoc = parseYaml(readFileSync(caseFile, "utf-8")) ?? {};
   const quote = (value) => `'${String(value).replace(/'/g, `'\\''`)}'`;
   const summary = JSON.parse(
-    execSync(`${summaryCmd} ${quote(workflow)} --json`, { encoding: "utf-8" }),
+    execSync(`${summaryCmd} ${quote(workflow)}`, { encoding: "utf-8" }),
   );
 
   const themeDir = arg("theme-dir", process.cwd());
@@ -205,26 +254,9 @@ async function main() {
         : pendingWorkflows)[doc.definition.id] = doc;
     }
   }
-  const gitFiles = (args) =>
-    execFileSync("git", args, { cwd: themeDir, encoding: "utf8" })
-      .trim()
-      .split("\n")
-      .filter(Boolean);
-  const newFiles = gitFiles(["ls-files", "--others", "--exclude-standard"]);
-  const modifiedFiles = gitFiles([
-    "diff",
-    arg("baseline", "HEAD"),
-    "--name-only",
-  ]);
-  const selected = caseDoc.evidence?.files ?? [];
-  const changed = [...newFiles, ...modifiedFiles].filter(
-    (file) =>
-      /^(components|designbook|css)\//.test(file) &&
-      !file.startsWith("designbook/workflows/"),
-  );
-  const artifacts = collectArtifacts(
+  const artifacts = await collectCaseArtifacts(
     themeDir,
-    [...selected, ...changed],
+    caseDoc,
     arg("baseline", "HEAD"),
   );
   if (arg("snapshot"))
@@ -239,9 +271,7 @@ async function main() {
         },
       ];
   const runs = collectRuns(entries, (path) =>
-    JSON.parse(
-      execSync(`${summaryCmd} ${quote(path)} --json`, { encoding: "utf8" }),
-    ),
+    JSON.parse(execSync(`${summaryCmd} ${quote(path)}`, { encoding: "utf8" })),
   );
   for (const run of runs)
     if (run.path === resolve(workflow) && !run.artifacts)
@@ -252,31 +282,10 @@ async function main() {
     ? JSON.stringify(document.definition) ===
       JSON.stringify(parseYaml(readFileSync(before, "utf8")))
     : false;
-  const { componentIds, baselineComponentIds } = componentInventory(
-    themeDir,
-    arg("baseline", "HEAD"),
-  );
-  const mappingResults = {};
-  for (const mapping of caseDoc.evidence?.mappings ?? []) {
-    const source = artifacts.fileContents[mapping.file],
-      records = artifacts.fileContents[mapping.data];
-    try {
-      mappingResults[mapping.file] = await jsonata(source).evaluate(
-        records[mapping.record ?? 0],
-      );
-    } catch {
-      mappingResults[mapping.file] = null;
-    }
-  }
   const assertOutput = {
     ...summary,
-    componentIds,
-    baselineComponentIds,
-    mappingResults,
     completedWorkflows,
     pendingWorkflows,
-    newFiles,
-    modifiedFiles,
     ...artifacts,
     runs,
     definitionUnchanged,

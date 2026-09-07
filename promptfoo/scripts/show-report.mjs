@@ -53,13 +53,13 @@ for (const r of results) {
   if (typeof output === "object") {
     const nf = output.newFiles || [];
     const fc = Object.keys(output.fileContents || {});
-    const aw = Object.keys(output.archivedWorkflows || {});
+    const aw = Object.keys(output.completedWorkflows || {});
     const pw = Object.keys(output.pendingWorkflows || {});
 
     console.log(`\n  Output:`);
     console.log(`    newFiles (${nf.length}):  ${nf.join(", ") || "(none)"}`);
     console.log(`    fileContents (${fc.length}): ${fc.join(", ") || "(none)"}`);
-    console.log(`    archived: ${aw.join(", ") || "(none)"}`);
+    console.log(`    completed: ${aw.join(", ") || "(none)"}`);
     if (pw.length) console.log(`    PENDING:  ${pw.join(", ")}`);
 
     // Show data-model structure if present

@@ -16,6 +16,9 @@ params:
     items:
       $ref: ../../../design/schemas.yml#/Component
 stages:
+  reference:
+    steps:
+      - extract-reference
   component:
     steps:
       - write-component

@@ -1,3 +1,7 @@
+workflow: design-screen
+
+verify: design-verify-screen-docs
+
 fixtures:
   - vision
   - data-model

@@ -9,7 +9,7 @@ export function summarizeWorkflow(doc: WorkflowDocument) {
       Object.fromEntries(Object.entries(task.results).map(([key, result]) => [key, result.value])),
     ),
   ) as Record<string, unknown>;
-  const output = (results.workflow_output ?? results['workflow-output'] ?? {}) as Record<string, unknown>;
+  const output = (results.workflow_output ?? {}) as Record<string, unknown>;
   const successRate = typeof output.success_rate === 'number' ? output.success_rate : undefined;
   const metrics = {
     errors: tasks.reduce((n, task) => n + task.errors.length, 0),

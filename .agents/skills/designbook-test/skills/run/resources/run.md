@@ -1,141 +1,135 @@
----
-name: run
-description: Set up a fresh test workspace from a fixture case and execute its prompt.
----
+# Run a case through Promptfoo
 
-# run
+Promptfoo is the only workflow execution runner for `debo-test`. The calling
+agent prepares inputs and inspects evidence; it does not execute intake or tasks
+inline and does not dispatch a separate case-driver subagent. The selected CLI inside
+Promptfoo loads the domain skill and its saved-workflow executor.
 
-Set up a fresh test workspace from a fixture case and execute its prompt.
-
-## Inputs and paths
+## Inputs
 
 Parse `run <suite> [<case>] [--workspace <path>] [--validate <workflow>]`.
-`--workspace` is optional. Without it, use `workspaces/<suite>` as before. With
-it, resolve the path from the current repository root, rebuild that directory
-through `setup-workspace.sh --into`, and use it for the whole run. Every
-parallel run must pass a different workspace path; never share one path between
-runs.
+Accept `--provider codex|claude` and `--model <id>` and forward them to the runner.
+For requested parallel model comparisons, use two independent Promptfoo runs as in
+[the Promptfoo guide](../../../../../../promptfoo/README.md#automated-testing-promptfoo).
+Resolve paths from the ticket's repository/worktree root. The default workspace
+is `promptfoo/workspaces/<suite>-<case>`. Each concurrent run needs a distinct
+workspace and report directory. Use `promptfoo/reports/<run-id>/` for evidence.
 
-Set `WORKSPACE` to the resolved absolute path and use it in every command below.
-The suite name still selects fixtures; it does not select the workspace when
-`--workspace` is present.
-
-## Paths (Drupal-layout workspace)
-
-After `setup-workspace.sh` the workspace is a Drupal tree:
-
-| Path                                                                   | Use for                                                               |
-| ---------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `$WORKSPACE` (**workspace root**)                                      | All `_debo workflow *`, `sync-to`, `config`, `eval "$(_debo config)"` |
-| `$WORKSPACE/web/themes/custom/test_integration_drupal` (**theme dir**) | Storybook start/status/stop only; theme git repo for fixture diffs    |
-
-`designbook.config.yml` lives at the **workspace root**. Never put a second copy in the theme dir (it shadows the root). `setup-test.sh` merges case config overrides into the root config.
-
-## 1. List cases (no case argument)
-
-If only `<suite>` is provided:
-
-1. List all `.yaml` files in `fixtures/<suite>/cases/`
-2. Show them as a numbered list with the `fixtures` field from each case
-3. Ask the user to pick one
-
-## 2. Setup workspace
-
-Always create a fresh workspace — never reuse an existing one.
-
-1. Resolve `WORKSPACE`: `workspaces/<suite>` by default, or the explicit `--workspace` path.
-2. Run `./scripts/setup-workspace.sh <suite> --into "$WORKSPACE"` — this always rebuilds the selected directory with Storybook infrastructure and `pnpm install`.
-3. Run: `./scripts/setup-test.sh <suite> <case> --into "$WORKSPACE"` — layers fixtures and merges case config into the workspace-root `designbook.config.yml`.
-4. Report the workspace path to the user.
-
-## 3. Start services
-
-### 3a. Storybook (theme dir)
+Without a case, list cases with:
 
 ```bash
-cd "$WORKSPACE/web/themes/custom/test_integration_drupal"
-_debo() { npx storybook-addon-designbook "$@"; }
-eval "$(_debo config)"   # may resolve config from parent workspace root
-_debo storybook start
+./promptfoo/scripts/run-single.sh --list --suite "$SUITE"
 ```
 
-Report the Storybook URL (`_debo storybook status` → `url`).
+Read the selected `fixtures/<suite>/cases/<case>.yaml`. A named case is already
+authorized. Missing reference, scene, breakpoint or threshold inputs must be
+resolved before a design test starts; research treats missing inputs as a fixture
+failure. Keep quality thresholds fixed across baseline and candidates.
 
-### 3b. Drupal (when the suite needs the backend)
-
-For `drupal-*` suites (or any case whose prompt runs `ddev` / `sync-to` / `sync-verify`):
+## 1. Execute the main case
 
 ```bash
-./scripts/start-drupal-workspace.sh --workspace "$WORKSPACE"
+./promptfoo/scripts/run-single.sh "$CASE" --suite "$SUITE" \
+  --workspace "$WORKSPACE" --output "$RUN_DIR/main.json"
 ```
 
-Then smoke-check from the **workspace root**:
+The provider rebuilds the workspace with `setup-workspace.sh`, layers fixtures
+with `setup-test.sh`, then invokes the selected CLI using the configured model and
+one-hour timeout. For `sync-*` cases it provisions Drupal and imports the committed
+DB baseline through `start-drupal-workspace.sh` before the model starts. Case
+assertions run in Promptfoo. Its `afterAll` hook appends each result to the
+versioned `promptfoo/results.csv` across runs, including failures and phase,
+commit, model, token and timing fields. Commit this CSV with the tested changes;
+raw evidence stays outside Git. The generated config and
+CLI JSONL, stderr, prompt, usage and available `dbo.log` copies are saved beside
+the report. CLI commands run from the workspace root containing
+`designbook.config.yml`; the theme directory is its own git repository.
 
-```bash
-cd "$WORKSPACE"
-ddev drush status
-ddev drush pm:list --status=enabled --format=list | rg -i 'designbook|ui_patterns|layout_builder' || true
-```
+The driver loads the case's domain skill, prepares a complete definition and
+executes the saved path. The prompt requires a `definition-before.yml` copy of the saved `definition`
+object in the same directory as each created `tasks.yml`, before execution. Inspect those copies after execution; absence or mutation
+fails the integrity check. Record every attempted path, including failed retries.
 
-If `pm:enable` fails on a missing module name, fix the fixture / active `core.extension` before continuing — do not invent modules.
+## 2. Inspect the automatic verification
 
-## 4. Display prompt and execute
+For design-shell, design-entity and design-screen, the Promptfoo runner executes a second, separate
+`design-verify` evaluation after the main evaluation, including after failed main
+assertions. Other rendered-design fixtures declare `verify: <case>` to use the
+same pipeline. A case with explicit `validate: none` uses its concrete main-run
+build/browser acceptance criteria without reference comparison; an explicit `verify`
+case still requests that separate phase. Only the verifier case's prompt is reused; its fixtures are never
+layered over the main output. Both CSV rows share a `run_id`; the verification row
+has `workflow_id=design-verify` and its own CLI tokens and measured score.
 
-1. Read `fixtures/<suite>/cases/<case>.yaml`
-2. Display the `prompt` field to the user
-3. **Confirmation:** If the user already invoked `debo-test run <suite> <case>` (case name present), treat that as yes — do **not** ask y/n. Only ask `"Execute this prompt in the workspace? (y/n)"` when the case was chosen interactively in step 1.
-4. Follow the case's domain intake on this thread, including its shared builder. Keep a copy of the saved definition before handing the path to execute-workflow.
-5. Drive the executor with one fresh subagent per existing task. Give each subagent the workspace root, saved document path, task ID and case inputs; it loads `workflow instructions <path> --task <id>`, starts the task, produces its outputs, and calls done. It returns completion evidence or a concrete recorded blockade. Wait for dependencies before dispatching their consumers. Subagents load embedded task context, not source skill files. They never generate new tasks.
-6. After completion, compare the saved definition with its before-execution copy. Collect the run path, summary and artifact checks. A changed definition fails the case.
-7. When the task cannot proceed from case inputs, return the exact missing input to the parent; the parent asks the user. A blocked task remains resumable in the same document.
+Read both `main.json` and `verify.json` plus the generated `pipeline.json`.
+The runner returns success only when both evaluations pass. Verification requires
+a validated score-report, passing comparison thresholds and unchanged main
+artifacts. The evidence audit below remains required. Missing references or
+comparison inputs fail a requested verification rather than skipping it.
 
-Restart stale Storybook from the theme directory before captures using `storybook start --force`. Stop services when the testing session ends.
+Use [debo-test verify](../../verify/SKILL.md) only for an explicit standalone check
+or a new check after repair. Do not duplicate the automatic verifier. Nonvisual
+cases such as vision/data-model mark visual verification not applicable.
+`--validate <workflow>` adds another check; it cannot replace the pipeline verifier.
+Include every phase in the final audit and token totals before returning.
 
-## 5. Validate (optional — only if `--validate <workflow>` was passed)
+## 3. Audit evidence and determine outcome
 
-Skip this step entirely when no `--validate` option was given.
+For main, verification and each repair attempt:
 
-**Skip when the main prompt already ran the same validate workflow.** If the case `prompt` already instructs running `/debo <validate-workflow>` (e.g. PART B runs `sync-verify`) and that workflow is archived `completed`, do not re-run it; go to step 6 with that id.
+1. Read the Promptfoo result, saved workflow and `workflow summary <path>` from
+   the workspace root. Completed tasks alone do not prove a visual pass.
+2. Inspect the actual produced artifacts and verify the before/after definitions.
+3. Audit the selected CLI's JSONL and command logs for failed commands, schema/validation errors,
+   retries, skipped steps, unexplained termination and missing required inputs.
+   Use the actual tool-call/result evidence, not the final agent message. Missing
+   or incomplete execution evidence makes the run unevaluable. A missing separate
+   dbo.log is acceptable only when JSONL contains the relevant CLI calls/results.
+4. When reference verification applies, verify that design-verify covered every requested region and breakpoint,
+   used the intended reference/thresholds, and produced real capture/comparison
+   artifacts. Check measured pass/fail results and unresolved issues. Missing
+   comparison output fails even when the workflow status is completed.
+   Inspect the screenshot content: a server error page, absent target selector or
+   capture from another workspace invalidates the measurement even when its pixel
+   difference falls below the threshold. Keep the raw CSV score as reported and
+   mark the run unevaluable in the audit; exclude it from research comparisons.
+5. Write `log-validation.json` with `passed`, `findings` (phase, evidence path,
+   event/line, issue, resolved) and `friction.json` (locus, issue, guessed). Retain
+   recovered errors as findings and include their usage; unresolved errors fail.
+6. Write `summary.json`: `passed`, `gates` (assertions, artifacts, definitions,
+   logs, visual), workflow/report paths, `verification` (score, checks passed/total),
+   per-phase `usage` and `durationMs`, plus
+   aggregate `tokens` (input, cached, uncached, output, reasoning, total).
+   `uncached = input - cached`; `total = input + output`. Cached and reasoning
+   are subsets, not extra additions. Missing usage is unknown, never zero.
+   Preserve CLI summary fields needed by the case metric. For `expected_config`
+   cases, also record `validate_pass_rate` from saved config-file result validity,
+   `cim_ok` from the import result and `existence_rate` from live
+   `ddev drush config:get <name> --format=json` checks in this workspace. Save
+   each command/result as evidence; an unavailable backend is unevaluable.
 
-**Gates by validate workflow:**
+Success requires all applicable gates. Preserve exact workflow IDs and every
+open attempt; never hide a pending workflow through name normalization. A failed
+main assertion remains a failure in its original report after any subsequent
+check. Only a new run can establish a new baseline.
 
-| Validate workflow                            | Proceed when                                                                                                       |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `design-verify` (scores vs design reference) | Case prompt has a `reference_url` (or equivalent). Otherwise report skipped (no reference) and continue to step 6. |
-| `sync-verify` (scores backend vs Storybook)  | Storybook is running and the main-run summary (or case) names the story/scene. No design `reference_url` required. |
+## 4. Report
 
-After the main run completes, invoke the selected verification intake with the produced story and case reference. Execute its saved document with the same per-task subagent policy. The verification intake owns the separate automatic repair handoff. Record each check and repair path.
+Show the overall outcome, failed gates, main and verification reports, artifact
+paths, Storybook URL and per-phase/total token usage. Keep logs and screenshots
+in the run/workspace directories. Leave services available for inspection.
 
-## 6. Workflow summary (after workflow completion)
-
-After the workflow completes, retrieve and display the summary from the **workspace root**:
-
-```bash
-cd "$WORKSPACE"
-npx storybook-addon-designbook workflow summary <path> --json
-```
-
-Display the full JSON output so the user can review scores before deciding on a snapshot. When a validate workflow ran (step 5), display its summary too, passing its saved document path.
-
-## 7. Snapshot offer
-
-After the workflow completes:
-
-1. `cd` into the theme dir (`$WORKSPACE/web/themes/custom/test_integration_drupal`) — that is the git repo root for the workspace
-2. Run `git diff --name-only` and `git ls-files --others --exclude-standard` to find changed/new files
-3. Exclude `.agents/`, `.claude/`, `.storybook/`, `node_modules/` from the list
-4. Also list new config under `$WORKSPACE/web/sites/default/files/sync/` when present (outside the theme git root — report paths relative to workspace root)
-5. Display the list of changed files to the user
-6. Ask: "Save as fixture? Enter name (default: <case>) or 'n' to skip"
-7. If the user provides a name (or accepts default):
-   - For each changed/new file under the theme, copy it to `fixtures/<suite>/<fixture-name>/` preserving the theme-relative path
-   - Report: "✓ Fixture saved to fixtures/<suite>/<fixture-name>/"
-8. If the user declines: do nothing, workspace remains
+A fixture snapshot is a separate user-requested action after reviewing the
+result. Copy only the inspected artifact diff, preserving theme-relative paths.
 
 ## Case evidence and scoring
 
-When a case declares `evidence`, collect its listed theme-relative files plus changed
-case artifacts through the shared [scorer](../../../resources/eval-score.mjs).
+When a case declares `evidence`, the Promptfoo driver saves `case-runs.json` in
+the workspace root: an ordered manifest of every execution with absolute
+`workflow`, `definitionBefore`, `evidence` and `artifactSnapshot` paths. A single
+execution uses a one-entry array. The provider reads this manifest and collects
+the listed theme-relative files plus changed case artifacts through the shared
+[scorer](../../../resources/eval-score.mjs).
 `setup-test.sh`'s fixture commit is the baseline. Keep that commit fixed throughout
 the case; pass `--baseline <commit>` if the theme HEAD changes. The scorer exposes
 parsed `fileContents` and `baselineContents`, SHA-256 `fileHashes` and
@@ -189,12 +183,12 @@ set, completed state and valid required results; the scorer exposes this as
 `runs[].complete`. The workflow-ID maps remain useful for single-run cases;
 `runs[]` is the execution-path identity for repeated cases.
 
-When `repeat: {count: 2, same_prompt: true}` is present, setup once and complete
-step 4 twice with the identical domain request. Save a distinct definition and
+When `repeat: {count: 2, same_prompt: true}` is present, the Promptfoo driver completes the domain intake and saved executor twice
+within the same evaluation, with identical domain requests and distinct definition IDs. Save a distinct definition and
 execution path for each run. Capture the first run's artifact snapshot and evidence
 before starting the second. The first scoring call can fail the not-yet-complete
 repeat assertions; it still writes its snapshot. After both runs, write a JSON
-manifest array with one entry per execution:
+`case-runs.json` manifest array with one entry per execution:
 
 ```json
 [
@@ -216,5 +210,5 @@ manifest array with one entry per execution:
 Pass `--runs <manifest.json>` on the final scoring call, with `--workflow` and
 `--definition-before` selecting the second execution. Collect both workflow summaries.
 Each run keeps its own definition comparison, command results, browser observations
-and snapshot even when both definitions have the same ID. Rebuilding or relayering
+and snapshot with distinct IDs and execution paths. Rebuilding or relayering
 between these two executions invalidates the repeat case.
