@@ -9,9 +9,11 @@ stages:
   tokens:
     steps: [create-tokens]
   components:
-    steps: [create-component]
+    steps: [write-component]
+  component-index:
+    steps: [refresh-components]
   scenes:
-    steps: [create-scene]
+    steps: [write-scene]
 ---
 
 The intake selects the relevant blocks and writes every concrete task and dependency before execution. Shared prerequisite blocks such as CSS generation are incorporated during planning.

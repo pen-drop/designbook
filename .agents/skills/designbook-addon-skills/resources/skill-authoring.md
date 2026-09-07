@@ -63,8 +63,8 @@ When a skill covers multiple stage types, create one task file per stage. Stages
 A skill might have multiple task files for different frameworks (same stage name, differentiated by `when`):
 
 ```
-designbook-drupal/components/tasks/create-component.md    ← when: { frameworks.component: sdc }
-designbook-components-react/tasks/create-component.md  ← when: { frameworks.component: react }
+designbook-drupal/components/tasks/write-component.md    ← when: { frameworks.component: sdc }
+designbook-components-react/tasks/write-component.md  ← when: { frameworks.component: react }
 ```
 
 Only the matching one is loaded. No workflow changes needed to support new frameworks.

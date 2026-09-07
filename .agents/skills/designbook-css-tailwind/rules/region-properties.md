@@ -1,11 +1,13 @@
 ---
 trigger:
-  steps: [create-component]
+  steps: [write-component]
 filter:
   frameworks.css: tailwind
 ---
 
 # Region Properties — Tailwind output
+
+Apply captured-style derivations only when intake supplied `region_properties`; text-only changes use the saved criteria and preserved structure.
 
 Materialize `region_properties.style` as inline Tailwind utility classes on the
 element, following `component-styling.md`. Utilities are the styling surface —

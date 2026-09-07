@@ -12,6 +12,9 @@ import { fileURLToPath } from "node:url";
 import { execFileSync, spawnSync } from "node:child_process";
 import yaml from "js-yaml";
 
+if (process.env.DESIGNBOOK_PROMPTFOO_DRIVER === "1")
+  throw new Error("Already inside the Promptfoo CLI driver: execute the domain intake and saved workflow; nested tester runs would reset the active workspace.");
+
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const args = process.argv.slice(2);
 const opts = { suite: "drupal-petshop", phase: "main" };
@@ -112,21 +115,46 @@ const workflowId =
     ? caseDoc.workflow || opts.case
     : opts.validate || "design-verify";
 prompt = prompt.replaceAll("{{workspace}}", workspace);
-prompt += `\nUse ${JSON.stringify(workflowId)} as the primary saved workflow definition.id for this phase.`;
 prompt +=
-  "\nRun all Designbook CLI commands from the workspace root with its designbook.config.yml.\n" +
+  caseDoc.repeat && opts.phase === "main"
+    ? `\nUse distinct saved definition IDs ${JSON.stringify(workflowId + "-1")} through ${JSON.stringify(workflowId + "-" + caseDoc.repeat.count)} for the ordered repetitions in this single evaluation. Setup occurs once.`
+    : `\nUse ${JSON.stringify(workflowId)} as the primary saved workflow definition.id for this phase.`;
+prompt +=
+  "\nYou are the execution driver already running inside Promptfoo in a provisioned workspace. Execute the domain intake and saved workflow directly. Read only the Case evidence and scoring section of the tester resource; do not invoke debo-test run, the Promptfoo runner or workspace setup again.\n" +
+  "Use this fresh workspace’s fixture inputs and copied skills. Prior test workspaces, saved definitions, generated artifacts and reports are not inputs; do not read or copy them. Repository test helpers and this case file remain available.\n" +
+  "Run all Designbook CLI commands from the workspace root with its designbook.config.yml.\n" +
   `After workflow create returns the saved tasks.yml path, run node ${JSON.stringify(join(repo, "promptfoo/scripts/snapshot-definition.mjs"))} <saved-tasks.yml> before execute-workflow. This helper saves the unchanged definition beside tasks.yml. ` +
   "Execute the saved path through execute-workflow. Report every saved path, failure, retry and unanswered input. " +
   "If required inputs are missing, record the failure and end the run; this test has no interactive user.";
+if (caseDoc.evidence && opts.phase === "main") {
+  prompt += `\nFollow the Case evidence and scoring contract in ${JSON.stringify(join(repo, ".agents/skills/designbook-test/skills/run/resources/run.md"))}. Save ${JSON.stringify(join(workspace, "case-runs.json"))} as a JSON array in execution order, with one entry per saved run: {workflow, definitionBefore, evidence, artifactSnapshot}, each an absolute file path. Each evidence file contains the actual build output and browser observations. Capture each artifact snapshot before the next repetition; preserve the fixture git baseline. Include every attempt. The Promptfoo provider reads this manifest and uses the shared scorer to inspect artifacts and evaluate the case assertions.`;
+}
 const providers = base.providers.map((p) => ({
   ...p,
   id: `file://${join(repo, "promptfoo/providers", `${cli}-cli.mjs`)}`,
   label: model,
-  config: { ...p.config, model, evidenceDir: join(runDir, "evidence") },
+  config: {
+    ...p.config,
+    model,
+    evidenceDir: join(runDir, "evidence"),
+    ...(caseDoc.evidence && opts.phase === "main"
+      ? { caseFile: join(cases, `${opts.case}.yaml`) }
+      : {}),
+  },
 }));
 const assertions =
   opts.phase === "main"
-    ? [...(caseDoc.assert || [])]
+    ? caseDoc.evidence
+      ? [
+          ...(caseDoc.assert || []).filter(
+            (assertion) => assertion.type !== "javascript",
+          ),
+          {
+            type: "javascript",
+            value: `file://${join(repo, "promptfoo/extensions/case-result.mjs")}`,
+          },
+        ]
+      : [...(caseDoc.assert || [])]
     : [
         {
           type: "javascript",
@@ -204,6 +232,8 @@ const config = {
     },
   ],
 };
+if (caseDoc.evidence && opts.phase === "main")
+  config.tests[0].vars.case_file = join(cases, `${opts.case}.yaml`);
 const configPath = join(runDir, "promptfooconfig.yaml");
 let verifyConfig;
 let verifyConfigPath;
@@ -211,7 +241,10 @@ const designCase =
   /^(design-shell|design-entity|design-screen|design-section)(?:-|$)/.test(
     opts.case,
   );
-if (opts.phase === "main" && (designCase || caseDoc.verify)) {
+if (
+  opts.phase === "main" &&
+  (caseDoc.verify || (designCase && caseDoc.validate !== "none"))
+) {
   const verificationCase =
     caseDoc.verify ||
     opts.case
@@ -243,6 +276,7 @@ if (opts.phase === "main" && (designCase || caseDoc.verify)) {
       config: {
         ...provider.config,
         evidenceDir: join(runDir, "verify-evidence"),
+        caseFile: undefined,
       },
     })),
     tags: {

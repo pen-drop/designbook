@@ -1,6 +1,6 @@
 ---
 title: Design Entity
-description: Build one entity view-mode (mapping + sample data) and preview it standalone
+description: Create or change one entity view or form mode. Use for entity mappings, sample data for a mode, or its standalone preview.
 params:
   entity_type:
     type: string
@@ -31,13 +31,23 @@ stages:
       - extract-reference
   component:
     steps:
-      - create-component
+      - write-component
+  component-index:
+    steps:
+      - refresh-components
   sample-data:
     steps:
       - create-sample-data
   entity-mapping:
     steps:
       - map-entity
+  consumers:
+    steps:
+      - create-scene-file
+      - write-scene
+  validate:
+    steps:
+      - validate
 ---
 
-Template for the planning agent. Use the ordered steps as building blocks. Enumerate repeated targets during intake and write each concrete task explicitly; these stages do not execute or expand at runtime.
+Creation/change building blocks: intake selects only necessary writes and absent-file initialization. Reference analysis is completed before execution. Include explicit prerequisite builds/index refreshes and final build/browser checks for all affected targets. Template for the planning agent. Use the ordered steps as building blocks. Enumerate repeated targets during intake and write each concrete task explicitly; these stages do not execute or expand at runtime.

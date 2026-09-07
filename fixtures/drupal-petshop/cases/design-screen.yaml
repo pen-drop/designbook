@@ -6,31 +6,75 @@ fixtures:
   - screen-prerequisites
   - sections
   - sample-data
-
-prompt: |
-  You are working in the directory {{workspace}}.
-  Run the /debo design-screen workflow for the "homepage" section. Do NOT ask any questions.
-  The product is "PetMatch". Read designbook/sections/homepage/homepage.section.scenes.yml for context.
-  The homepage should include: a hero section, featured pets grid, search/filter area, and a call-to-action for shelters.
-  Generate UI components, entity-mapping (JSONata files), and a scenes file.
-  After generating all files, run `pnpm build-storybook` to verify everything renders.
-  Execute the workflow now.
-
+prompt: |-
+  You are working in {{workspace}}. Invoke /debo design-screen for homepage.
+  Create one named homepage scene in designbook/sections/homepage/homepage.section.scenes.yml. Keep its id/title/description/order/group and canonical shell inheritance. Include hero, featured pets grid, search/filter and shelter CTA. The route-bearing main entity is node.homepage full record 0; supplementary components may accompany it. Reuse the existing node.pet pool and plan needed node.pet teaser mapping/components and the node.homepage full mapping. Render the homepage through the shell with heading "Find your next companion", Bella in featured pets, visible search/filter controls and shelter CTA. Preserve the existing shell file and sample pools.
+  During intake freeze concrete story URLs, selectors and checks in the saved definition. Plan actual `pnpm build-storybook` (theme cwd), artifact validation, and `npx storybook-addon-designbook storybook check <story-url>` for every affected story. Run browser observations at desktop 1280x800 and mobile 390x844 where applicable. A build is separate from browser verification.
+  After execution save evidence JSON from actual command outputs and browser observations, as specified by debo-test run's evidence contract. The required observation keys and exact expected values are:
+    - homepage.heading: 'Find your next companion'
+    - homepage.featuredPet: 'Bella'
+    - homepage.search: True
+    - homepage.shelterCTA: True
+    - homepage.shell: True
+  Preserve the definition before execution and score this case; validate workflow: none. Execute now without clarification; all requested targets and acceptance criteria are supplied.
+validate: none
+evidence:
+  files:
+    - designbook/sections/homepage/homepage.section.scenes.yml
+    - designbook/design-system/design-system.scenes.yml
+    - designbook/data-model.yml
+    - designbook/data/node.pet.yml
+    - designbook/data/node.homepage.yml
+    - designbook/entity-mapping/node.homepage.full.jsonata
+    - designbook/entity-mapping/node.pet.teaser.jsonata
+  mappings:
+    - file: designbook/entity-mapping/node.homepage.full.jsonata
+      data: designbook/data/node.homepage.yml
+    - file: designbook/entity-mapping/node.pet.teaser.jsonata
+      data: designbook/data/node.pet.yml
 assert:
   - type: javascript
-    value: "[...output.newFiles, ...output.modifiedFiles].some(f => f.endsWith('.scenes.yml'))"
+    value: output.runs.length > 0 && output.runs.every(r => r.componentPrerequisites?.passed === true)
   - type: javascript
-    value: "output.newFiles.some(f => f.includes('components/') && f.endsWith('.component.yml'))"
+    value: output.runs.length === 1 && output.runs.every(r => r.complete && r.definitionUnchanged)
   - type: javascript
-    value: "output.completedWorkflows['design-screen']?.state?.status === 'completed'"
+    value: Object.keys(output.pendingWorkflows).length === 0 && output.definitionUnchanged === true
   - type: javascript
-    value: "Object.values(output.completedWorkflows['design-screen']?.state?.tasks || {}).every(t => t.status === 'done')"
+    value: |-
+      output.runs.every(r => r.evidence?.build?.command === 'pnpm build-storybook' && r.evidence.build.exitCode === 0 && typeof r.evidence.build.stdout === 'string' && r.evidence.build.stdout.trim().length > 0 && r.evidence.build.cwd.endsWith('/web/themes/custom/test_integration_drupal') && Array.isArray(r.evidence.checks) && r.evidence.checks.length > 0 && r.evidence.checks.every(c => /^https?:/.test(c.url) && c.result?.ok === true))
   - type: javascript
-    value: |
-      const task = output.completedWorkflows['design-screen']?.state?.tasks?.['build-and-render'];
-      const log = task?.results?.['build-log']?.value || '';
-      return output.text.includes('build-storybook') || output.text.includes('Build completed') || log.includes('Storybook build completed');
+    value: |-
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["homepage.heading"] === "Find your next companion"))
   - type: javascript
-    value: "Object.keys(output.pendingWorkflows).length === 0"
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["homepage.featuredPet"]
+      === "Bella"))
   - type: javascript
-    value: "output.definitionUnchanged === true"
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["homepage.search"]
+      === true))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["homepage.shelterCTA"]
+      === true))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["homepage.shell"]
+      === true))
+  - type: javascript
+    value: |-
+      const refs = []; const walk = value => { if (!value || typeof value !== 'object') return; if (typeof value.component === 'string') refs.push(value.component); Object.values(value).forEach(walk); }; Object.entries(output.fileContents).filter(([file]) => /\.(scenes|story)\.yml$/.test(file)).forEach(([,value]) => walk(value)); Object.values(output.mappingResults).forEach(walk); return refs.length > 0 && refs.every(ref => ref.startsWith('test_integration_drupal:') && output.componentIds.includes(ref.split(':')[1]));
+  - type: javascript
+    value: |-
+      output.fileContents['designbook/sections/homepage/homepage.section.scenes.yml']?.id === 'homepage' && output.fileContents['designbook/sections/homepage/homepage.section.scenes.yml'].scenes.filter(s => s.name === 'homepage').length === 1
+  - type: javascript
+    value: |-
+      const selected=output.fileContents['designbook/sections/homepage/homepage.section.scenes.yml']?.scenes.find(s => s.name === 'homepage'); const roots=selected?.items?.filter(i => i.scene === 'design-system:shell'); return roots?.length === 1 && roots[0].with.content.filter(i => i.entity === 'node.homepage' && i.view_mode === 'full').length === 1;
+  - type: javascript
+    value: output.unchangedFiles.includes('designbook/design-system/design-system.scenes.yml')
+  - type: javascript
+    value: output.unchangedFiles.includes('designbook/data/node.pet.yml')
+  - type: javascript
+    value: output.mappingResults['designbook/entity-mapping/node.homepage.full.jsonata']?.length > 0
+  - type: javascript
+    value: output.mappingResults['designbook/entity-mapping/node.pet.teaser.jsonata']?.length > 0

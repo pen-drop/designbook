@@ -31,5 +31,6 @@ saved workflow definition is authored.
 
 When the request intentionally has no design reference, follow the task's
 no-reference branch and record that limitation explicitly. Do not invent reference
-measurements. A rendered-design test still fails its mandatory visual verification
-when no valid comparison reference is available.
+measurements. A requested reference comparison fails when no valid comparison reference is
+available. Text-only cases use the concrete build/browser criteria selected by
+the test case instead.

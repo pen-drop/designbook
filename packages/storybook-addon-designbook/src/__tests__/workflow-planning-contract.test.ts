@@ -79,10 +79,61 @@ it('component discovery includes domain rules and rejects story variants the ren
     {},
     agents,
   );
-  const raw = catalogue.step_resolved['create-component']!;
+  const raw = catalogue.step_resolved['write-component']!;
   const block = Array.isArray(raw) ? raw[0]! : raw;
   expect(block.rules.some((path) => path.endsWith('/component-styling.md'))).toBe(true);
+  expect(block.blueprints.some((path) => path.endsWith('/component-template.md'))).toBe(true);
   const validate = schemaValidator(block.schema!.definitions).compile({ $ref: '#/definitions/SdcStory' });
   expect(validate({ component: 'test:avatar', props: { variant: 'small' } })).toBe(true);
   expect(validate({ component: 'test:avatar', variant: 'small' })).toBe(false);
 });
+
+it.each(['design-component', 'design-screen', 'design-shell', 'design-entity', 'import'])(
+  '%s discovers complete scene writes with target-scoped constraints and shared validation',
+  async (name) => {
+    const agents = resolve(process.cwd(), '../../.agents');
+    const catalogue = await resolveAllStages(
+      resolve(agents, `skills/designbook/skills/${name}/workflows/${name}.md`),
+      {
+        data: '/tmp/static-write',
+        technology: 'html',
+        backend: 'drupal',
+        'frameworks.component': 'sdc',
+        'frameworks.css': 'tailwind',
+        extensions: [],
+      },
+      {},
+      agents,
+    );
+    expect(catalogue.step_resolved).not.toHaveProperty('create-component');
+    expect(catalogue.step_resolved).not.toHaveProperty('create-scene');
+    const refresh = catalogue.step_resolved['refresh-components'];
+    expect(refresh).toBeDefined();
+    for (const entry of Array.isArray(refresh) ? refresh : [refresh!]) {
+      expect(entry.schema!.result.build!.$ref).toBe('#/definitions/StorybookBuild');
+      expect(entry.schema!.result.index!.$ref).toBe('#/definitions/StorybookIndex');
+    }
+    if (name !== 'import') {
+      const mapping = catalogue.step_resolved['map-entity'];
+      expect(mapping).toBeDefined();
+      for (const entry of Array.isArray(mapping) ? mapping : [mapping!]) {
+        expect(entry.rules.filter((path) => path.endsWith('/entity-reference-rendering.md'))).toHaveLength(1);
+      }
+    }
+    const raw = catalogue.step_resolved['write-scene'];
+    expect(raw).toBeDefined();
+    const block = Array.isArray(raw) ? raw[0]! : raw!;
+    expect(block.task_file).toMatch(/\/write-scene\.md$/);
+    expect(block.schema!.params.scene_name!.type).toBe('string');
+    expect(block.schema!.params.scene_scope!.enum).toEqual(['screen', 'shell', 'standalone']);
+    expect(block.schema!.result['scene-file']!.validators).toContain('scene');
+    expect(block.schema!.result['scene-file']!.$ref).toBe('#/definitions/SceneFile');
+    for (const rule of ['scenes-constraints', 'screen-scene-constraints', 'shell-scene-constraints']) {
+      expect(block.rules.some((path) => path.endsWith(`/${rule}.md`))).toBe(true);
+    }
+    for (const scope of ['screen', 'shell']) {
+      const path = block.rules.find((path) => path.endsWith(`/${scope}-scene-constraints.md`))!;
+      expect(readFileSync(path, 'utf8')).toContain(`scene_scope = ${scope}`);
+    }
+  },
+);

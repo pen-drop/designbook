@@ -3,7 +3,7 @@ name: designbook-drupal:components:create-variant-story
 title: Create Variant Story {{ component.component }}.{{ variant.id }}
 trigger:
   steps:
-    - create-component
+    - write-component
 filter:
   frameworks.component: sdc
 priority: 10

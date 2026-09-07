@@ -1,33 +1,71 @@
 fixtures:
   - vision
   - tokens
+  - css-generate
   - data-model-entity
   - pet-card-component
-
-prompt: |
-  You are working in the directory {{workspace}}.
-  Run the /debo design-entity workflow for the "node.pet" entity, "teaser" view mode.
-  Do NOT ask any questions. The product is "PetMatch".
-  Reuse the EXISTING "pet-card" component — do NOT create any new components.
-  Map the pet's fields to pet-card props: title→name, field_breed→breed,
-  field_age→age, field_media→image_url, field_status→status.
-  The workflow must produce:
-    - designbook/entity-mapping/node.pet.teaser.jsonata (the mapping)
-    - designbook/data/node.pet.yml (sample-data pool records, each tagged __designbook.section)
-  After generating all files, run `pnpm build-storybook` to verify everything renders.
-  Execute the workflow now.
-
+prompt: |-
+  You are working in {{workspace}}. Invoke /debo design-entity for node.pet teaser.
+  Reuse the existing pet-card component and its default story. Map title to name, field_breed to breed, field_age to age and field_status to status. The existing field_media is an entity reference; leave image_url unset when no media record is supplied (do not treat a reference as a URL). Generate tagged sample records including Bella / Golden Retriever / 3 years / available. Write designbook/entity-mapping/node.pet.teaser.jsonata, reuse the standalone Entities/node/Pet teaser preview convention, and render its mapped field values. Preserve the existing component inventory and all pet-card files.
+  During intake freeze concrete story URLs, selectors and checks in the saved definition. Plan actual `pnpm build-storybook` (theme cwd), artifact validation, and `npx storybook-addon-designbook storybook check <story-url>` for every affected story. Run browser observations at desktop 1280x800 and mobile 390x844 where applicable. A build is separate from browser verification.
+  After execution save evidence JSON from actual command outputs and browser observations, as specified by debo-test run's evidence contract. The required observation keys and exact expected values are:
+    - pet.name: 'Bella'
+    - pet.breed: 'Golden Retriever'
+    - pet.age: '3 years'
+    - pet.status: 'available'
+  Preserve the definition before execution and score this case; validate workflow: none. Execute now without clarification; all requested targets and acceptance criteria are supplied.
+validate: none
+evidence:
+  files:
+    - designbook/data-model.yml
+    - designbook/data/node.pet.yml
+    - designbook/entity-mapping/node.pet.teaser.jsonata
+    - components/pet-card/pet-card.component.yml
+    - components/pet-card/pet-card.twig
+    - components/pet-card/pet-card.default.story.yml
+  mappings:
+    - file: designbook/entity-mapping/node.pet.teaser.jsonata
+      data: designbook/data/node.pet.yml
 assert:
   - type: javascript
-    value: output.newFiles.some(f => f.endsWith('entity-mapping/node.pet.teaser.jsonata'))
+    value: output.runs.length > 0 && output.runs.every(r => r.componentPrerequisites?.passed === true)
   - type: javascript
-    value: output.newFiles.some(f => f.endsWith('data/node.pet.yml'))
+    value: output.runs.length === 1 && output.runs.every(r => r.complete && r.definitionUnchanged)
   - type: javascript
-    value: output.completedWorkflows['design-entity']?.state?.status === 'completed'
+    value: Object.keys(output.pendingWorkflows).length === 0 && output.definitionUnchanged === true
   - type: javascript
-    value: Object.values(output.completedWorkflows['design-entity']?.state?.tasks || {}).every(t => t.status === 'done')
+    value: |-
+      output.runs.every(r => r.evidence?.build?.command === 'pnpm build-storybook' && r.evidence.build.exitCode === 0 && typeof r.evidence.build.stdout === 'string' && r.evidence.build.stdout.trim().length > 0 && r.evidence.build.cwd.endsWith('/web/themes/custom/test_integration_drupal') && Array.isArray(r.evidence.checks) && r.evidence.checks.length > 0 && r.evidence.checks.every(c => /^https?:/.test(c.url) && c.result?.ok === true))
   - type: javascript
-    value: |
-      return output.text.includes('build-storybook') || output.text.includes('Build completed');
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["pet.name"] ===
+      "Bella"))
   - type: javascript
-    value: Object.keys(output.pendingWorkflows).length === 0
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["pet.breed"] ===
+      "Golden Retriever"))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["pet.age"] === "3
+      years"))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["pet.status"] ===
+      "available"))
+  - type: javascript
+    value: |-
+      const refs = []; const walk = value => { if (!value || typeof value !== 'object') return; if (typeof value.component === 'string') refs.push(value.component); Object.values(value).forEach(walk); }; Object.entries(output.fileContents).filter(([file]) => /\.(scenes|story)\.yml$/.test(file)).forEach(([,value]) => walk(value)); Object.values(output.mappingResults).forEach(walk); return refs.length > 0 && refs.every(ref => ref.startsWith('test_integration_drupal:') && output.componentIds.includes(ref.split(':')[1]));
+  - type: javascript
+    value: JSON.stringify(output.componentIds.sort()) === JSON.stringify(output.baselineComponentIds.sort())
+  - type: javascript
+    value: |-
+      Array.isArray(output.fileContents['designbook/data/node.pet.yml']) && output.fileContents['designbook/data/node.pet.yml'].length > 0 && output.fileContents['designbook/data/node.pet.yml'].every(r => r.id !== undefined && r.__designbook?.section)
+  - type: javascript
+    value: |-
+      const result=output.mappingResults['designbook/entity-mapping/node.pet.teaser.jsonata']; return Array.isArray(result) && result.length === 1 && result[0].component === 'test_integration_drupal:pet-card' && result[0].props.name === 'Bella' && result[0].props.breed === 'Golden Retriever' && result[0].props.age === '3 years' && result[0].props.status === 'available';
+  - type: javascript
+    value: output.unchangedFiles.includes('components/pet-card/pet-card.component.yml')
+  - type: javascript
+    value: output.unchangedFiles.includes('components/pet-card/pet-card.twig')
+  - type: javascript
+    value: output.unchangedFiles.includes('components/pet-card/pet-card.default.story.yml')

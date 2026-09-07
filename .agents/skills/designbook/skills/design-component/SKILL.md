@@ -1,7 +1,9 @@
 ---
 name: design-component
+user-invocable: true
+disable-model-invocation: true
 description: >
-  Create a new UI component from a design reference. Invoke explicitly via `/design-component` — this workflow is never auto-triggered on incidental component mentions.
+  Create or change a UI component. Explicit invocation only; incidental component mentions do not trigger this skill.
 ---
 
-For this request, follow [intake](resources/intake.md).
+For creation or a targeted change, follow [intake](resources/intake.md).

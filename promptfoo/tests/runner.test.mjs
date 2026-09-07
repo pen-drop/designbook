@@ -6,6 +6,7 @@ import { join, resolve } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import yaml from "js-yaml";
 import Provider from "../providers/codex-cli.mjs";
+import caseResult from "../extensions/case-result.mjs";
 
 async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), "promptfoo-contract-"));
@@ -75,6 +76,211 @@ const claudeCompleted = [
     },
   },
 ];
+
+test("text-only design cases retain semantic evidence through the Promptfoo runner", async (t) => {
+  const { root, workspace } = await fixture(t);
+  for (const name of ["component", "screen", "shell", "entity"]) {
+    for (const suffix of ["", "-update"]) {
+      const caseName = `design-${name}${suffix}`;
+      const path = execFileSync(
+        "node",
+        [
+          "promptfoo/scripts/run-single.mjs",
+          caseName,
+          "--suite",
+          "drupal-petshop",
+          "--workspace",
+          workspace,
+          "--output",
+          join(root, `${caseName}.json`),
+          "--config-only",
+        ],
+        { encoding: "utf8" },
+      ).trim();
+      const config = yaml.load(await readFile(path, "utf8"));
+      assert.equal(config.tags.verify_config, undefined);
+      assert.match(
+        config.providers[0].config.caseFile,
+        new RegExp(`${caseName}\\.yaml$`),
+      );
+      assert.match(config.prompts[0], /case-runs\.json/);
+      assert.match(config.prompts[0], /already running inside Promptfoo/);
+      assert.match(config.prompts[0], /Prior test workspaces, saved definitions, generated artifacts and reports are not inputs/);
+      assert.equal(
+        config.tests[0].vars.case_file,
+        config.providers[0].config.caseFile,
+      );
+      assert.ok(
+        config.tests[0].assert.some((assertion) =>
+          assertion.value.endsWith("/case-result.mjs"),
+        ),
+      );
+      if (caseName === "design-screen-update") {
+        assert.match(config.prompts[0], /distinct saved definition IDs/);
+        assert.match(config.prompts[0], /design-screen-update-2/);
+        assert.doesNotMatch(
+          config.prompts[0],
+          /as the primary saved workflow definition.id/,
+        );
+      }
+    }
+  }
+});
+
+test("case grading keeps scorer semantics for expressions and statement bodies", async (t) => {
+  const { root } = await fixture(t);
+  const caseFile = join(root, "case.yml");
+  await writeFile(
+    caseFile,
+    yaml.dump({
+      assert: [
+        { type: "javascript", value: "output.present === true" },
+        {
+          type: "javascript",
+          value:
+            "const refs = output.refs; return refs.length > 0 && refs.every(ref => ref === 'valid');",
+        },
+      ],
+    }),
+  );
+  const context = { vars: { case_file: caseFile } };
+  assert.deepEqual(caseResult({ present: true, refs: ["valid"] }, context), {
+    pass: true,
+    score: 1,
+    reason: "2/2 case assertions passed",
+  });
+  assert.equal(
+    caseResult({ present: true, refs: ["invalid"] }, context).pass,
+    false,
+  );
+  assert.equal(caseResult({}, context).pass, false);
+  await writeFile(caseFile, "assert: []\n");
+  assert.equal(caseResult({}, context).pass, false);
+});
+
+test("provider reuses bounded baseline and independent execution evidence", async (t) => {
+  const { root, workspace, provider } = await fixture(t);
+  const theme = join(workspace, "web/themes/custom/test_theme");
+  await mkdir(join(theme, "components/card"), { recursive: true });
+  await mkdir(join(theme, "designbook/data"), { recursive: true });
+  await writeFile(
+    join(workspace, "designbook.config.yml"),
+    yaml.dump({ designbook: { home: "web/themes/custom/test_theme" } }),
+  );
+  const artifact = "components/card/card.component.yml";
+  await writeFile(join(theme, artifact), "name: Card\n");
+  await writeFile(
+    join(theme, "designbook/data/node.pet.yml"),
+    "- title: Bella\n",
+  );
+  await writeFile(join(theme, "designbook/mapping.jsonata"), '{"name": title}');
+  const git = (...args) =>
+    execFileSync("git", args, { cwd: theme, stdio: "pipe" });
+  git("init", "-q");
+  git("add", ".");
+  git(
+    "-c",
+    "user.name=Test",
+    "-c",
+    "user.email=test@example.invalid",
+    "commit",
+    "-qm",
+    "fixture",
+  );
+  await writeFile(join(theme, artifact), "name: Updated card\n");
+  const caseFile = join(root, "case.yaml");
+  await writeFile(
+    caseFile,
+    yaml.dump({
+      evidence: {
+        files: [
+          artifact,
+          "designbook/data/node.pet.yml",
+          "designbook/mapping.jsonata",
+        ],
+        mappings: [
+          {
+            file: "designbook/mapping.jsonata",
+            data: "designbook/data/node.pet.yml",
+          },
+        ],
+      },
+    }),
+  );
+  provider.config.caseFile = caseFile;
+  const entries = [];
+  for (const id of ["first", "second"]) {
+    const dir = join(theme, "designbook/workflows/changes", id);
+    await mkdir(dir, { recursive: true });
+    const definition = {
+      id,
+      tasks: [{ id: "write", outputs: { artifact: { required: true } } }],
+    };
+    const entry = {
+      workflow: join(dir, "tasks.yml"),
+      definitionBefore: join(dir, "definition-before.yml"),
+      evidence: join(dir, "evidence.json"),
+      artifactSnapshot: join(dir, "snapshot.json"),
+    };
+    await writeFile(
+      entry.workflow,
+      yaml.dump({
+        definition,
+        state: {
+          status: "completed",
+          tasks: {
+            write: {
+              status: "done",
+              results: { artifact: { valid: true, value: "done" } },
+            },
+          },
+        },
+      }),
+    );
+    await writeFile(entry.definitionBefore, yaml.dump(definition));
+    await writeFile(entry.evidence, JSON.stringify({ observedRun: id }));
+    await writeFile(
+      entry.artifactSnapshot,
+      JSON.stringify({ capturedRun: id }),
+    );
+    entries.push(entry);
+  }
+  const manifest = join(workspace, "case-runs.json");
+  await writeFile(manifest, JSON.stringify(entries));
+  const result = await provider.collectArtifacts(workspace);
+  assert.deepEqual(result.workflowErrors, []);
+  assert.equal(result.definitionUnchanged, true);
+  assert.equal(result.runs.length, 2);
+  assert.ok(
+    result.runs.every((run) => run.complete && run.definitionUnchanged),
+  );
+  assert.deepEqual(
+    result.runs.map((run) => run.evidence.observedRun),
+    ["first", "second"],
+  );
+  assert.deepEqual(
+    result.runs.map((run) => run.artifacts.capturedRun),
+    ["first", "second"],
+  );
+  assert.equal(result.fileContents[artifact].name, "Updated card");
+  assert.equal(result.baselineContents[artifact].name, "Card");
+  assert.ok(result.modifiedFiles.includes(artifact));
+  assert.ok(result.unchangedFiles.includes("designbook/data/node.pet.yml"));
+  assert.deepEqual(result.mappingResults["designbook/mapping.jsonata"], {
+    name: "Bella",
+  });
+  assert.deepEqual(result.componentIds, ["card"]);
+  await writeFile(manifest, JSON.stringify(entries.slice(0, 1)));
+  await assert.rejects(
+    provider.collectArtifacts(workspace),
+    /every saved execution path/,
+  );
+  await writeFile(manifest, "[]");
+  await assert.rejects(
+    provider.collectArtifacts(workspace),
+    /nonempty execution manifest/,
+  );
+});
 
 test("exact workflow IDs preserve failed attempts and archive does not imply completion", async (t) => {
   const { provider, workspace, workflow } = await fixture(t);
@@ -229,7 +435,7 @@ test("generated main/verify configs isolate setup and preserve paths", async (t)
 for (const cli of ["codex", "claude"])
   test(`real Promptfoo loads ${cli} and verifies without resetting the workspace`, async (t) => {
     const { root, workspace, workflow, stub } = await fixture(t);
-    await stub(emit(cli === "codex" ? completed : claudeCompleted), cli);
+    await stub(`if (process.env.DESIGNBOOK_PROMPTFOO_DRIVER !== "1") process.exit(2);\n${emit(cli === "codex" ? completed : claudeCompleted)}`, cli);
     await workflow("archive", "verification", "design-verify", "completed", {
       outtake: measuredTask(0, true),
     });
@@ -694,4 +900,33 @@ process.exitCode = Number(config.tags.phase === 'main' ? process.env.TEST_MAIN_E
       assert.match(verify.prompts[0], /threshold 3%/);
     assert.match(verify.prompts[0], /original reference/);
   }
+});
+
+
+test("pending documents at noncanonical paths cannot disappear from workflow gates", async (t) => {
+  const {provider, workspace, workflow} = await fixture(t);
+  await workflow("changes", "completed", "main", "completed");
+  const root = join(workspace, "designbook/workflows");
+  await writeFile(join(root, "changes/initial-attempt"), yaml.dump({definition: {id: "main"}, state: {status: "pending", tasks: {}}}));
+  await mkdir(join(root, "attempts"));
+  await writeFile(join(root, "attempts/blocked.yml"), yaml.dump({definition: {id: "blocked"}, state: {status: "blocked", tasks: {}}}));
+  await writeFile(join(root, "notes.md"), "Not a workflow");
+  const result = await provider.collectArtifacts(workspace);
+  assert.equal(result.definitionUnchanged, false);
+  assert.equal(result.pendingWorkflows.blocked.state.status, "blocked");
+  assert.ok(result.workflowErrors.some(error => error.error.includes("Duplicate workflow id: main")));
+});
+
+
+test("nested runner refuses before provisioning or writing reports", async (t) => {
+  const {root, workspace} = await fixture(t);
+  const marker = join(workspace, "preserve.txt");
+  await writeFile(marker, "active fixture");
+  const result = spawnSync(process.execPath, ["promptfoo/scripts/run-single.mjs", "design-shell", "--workspace", workspace, "--output", join(root, "nested.json")], {
+    encoding: "utf8", env: {...process.env, DESIGNBOOK_PROMPTFOO_DRIVER: "1"},
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Already inside the Promptfoo CLI driver/);
+  assert.equal(await readFile(marker, "utf8"), "active fixture");
+  await assert.rejects(readFile(join(root, "nested.json")), {code: "ENOENT"});
 });

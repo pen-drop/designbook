@@ -1,12 +1,12 @@
 ---
 trigger:
-  steps: [create-component, create-scene]
+  steps: [write-component, write-scene]
   domain: [components, scenes]
 ---
 
 # Markup Derivation
 
-The markup produced by `create-component` (templates, e.g. Twig/SDC) and the slot HTML produced by `create-scene` MUST be derived from the concrete structure captured in the `DesignReference` (`extract.json`) — not from generic assumptions about what a "header" or "footer" typically looks like.
+When a design reference is supplied, the markup produced by `write-component` (templates, e.g. Twig/SDC) and the slot HTML produced by `write-scene` MUST be derived from the concrete structure captured in the `DesignReference` (`extract.json`) — not from generic assumptions about what a "header" or "footer" typically looks like.
 
 When a design reference is supplied, complete its structural analysis during intake and embed the relevant measurements. The derivations below apply to that reference. If a required measurement is missing, block the task; execution cannot expand the capture scope.
 
@@ -14,7 +14,7 @@ When the request supplies no design reference, use the component structure, prop
 
 Generic templates that ignore the reference are the root cause of triage-noise in `design-verify`. Every mismatch caught in compare has a corresponding gap between the reference and the rendered markup — this rule eliminates that gap at the source.
 
-## Binding Derivations
+## Binding Derivations (supplied reference only)
 
 ### Landmark rows → row structure
 
@@ -42,7 +42,7 @@ Every form area identified in `forms[]` MUST be rendered via the `form` blueprin
 
 Every visible image in a component's region MUST be rendered from the matching `images[]` entry:
 
-- `src` is the entry's `local_path`. If `local_path` is empty, re-run extraction — do not invent a placeholder or substitute styled text.
+- `src` is the entry's `local_path`. If `local_path` is empty, block the task so intake can resolve the missing asset.
 - `alt` comes from `images[].alt` when present; otherwise from the item's semantic label.
 - `width`/`height` from the entry (to avoid layout shift).
 - Inline SVGs captured as markup are rendered with `{{ svg|raw }}` / `{% include %}` — not re-emitted as `<img>` with a hallucinated URL.
@@ -59,7 +59,7 @@ When `breakpoints[]` records a layout change for the component's region, the tem
 
 ## Verification
 
-Before emitting the template/scene, cross-check it against the reference:
+For a supplied reference, cross-check the template/scene against the embedded analysis:
 
 - Count the row wrappers — it MUST equal `landmarks.<region>.rows.length`.
 - Count the `<img>`/inline-SVG references in the region — it MUST equal `images[]` entries with matching `location` and non-empty `local_path`.

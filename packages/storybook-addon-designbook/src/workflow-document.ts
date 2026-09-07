@@ -46,6 +46,8 @@ export interface WorkflowDefinition {
 
 export interface OutputState {
   value?: unknown;
+  /** SHA-256 of the exact file bytes accepted by result validation. */
+  sha256?: string;
   valid: boolean;
   errors: string[];
   validated_at: string;
@@ -308,6 +310,7 @@ export function validateDocument(raw: unknown): asserts raw is WorkflowDocument 
       if (
         !Object.hasOwn(task.outputs, key) ||
         typeof result.valid !== 'boolean' ||
+        (result.valid && task.outputs[key]?.path && !/^[a-f0-9]{64}$/.test(result.sha256 ?? '')) ||
         !Array.isArray(result.errors) ||
         !result.validated_at
       )

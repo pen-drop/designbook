@@ -1120,3 +1120,26 @@ PropertyNode:
               height: { type: number, description: "Height in px" }
       examples:
         - { xl: { hidden: false, style: { layout: flex-row } } }
+
+StorybookBuild:
+  type: object
+  title: Successful Storybook build evidence
+  required: [command, cwd, exitCode, stdout]
+  properties:
+    command: {type: string, minLength: 1, description: Actual build command.}
+    cwd: {type: string, minLength: 1, description: Absolute Storybook application directory.}
+    exitCode: {type: integer, const: 0, description: Successful process exit code.}
+    stdout: {type: string, minLength: 1, description: Captured build output.}
+
+StorybookIndex:
+  type: array
+  title: Refreshed Storybook entries
+  description: Actual index entries for the story IDs fixed during intake, captured after the component build.
+  minItems: 1
+  items:
+    type: object
+    required: [id]
+    properties:
+      id: {type: string, minLength: 1, description: Story ID returned by the refreshed Storybook index.}
+    additionalProperties: true
+    description: Preserves the index entry fields supplied by Storybook, such as title, name and importPath.

@@ -3,6 +3,7 @@ import { mkdtemp, readdir, readFile, rm, utimes, writeFile } from 'node:fs/promi
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { dump, load } from 'js-yaml';
+import { createHash } from 'node:crypto';
 import {
   createDocument,
   validateDefinition,
@@ -100,6 +101,18 @@ describe('fixed task lifecycle', () => {
   it('loads embedded instructions without reading provenance paths', async () => {
     const path = await setup();
     expect((await taskContext(path, 'write')).context[0]!.content).toBe('Use the agreed audience.');
+  });
+  it('preserves literal source baselines in embedded context while keeping structural inputs concrete', async () => {
+    const def = definition();
+    const twig = '<div{{ attributes.addClass(["avatar"]) }}>{{ label }}</div>';
+    def.context.baseline = { source: '/tmp/components/avatar/avatar.twig', content: twig };
+    def.tasks[0]!.context.push('baseline');
+    def.tasks[0]!.params = { component_id: 'theme:avatar', source_path: '/tmp/components/avatar/avatar.twig' };
+    const path = await setup(def);
+    expect((await taskContext(path, 'write')).context.find((entry) => entry?.content === twig)).toBeDefined();
+    expect((await readDocument(path)).definition).toEqual(def);
+    def.inputs.source = twig;
+    expect(() => validateDefinition(def)).toThrow('unresolved');
   });
   it('leaves invalid results open and completes the same task after correction', async () => {
     const path = await setup();
@@ -235,6 +248,26 @@ describe('completion and reference boundaries', () => {
 });
 
 describe('artifact and verification contracts', () => {
+  it.each(['data', 'direct'] as const)('records the validated bytes for a %s artifact', async (submission) => {
+    const dir = await mkdtemp(join(tmpdir(), 'workflow-hash-'));
+    dirs.push(dir);
+    const file = join(dir, 'artifact.yml');
+    const def = definition();
+    def.tasks[0]!.outputs = {
+      artifact: { required: true, schema: {}, path: file, submission, validators: [] },
+    };
+    if (submission === 'direct') await writeFile(file, Buffer.from([0, 255, 10, 128]));
+    const path = await setup(def);
+    await startTask(path, 'write');
+    const done = await completeTask(path, 'write', submission === 'data' ? { artifact: { title: 'Validated' } } : {});
+    const expected = createHash('sha256')
+      .update(await readFile(file))
+      .digest('hex');
+    expect(done.state.tasks.write!.results.artifact).toHaveProperty('sha256', expected);
+    await writeFile(file, 'changed after validation');
+    expect((await readDocument(path)).state.tasks.write!.results.artifact).toHaveProperty('sha256', expected);
+  });
+
   it('validates direct CSS as source text instead of interpreting it as YAML', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'workflow-css-'));
     dirs.push(dir);

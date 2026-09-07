@@ -24,6 +24,7 @@ params:
       type: string
     scene_path:
       type: string
+      description: Exact missing SceneFile path selected during intake.
       resolve: scene_path
       from: section.id
 result:
@@ -44,61 +45,6 @@ result:
 
 # Create Scene File
 
-Initialise the scene file for a section (or the design-system shell) with an empty `scenes: []` array. The file format is `SceneFile`; "section" is the content-semantic label used by the roadmap workflows.
+Produce an initial SceneFile with the complete metadata supplied by intake and an empty scene array. Intake selects this initializer only for a missing file, before its declared scene write. Existing files remain intact.
 
-**Idempotency:** if the file at `$DESIGNBOOK_DATA/{{ scene_path }}` already exists, leave it unchanged and emit it as the `scene-file` result verbatim. Only write when the file is missing.
-
-## Output Format
-
-**For the `sections` workflow** (intake only provides `id`, `title`, `description`, `order`):
-
-```yaml
-id: {{ section.id }}
-group: "Designbook/Sections/{{ section.title }}"
-title: "{{ section.title }}"
-description: "{{ section.description }}"
-status: planned
-order: {{ section.order }}
-scenes: []
-```
-
-**For the `shape-section` workflow** (also provides `user_flows`, `ui_requirements`, `use_shell`):
-
-```yaml
-id: {{ section.id }}
-group: "Designbook/Sections/{{ section.title }}"
-title: "{{ section.title }}"
-description: "{{ section.description }}"
-status: planned
-order: {{ section.order }}
-scenes: []
-```
-
-**For the `design-shell` workflow** (section id is `shell`, no conversational gathering):
-
-```yaml
-id: shell
-group: "Designbook/Design System"
-title: "Shell"
-status: planned
-scenes: []
-```
-
-## Rules
-
-- `id` must match the directory name (kebab-case)
-- Use only the fields available from the calling workflow's params
-- If `user_flows` and `ui_requirements` are provided (non-empty), include them
-- If `order` is not provided, omit it
-- `scenes` starts as empty array — populated later by `/debo design-screen` or `/debo design-shell`
-- `scene_id` must identify the scene file's primary scene target:
-  - shell file → `design-system:shell`
-  - section file → `{{ section.id }}:<scene-name>` once the scene name is known upstream
-- **`group:`** must be `"Designbook/Sections/{{ section.title }}"` for section files, `"Designbook/Design System"` for the shell
-
-## Constraints
-
-- Use the section specification already recorded by intake; do not gather requirements during execution.
-- Keep specs focused on *what* the file needs, not *how* to implement it
-- Reference the data model entities when discussing what information to display
-- Each user flow should describe a complete path (start → action → result)
+Completion: the new file preserves the supplied section or canonical shell identity and is ready for its dependent write. The scene ID identifies the primary target selected during intake.

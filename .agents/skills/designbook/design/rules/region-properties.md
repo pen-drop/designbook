@@ -1,12 +1,12 @@
 ---
 name: designbook:design:region-properties
 trigger:
-  steps: [create-component]
+  steps: [write-component]
 ---
 
 # Region Properties
 
-When `region_properties.matched_via !== "none"`, `nodes[]` describes the
+When intake supplied `region_properties` and `region_properties.matched_via !== "none"`, `nodes[]` describes the
 rendered subtree. **Translate** captured `style` values — never copy them
 verbatim.
 
@@ -16,8 +16,7 @@ verbatim.
   or token-referenced rule, not on the element. Integration-specific rules
   decide the class mechanism.
 - **Design tokens first.** Map captured colors, spacing, typography to
-  existing entries in `design-tokens.yml`. If a value isn't covered, extend
-  the token file before generating output. No hardcoded hex / px in CSS.
+  existing entries in `design-tokens.yml`. If a value is not covered, intake must declare the token change as a predecessor; otherwise block the task. No hardcoded hex / px in CSS.
 - **Drop computed-style noise** — these are browser defaults, not design intent:
   - `background ∈ { '', transparent, rgba(0,0,0,0) }`
   - `foreground === '#000000'` on body-level nodes

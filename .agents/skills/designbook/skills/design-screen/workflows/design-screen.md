@@ -1,6 +1,6 @@
 ---
 title: Design Screen
-description: Create screen design components for a section (one scene per run)
+description: Create or change one named section screen. Use for screen composition, section scenes, or their supporting components.
 params:
   story_id:
     type: string
@@ -19,7 +19,10 @@ stages:
       - extract-reference
   component:
     steps:
-      - create-component
+      - write-component
+  component-index:
+    steps:
+      - refresh-components
   sample-data:
     steps:
       - create-sample-data
@@ -28,9 +31,10 @@ stages:
       - map-entity
   scene:
     steps:
-      - create-scene
+      - create-scene-file
+      - write-scene
     domain:
       - data-model
 ---
 
-Template for the planning agent. Use the ordered steps as building blocks. Enumerate repeated targets during intake and write each concrete task explicitly; these stages do not execute or expand at runtime.
+Creation/change building blocks: intake selects only necessary writes and absent-file initialization. Reference analysis is completed before execution. Include explicit prerequisite builds/index refreshes and final build/browser checks for all affected targets. Template for the planning agent. Use the ordered steps as building blocks. Enumerate repeated targets during intake and write each concrete task explicitly; these stages do not execute or expand at runtime.

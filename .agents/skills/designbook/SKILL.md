@@ -25,10 +25,10 @@ Choose the matching domain sub-skill below. Each intake resolves its complete sc
 | `shape-section` | [skills/shape-section/](skills/shape-section/SKILL.md) | Specify one section — flows, UI requirements, scope |
 | `sample-data` | [skills/sample-data/](skills/sample-data/SKILL.md) | Generate per-bundle sample data |
 | `css-generate` | [skills/css-generate/](skills/css-generate/SKILL.md) | Generate CSS token files from design tokens |
-| `design-component` | [skills/design-component/](skills/design-component/SKILL.md) | Create a UI component (explicit invocation only) |
-| `design-screen` | [skills/design-screen/](skills/design-screen/SKILL.md) | Create screen components for a section |
-| `design-entity` | [skills/design-entity/](skills/design-entity/SKILL.md) | Build one entity view-mode + preview |
-| `design-shell` | [skills/design-shell/](skills/design-shell/SKILL.md) | Design the application shell |
+| `design-component` | [skills/design-component/](skills/design-component/SKILL.md) | Create or change a UI component (explicit invocation only) |
+| `design-screen` | [skills/design-screen/](skills/design-screen/SKILL.md) | Create or change a named section screen |
+| `design-entity` | [skills/design-entity/](skills/design-entity/SKILL.md) | Create or change one view/form mode + preview |
+| `design-shell` | [skills/design-shell/](skills/design-shell/SKILL.md) | Create or change the application shell |
 | `design-verify` | [skills/design-verify/](skills/design-verify/SKILL.md) | Visual testing against the design reference |
 | `sync-verify` | [skills/sync-verify/](skills/sync-verify/SKILL.md) | Reconcile a backend render (config or scene) against Storybook |
 | `import` | [skills/import/](skills/import/SKILL.md) | Import a full design system from a reference |
@@ -39,6 +39,7 @@ Shared content roots (no workflow, beside `skills/` at the parent): [design/](de
 
 ## Resources
 
+- [Write planning](design/resources/write-planning.md) — creation/change intake invariants
 - [Workflow building](resources/workflow-building.md) — planning and embedded definition contract
 - [Execution](resources/workflow-execution.md) — sole task loop
 - [CLI reference](resources/cli-reference.md)

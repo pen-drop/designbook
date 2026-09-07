@@ -36,6 +36,12 @@ import { dirname, join, relative, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { createRequire } from "node:module";
 
+import {
+  collectCaseArtifacts,
+  collectRuns,
+  savedWorkflows,
+} from "../../.agents/skills/designbook-test/resources/eval-score.mjs";
+
 const require = createRequire(import.meta.url);
 let yaml;
 try {
@@ -195,7 +201,7 @@ class CliProvider {
             cwd,
             timeout: this.timeout,
             maxBuffer: 50 * 1024 * 1024,
-            env: { ...process.env, DESIGNBOOK_HOME: cwd },
+            env: { ...process.env, DESIGNBOOK_HOME: cwd, DESIGNBOOK_PROMPTFOO_DRIVER: "1" },
           },
           async (err, stdout, stderr) => {
             try {
@@ -231,8 +237,14 @@ class CliProvider {
         .split(/\r?\n/)
         .filter(Boolean)
         .map((line) => JSON.parse(line));
-      const { text, usage, modelUsage, usageScope, subagentCount, usageBreakdown } =
-        await this.runtime.parse(events, { evidenceDir });
+      const {
+        text,
+        usage,
+        modelUsage,
+        usageScope,
+        subagentCount,
+        usageBreakdown,
+      } = await this.runtime.parse(events, { evidenceDir });
       if (
         ["input_tokens", "cached_input_tokens", "output_tokens"].some(
           (key) => !Number.isSafeInteger(usage?.[key]) || usage[key] < 0,
@@ -323,6 +335,7 @@ class CliProvider {
    */
   async collectArtifacts(workspaceDir) {
     const designbookDir = await this.resolveDesignbookDir(workspaceDir);
+    const workflowPaths = [];
     const result = {
       newFiles: [],
       completedWorkflows: {},
@@ -412,49 +425,40 @@ class CliProvider {
       }
 
       // Completion follows saved state. Run IDs remain exact; retries are evidence.
-      for (const folder of ["changes", "archive"]) {
-        const files = await this.walkDir(
-          join(designbookDir, "workflows", folder),
-          workspaceDir,
-          () => true,
-        );
-        for (const f of files.filter((file) =>
-          file.path.endsWith("/tasks.yml"),
-        )) {
+      for (const { path, document: parsed, error } of savedWorkflows(designbookDir)) {
+        const file = relative(workspaceDir, path);
+        try {
+          if (error) throw new Error(error);
+          workflowPaths.push(path);
+          if (!parsed?.definition?.id || !parsed?.state?.status)
+            throw new Error("Invalid workflow document");
+          const target =
+            parsed.state.status === "completed"
+              ? result.completedWorkflows
+              : result.pendingWorkflows;
+          if (
+            result.completedWorkflows[parsed.definition.id] ||
+            result.pendingWorkflows[parsed.definition.id]
+          )
+            throw new Error(`Duplicate workflow id: ${parsed.definition.id}`);
+          target[parsed.definition.id] = parsed;
           try {
-            const parsed = yaml.load(
-              await readFile(join(workspaceDir, f.path), "utf-8"),
+            const before = yaml.load(
+              await readFile(
+                join(workspaceDir, dirname(file), "definition-before.yml"),
+                "utf-8",
+              ),
             );
-            if (!parsed?.definition?.id || !parsed?.state?.status)
-              throw new Error("Invalid workflow document");
-            const target =
-              parsed.state.status === "completed"
-                ? result.completedWorkflows
-                : result.pendingWorkflows;
-            if (
-              result.completedWorkflows[parsed.definition.id] ||
-              result.pendingWorkflows[parsed.definition.id]
-            )
-              throw new Error(`Duplicate workflow id: ${parsed.definition.id}`);
-            target[parsed.definition.id] = parsed;
-            try {
-              const before = yaml.load(
-                await readFile(
-                  join(workspaceDir, dirname(f.path), "definition-before.yml"),
-                  "utf-8",
-                ),
-              );
-              if (!isDeepStrictEqual(before, parsed.definition))
-                throw new Error("Definition changed during execution");
-            } catch (err) {
-              result.definitionErrors.push({
-                path: f.path,
-                error: err.message,
-              });
-            }
+            if (!isDeepStrictEqual(before, parsed.definition))
+              throw new Error("Definition changed during execution");
           } catch (err) {
-            result.workflowErrors.push({ path: f.path, error: err.message });
+            result.definitionErrors.push({
+              path: file,
+              error: err.message,
+            });
           }
+        } catch (err) {
+          result.workflowErrors.push({ path: file, error: err.message });
         }
       }
     } catch (err) {
@@ -467,6 +471,32 @@ class CliProvider {
       Object.keys(result.completedWorkflows).length +
         Object.keys(result.pendingWorkflows).length >
         0;
+    if (this.config.caseFile) {
+      const caseDoc = yaml.load(await readFile(this.config.caseFile, "utf8"));
+      const entries = JSON.parse(
+        await readFile(join(workspaceDir, "case-runs.json"), "utf8"),
+      );
+      if (!Array.isArray(entries) || entries.length === 0)
+        throw new Error("Case evidence needs a nonempty execution manifest");
+      const runs = collectRuns(entries);
+      if (
+        !isDeepStrictEqual(
+          runs.map((run) => run.path).sort(),
+          workflowPaths.sort(),
+        )
+      )
+        throw new Error(
+          "Case evidence must include every saved execution path",
+        );
+      const artifacts = await collectCaseArtifacts(
+        dirname(designbookDir),
+        caseDoc,
+      );
+      Object.assign(result, artifacts, { runs });
+      result.definitionUnchanged &&= runs.every(
+        (run) => run.definitionUnchanged,
+      );
+    }
     return result;
   }
 

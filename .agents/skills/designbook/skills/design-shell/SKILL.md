@@ -1,7 +1,8 @@
 ---
 name: design-shell
+user-invocable: true
 description: >
-  Design the application shell — a page component with header, content, and footer slots. Use when the user mentions the shell, `design-system.scenes.yml`, or shell components.
+  Create or change the application shell. Use for shared header, footer, navigation, or shell content injection.
 ---
 
-For this request, follow [intake](resources/intake.md).
+For creation or a targeted change, follow [intake](resources/intake.md).

@@ -1,11 +1,11 @@
 ---
 trigger:
-  steps: [design-screen:create-scene]
+  steps: [write-scene]
 ---
 
 # Screen Scene Constraints
 
-Constraints specific to screen scenes (section pages).
+Apply only when the task parameter `scene_scope = screen`, including consumer writes originating in another workflow. Other scene scopes skip this rule.
 
 ## Rules
 
@@ -44,7 +44,7 @@ A screen scene answers one question: *what is this page?* Exactly one node in th
   reserved for a self-contained **View** node, which enumerates its own rows and therefore takes no
   `record`. A single entity is never self-contained — omitting its record is the entity-main
   equivalent of the view fallstrick, and is forbidden.
-- The `design-screen` intake labels the main content in its structure preview, so the user
+- The originating intake labels the main content in its structure preview, so the user
   approves which node bears the route before the scene is built.
 
 ## Output Structure
