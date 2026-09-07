@@ -34,7 +34,18 @@ describe('static CLI surface', () => {
     program.configureOutput({ writeErr: () => {} });
     register(program);
     await expect(
-      program.parseAsync(['node', 'cli', 'workflow', 'create', 'definition.yml', '--output', 'run.yml', flag]),
+      program.parseAsync([
+        'node',
+        'cli',
+        'workflow',
+        'create',
+        'definition.yml',
+        '--catalogue',
+        'catalogue.json',
+        '--output',
+        'run.yml',
+        flag,
+      ]),
     ).rejects.toThrow('unknown option');
   });
   it('offers saved-path commands without task generators or lifecycle hooks', () => {

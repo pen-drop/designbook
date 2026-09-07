@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { workflowMarkdown } from "../extensions/workflow-markdown.mjs";
 
-test("reading view retains instructions, constraints and resolved predecessor results", async () => {
+test("human plan retains unique instructions and constraints without mutable results", async () => {
   const output = await workflowMarkdown({
     definition: {
       id: "shell",
@@ -11,6 +11,8 @@ test("reading view retains instructions, constraints and resolved predecessor re
       schemas: { Scene: { type: "object" } },
       template: { source: "shell.md", content: "Full template instructions." },
       context: {
+        component: { source: "component.md", content: "Write every variant." },
+        scene: { source: "scene.md", content: "Full scene task." },
         rule: {
           source: "rule.md",
           content: "Exactly one `$content` slot.\n```twig\n{{ content }}\n```",
@@ -19,12 +21,13 @@ test("reading view retains instructions, constraints and resolved predecessor re
       tasks: [
         {
           id: "component",
-          instructions: { content: "Write every variant." },
+          instructions: "component",
+          context: ["rule"],
           outputs: { index: { required: true } },
         },
         {
           id: "scene",
-          instructions: { source: "scene.md", content: "Full scene task." },
+          instructions: "scene",
           context: ["rule"],
           inputs: { inventory: { task: "component", result: "index" } },
         },
@@ -42,18 +45,17 @@ test("reading view retains instructions, constraints and resolved predecessor re
     "Exactly one `$content` slot.",
     "Full scene task.",
     "required: true",
-    "header",
-    "footer",
     "Scene:",
-    "status: blocked",
     "framework: sdc",
   ])
     assert.ok(output.includes(text), text);
-  assert.ok(output.includes("### Resolved predecessor inputs"));
-  assert.ok(
-    output.includes("````yaml"),
-    "embedded code cannot terminate the metadata fence",
+  assert.doesNotMatch(
+    output,
+    /Resolved predecessor inputs|status: blocked|header|footer/,
   );
+  assert.equal(output.split("Exactly one `$content` slot.").length - 1, 1);
+  assert.match(output, /\[rule\]\(#context-72756c65\)/);
+  assert.match(output, /<a id="context-72756c65"><\/a>/);
 });
 
 test("provider can load the exporter before fresh fixture setup builds the addon", async (t) => {
@@ -66,7 +68,10 @@ test("provider can load the exporter before fresh fixture setup builds the addon
   const folder = join(root, "promptfoo", "extensions");
   await mkdir(folder, { recursive: true });
   const path = join(folder, "workflow-markdown.mjs");
-  await copyFile(new URL("../extensions/workflow-markdown.mjs", import.meta.url), path);
+  await copyFile(
+    new URL("../extensions/workflow-markdown.mjs", import.meta.url),
+    path,
+  );
   const module = await import(pathToFileURL(path).href);
   assert.equal(typeof module.workflowMarkdown, "function");
 });

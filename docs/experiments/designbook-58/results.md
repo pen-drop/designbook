@@ -251,4 +251,56 @@ CLI bundle kept fixed during execution. Intake passed: 12,263,084 total tokens,
 but its CLI invocation timed out after 3,600,000 ms without a successful terminal
 result; final phase usage is unknown. Its observed 148 root message requests
 peaked at 487,178 input tokens, with no observed compaction. Separate verification
-is still running. No successful reference baseline or efficiency gain is claimed.
+finished but failed the typed score-report gate. No successful reference baseline
+or efficiency gain is claimed.
+
+
+## Completed Opus reference and isolated step diagnostic
+
+`designbook-58-opus-reference-01` verification used 12,871,760 tokens. It authored
+`score_report`/`score_report_file` with a `rows` object instead of the discovered
+`score-report`/`ScoreReport` contract. Its raw comparisons report header differences
+0.0016/0.0018 and footer differences 0.1676/0.1282 at sm/xl (fixed threshold 0.03).
+Those are unaudited comparison values, not an accepted quality score. Known intake
+and verification usage totals 25,134,844 tokens; total run usage remains unknown
+because main timed out. Verification's peak root input was 223,059 tokens.
+
+The isolated step-runtime diagnostic used equivalent source trees e98d8e8c plus
+525f50d4 (detached commit a6fa5eb7), in
+`/tmp/designbook-58-step-runtime-e98d8e8c`. Initial attempt `opus-step-01` failed
+bootstrap before any model call because the renderer imported an unbuilt CLI
+module; 525f50d4 made the evidence renderer lazy. Fresh `opus-step-02` then failed
+intake's selector binding for `scene-header-search`, so main was correctly skipped.
+Its separate verifier confirmed the absent shell scene and emitted Markdown in
+place of the typed score report. It cannot measure batch execution or design quality.
+Intake used 9,965,113 tokens and verification 9,443,126: 19,408,239 total failed
+run tokens. Their peak root inputs were 189,036 and 162,293. Both phase CSV rows
+are preserved unchanged from the isolated checkout, including its source identity.
+Detailed summaries, native workflow calls and outtake-contract audits are beside
+each run's original reports. Neither failed attempt is a comparison baseline.
+
+## Approved precise planning and simple execution contract
+
+The user confirmed the two design documents `plan-references.md` and
+`extract-queries.md`. Shared instruction bodies now have internal registry IDs,
+are deduplicated exactly, and appear once in the human-only Markdown plan. Saved
+catalogue validation rejects shortened instructions, altered output contracts and
+weakened referenced schemas, including references with sibling constraints.
+
+Reference analysis now provides typed task-kind packages with exact subjects,
+states and breakpoints, ancestor layouts and local assets/fonts. Preparation
+validates the effective schemas and freezes source fingerprints; execution
+resolves and deduplicates only the current step's packages. Missing or changed
+material blocks execution instead of inviting a model guess.
+
+An explicit Promptfoo mode separates capable intake/planning/verification from a
+fresh smaller-model call for every execution step. Static gates retain intake
+presentation and frozen evidence, check completion of the exact assigned batch,
+and reject other-task state changes. Existing final build/case and separate visual
+gates remain. The first combined model run is still required; serialization and
+unit tests alone do not establish lower token use or acceptable visual quality.
+
+Implementation checks before the combined run: `pnpm check` passed 810 tests
+in 93 files after typecheck/lint, addon build passed, and the rebuilt provider
+passed all 52 Node/Promptfoo regression checks. These are implementation checks,
+not model quality evidence.

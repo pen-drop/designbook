@@ -22,7 +22,10 @@ function definition(): WorkflowDefinition {
     config: {},
     inputs: { audience: 'Owners' },
     inputs_schema: { type: 'object', required: ['audience'] },
-    context: { rules: { source: 'rules.md', content: 'Use the agreed audience.' } },
+    context: {
+      instruction: { source: 'task.md', content: 'Write vision.' },
+      rules: { source: 'rules.md', content: 'Use the agreed audience.' },
+    },
     schemas: {},
     tasks: [
       {
@@ -35,7 +38,7 @@ function definition(): WorkflowDefinition {
         params: {},
         params_schema: { type: 'object' },
         inputs: {},
-        instructions: { source: 'task.md', content: 'Write vision.' },
+        instructions: 'instruction',
         context: ['rules'],
         outputs: {
           vision: { required: true, schema: { type: 'string', minLength: 3 }, submission: 'data', validators: [] },
@@ -138,7 +141,7 @@ describe('static definition contract', () => {
 describe('fixed task lifecycle', () => {
   it('loads embedded instructions without reading provenance paths', async () => {
     const path = await setup();
-    expect((await taskContext(path, 'write')).context[0]!.content).toBe('Use the agreed audience.');
+    expect((await taskContext(path, 'write')).context.rules!.content).toBe('Use the agreed audience.');
   });
   it('preserves literal source baselines in embedded context while keeping structural inputs concrete', async () => {
     const def = definition();
@@ -147,7 +150,9 @@ describe('fixed task lifecycle', () => {
     def.tasks[0]!.context.push('baseline');
     def.tasks[0]!.params = { component_id: 'theme:avatar', source_path: '/tmp/components/avatar/avatar.twig' };
     const path = await setup(def);
-    expect((await taskContext(path, 'write')).context.find((entry) => entry?.content === twig)).toBeDefined();
+    expect(
+      Object.values((await taskContext(path, 'write')).context).find((entry) => entry?.content === twig),
+    ).toBeDefined();
     expect((await readDocument(path)).definition).toEqual(def);
     def.inputs.source = twig;
     expect(() => validateDefinition(def)).toThrow('unresolved');

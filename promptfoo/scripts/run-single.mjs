@@ -11,6 +11,7 @@ import { dirname, join, resolve, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync, spawnSync } from "node:child_process";
 import yaml from "js-yaml";
+import { runStepPipeline } from "./step-pipeline.mjs";
 
 if (process.env.DESIGNBOOK_PROMPTFOO_DRIVER === "1")
   throw new Error(
@@ -35,6 +36,8 @@ for (let i = 0; i < args.length; i++) {
       "provider",
       "model",
       "storybook-port",
+      "executor-provider",
+      "executor-model",
     ].includes(key)
   ) {
     if (!args[i + 1] || args[i + 1].startsWith("--"))
@@ -116,6 +119,25 @@ const designIntake =
   /^(design-shell|design-entity|design-screen|design-section|design-component)(?:-|$)/.test(
     caseDoc.workflow || opts.case,
   );
+const splitExecution = Boolean(
+  opts["executor-provider"] || opts["executor-model"],
+);
+if (splitExecution && (!opts["executor-provider"] || !opts["executor-model"]))
+  throw new Error(
+    "Specify both --executor-provider and --executor-model for separate step execution",
+  );
+if (
+  splitExecution &&
+  !["codex", "claude", "grok"].includes(opts["executor-provider"])
+)
+  throw new Error("executor-provider must be codex, claude or grok");
+if (splitExecution && (!designIntake || caseDoc.repeat || caseDoc.evidence))
+  throw new Error(
+    "Separate step execution currently requires a nonrepeated design case without a case evidence manifest",
+  );
+const executor = splitExecution
+  ? { cli: opts["executor-provider"], model: opts["executor-model"] }
+  : undefined;
 let prompt = opts["prompt-file"]
   ? readFileSync(resolve(repo, opts["prompt-file"]), "utf8")
   : caseDoc.prompt;
@@ -134,7 +156,7 @@ prompt +=
 prompt +=
   "\nYou are the execution driver already running inside Promptfoo in a provisioned workspace. Execute the domain intake and saved workflow directly. Read only the Case evidence and scoring section of the tester resource; do not invoke debo-test run, the Promptfoo runner or workspace setup again.\n" +
   "Use this fresh workspace’s fixture inputs and copied skills. Prior test workspaces, saved definitions, generated artifacts and reports are not inputs; do not read or copy them. Repository test helpers and this case file remain available.\n" +
-  "Run all Designbook CLI commands from the workspace root with its designbook.config.yml.\n" +
+  "Run all Designbook CLI commands from the workspace root with its designbook.config.yml. Save the effective workflow discover catalogue to JSON and pass that file as --catalogue to both workflow validate and workflow create; copied instruction bodies and schemas must match it exactly.\n" +
   `After workflow create returns the saved tasks.yml path, run node ${JSON.stringify(join(repo, "promptfoo/scripts/snapshot-definition.mjs"))} <saved-tasks.yml> before execute-workflow. This helper saves the unchanged definition beside tasks.yml. ` +
   "Execute the saved path through execute-workflow. Report every saved path, failure, retry and unanswered input. " +
   "If required inputs are missing, record the failure and end the run; this test has no interactive user.";
@@ -205,6 +227,13 @@ const config = {
     case: opts.case,
     phase: opts.phase,
     workflow_id: workflowId,
+    ...(executor
+      ? {
+          execution_mode: "separate-steps",
+          executor_cli: executor.cli,
+          executor_model: executor.model,
+        }
+      : {}),
     run_id: relative(repo, dirname(output)),
     history_csv: resolve(repo, opts.history || "promptfoo/results.csv"),
     report: relative(repo, output),
@@ -351,7 +380,7 @@ if (
     criteria.replaceAll("{{workspace}}", workspace) +
     `\nCheck the ACTUAL design created by the main workflow ${JSON.stringify(workflowId)} in this workspace. Keep its artifacts and fixtures. Do not import verification fixtures. Read that saved main definition for the original reference and targets; these take precedence over example stories/references in the criteria above. If the main run had no reference, fail with missing-reference evidence. Never substitute a different reference or compare output to itself.\n` +
     "Before capturing, confirm the produced scene exists and the Storybook server belongs to this workspace. Missing scenes, error pages or missing target selectors fail verification; preserve their evidence without grading them as rendered designs.\n" +
-    `Use "design-verify" as the saved verification definition.id. After workflow create, run node ${JSON.stringify(join(repo, "promptfoo/scripts/snapshot-definition.mjs"))} <saved-tasks.yml>, then execute-workflow. Preserve the complete score-report and capture/comparison evidence. Return the check findings; any repair belongs to a separate test run and must not mutate these main artifacts.\n` +
+    `Use "design-verify" as the saved verification definition.id. Save the effective verification discover catalogue to JSON and pass it as --catalogue to workflow validate and workflow create. After workflow create, run node ${JSON.stringify(join(repo, "promptfoo/scripts/snapshot-definition.mjs"))} <saved-tasks.yml>, then execute-workflow. Preserve the complete score-report and capture/comparison evidence. Return the check findings; any repair belongs to a separate test run and must not mutate these main artifacts.\n` +
     "Run CLI commands from the workspace root. Missing inputs are failures; this test has no interactive user.";
   verifyConfig = {
     ...config,
@@ -422,12 +451,37 @@ if (!opts["config-only"]) {
     return child.status ?? 1;
   };
   const intakeStatus = intakeConfigPath ? evaluate(intakeConfigPath) : 0;
-  const mainStatus = intakeStatus === 0 ? evaluate(configPath) : null;
+  let mainStatus = null;
+  let stepPipeline;
+  let pipelineError;
+  if (intakeStatus === 0) {
+    if (executor) {
+      try {
+        stepPipeline = runStepPipeline({
+          repo,
+          workspace,
+          runDir,
+          base: config,
+          requestPrompt,
+          intakeHandoff,
+          executor,
+          evaluate,
+        });
+        mainStatus = stepPipeline.mainStatus;
+        pipelineError = stepPipeline.error;
+      } catch (error) {
+        pipelineError = error.message;
+        console.error(`Step pipeline failed: ${pipelineError}`);
+      }
+    } else mainStatus = evaluate(configPath);
+  }
   // Verification remains a separate attempt, including when earlier design parts fail.
   const verifyStatus = verifyConfig ? evaluate(verifyConfigPath) : null;
   const passed =
     intakeStatus === 0 &&
     mainStatus === 0 &&
+    !pipelineError &&
+    (!executor || stepPipeline?.plan.exitCode === 0) &&
     (!verifyConfig || verifyStatus === 0);
   writeFileSync(
     join(runDir, "pipeline.json"),
@@ -437,10 +491,24 @@ if (!opts["config-only"]) {
         ...(intakeConfigPath
           ? { intake: { report: intakeOutput, exitCode: intakeStatus } }
           : {}),
-        main:
-          mainStatus === null
-            ? { skipped: true, reason: "Intake validation failed" }
-            : { report: output, exitCode: mainStatus },
+        ...(stepPipeline
+          ? {
+              plan: stepPipeline.plan,
+              steps: stepPipeline.steps,
+              workflowPath: stepPipeline.workflowPath,
+            }
+          : {}),
+        ...(pipelineError ? { error: pipelineError } : {}),
+        main: !existsSync(output)
+          ? {
+              skipped: true,
+              reason:
+                intakeStatus !== 0
+                  ? "Intake validation failed"
+                  : pipelineError ||
+                    "Planning or an earlier execution step failed",
+            }
+          : { report: output, exitCode: mainStatus },
         ...(verifyConfig
           ? {
               verify: {

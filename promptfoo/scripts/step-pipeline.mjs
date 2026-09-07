@@ -1,0 +1,238 @@
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { join, relative } from "node:path";
+import { execFileSync } from "node:child_process";
+import yaml from "js-yaml";
+import { stateHash } from "../extensions/step-result.mjs";
+
+const copy = (value) => structuredClone(value);
+const writeConfig = (path, config) =>
+  writeFileSync(path, yaml.dump(config, { lineWidth: 120, noRefs: true }));
+
+export function executorConfig(
+  base,
+  {
+    repo,
+    runDir,
+    step,
+    workflowPath,
+    context,
+    executor,
+    final,
+    output,
+    document,
+  },
+) {
+  const config = copy(base);
+  config.description = `${base.description}: step ${step.id}`;
+  config.outputPath = output;
+  config.tags = {
+    ...base.tags,
+    phase: "execute-step",
+    step: step.id,
+    cli: executor.cli,
+    model: executor.model,
+    report: relative(repo, output),
+    reasoning_effort: executor.cli === "codex" ? "medium" : "cli-default",
+  };
+  config.providers = config.providers.map((provider) => ({
+    ...provider,
+    id: `file://${join(repo, "promptfoo/providers", `${executor.cli}-cli.mjs`)}`,
+    label: executor.model,
+    config: {
+      ...provider.config,
+      model: executor.model,
+      caseFile: final ? provider.config.caseFile : undefined,
+      evidenceDir: join(runDir, "step-evidence", step.id),
+    },
+  }));
+  config.prompts = [
+    `You are the execution worker for exactly one fixed workflow step, already inside Promptfoo.\n` +
+      `Saved workflow: ${workflowPath}\nAssigned step: ${step.id}\nUse node ${JSON.stringify(join(repo, "packages/storybook-addon-designbook/dist/cli.js"))} for Designbook commands.\n` +
+      `The complete validated work order is below. Produce every task's specified outputs, then submit one batch keyed by exact task IDs with workflow done --step ${step.id} --data-file <results.json>. Start with workflow start ${JSON.stringify(workflowPath)} --step ${JSON.stringify(step.id)}. CLI commands run from this workspace root.\n` +
+      `Use only this step's supplied instructions and concrete inputs. Read relevant existing project files as needed. Do not load the whole saved workflow, a planning catalogue, intake/builder skills, other steps or full reference dumps. Do not choose new targets, invent missing design decisions, launch another workflow, delegate, or provision fixtures.\n` +
+      `On validation failure use the reported findings to correct this batch and record a concrete --correction when restarting the same step. If the work order lacks necessary decisions, block this step with a reason and attempted correction; do not guess. Stop after this step is done or blocked.\n\n${context}`,
+  ];
+  config.tests[0].vars = {
+    workspace: base.tests[0].vars.workspace,
+    step_contract: {
+      workflow: document.definition.id,
+      step: step.id,
+      taskIds: step.tasks.map((t) => t.id),
+      stateHashes: Object.fromEntries(
+        Object.entries(document.state.tasks).map(([id, state]) => [
+          id,
+          stateHash(state),
+        ]),
+      ),
+    },
+  };
+  config.tests[0].assert = final
+    ? copy(base.tests[0].assert)
+    : [
+        {
+          type: "javascript",
+          value:
+            "output.definitionUnchanged === true && output.workflowErrors.length === 0 && output.usage != null",
+        },
+        {
+          type: "javascript",
+          value: `file://${join(repo, "promptfoo/extensions/design-intake.mjs")}`,
+        },
+      ];
+  config.tests[0].assert.push({
+    type: "javascript",
+    value: `file://${join(repo, "promptfoo/extensions/step-result.mjs")}`,
+  });
+  return config;
+}
+
+/** Strong planning and each execution step are distinct native CLI invocations. */
+export function runStepPipeline({
+  repo,
+  workspace,
+  runDir,
+  base,
+  requestPrompt,
+  intakeHandoff,
+  executor,
+  evaluate,
+  runWorkflow,
+}) {
+  const handoff = JSON.parse(readFileSync(intakeHandoff, "utf8"));
+  if (handoff.pass !== true || handoff.workspace !== workspace)
+    throw new Error("Missing validated intake handoff");
+  const catalogue = JSON.parse(readFileSync(handoff.catalogue, "utf8"));
+  const workflowId = base.tags.workflow_id;
+  const workflowPath = join(
+    catalogue.config.data,
+    "workflows",
+    "changes",
+    `${workflowId}-planned`,
+    "tasks.yml",
+  );
+  const plan = copy(base);
+  const planOutput = join(runDir, "plan.json");
+  const planPath = join(runDir, "plan-promptfooconfig.yaml");
+  plan.description = `${base.description}: plan`;
+  plan.outputPath = planOutput;
+  plan.tags = {
+    ...base.tags,
+    phase: "plan",
+    report: relative(repo, planOutput),
+  };
+  plan.providers = plan.providers.map((p) => ({
+    ...p,
+    config: {
+      ...p.config,
+      caseFile: undefined,
+      evidenceDir: join(runDir, "plan-evidence"),
+    },
+  }));
+  plan.prompts = [
+    `You are the planning model, already inside Promptfoo. Produce a complete, precise saved plan for a separate simple executor. Do not execute its tasks in this invocation.\n` +
+      `Goal for the executor:\n${requestPrompt}\n\n` +
+      `Intake is complete: read ${JSON.stringify(intakeHandoff)} and reuse its frozen catalogue ${JSON.stringify(handoff.catalogue)} and reference evidence. Preserve the presented subjects/selectors/states/breakpoints. Load the copied domain planning instructions and author all structural/design decisions, parameters, independent step batches, dependencies, exact outputs and acceptance observations now.\n` +
+      `Use registry references without shortening any required instruction or weakening a discovered schema. Prepare each reference data package through the CLI before saving; missing information must be resolved in planning. The executor will receive only one step's resolved instructions/data and cannot recover omitted decisions from the full catalogue or extract.\n` +
+      `Use definition.id ${JSON.stringify(workflowId)}. Run workflow validate and workflow create with --catalogue ${JSON.stringify(handoff.catalogue)}. Save the workflow at exactly ${JSON.stringify(workflowPath)}, then run node ${JSON.stringify(join(repo, "promptfoo/scripts/snapshot-definition.mjs"))} ${JSON.stringify(workflowPath)}.\n` +
+      `End after saving the complete pending workflow. Do not start/done/block workflow tasks, write component/scene output files, invoke execute-workflow, or provision fixtures. The following model calls execute it.`,
+  ];
+  plan.tests[0].assert = [
+    {
+      type: "javascript",
+      value: `output.pendingWorkflows[${JSON.stringify(workflowId)}]?.state.status === 'pending' && Object.values(output.pendingWorkflows[${JSON.stringify(workflowId)}]?.state.tasks || {}).length > 0 && Object.values(output.pendingWorkflows[${JSON.stringify(workflowId)}]?.state.tasks || {}).every(t => t.status === 'pending' && t.attempts === 0 && Object.keys(t.results).length === 0) && Object.keys(output.completedWorkflows).length === 0 && Object.keys(output.pendingWorkflows).length === 1`,
+    },
+    {
+      type: "javascript",
+      value:
+        "output.definitionUnchanged === true && output.workflowErrors.length === 0 && output.usage != null",
+    },
+    {
+      type: "javascript",
+      value: `file://${join(repo, "promptfoo/extensions/design-intake.mjs")}`,
+    },
+    {
+      type: "javascript",
+      value:
+        "![...output.newFiles, ...output.modifiedFiles].some(p => /(?:^|\\/)(?:components|sections|design-system)\\//.test(p))",
+    },
+  ];
+  writeConfig(planPath, plan);
+  const planStatus = evaluate(planPath);
+  const result = {
+    plan: { report: planOutput, exitCode: planStatus },
+    steps: [],
+    mainStatus: null,
+    workflowPath,
+  };
+  if (planStatus !== 0) return result;
+  const progressPath = join(runDir, "step-pipeline.json");
+  const saveProgress = () =>
+    writeFileSync(progressPath, JSON.stringify(result, null, 2) + "\n");
+  saveProgress();
+  const cli =
+    runWorkflow ||
+    ((...args) =>
+      execFileSync(
+        "node",
+        [
+          join(repo, "packages/storybook-addon-designbook/dist/cli.js"),
+          "workflow",
+          ...args,
+        ],
+        { cwd: workspace, encoding: "utf8", maxBuffer: 50 * 1024 * 1024 },
+      ));
+  try {
+    let overview = JSON.parse(cli("steps", workflowPath));
+    const initialCount = overview.steps.length;
+    if (!initialCount || overview.steps.some((s) => s.status !== "pending"))
+      throw new Error("Planning must leave every step pending");
+    mkdirSync(join(runDir, "steps"), { recursive: true });
+    for (let i = 0; i < initialCount; i++) {
+      const step = overview.steps.find(
+        (s) => s.ready && s.status === "pending",
+      );
+      if (!step || !/^[a-z0-9][a-z0-9_-]*$/.test(step.id))
+        throw new Error("No ready step in the fixed plan");
+      const context = cli(
+        "instructions",
+        workflowPath,
+        "--step",
+        step.id,
+        "--format",
+        "md",
+      );
+      writeFileSync(join(runDir, "steps", `${i + 1}-${step.id}.md`), context);
+      const final = i === initialCount - 1;
+      const output = final
+        ? base.outputPath
+        : join(runDir, "steps", `${i + 1}-${step.id}.json`);
+      const document = yaml.load(readFileSync(workflowPath, "utf8"));
+      const config = executorConfig(base, {
+        repo,
+        runDir,
+        step,
+        workflowPath,
+        context,
+        executor,
+        final,
+        output,
+        document,
+      });
+      const configPath = join(runDir, "steps", `${i + 1}-${step.id}.yaml`);
+      writeConfig(configPath, config);
+      const status = evaluate(configPath);
+      result.steps.push({ step: step.id, report: output, exitCode: status });
+      result.mainStatus = final || status !== 0 ? status : null;
+      saveProgress();
+      if (status !== 0) return result;
+      overview = JSON.parse(cli("steps", workflowPath));
+      if (overview.steps.find((s) => s.id === step.id)?.status !== "done")
+        throw new Error(`Step ${step.id} did not complete`);
+    }
+  } catch (error) {
+    result.error = error.message;
+    result.mainStatus = 1;
+  }
+  saveProgress();
+  return result;
+}

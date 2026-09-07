@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import { queryReference, type ReferenceQueryResult } from './reference-query.js';
 import type { WorkflowDocument } from './workflow-document.js';
 
 /** Routing metadata only; no task bodies, parameters, schemas or result values. */
@@ -50,27 +52,56 @@ function referencedSchemas(values: unknown[], schemas: Record<string, object>): 
 export function stepContext(doc: WorkflowDocument, step: string) {
   const selected = doc.definition.tasks.filter((task) => task.step === step);
   if (!selected.length) throw new Error(`Unknown step ${step}`);
-  const tasks = selected.map((task) => ({
-    task,
-    state: doc.state.tasks[task.id],
-    inputs: Object.fromEntries(
-      Object.entries(task.inputs).map(([key, ref]) => [
-        key,
-        {
-          definition: doc.definition.tasks.find((predecessor) => predecessor.id === ref.task)!.outputs[ref.result],
-          state: doc.state.tasks[ref.task]!.results[ref.result],
-        },
-      ]),
-    ),
-  }));
+  const references: Record<string, ReferenceQueryResult> = {};
+  const canonical = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(canonical);
+    if (value && typeof value === 'object')
+      return Object.fromEntries(
+        Object.entries(value)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([key, item]) => [key, canonical(item)]),
+      );
+    return value;
+  };
+  const tasks = selected.map((definition) => {
+    const { reference, ...task } = definition;
+    let packet: string | undefined;
+    if (reference) {
+      packet = `reference-${createHash('sha256')
+        .update(JSON.stringify(canonical(reference)))
+        .digest('hex')}`;
+      references[packet] ??= queryReference(reference.query, {
+        referenceSchema: reference.reference_schema,
+        extractSchema: reference.extract_schema,
+        definitions: doc.definition.schemas,
+      });
+    }
+    return {
+      task: { ...task, ...(packet ? { reference: packet } : {}) },
+      state: doc.state.tasks[task.id],
+      inputs: Object.fromEntries(
+        Object.entries(task.inputs).map(([key, ref]) => [
+          key,
+          {
+            definition: doc.definition.tasks.find((predecessor) => predecessor.id === ref.task)!.outputs[ref.result],
+            state: doc.state.tasks[ref.task]!.results[ref.result],
+          },
+        ]),
+      ),
+    };
+  });
   const context = Object.fromEntries(
-    [...new Set(selected.flatMap((task) => task.context))].map((key) => [key, doc.definition.context[key]]),
+    [...new Set(selected.flatMap((task) => [task.instructions, ...task.context]))].map((key) => [
+      key,
+      doc.definition.context[key]!,
+    ]),
   );
   return {
     workflow: doc.definition.id,
     step,
     config: doc.definition.config,
     context,
+    references,
     schemas: referencedSchemas(
       tasks.map((entry) => ({ params: entry.task.params_schema, outputs: entry.task.outputs, inputs: entry.inputs })),
       doc.definition.schemas,

@@ -482,8 +482,18 @@ EntityMapping:
 
 DesignReference:
   type: object
-  required: [source, extracted, strategy]
+  title: Enriched design reference
+  required: [source, extracted, strategy, subjects, parents, images, fonts]
   properties:
+    subjects:
+      type: array
+      minItems: 1
+      description: Exact intake subjects with complete planned material for every declared state and breakpoint.
+      items: { $ref: "#/ReferenceSubject" }
+    parents:
+      type: array
+      description: Ancestor layout dependencies, keyed by exact id; empty when subjects have no external parent layout.
+      items: { $ref: "#/ReferenceParent" }
     source: { type: string }
     extracted: { type: string }
     strategy: { type: string, enum: [vision, playwright+vision] }
@@ -510,8 +520,8 @@ DesignReference:
             type: string
             description: >
               Where the font is served from. `self-hosted` and `adobe`/`other`
-              families MUST be downloaded into `files[]`; `google` is fetched
-              later by css-generate; `system` needs no download.
+              families MUST be downloaded into `files[]`; `google` also needs local binaries for offline execution;
+              `system` needs no download.
             enum: [self-hosted, google, adobe, system, other]
           weights: { type: array, items: { type: number }, description: "Distinct numeric weights observed (e.g. [400, 700])." }
           styles: { type: array, items: { type: string }, description: "Distinct styles observed (e.g. [normal, italic])." }
@@ -519,7 +529,7 @@ DesignReference:
             type: array
             description: >
               Downloaded font binaries for this family. Required when `source`
-              is not `google` or `system` and the binary URL was reachable.
+              is not `system`; frozen packages require offline binaries.
               Empty only when the font could not be downloaded.
             items:
               type: object
@@ -686,6 +696,11 @@ DesignReference:
         type: object
         required: [url, role]
         properties:
+          reference_path:
+            type: string
+            minLength: 1
+            description: Downloaded asset path relative to the reference folder. Required by offline packages that reference this image's exact url identity; distinct from its public local_path URL.
+            examples: [assets/logo.svg]
           url: { type: string, description: "Source URL or path of the image." }
           role:
             type: string
@@ -1169,3 +1184,84 @@ StorybookChecks:
         minProperties: 1
         description: Observed values keyed by the intake's declared appearance, behavior and responsive criteria, supported by browser logs or captures.
         additionalProperties: true
+
+ReferenceMaterial:
+  type: object
+  title: Concrete design material
+  minProperties: 1
+  description: Complete observed or planner-resolved values for this concern. Keys describe structure, ordered children, dimensions, spacing, colors, typography, content or explicit implementation decisions; preserve every relevant detail without summaries.
+  additionalProperties: true
+
+ReferenceParentSample:
+  type: object
+  title: Parent layout in one observed condition
+  required: [state, breakpoint, layout, asset_ids, font_families]
+  properties:
+    state: { type: string, minLength: 1, description: Exact recorded state name. }
+    breakpoint: { $ref: "#/BreakpointId" }
+    layout: { $ref: "#/ReferenceMaterial" }
+    asset_ids:
+      type: array
+      uniqueItems: true
+      description: Exact images[].url identities required by this layout; empty means none.
+      items: { type: string, minLength: 1 }
+    font_families:
+      type: array
+      uniqueItems: true
+      description: Exact fonts[].family identities required by this layout; empty means none.
+      items: { type: string, minLength: 1 }
+
+ReferenceSample:
+  allOf:
+    - $ref: "#/ReferenceParentSample"
+    - type: object
+      required: [structure, typography, content, interactions]
+      properties:
+        structure: { $ref: "#/ReferenceMaterial" }
+        typography:
+          type: array
+          description: Complete concrete typography for all text treatments, including an empty list when there is no text.
+          items: { $ref: "#/ReferenceMaterial" }
+        content:
+          type: array
+          description: Exact ordered text, links, media and data values; empty means no content.
+          items: { $ref: "#/ReferenceMaterial" }
+        interactions:
+          type: array
+          description: Concrete triggers, targets, behavior and accessibility changes; empty means no interactions.
+          items: { $ref: "#/ReferenceMaterial" }
+        component:
+          $ref: "#/ReferenceMaterial"
+        composition:
+          $ref: "#/ReferenceMaterial"
+        tokens:
+          $ref: "#/ReferenceMaterial"
+  title: Scoped design sample
+  description: Complete shared design material plus fixed package-specific decisions. A consuming query requires its package key; component fixes markup/style/behavior decisions, composition fixes hierarchy/slots, tokens fixes concrete token values. Omit unneeded package kinds; execution never invents missing decisions.
+
+ReferenceSubject:
+  type: object
+  title: Exact reference subject
+  required: [id, selector, samples]
+  properties:
+    id: { $ref: "#/ElementId" }
+    selector: { type: string, description: Exact selector recorded for this identity in reference metadata. }
+    parent: { type: string, minLength: 1, description: Exact ReferenceParent id when ancestor layout is needed. Omit only when the subject is independent. }
+    samples:
+      type: array
+      minItems: 1
+      description: One complete sample for every planned state × breakpoint; duplicate cells are invalid.
+      items: { $ref: "#/ReferenceSample" }
+
+ReferenceParent:
+  type: object
+  title: Required ancestor layout
+  required: [id, samples]
+  properties:
+    id: { type: string, minLength: 1, description: Exact dependency identity fixed by the planner. }
+    parent: { type: string, minLength: 1, description: Exact ancestor dependency identity when needed. }
+    samples:
+      type: array
+      minItems: 1
+      description: Complete ancestor layout for the consuming state × breakpoint scope, without unrelated sibling content.
+      items: { $ref: "#/ReferenceParentSample" }

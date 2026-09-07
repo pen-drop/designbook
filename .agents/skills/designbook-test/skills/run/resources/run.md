@@ -16,6 +16,11 @@ calling tester; invoking them inside a driver would rebuild its active fixtures.
 
 Parse `run <suite> [<case>] [--workspace <path>] [--validate <workflow>]`.
 Accept `--provider codex|claude|grok` and `--model <id>` and forward them to the runner.
+Also forward an explicit `--executor-provider codex|claude|grok` together with
+`--executor-model <id>` for separate planner/step calls. This mode currently
+requires a nonrepeated design case without a case evidence manifest. Intake,
+planning and verification use the primary model; each step uses a fresh executor
+call containing only that step's resolved work order.
 For requested parallel model comparisons, use two independent Promptfoo runs as in
 [the Promptfoo guide](../../../../../../promptfoo/README.md#automated-testing-promptfoo).
 Resolve paths from the ticket's repository/worktree root. The default workspace
@@ -81,6 +86,12 @@ build/browser acceptance criteria without reference comparison; an explicit `ver
 case still requests that separate phase. Only the verifier case's prompt is reused; its fixtures are never
 layered over the main output. Both CSV rows share a `run_id`; the verification row
 has `workflow_id=design-verify` and its own CLI tokens and measured score.
+
+In separate-step mode, also read `plan.json`, `step-pipeline.json` and every
+attempted step's report/prompt under `steps/`. Check that planning left all tasks
+pending, each call completed only its assigned batch and no missing decisions
+were guessed. Include every planning/step usage row in totals. An early step
+failure can leave `main.json` absent; preserve that as incomplete.
 
 Read the intake report/handoff when present, `main.json`, `verify.json` and the
 generated `pipeline.json`; their exact paths are in the generated configurations.

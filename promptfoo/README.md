@@ -235,5 +235,48 @@ all task IDs and marks them done together only when every result passes.
 
 For human inspection, `workflow read <path> --format md` exports the complete
 saved plan. Promptfoo also writes `workflow-<number>.md` beside each phase's
-CLI evidence and exposes its path in `output.workflowMarkdown`. Exported states
-reflect export time, not necessarily the state at a past model request.
+CLI evidence and exposes its path in `output.workflowMarkdown`. The export contains
+only the immutable plan, with each shared instruction/context body once and stable
+internal links. Runtime state/results remain in JSON inspection and reports.
+
+
+### Separate planner and step executor
+
+For a design case, select a capable intake/planning/verification model and an
+explicit execution model:
+
+```bash
+./promptfoo/scripts/run-single.sh design-shell --suite drupal-web \
+  --provider claude --model claude-opus-5 \
+  --executor-provider codex --executor-model gpt-5.6-luna \
+  --workspace promptfoo/workspaces/shell-split \
+  --output promptfoo/reports/shell-split/main.json
+```
+
+The pipeline is `intake → plan → execute-step × N → verify`. Both executor flags
+are required. This mode currently supports nonrepeated design cases without a
+case evidence manifest (including `drupal-web/design-shell`); unsupported cases
+fail before workspace provisioning. Existing invocations retain their current
+pipeline. `--config-only` records the selected roles; plan and step configs are
+generated after the validated intake fixes the workspace paths.
+
+Planning copies the effective contracts exactly, fixes every design decision and
+prepares frozen reference packages before saving. Both `workflow validate` and
+`workflow create` require the saved discover catalogue via `--catalogue`. No task
+runs in the planning call. The harness routes ready steps through the CLI and
+starts a fresh native CLI process for each step; the planner's history, full
+catalogue and full-plan export are not included in that process's prompt.
+
+Each step receives its complete work order and submits all task outputs as one
+batch. Static gates retain the visible selector intake and frozen input checks,
+require the assigned batch to finish, and reject changes to other tasks' states
+or the workflow definition. Missing decisions block the step. Final case/build
+assertions and separate verification remain required. Prompt scoping is not a
+filesystem access restriction; native tool logs remain part of the evidence audit.
+
+`plan.json`, per-step configs/reports/prompts in `steps/`, native context logs and
+`step-pipeline.json` preserve the handoffs and failures. The last step writes
+`main.json`; an earlier failure leaves main explicitly incomplete. Every evaluated
+phase gets its own CSV row and model usage; include intake, planning, all attempted
+steps and verification in totals. This structure permits measurement of a smaller
+executor; it does not establish a quality or token advantage by itself.

@@ -36,6 +36,9 @@ result:
       type: object
       path: "{{ reference_folder }}/meta.yml"
       $ref: ../schemas.yml#/Reference
+    reference_extract:
+      path: "{{ reference_folder }}/extract.json"
+      $ref: ../schemas.yml#/DesignReference
     reference_screenshots:
       type: array
       items:
@@ -52,7 +55,7 @@ Resolves a design reference URL from `vision.yml`, extracts structure into a `De
 
 ## Extract mechanics
 
-Run `_debo extract <reference-url> --out {{ reference_dir }} [--breakpoints sm,xl] [--fonts <families>]` first — one browser pass that writes an `extract.json` skeleton (landmarks, interactive elements, forms, images/assets, fonts, colors) plus the raw `captured.json`. Then fill the judgment gaps below against that skeleton: the command supplies the mechanics; deciding what matters and what is thin is the model work that stays in this task. Per the `playwright-capture` context-hygiene rule, query `captured.json`/`extract.json` with `jq` — never paste the raw dumps into the conversation.
+Run `_debo extract <reference-url> --out {{ reference_dir }} [--breakpoints sm,xl] [--fonts <families>]` first — one browser pass that writes an `observations.json` skeleton (landmarks, interactive elements, forms, images/assets, fonts, colors) plus the raw `captured.json`. Then fill the judgment gaps below into a separate enriched `extract.json`: the command supplies the mechanics; deciding what matters and what is thin is the model work that stays in this task. Per the `playwright-capture` context-hygiene rule, query `captured.json`/`extract.json` with `jq` — never paste the raw dumps into the conversation.
 
 ## Capture the reference baseline
 
@@ -65,7 +68,7 @@ With `--refresh-reference`, delete all `*.png` files in `{{ reference_dir }}/` b
 
 ## No reference
 
-When `reference_folder` is empty (the project has no design reference), there is nothing to extract. Complete the task with `reference_dir: ""`, do not submit `reference`, and return an empty `reference_screenshots` list — no extraction, no asset download, no files written. Downstream stages run reference-free.
+When `reference_folder` is empty (the project has no design reference), there is nothing to extract. Complete the task with `reference_dir: ""`, do not submit `reference` or `reference_extract`, and return an empty `reference_screenshots` list — no extraction, no asset download, no files written. Downstream stages run reference-free.
 
 ## Stable baseline — reuse or accumulate
 
@@ -89,6 +92,16 @@ After extraction completes, write `{{ reference_dir }}/meta.yml` as a `Reference
 ## Result: reference_dir
 
 `reference_dir` is the extraction output directory — the resolved `reference_folder` where `extract.json`, `meta.yml`, and the baseline PNGs are written. It is **required on every completion**, including alongside `reference` and `reference_screenshots` on the normal path (only the no-reference case above submits it empty). A completion carrying `reference` without `reference_dir` is rejected.
+
+## Result: reference_extract
+
+For a configured reference, the complete enriched analysis includes exact subject
+identities, selector bindings, all planned state × breakpoint samples and concrete
+package decisions. Shared ancestor layouts, fonts and asset dependencies have stable
+identities. Every referenced asset has a reference-relative downloaded file, and
+all non-system fonts include local binaries for offline execution. Raw browser
+observations are evidence for this analysis, not the finished result. An empty
+reference produces no analysis result.
 
 ## Result: reference_screenshots
 
@@ -156,7 +169,7 @@ Populate `images[]` for every logo, icon, partner mark, and static brand asset. 
 
 1. Set `assets_dir` (typically `assets/`) on the `DesignReference`.
 2. Resolve the absolute asset URL from the reference page (`<img src>`, `<use href>`, CSS `background-image`, inline `<svg>`).
-3. Download to `{reference_folder}/{assets_dir}/<filename>` via `curl -sL "<url>" -o "<path>"`. For inline SVGs, write the `outerHTML` directly to a `.svg` file.
+3. Record `images[].reference_path` relative to the reference folder and download to `{reference_folder}/{assets_dir}/<filename>` via `curl -sL "<url>" -o "<path>"`. For inline SVGs, write the `outerHTML` directly to a `.svg` file.
 4. Also place a copy (or symlink) under the Storybook `public/` directory so scenes can reference it at the root path — see `blueprints/static-assets.md`.
 5. Set `images[].local_path` to the public-path URL (e.g. `/logo.svg`). Leave empty only when the asset is decorative-only (CSS gradients, pure glyphs from icon fonts).
 
@@ -166,7 +179,7 @@ Without `local_path`, scenes fall back to text placeholders — this is the conc
 
 Populate `fonts[]` for every web font the reference renders text with. Recording only the family name and weights is not enough: a `self-hosted` (or `adobe`/`other`) family with no downloaded binary leaves the downstream token CSS with an unresolvable `font-family` and a silent serif fallback — the exact failure this step prevents.
 
-For each family classify `source` (`self-hosted`, `google`, `adobe`, `system`, `other`). `google` and `system` families need no download — css-generate fetches Google families later. For every other source, downloads are mandatory when the binary URL is reachable:
+For each family classify `source` (`self-hosted`, `google`, `adobe`, `system`, `other`). `system` families need no download. Every other source, including Google, needs local binaries for offline execution; downloads are mandatory when the binary URL is reachable:
 
 1. Inspect the reference page's `@font-face` rules and stylesheet links to resolve each family's binary URL (the `src: url(...)` entries) and the weight/style each file covers.
 2. Download to `{reference_folder}/{assets_dir}/fonts/<filename>` via `curl -sL "<url>" -o "<path>"`. Prefer `woff2` when multiple formats are offered.

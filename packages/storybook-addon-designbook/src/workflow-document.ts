@@ -2,11 +2,14 @@
 import Ajv from 'ajv';
 import { createHash } from 'node:crypto';
 import { isAbsolute } from 'node:path';
+import { queryReference, type FrozenReferenceQuery } from './reference-query.js';
 import { getValidatorKeys } from './validation-registry.js';
 
 export interface EmbeddedContent {
   source: string;
   content: string;
+  /** Additional origins of byte-identical content, retained during initial deduplication. */
+  sources?: string[];
 }
 
 export interface OutputDefinition {
@@ -27,9 +30,14 @@ export interface TaskDefinition {
   params: Record<string, unknown>;
   params_schema: object;
   inputs: Record<string, { task: string; result: string }>;
-  instructions: EmbeddedContent;
+  instructions: string;
   context: string[];
   outputs: Record<string, OutputDefinition>;
+  reference?: {
+    query: FrozenReferenceQuery;
+    reference_schema: object;
+    extract_schema: object;
+  };
 }
 
 export interface WorkflowDefinition {
@@ -86,7 +94,7 @@ const content = {
   type: 'object',
   required: ['source', 'content'],
   additionalProperties: false,
-  properties: { source: text, content: text },
+  properties: { source: text, content: text, sources: stringList },
 };
 
 /** Structural schema; graph, schema references and concrete targets are checked below. */
@@ -144,7 +152,29 @@ export const workflowDefinitionSchema = {
           depends_on: stringList,
           params: object,
           params_schema: object,
-          instructions: content,
+          instructions: text,
+          reference: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['query', 'reference_schema', 'extract_schema'],
+            properties: {
+              reference_schema: object,
+              extract_schema: object,
+              query: {
+                type: 'object',
+                additionalProperties: false,
+                required: ['reference', 'package', 'subjects', 'states', 'breakpoints', 'fingerprint'],
+                properties: {
+                  reference: text,
+                  package: { enum: ['component', 'composition', 'tokens'] },
+                  subjects: { ...stringList, minItems: 1 },
+                  states: { ...stringList, minItems: 1 },
+                  breakpoints: { ...stringList, minItems: 1 },
+                  fingerprint: { type: 'string', pattern: '^[a-f0-9]{64}$' },
+                },
+              },
+            },
+          },
           context: stringList,
           inputs: {
             type: 'object',
@@ -239,10 +269,17 @@ export function validateDefinition(raw: unknown): asserts raw is WorkflowDefinit
   const validatorKeys = getValidatorKeys();
   const paths = new Map<string, string[]>();
   for (const task of def.tasks) {
+    if (task.reference) {
+      if (!isAbsolute(task.reference.query.reference))
+        throw new Error(`Reference folder must be absolute in ${task.id}`);
+      assertConcrete(task.reference.query, `Reference query in ${task.id}`);
+      ajv.compile(task.reference.reference_schema);
+      ajv.compile(task.reference.extract_schema);
+    }
     assertConcrete([task.target, task.params], `Task ${task.id}`);
     if (!ajv.validate(task.params_schema, task.params))
       throw new Error(`Invalid params for ${task.id}: ${ajv.errorsText()}`);
-    for (const ref of task.context) {
+    for (const ref of [task.instructions, ...task.context]) {
       if (!Object.hasOwn(def.context, ref)) throw new Error(`Unknown context ${ref} in ${task.id}`);
     }
     for (const input of Object.values(task.inputs)) {
@@ -280,13 +317,196 @@ export function validateDefinition(raw: unknown): asserts raw is WorkflowDefinit
   }
 }
 
+/** Validate all frozen reference requests before persistence, without loading them into model context. */
+export function validateDefinitionReferences(definition: WorkflowDefinition): void {
+  for (const task of definition.tasks) {
+    if (task.reference)
+      queryReference(task.reference.query, {
+        referenceSchema: task.reference.reference_schema,
+        extractSchema: task.reference.extract_schema,
+        definitions: definition.schemas,
+      });
+  }
+}
+
+export interface PlanningCatalogue {
+  template: EmbeddedContent;
+  config: Record<string, unknown>;
+  blocks: Record<
+    string,
+    Array<{
+      instructions: EmbeddedContent;
+      rules: EmbeddedContent[];
+      blueprints: EmbeddedContent[];
+      config_rules: EmbeddedContent[];
+      config_instructions: EmbeddedContent[];
+      params_schema: object;
+      outputs: Record<string, OutputDefinition>;
+      schemas: Record<string, object>;
+    }>
+  >;
+}
+
+/** Exact schema graph equivalence permits only internal definition renaming, never weaker constraints. */
+function equivalentSchemas(
+  left: unknown,
+  right: unknown,
+  leftSchemas: Record<string, object>,
+  rightSchemas: Record<string, object>,
+): boolean {
+  const seen = new Map<object, Set<object>>();
+  function internalRef(value: object): string | undefined {
+    return '$ref' in value && typeof value.$ref === 'string' && value.$ref.startsWith('#/definitions/')
+      ? value.$ref
+      : undefined;
+  }
+  function dereference(ref: string, schemas: Record<string, object>): unknown {
+    const parts = ref
+      .slice('#/definitions/'.length)
+      .split('/')
+      .map((part) => part.replaceAll('~1', '/').replaceAll('~0', '~'));
+    let resolved: unknown = schemas;
+    for (const part of parts)
+      resolved = resolved && typeof resolved === 'object' ? (resolved as Record<string, unknown>)[part] : undefined;
+    return resolved;
+  }
+  function equal(a: unknown, b: unknown): boolean {
+    if (a && b && typeof a === 'object' && typeof b === 'object') {
+      if (seen.get(a)?.has(b)) return true;
+      const pairs = seen.get(a) ?? new Set<object>();
+      pairs.add(b);
+      seen.set(a, pairs);
+      if (Array.isArray(a) !== Array.isArray(b)) return false;
+      const refA = internalRef(a);
+      const refB = internalRef(b);
+      if (refA || refB) {
+        const resolvedA = refA ? dereference(refA, leftSchemas) : a;
+        const resolvedB = refB ? dereference(refB, rightSchemas) : b;
+        if (resolvedA === undefined || resolvedB === undefined) return false;
+        if (refA && refB) {
+          const siblingsA = Object.fromEntries(Object.entries(a).filter(([key]) => key !== '$ref'));
+          const siblingsB = Object.fromEntries(Object.entries(b).filter(([key]) => key !== '$ref'));
+          return equal(siblingsA, siblingsB) && equal(resolvedA, resolvedB);
+        }
+        // A sole reference may be inlined. References with siblings retain their
+        // exact conjunction shape rather than guessing equivalence by merging.
+        if (Object.keys(refA ? a : b).length !== 1) return false;
+        return equal(resolvedA, resolvedB);
+      }
+      const keys = Object.keys(a).sort();
+      return (
+        JSON.stringify(keys) === JSON.stringify(Object.keys(b).sort()) &&
+        keys.every((key) => equal((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]))
+      );
+    }
+    // Shared object identity cannot prove equality across distinct schema registries.
+    return a === b;
+  }
+  return equal(left, right);
+}
+
+/** Planning-time fidelity gate against a saved effective catalogue; runtime never rediscovers skills. */
+export function validateCatalogueDefinition(def: WorkflowDefinition, catalogue: PlanningCatalogue): void {
+  validateDefinition(def);
+  const sameContent = (actual: EmbeddedContent, expected: EmbeddedContent) =>
+    actual.content === expected.content && [actual.source, ...(actual.sources ?? [])].includes(expected.source);
+  if (!sameContent(def.template, catalogue.template)) throw new Error('Workflow template differs from catalogue');
+  if (!equivalentSchemas(def.config, catalogue.config, {}, {}))
+    throw new Error('Workflow config differs from catalogue');
+  const blocks = Object.values(catalogue.blocks).flat();
+  for (const task of def.tasks) {
+    if (
+      task.reference &&
+      !blocks.some(
+        (block) =>
+          block.outputs.reference &&
+          block.outputs.reference_extract &&
+          equivalentSchemas(
+            task.reference!.reference_schema,
+            block.outputs.reference.schema,
+            def.schemas,
+            block.schemas,
+          ) &&
+          equivalentSchemas(
+            task.reference!.extract_schema,
+            block.outputs.reference_extract.schema,
+            def.schemas,
+            block.schemas,
+          ),
+      )
+    )
+      throw new Error(`Task ${task.id} reference schemas differ from catalogue`);
+  }
+  validateDefinitionReferences(def);
+  for (const task of def.tasks) {
+    const instruction = def.context[task.instructions]!;
+    const matches = blocks.filter((block) => sameContent(instruction, block.instructions));
+    if (!matches.length) throw new Error(`Task ${task.id} instructions differ from catalogue`);
+    const valid = matches.some((block) => {
+      if (!equivalentSchemas(task.params_schema, block.params_schema, def.schemas, block.schemas)) return false;
+      const material = [task.instructions, ...task.context].map((id) => def.context[id]!);
+      if (
+        ![...block.rules, ...block.blueprints, ...block.config_rules, ...block.config_instructions].every((expected) =>
+          material.some((actual) => sameContent(actual, expected)),
+        )
+      )
+        return false;
+      if (JSON.stringify(Object.keys(task.outputs).sort()) !== JSON.stringify(Object.keys(block.outputs).sort()))
+        return false;
+      return Object.entries(block.outputs).every(([key, expected]) => {
+        const actual = task.outputs[key]!;
+        return (
+          actual.required === expected.required &&
+          actual.submission === expected.submission &&
+          JSON.stringify([...actual.validators].sort()) === JSON.stringify([...expected.validators].sort()) &&
+          equivalentSchemas(actual.schema, expected.schema, def.schemas, block.schemas) &&
+          (!expected.path || /\{\{|\$DESIGNBOOK_|\$\{/.test(expected.path) || actual.path === expected.path) &&
+          (!expected.path || Boolean(actual.path))
+        );
+      });
+    });
+    if (!valid) throw new Error(`Task ${task.id} contracts or required context differ from catalogue`);
+  }
+}
+
+/** Normalize only a newly authored reference-based definition, before its immutable snapshot. */
+export function deduplicateDefinition(definition: WorkflowDefinition): WorkflowDefinition {
+  validateDefinition(definition);
+  const def = structuredClone(definition);
+  const byContent = new Map<string, string>();
+  const aliases = new Map<string, string>();
+  const registry: Record<string, EmbeddedContent> = {};
+  for (const key of Object.keys(def.context).sort()) {
+    const entry = def.context[key]!;
+    const existing = byContent.get(entry.content);
+    const canonical = existing ?? key;
+    aliases.set(key, canonical);
+    if (existing) {
+      const kept = registry[existing]!;
+      kept.sources = [
+        ...new Set([kept.source, ...(kept.sources ?? []), entry.source, ...(entry.sources ?? [])]),
+      ].sort();
+    } else {
+      byContent.set(entry.content, key);
+      registry[key] = entry;
+    }
+  }
+  def.context = registry;
+  for (const task of def.tasks) {
+    task.instructions = aliases.get(task.instructions)!;
+    task.context = [...new Set(task.context.map((key) => aliases.get(key)!))];
+  }
+  return def;
+}
+
 /** Stable fingerprint of a definition; key order is fixed by the authored document. */
 export function definitionDigest(definition: WorkflowDefinition): string {
   return createHash('sha256').update(JSON.stringify(definition)).digest('hex');
 }
 
-export function createDocument(definition: WorkflowDefinition): WorkflowDocument {
-  validateDefinition(definition);
+export function createDocument(authored: WorkflowDefinition): WorkflowDocument {
+  const definition = deduplicateDefinition(authored);
+  validateDefinitionReferences(definition);
   return {
     definition: structuredClone(definition),
     state: {

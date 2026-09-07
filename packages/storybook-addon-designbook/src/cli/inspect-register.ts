@@ -11,10 +11,52 @@ import { load as parseYaml } from 'js-yaml';
 import { loadConfig } from '../config.js';
 
 export function register(program: Command): void {
+  const reference = program
+    .command('reference')
+    .description('Validate and query frozen reference packages without browser or network access.');
+  for (const operation of ['prepare', 'query'] as const) {
+    reference
+      .command(operation)
+      .description(
+        operation === 'prepare'
+          ? 'Validate planned scope and emit its immutable fingerprint.'
+          : 'Read the fixed package after checking its intake fingerprint.',
+      )
+      .requiredOption(
+        '--request <json>',
+        'JSON file containing the exact reference/package/subjects/states/breakpoints request',
+      )
+      .requiredOption(
+        '--contract <json>',
+        'JSON file with effective referenceSchema, extractSchema and definitions from the planning catalogue',
+      )
+      .action(async (opts: { request: string; contract: string }) => {
+        const { prepareReferenceQuery, queryReference, ReferenceQueryError } = await import('../reference-query.js');
+        try {
+          const request = JSON.parse(readFileSync(opts.request, 'utf8'));
+          const contract = JSON.parse(readFileSync(opts.contract, 'utf8'));
+          console.log(
+            JSON.stringify(
+              operation === 'prepare' ? prepareReferenceQuery(request, contract) : queryReference(request, contract),
+            ),
+          );
+        } catch (error) {
+          console.error(
+            JSON.stringify({
+              ok: false,
+              findings: error instanceof ReferenceQueryError ? error.findings : [(error as Error).message],
+            }),
+          );
+          process.exitCode = 1;
+        }
+      });
+  }
   program
     .command('extract <url>')
-    .description('One browser pass → extract.json skeleton (landmarks, interactive, forms, images, fonts, colors).')
-    .requiredOption('--out <dir>', 'Output directory for extract.json + captured.json')
+    .description(
+      'One browser pass → observations.json skeleton (landmarks, interactive, forms, images, fonts, colors).',
+    )
+    .requiredOption('--out <dir>', 'Output directory for observations.json + captured.json')
     .option('--breakpoints <list>', 'Comma-separated breakpoint names (e.g. sm,xl)')
     .option('--fonts <list>', 'Comma-separated font families to check')
     .action(async (url: string, opts: { out: string; breakpoints?: string; fonts?: string }) => {

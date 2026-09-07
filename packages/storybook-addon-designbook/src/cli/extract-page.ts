@@ -1,6 +1,6 @@
 /**
  * `_debo extract <url>` — one headless browser pass that dumps a reference page's
- * structure into an `extract.json` skeleton the `extract-reference` task then
+ * structure into an `observations.json` skeleton the `extract-reference` task then
  * fills the judgment gaps on. The mechanics (landmarks, interactive elements,
  * forms, images/assets, fonts, colors) live here in code; the completeness
  * judgment stays model work in the task.
@@ -70,7 +70,7 @@ function descendantIds(nodes: PropertyNode[], rootId: string): Set<string> {
 }
 
 /**
- * Assemble the extract.json skeleton from a captured DOM tree and (optional)
+ * Assemble the observations.json skeleton from a captured DOM tree and (optional)
  * document style env. Pure: same inputs → same output, no browser or IO.
  */
 export function buildExtractSkeleton(
@@ -144,7 +144,7 @@ export function parseBreakpointNames(raw: string | undefined): string[] {
 
 /**
  * Capture the DOM tree (one pass) and the document style env (a second short pass,
- * best-effort) and write the extract skeleton to `<out>/extract.json`. Also writes
+ * best-effort) and write the extract skeleton to `<out>/observations.json`. Also writes
  * the raw captured tree so the task can query it with jq without pasting it into
  * the conversation.
  */
@@ -177,7 +177,7 @@ export async function runExtractPage(
     url,
     breakpoints: widths.map((w) => w.name).filter(Boolean),
   });
-  const outPath = resolve(outDir, 'extract.json');
+  const outPath = resolve(outDir, 'observations.json');
   await mkdir(dirname(outPath), { recursive: true });
   await writeFile(outPath, JSON.stringify(skeleton, null, 2));
   return outPath;

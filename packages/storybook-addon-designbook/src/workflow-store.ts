@@ -13,6 +13,7 @@ import {
   type WorkflowDocument,
   type TaskDefinition,
 } from './workflow-document.js';
+import { stepContext } from './workflow-steps.js';
 import { serializeForPath, type SchemaProperty } from './workflow-serialize.js';
 import { validateByKeys } from './validation-registry.js';
 import type { DesignbookConfig } from './config.js';
@@ -131,21 +132,16 @@ function assertReady(doc: WorkflowDocument, task: TaskDefinition): void {
 export async function taskContext(path: string, id: string) {
   const doc = await readDocument(path);
   const task = taskDefinition(doc, id);
+  const step = stepContext(doc, task.step);
+  const selected = step.tasks.find((entry) => entry.task.id === id)!;
   return {
-    task,
-    state: doc.state.tasks[id],
-    config: doc.definition.config,
-    context: task.context.map((ref) => doc.definition.context[ref]),
-    schemas: doc.definition.schemas,
-    inputs: Object.fromEntries(
-      Object.entries(task.inputs).map(([key, ref]) => [
-        key,
-        {
-          definition: taskDefinition(doc, ref.task).outputs[ref.result],
-          state: doc.state.tasks[ref.task]!.results[ref.result],
-        },
-      ]),
+    ...selected,
+    config: step.config,
+    context: Object.fromEntries(
+      [...new Set([task.instructions, ...task.context])].map((ref) => [ref, doc.definition.context[ref]]),
     ),
+    schemas: step.schemas,
+    references: selected.task.reference ? { [selected.task.reference]: step.references[selected.task.reference]! } : {},
   };
 }
 

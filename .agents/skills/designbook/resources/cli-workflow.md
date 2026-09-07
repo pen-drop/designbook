@@ -1,6 +1,6 @@
 # Workflow CLI
 
-Planning: `workflow discover <template>`, `workflow schema`, `workflow validate <definition.yml>`, `workflow create <definition.yml> --output <path>`.
+Planning: `workflow discover <template>`, `workflow schema`, `workflow validate <definition.yml> --catalogue <catalogue.json>`, `workflow create <definition.yml> --catalogue <catalogue.json> --output <path>`.
 
 Runtime: `workflow steps <path>`, `workflow instructions <path> --step <id> --format md`, `workflow start <path> --step <id>`, `workflow done <path> --step <id> --data-file <json>`, `workflow block <path> --step <id> --reason <text> --correction <action>`, `workflow summary <path>`.
 
@@ -15,4 +15,4 @@ values are per-task output objects. Every result must pass before any task in
 the batch is marked done. Lifecycle replies contain only the status overview.
 
 Human inspection: `workflow read <path> --format md` prints the full saved plan
-as Markdown; the default format is JSON. Execution does not load this full export.
+as Markdown with stable internal links and each shared body once. This export contains only the fixed definition, without execution state or resolved predecessor results; the default JSON format exposes the full saved document. Execution does not load this full export.

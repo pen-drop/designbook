@@ -50,7 +50,7 @@ interface WorkflowTask {
   started_at: string | null;
   completed_at: string | null;
   params?: Record<string, unknown>;
-  instructions: { source: string; content: string };
+  instructions: string;
   context: string[];
   depends_on: string[];
   blocker?: string;
@@ -631,7 +631,7 @@ function WorkflowSummaryTab({ wf }: { wf: WorkflowData }) {
           {/* Context */}
           {(() => {
             const ctx: { type: string; name: string }[] = [];
-            ctx.push({ type: 'task', name: shortenPath(activeTask.instructions.source) });
+            ctx.push({ type: 'task', name: shortenPath(wf.definition.context[activeTask.instructions]!.source) });
             for (const id of activeTask.context) {
               ctx.push({ type: 'context', name: shortenPath(wf.definition.context[id]!.source) });
             }
@@ -794,11 +794,7 @@ function WorkflowTasksTab({ wf }: { wf: WorkflowData }) {
 // ---------------------------------------------------------------------------
 
 function WorkflowContextTab({ wf }: { wf: WorkflowData }) {
-  const entries = [
-    wf.definition.template,
-    ...Object.values(wf.definition.context),
-    ...wf.definition.tasks.map((task) => task.instructions),
-  ];
+  const entries = [wf.definition.template, ...Object.values(wf.definition.context)];
   return (
     <div style={{ padding: 16 }}>
       {entries.map((entry, index) => (

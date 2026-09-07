@@ -14,49 +14,48 @@ function embedded(value: EmbeddedContent | undefined): string {
   return `${fenced(metadata)}\n\n${content}`;
 }
 
-/** Deterministic reading view of a saved definition and the executor's resolved task inputs. */
+/** Stable HTML anchors are independent of Markdown renderer heading slug rules. */
+function anchor(key: string): string {
+  return `context-${Buffer.from(key).toString('hex')}`;
+}
+function links(keys: string[]): string {
+  return [...new Set(keys)].map((key) => `- [${key.replace(/[\\[\]]/g, '\\$&')}](#${anchor(key)})`).join('\n');
+}
+function registryMarkdown(context: Record<string, EmbeddedContent>): string[] {
+  return Object.entries(context).flatMap(([key, value]) => [
+    `<a id="${anchor(key)}"></a>`,
+    `### ${key}`,
+    embedded(value),
+  ]);
+}
+
+/** Fixed plan only: no execution state, attempt history or resolved result values. */
 export function workflowMarkdown(document: WorkflowDocument): string {
   const definition = document.definition;
   if (!definition?.tasks) throw new Error('A saved workflow definition is required');
   const { tasks, template, context, ...metadata } = definition;
   const parts = [
     `# ${definition.title || definition.id}`,
-    'Generated from the saved workflow, without summarization. This shows workflow-provided instructions and data; model system instructions and conversation/tool history are additional context. Task results reflect the saved state at export time, not historical request snapshots.',
+    'Human inspection export of the immutable plan. Shared material appears once; task links resolve inside this document.',
     '## Workflow definition',
     fenced(metadata),
     '## Template',
     embedded(template),
     '## Shared context registry',
-    fenced(context || {}),
+    ...registryMarkdown(context),
   ];
   for (const task of tasks) {
-    const { instructions, ...contract } = task;
+    const { instructions, context: references, ...contract } = task;
     parts.push(
       `## Task: ${task.id} — ${task.title || ''}`,
       '### Contract',
       fenced(contract),
       '### Instructions',
-      embedded(instructions),
-      '### Resolved context',
-    );
-    for (const key of task.context || []) parts.push(`#### ${key}`, embedded(context?.[key]));
-    const inputs = Object.fromEntries(
-      Object.entries(task.inputs || {}).map(([key, ref]) => [
-        key,
-        {
-          definition: tasks.find((t) => t.id === ref.task)?.outputs?.[ref.result],
-          state: document.state?.tasks?.[ref.task]?.results?.[ref.result],
-        },
-      ]),
-    );
-    parts.push(
-      '### Resolved predecessor inputs',
-      fenced(inputs),
-      '### Saved task state',
-      fenced(document.state?.tasks?.[task.id] ?? null),
+      links([instructions]),
+      '### Context',
+      links(references),
     );
   }
-  parts.push('## Saved workflow state', fenced(document.state ?? null));
   return parts.join('\n\n') + '\n';
 }
 
@@ -70,15 +69,19 @@ export function stepMarkdown(step: ReturnType<typeof stepContext>): string {
     fenced(step.schemas),
     '## Shared step context',
   ];
-  for (const [key, value] of Object.entries(step.context)) parts.push(`### ${key}`, embedded(value));
+  parts.push(...registryMarkdown(step.context));
+  if (Object.keys(step.references).length) parts.push('## Validated reference packages');
+  for (const [id, packet] of Object.entries(step.references)) parts.push(`### ${id}`, fenced(packet));
   for (const entry of step.tasks) {
-    const { instructions, ...contract } = entry.task;
+    const { instructions, context, ...contract } = entry.task;
     parts.push(
       `## Task: ${entry.task.id} — ${entry.task.title}`,
       '### Contract',
       fenced(contract),
       '### Instructions',
-      embedded(instructions),
+      links([instructions]),
+      '### Context',
+      links(context),
       '### Resolved predecessor inputs',
       fenced(entry.inputs),
       '### Saved task state',

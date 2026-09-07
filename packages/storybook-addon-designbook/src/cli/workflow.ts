@@ -9,7 +9,13 @@ import { findConfig, loadConfig, resolveSkillsRoot, type DesignbookConfig } from
 import { resolveSkillSources } from '../skill-resolver.js';
 import { resolveAllStages, buildEnvMap } from '../workflow-resolve.js';
 import { resolveWorkflowFile, listWorkflowDefinitions, loadWorkflowDefinition } from './workflow-discovery.js';
-import { workflowDefinitionSchema, validateDefinition, type WorkflowDefinition } from '../workflow-document.js';
+import {
+  workflowDefinitionSchema,
+  validateDefinition,
+  validateCatalogueDefinition,
+  type PlanningCatalogue,
+  type WorkflowDefinition,
+} from '../workflow-document.js';
 import {
   saveDefinition,
   readDocument,
@@ -106,15 +112,22 @@ export function register(program: Command): void {
       print(await discoverWorkflow(template, opts.config)),
     );
   workflow.command('schema').action(() => print(workflowDefinitionSchema));
-  workflow.command('validate <definition>').action((path: string) => {
-    validateDefinition(load(readFileSync(path, 'utf8')));
-    print({ valid: true });
-  });
+  workflow
+    .command('validate <definition>')
+    .requiredOption('--catalogue <path>', 'Saved effective planning catalogue JSON')
+    .action((path: string, opts: { catalogue: string }) => {
+      const definition = load(readFileSync(path, 'utf8'));
+      validateDefinition(definition);
+      validateCatalogueDefinition(definition, JSON.parse(readFileSync(opts.catalogue, 'utf8')) as PlanningCatalogue);
+      print({ valid: true });
+    });
   workflow
     .command('create <definition>')
     .requiredOption('--output <path>', 'New workflow document path')
-    .action(async (path: string, opts: { output: string }) => {
+    .requiredOption('--catalogue <path>', 'Saved effective planning catalogue JSON')
+    .action(async (path: string, opts: { output: string; catalogue: string }) => {
       const definition = load(readFileSync(path, 'utf8')) as WorkflowDefinition;
+      validateCatalogueDefinition(definition, JSON.parse(readFileSync(opts.catalogue, 'utf8')) as PlanningCatalogue);
       const output = resolve(opts.output);
       await saveDefinition(output, definition);
       print({ path: output });
