@@ -92,7 +92,10 @@ layered over the main output. Both CSV rows share a `run_id`; the verification r
 has `workflow_id=design-verify` and its own CLI tokens and measured score.
 
 In separate-step mode, also read `plan.json`, `step-pipeline.json` and every
-attempted step's report/prompt under `steps/`. Check that planning left all tasks
+attempted step's report/prompt under `steps/`. Inspect each `.context.json` for
+resolved UTF-8 byte counts and the configured `stepPromptMaxBytes` limit. An
+oversized prompt blocks the worker before launch; retain the failed measurement
+and correct scope in a fresh plan instead of truncating required work orders. Check that planning left all tasks
 pending, each call completed only its assigned batch and no missing decisions
 were guessed. Include every planning/step usage row in totals. An early step
 failure can leave `main.json` absent; preserve that as incomplete.

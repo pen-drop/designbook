@@ -287,9 +287,18 @@ it('resolves one frozen packet per step, excludes reference schemas and rejects 
       {
         state: 'rest',
         breakpoint: 'sm',
-        asset_ids: [],
-        font_families: [],
-        component: { markup: `EXACT_${id}_DECISION` },
+        observations: { note: 'OBSERVATION_SECRET' },
+        component: {
+          structure: {
+            roots: ['root'],
+            nodes: [{ id: 'root', element: 'div', children: [], text: `EXACT_${id}_DECISION` }],
+          },
+          layout: { display: 'block' },
+          typography: [],
+          content: [],
+          interactions: [],
+          dependencies: { parent_ids: [], asset_ids: [], font_families: [] },
+        },
         composition: { unused: 'COMPOSITION_SECRET' },
       },
     ],

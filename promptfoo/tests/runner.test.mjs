@@ -1148,14 +1148,17 @@ test("separate intake handoff preserves native presentation and freezes referenc
         samples: ["sm", "xl"].map((breakpoint) => ({
           state: "rest",
           breakpoint,
-          layout: { display: "flex" },
-          structure: { tag: "header" },
-          typography: [],
-          content: [],
-          interactions: [],
-          asset_ids: [],
-          font_families: [],
-          component: { tag: "header" },
+          component: {
+            structure: {
+              roots: ["header"],
+              nodes: [{ id: "header", element: "header", children: [] }],
+            },
+            layout: { display: "flex" },
+            typography: [],
+            content: [],
+            interactions: [],
+            dependencies: { parent_ids: [], asset_ids: [], font_families: [] },
+          },
         })),
       },
     ],
@@ -1264,3 +1267,32 @@ test("separate intake handoff preserves native presentation and freezes referenc
     /changed frozen intake evidence/,
   );
 });
+
+for (const cli of ["codex", "claude"]) {
+  test(`${cli} receives large prompts losslessly through stdin instead of argv`, async (t) => {
+    const f = await fixture(t);
+    const prompt = "ä precise work order\n".repeat(15000);
+    const received = join(f.root, "received.txt");
+    await f.stub(
+      `const fs = require('node:fs');
+const input = fs.readFileSync(0, 'utf8');
+fs.writeFileSync(${JSON.stringify(received)}, input);
+if (process.argv.some(arg => arg.length > 10000)) process.exit(9);
+${emit(cli === "codex" ? completed : claudeCompleted)}`,
+      cli,
+    );
+    const Class =
+      cli === "codex"
+        ? Provider
+        : (await import("../providers/claude-cli.mjs")).default;
+    const provider = new Class({
+      config: { evidenceDir: join(f.root, "transport"), timeout: 5000 },
+    });
+    const result = await provider.callApi(prompt, {
+      vars: { workspace: f.workspace },
+    });
+    assert.equal(result.error, undefined);
+    assert.equal(await readFile(received, "utf8"), prompt);
+    assert.equal(result.output.usage.input_tokens, 100);
+  });
+}

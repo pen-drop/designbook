@@ -3,6 +3,7 @@ import CliProvider from "./cli-provider.mjs";
 export const claudeRuntime = {
   name: "claude",
   label: "Claude",
+  promptViaStdin: true,
   defaultModel: "claude-opus-5",
   args: (_cwd, prompt, model) => [
     "--print",
@@ -13,8 +14,6 @@ export const claudeRuntime = {
     "--dangerously-skip-permissions",
     "--model",
     model,
-    "--",
-    prompt,
   ],
   parse: (events, options) => parseMessagesResult(events, "Claude", options),
 };

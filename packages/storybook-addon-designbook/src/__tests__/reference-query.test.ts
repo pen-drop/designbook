@@ -58,20 +58,34 @@ function fixture() {
   const sample = (state: string, breakpoint: string) => ({
     state,
     breakpoint,
-    structure: { tag: 'header', children: ['logo', 'navigation'] },
-    layout: { display: 'flex', gap: breakpoint === 'sm' ? '8px' : '24px' },
-    typography: [{ family: 'Inter', size: '16px' }],
-    content: [{ text: 'Home', href: '/' }],
-    interactions: [{ trigger: 'button', target: 'menu', state }],
-    asset_ids: ['https://example.test/logo.svg'],
-    font_families: ['Inter'],
-    component: { markup: 'header with logo and nav', style: 'exact sample layout' },
-    composition: { slots: ['header', 'content', 'footer'] },
+    observations: { structure: { dom: 'raw DOM '.repeat(1000) } },
+    component: {
+      structure: {
+        roots: ['header'],
+        nodes: [
+          { id: 'header', element: 'header', children: ['logo', 'navigation'] },
+          { id: 'logo', element: 'img', children: [], attributes: { src: '/logo.svg' } },
+          { id: 'navigation', element: 'nav', children: [], text: 'Home' },
+        ],
+      },
+      layout: { display: 'flex', gap: breakpoint === 'sm' ? '8px' : '24px' },
+      typography: [{ family: 'Inter', size: '16px' }],
+      content: [{ text: 'Home', href: '/' }],
+      interactions: [{ trigger: 'button', target: 'menu', state }],
+      dependencies: { parent_ids: ['page'], asset_ids: ['https://example.test/logo.svg'], font_families: ['Inter'] },
+    },
+    composition: {
+      structure: {
+        roots: ['shell'],
+        nodes: [{ id: 'shell', element: 'page', children: [], props: { content: '$content' } }],
+      },
+      layout: { slots: ['header', 'content', 'footer'] },
+      dependencies: { parent_ids: ['page'], asset_ids: [], font_families: [] },
+    },
   });
   const subjects = ['header', 'footer'].map((id) => ({
     id,
     selector: `body > ${id}`,
-    parent: 'page',
     samples: states.flatMap((state) => breakpoints.map((bp) => sample(state, bp))),
   }));
   const extract = {
@@ -143,7 +157,7 @@ describe('fixed reference packages', () => {
     const result = queryReference(frozen, contract);
     expect(result.subjects.map((s) => s.id)).toEqual(['header']);
     expect(result.subjects[0]?.samples).toHaveLength(4);
-    expect(result.subjects[0]?.samples[3]?.layout).toEqual({ display: 'flex', gap: '24px' });
+    expect(result.subjects[0]?.samples[3]?.component?.layout).toEqual({ display: 'flex', gap: '24px' });
     expect(result.subjects[0]?.samples[0]?.composition).toBeUndefined();
     expect(result.dependencies.parents[0]?.samples).toHaveLength(4);
     expect(result.captures).toHaveLength(4);
@@ -152,6 +166,72 @@ describe('fixed reference packages', () => {
     expect(readFileSync(resolve(f.folder, 'extract.json'))).toEqual(before);
     expect(queryReference(frozen, contract)).toEqual(result);
   });
+  it('keeps megabytes of observed DOM on disk while preserving every authored package decision', () => {
+    const f = fixture();
+    for (const subject of f.extract.subjects)
+      for (const sample of subject.samples) sample.observations.structure.dom = 'raw observed DOM '.repeat(40000);
+    f.save();
+    const result = queryReference(prepareReferenceQuery(f.request, contract), contract);
+    expect(result.subjects[0]!.samples.map((sample) => sample.component)).toEqual(
+      f.extract.subjects[0]!.samples.map((sample) => sample.component),
+    );
+    expect(result.subjects[0]!.samples.every((sample) => !('observations' in sample))).toBe(true);
+    const fullExtractBytes = readFileSync(resolve(f.folder, 'extract.json')).length;
+    const packageBytes = Buffer.byteLength(JSON.stringify(result));
+    expect(fullExtractBytes).toBeGreaterThan(4 * 1024 * 1024);
+    expect(packageBytes).toBeLessThan(12 * 1024);
+    console.info('reference package bytes', { fullExtractBytes, packageBytes });
+  });
+  it.each(['assets', 'tokens'] as const)('%s packages exclude component DOM and unrelated dependencies', (kind) => {
+    const f = fixture();
+    for (const sample of f.extract.subjects[0]!.samples)
+      Object.assign(sample, {
+        [kind]: {
+          ...(kind === 'tokens' ? { values: { 'color-primary': '#345678' } } : {}),
+          dependencies: { parent_ids: [], asset_ids: [], font_families: ['Inter'] },
+        },
+      });
+    f.request.package = kind;
+    f.save();
+    const result = queryReference(prepareReferenceQuery(f.request, contract), contract);
+    expect(result.dependencies.parents).toEqual([]);
+    expect(result.dependencies.assets).toEqual([]);
+    expect(result.dependencies.fonts).toHaveLength(1);
+    expect(JSON.stringify(result)).not.toContain('navigation');
+    expect(
+      result.subjects[0]!.samples.every(
+        (sample) => Object.keys(sample).sort().join(',') === ['state', 'breakpoint', kind].sort().join(','),
+      ),
+    ).toBe(true);
+  });
+  it.each(['oversize', 'raw-node', 'raw-string', 'unknown-field', 'broken-structure'] as const)(
+    'blocks %s work orders instead of silently discarding decisions',
+    (issue) => {
+      const f = fixture();
+      const component = f.extract.subjects[0]!.samples[0]!.component;
+      if (issue === 'oversize') Object.assign(component.layout, { description: 'x'.repeat(65536) });
+      if (issue === 'raw-node')
+        Object.assign(component.layout, {
+          sourceNode: { id: 'n_123', child_ids: [], bbox: { width: 640 }, source: { locator: 'body > header' } },
+        });
+      if (issue === 'raw-string')
+        Object.assign(component.layout, {
+          note: JSON.stringify({ child_ids: [], bbox: { width: 640 }, source: { locator: 'body > header' } }),
+        });
+      if (issue === 'unknown-field') Object.assign(component, { invented: 'do not silently discard me' });
+      if (issue === 'broken-structure') component.structure.nodes[0]!.children = ['missing'];
+      f.save();
+      expect(() => prepareReferenceQuery(f.request, contract)).toThrow(
+        issue === 'oversize'
+          ? 'byte package limit'
+          : issue === 'raw-node' || issue === 'raw-string'
+            ? 'raw captured PropertyNode'
+            : issue === 'broken-structure'
+              ? 'missing node'
+              : 'additional properties',
+      );
+    },
+  );
   it('deduplicates shared dependencies across subjects', () => {
     const f = fixture();
     f.request.subjects.push('footer');
@@ -175,7 +255,7 @@ describe('fixed reference packages', () => {
     writeFileSync(resolve(f.folder, 'extract.json'), JSON.stringify({ url: 'https://example.test', landmarks: [] }));
     expect(() => prepareReferenceQuery(f.request, contract)).toThrow('subjects');
     f.save();
-    Reflect.deleteProperty(f.extract.subjects[0]!.samples[0]!, 'layout');
+    Reflect.deleteProperty(f.extract.subjects[0]!.samples[0]!.component, 'layout');
     f.save();
     expect(() => prepareReferenceQuery(f.request, contract)).toThrow('layout');
   });

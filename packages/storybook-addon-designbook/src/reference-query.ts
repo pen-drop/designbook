@@ -5,8 +5,9 @@ import { readFileSync, realpathSync, statSync } from 'node:fs';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { load } from 'js-yaml';
 import { validateImage } from './validators/image.js';
+import { detectReferencePayload } from './workflow-context-boundary.js';
 
-export type ReferencePackageKind = 'component' | 'composition' | 'tokens';
+export type ReferencePackageKind = 'component' | 'composition' | 'tokens' | 'assets';
 export interface ReferenceQueryRequest {
   reference: string;
   package: ReferencePackageKind;
@@ -23,22 +24,38 @@ export interface ReferenceQueryContract {
   definitions: Record<string, object>;
 }
 type RecordValue = Record<string, unknown>;
-interface Sample extends RecordValue {
-  state: string;
-  breakpoint: string;
+interface Dependencies {
+  parent_ids: string[];
   asset_ids: string[];
   font_families: string[];
 }
-interface Subject extends RecordValue {
+interface Package extends RecordValue {
+  dependencies: Dependencies;
+}
+interface Sample {
+  state: string;
+  breakpoint: string;
+  component?: Package;
+  composition?: Package;
+  tokens?: Package;
+  assets?: Package;
+}
+interface Subject {
   id: string;
   selector: string;
-  parent?: string;
   samples: Sample[];
 }
-interface Parent extends RecordValue {
+interface ParentSample {
+  state: string;
+  breakpoint: string;
+  layout: RecordValue;
+  asset_ids: string[];
+  font_families: string[];
+}
+interface Parent {
   id: string;
   parent?: string;
-  samples: Array<Sample>;
+  samples: ParentSample[];
 }
 interface Extract extends RecordValue {
   subjects: Subject[];
@@ -173,9 +190,35 @@ function loadReference(reference: string, suppliedContract: ReferenceQueryContra
   validate(extract, contract.extractSchema, 'extract');
   return { folder, files, read, meta, extract, contract };
 }
+/** Work orders exceeding this bound must be decomposed by the planner, never truncated. */
+export const MAX_REFERENCE_PACKAGE_BYTES = 64 * 1024;
+function validateMaterial(value: unknown, label: string): void {
+  const bytes = Buffer.byteLength(JSON.stringify(value), 'utf8');
+  if (bytes > MAX_REFERENCE_PACKAGE_BYTES)
+    fail(
+      `${label}: ${bytes} bytes exceeds ${MAX_REFERENCE_PACKAGE_BYTES}-byte package limit; move raw evidence to observations and decompose the planned subject/package`,
+    );
+  const raw = detectReferencePayload(value);
+  if (raw) fail(`${label}: raw ${raw} belongs in sample.observations; author concrete target decisions`);
+}
+function validateStructure(value: unknown, label: string): void {
+  const structure = value as { roots: string[]; nodes: Array<{ id: string; children: string[] }> };
+  const nodes = indexed(structure.nodes, (node) => node.id, `${label}.structure.nodes`);
+  const reached = new Set<string>();
+  const visit = (id: string, chain: string[]): void => {
+    if (chain.includes(id)) fail(`${label}.structure: cycle ${[...chain, id].join(' -> ')}`);
+    if (reached.has(id)) fail(`${label}.structure: node ${id} has multiple placements`);
+    const node = nodes.get(id);
+    if (!node) fail(`${label}.structure: missing node ${id}`);
+    reached.add(id);
+    for (const child of node.children) visit(child, [...chain, id]);
+  };
+  for (const root of structure.roots) visit(root, []);
+  for (const id of nodes.keys()) if (!reached.has(id)) fail(`${label}.structure: unreachable node ${id}`);
+}
 function evaluate(request: ReferenceQueryRequest, suppliedContract: ReferenceQueryContract): ReferenceQueryResult {
-  if (!['component', 'composition', 'tokens'].includes(request.package))
-    fail('package: expected component, composition or tokens');
+  if (!['component', 'composition', 'tokens', 'assets'].includes(request.package))
+    fail('package: expected component, composition, tokens or assets');
   for (const field of ['subjects', 'states', 'breakpoints'] as const) unique(request[field], field);
   const { folder, files, read, meta, extract, contract } = loadReference(request.reference, suppliedContract);
   const subjects = indexed(extract.subjects, (s) => s.id, 'extract.subjects');
@@ -197,16 +240,18 @@ function evaluate(request: ReferenceQueryRequest, suppliedContract: ReferenceQue
       }),
     );
   };
-  const addDependencies = (sample: Sample, label: string): void => {
+  const addDependencies = (sample: Pick<Dependencies, 'asset_ids' | 'font_families'>, label: string): void => {
     for (const assetId of sample.asset_ids) {
       const asset = assets.get(assetId);
       if (!asset) fail(`${label}: missing asset ${assetId}`);
+      validateMaterial(asset, `asset ${assetId}`);
       read(asset.reference_path);
       selectedAssets.set(assetId, asset);
     }
     for (const family of sample.font_families) {
       const font = fonts.get(family);
       if (!font) fail(`${label}: missing font ${family}`);
+      validateMaterial(font, `font ${family}`);
       if (font.source !== 'system' && !font.files?.length)
         fail(`font ${family}: local binaries required for offline execution`);
       for (const file of font.files ?? []) read(file.local_path);
@@ -220,7 +265,10 @@ function evaluate(request: ReferenceQueryRequest, suppliedContract: ReferenceQue
     if (!parent) fail(`parents: missing ${id}`);
     if (parent.parent) addParent(parent.parent, [...chain, id]);
     const samples = selectSamples(parent.samples, `parent ${id}`);
-    for (const sample of samples) addDependencies(sample, `parent ${id}`);
+    for (const sample of samples) {
+      validateMaterial(sample, `parent ${id}`);
+      addDependencies(sample, `parent ${id}`);
+    }
     selectedParents.set(id, { ...parent, samples });
   };
   const selected = request.subjects.map((id) => {
@@ -228,7 +276,6 @@ function evaluate(request: ReferenceQueryRequest, suppliedContract: ReferenceQue
     const element = elements.get(id);
     if (!subject || !element) fail(`subject ${id}: missing exact extract/metadata identity`);
     if (subject.selector !== element.selector) fail(`subject ${id}: selector differs from metadata`);
-    if (subject.parent) addParent(subject.parent);
     const samples = selectSamples(subject.samples, `subject ${id}`);
     for (const sample of samples) {
       if (!element.states?.some((s) => s.name === sample.state) || !element.breakpoints?.includes(sample.breakpoint))
@@ -245,14 +292,21 @@ function evaluate(request: ReferenceQueryRequest, suppliedContract: ReferenceQue
         breakpoint: sample.breakpoint,
         path: resolve(folder, filename),
       });
-      addDependencies(sample, `subject ${id}`);
+      const material = sample[request.package]!;
+      validateMaterial(material, `subject ${id}.${request.package}`);
+      if (request.package === 'component' || request.package === 'composition')
+        validateStructure(material.structure, `subject ${id}.${request.package}`);
+      if (request.package === 'assets' && material.dependencies.parent_ids.length)
+        fail(`subject ${id}: assets package cannot include parent layout dependencies`);
+      for (const parent of material.dependencies.parent_ids) addParent(parent);
+      addDependencies(material.dependencies, `subject ${id}`);
     }
-    const packageSamples = samples.map((sample) => {
-      const selected = { ...sample };
-      for (const kind of ['component', 'composition', 'tokens']) if (kind !== request.package) delete selected[kind];
-      return selected;
-    });
-    return { ...subject, samples: packageSamples };
+    const packageSamples = samples.map((sample) => ({
+      state: sample.state,
+      breakpoint: sample.breakpoint,
+      [request.package]: structuredClone(sample[request.package]),
+    }));
+    return { id: subject.id, selector: subject.selector, samples: packageSamples };
   });
   // Bind both exact scope and effective validation contract; neither may drift after intake.
   const fingerprint = hash(
@@ -347,7 +401,9 @@ export function validateReferenceIntake(
       for (const breakpoint of element.breakpoints) {
         const sample = samples.get(JSON.stringify([state, breakpoint]));
         if (!sample) fail(`subject ${id}.samples: missing state=${state} breakpoint=${breakpoint}`);
-        const kinds = (['component', 'composition', 'tokens'] as const).filter((kind) => Object.hasOwn(sample, kind));
+        const kinds = (['component', 'composition', 'tokens', 'assets'] as const).filter((kind) =>
+          Object.hasOwn(sample, kind),
+        );
         if (!kinds.length) fail(`subject ${id}: missing concrete package decisions for ${state}/${breakpoint}`);
         for (const kind of kinds)
           scopes.push(

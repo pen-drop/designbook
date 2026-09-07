@@ -4,6 +4,7 @@ import { collectCodexUsage } from "./codex-usage.mjs";
 export const codexRuntime = {
   name: "codex",
   label: "Codex",
+  promptViaStdin: true,
   defaultModel: "gpt-5.6-luna",
   args: (cwd, prompt, model, config = {}) => [
     "exec",
@@ -16,7 +17,7 @@ export const codexRuntime = {
     `model_reasoning_effort=${JSON.stringify(config.reasoningEffort || "medium")}`,
     "-C",
     cwd,
-    prompt,
+    "-",
   ],
   async parse(events, options) {
     if (

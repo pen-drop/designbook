@@ -3,6 +3,7 @@ import Ajv from 'ajv';
 import { createHash } from 'node:crypto';
 import { isAbsolute } from 'node:path';
 import { queryReference, type FrozenReferenceQuery } from './reference-query.js';
+import { validateAuthoredContext } from './workflow-context-boundary.js';
 import { getValidatorKeys } from './validation-registry.js';
 
 export interface EmbeddedContent {
@@ -166,7 +167,7 @@ export const workflowDefinitionSchema = {
                 required: ['reference', 'package', 'subjects', 'states', 'breakpoints', 'fingerprint'],
                 properties: {
                   reference: text,
-                  package: { enum: ['component', 'composition', 'tokens'] },
+                  package: { enum: ['component', 'composition', 'tokens', 'assets'] },
                   subjects: { ...stringList, minItems: 1 },
                   states: { ...stringList, minItems: 1 },
                   breakpoints: { ...stringList, minItems: 1 },
@@ -418,6 +419,16 @@ export function validateCatalogueDefinition(def: WorkflowDefinition, catalogue: 
   if (!equivalentSchemas(def.config, catalogue.config, {}, {}))
     throw new Error('Workflow config differs from catalogue');
   const blocks = Object.values(catalogue.blocks).flat();
+  validateAuthoredContext(def, [
+    catalogue.template,
+    ...blocks.flatMap((block) => [
+      block.instructions,
+      ...block.rules,
+      ...block.blueprints,
+      ...block.config_rules,
+      ...block.config_instructions,
+    ]),
+  ]);
   for (const task of def.tasks) {
     if (
       task.reference &&

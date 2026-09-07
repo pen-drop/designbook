@@ -332,9 +332,14 @@ class CliProvider {
             }
           });
         }
-        // The prompt is passed as an argv value. Close stdin so the CLI does not
-        // wait for an additional prompt after completing that request.
-        child.stdin?.end();
+        // Large work orders must not become argv entries (OS per-argument limit).
+        // A rejected/early-exiting CLI can close its pipe before consuming input.
+        child.stdin?.on("error", (error) => {
+          if (error.code !== "EPIPE") reject(error);
+        });
+        child.stdin?.end(
+          this.runtime.promptViaStdin ? resolvedPrompt : undefined,
+        );
       });
 
       const events = String(raw)

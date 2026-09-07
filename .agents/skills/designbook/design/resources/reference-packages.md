@@ -5,7 +5,7 @@ Finish the typed `reference_extract` output before preparing a consuming task's
 reference query. `_debo extract` produces raw `observations.json` and
 `captured.json`; the enriched `extract.json` is a separate planner-authored result.
 
-For each consuming task, fix `package` (`component`, `composition` or `tokens`),
+For each consuming task, fix `package` (`component`, `composition`, `tokens` or `assets`),
 exact subject IDs, states and breakpoints. Each request selects the Cartesian
 state × breakpoint matrix for every subject. Use separate consuming tasks when
 subjects require different matrices. Subject IDs and selectors come from the
@@ -18,14 +18,39 @@ concrete markup, style, content and behavior decisions in that subject's
 binding. When a primitive needs its own independently scoped subject, establish
 that identity, selector and captures during intake before freezing the plan.
 
-Every selected sample includes its full structure, layout, typography, content
-and interaction data, plus the requested package's concrete decisions. Ancestor
-layout dependencies use exact parent IDs. Asset dependencies reference exact
-`images[].url` identities; fonts use exact `fonts[].family` names. Each image's
+Each state/breakpoint sample separates raw `observations` from independently
+complete package objects. The executor receives only the requested package,
+intact, with exact sample identities. Source DOM and broad style measurements
+remain in `observations` on disk for the planner.
+
+| Package | Complete executor material |
+| --- | --- |
+| `component` | Planned target structure, layout, typography, content and interaction decisions. |
+| `composition` | Target component hierarchy, slots and composition layout, excluding child components' internal DOM. |
+| `tokens` | Exact token names and values. |
+| `assets` | Dependency manifest for local images and font files; no structure or parent layout. |
+
+The package schema declares the allowed fields. Unknown package fields fail
+validation rather than being silently discarded. Target structure uses explicit
+node identities, elements, attributes/props and ordered children; missing nodes,
+cycles, unreachable nodes and multiple placements block preparation. Raw source
+nodes are evidence for these decisions, not target structure.
+
+Every package owns `dependencies`: `parent_ids` names necessary ancestor layouts,
+`asset_ids` binds exact `images[].url` identities, and `font_families` binds exact
+`fonts[].family` names. Asset provisioning uses empty `parent_ids`. Each image's
 `reference_path` locates its downloaded file beside the reference, separately
 from its rendered public `local_path`. Every non-system font, including Google
 fonts, has downloaded binaries for offline execution. Shared dependencies are
-returned once.
+returned once; dependencies used only by other package kinds stay out of scope.
+
+Each authored package or dependency has a 65,536-byte JSON limit. Oversized
+material and detected raw observation payloads fail with the affected subject
+or dependency. Resolve these findings by keeping evidence in observations and
+planning smaller concrete subjects/packages. The CLI never truncates decisions
+or substitutes a summary. The final assembled worker prompt has a separate
+budget because several individually valid packages can still be too broad
+when combined. These limits measure bytes, not model tokens.
 
 ## Validate intake before freezing
 
@@ -79,7 +104,7 @@ missing decision-critical material is a planning failure.
 _debo reference query --request frozen-request.json --contract contract.json
 ```
 
-The response contains selected subjects and complete samples, deduplicated
+The response contains selected subject identities and complete requested-kind packages, deduplicated
 parents/fonts/assets, screenshot paths, fingerprints and compact check results.
 It excludes unrelated subjects and package kinds. A changed scope, effective
 schema or referenced file fails the fingerprint check. Queries are read-only and

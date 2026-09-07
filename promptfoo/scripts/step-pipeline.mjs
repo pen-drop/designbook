@@ -133,6 +133,8 @@ export function runStepPipeline({
     `You are the planning model, already inside Promptfoo. Produce a complete, precise saved plan for a separate simple executor. Do not execute its tasks in this invocation.\n` +
       `Goal for the executor:\n${requestPrompt}\n\n` +
       `Intake is complete: read ${JSON.stringify(intakeHandoff)} and reuse its frozen catalogue ${JSON.stringify(handoff.catalogue)} and reference evidence. Preserve the presented subjects/selectors/states/breakpoints. Load the copied domain planning instructions and author all structural/design decisions, parameters, independent step batches, dependencies, exact outputs and acceptance observations now.\n` +
+      `Reference measurements stay on disk. Every task receives only its own concrete work order and typed task.reference package; resolved packages, raw DOM and broad measurement arrays never belong in shared context or params. Asset/font provisioning uses its own dependency package, not a header component package. Split independent work into smaller steps when needed; preserve all exact catalogue contracts.\n` +
+      `The full worker prompt has a configured maximum of ${base.tags.step_prompt_max_bytes ?? 262144} UTF-8 bytes, including resolved data. Limit scope before saving; never truncate required instructions or decisions.\n` +
       `Use registry references without shortening any required instruction or weakening a discovered schema. Prepare each reference data package through the CLI before saving; missing information must be resolved in planning. The executor will receive only one step's resolved instructions/data and cannot recover omitted decisions from the full catalogue or extract.\n` +
       `Use definition.id ${JSON.stringify(workflowId)}. Run workflow validate and workflow create with --catalogue ${JSON.stringify(handoff.catalogue)}. Save the workflow at exactly ${JSON.stringify(workflowPath)}, then run node ${JSON.stringify(join(repo, "promptfoo/scripts/snapshot-definition.mjs"))} ${JSON.stringify(workflowPath)}.\n` +
       `End after saving the complete pending workflow. Do not start/done/block workflow tasks, write component/scene output files, invoke execute-workflow, or provision fixtures. The following model calls execute it.`,
@@ -195,6 +197,52 @@ export function runStepPipeline({
     if (!initialCount || overview.steps.some((s) => s.status !== "pending"))
       throw new Error("Planning must leave every step pending");
     mkdirSync(join(runDir, "steps"), { recursive: true });
+    const checkContext = (config, context, step, i) => {
+      const promptBytes = Buffer.byteLength(config.prompts[0], "utf8");
+      const limitBytes = base.tags.step_prompt_max_bytes ?? 262144;
+      if (!Number.isSafeInteger(limitBytes) || limitBytes <= 0)
+        throw new Error("step_prompt_max_bytes must be a positive integer");
+      const contextReport = {
+        step: step.id,
+        contextBytes: Buffer.byteLength(context, "utf8"),
+        promptBytes,
+        limitBytes,
+        passed: promptBytes <= limitBytes,
+      };
+      writeFileSync(
+        join(runDir, "steps", `${i + 1}-${step.id}.context.json`),
+        JSON.stringify(contextReport, null, 2) + "\n",
+      );
+      if (!contextReport.passed)
+        throw new Error(
+          `Step ${step.id} prompt is ${promptBytes} bytes, limit ${limitBytes}; narrow reference packages and task context or split the step before execution`,
+        );
+    };
+    // Check every planned step before the first worker; predecessor results may
+    // enlarge later packets, so repeat the same check immediately before each call.
+    const plannedDocument = yaml.load(readFileSync(workflowPath, "utf8"));
+    for (const [i, step] of overview.steps.entries()) {
+      const context = cli(
+        "instructions",
+        workflowPath,
+        "--step",
+        step.id,
+        "--format",
+        "md",
+      );
+      const config = executorConfig(base, {
+        repo,
+        runDir,
+        step,
+        workflowPath,
+        context,
+        executor,
+        final: i === initialCount - 1,
+        output: base.outputPath,
+        document: plannedDocument,
+      });
+      checkContext(config, context, step, i);
+    }
     for (let i = 0; i < initialCount; i++) {
       const step = overview.steps.find(
         (s) => s.ready && s.status === "pending",
@@ -226,6 +274,7 @@ export function runStepPipeline({
         output,
         document,
       });
+      checkContext(config, context, step, i);
       const configPath = join(runDir, "steps", `${i + 1}-${step.id}.yaml`);
       writeConfig(configPath, config);
       const status = evaluate(configPath);

@@ -96,8 +96,9 @@ After extraction completes, write `{{ reference_dir }}/meta.yml` as a `Reference
 ## Result: reference_extract
 
 For a configured reference, the complete enriched analysis includes exact subject
-identities, selector bindings, all planned state × breakpoint samples and concrete
-package decisions. Shared ancestor layouts, fonts and asset dependencies have stable
+identities, selector bindings, all planned state × breakpoint samples and independently
+complete typed package decisions. Raw source observations remain separate from
+the target component/composition structure, token values and asset manifests. Shared ancestor layouts, fonts and asset dependencies have stable
 identities. Every referenced asset has a reference-relative downloaded file, and
 all non-system fonts include local binaries for offline execution. Raw browser
 observations are evidence for this analysis, not the finished result. An empty

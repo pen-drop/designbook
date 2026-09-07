@@ -281,6 +281,16 @@ runs in the planning call. The harness routes ready steps through the CLI and
 starts a fresh native CLI process for each step; the planner's history, full
 catalogue and full-plan export are not included in that process's prompt.
 
+Before the first worker starts, every planned step is checked. The check repeats
+with actual predecessor results immediately before each call. The harness saves `<step>.context.json` with the
+resolved context bytes, complete prompt bytes and configured limit. Set
+`stepPromptMaxBytes` in `configs/base.yaml` (default 262144 UTF-8 bytes).
+Oversized work orders fail before a model call, retaining planning usage and
+size evidence. This is a byte guard, not a token estimate or quality score.
+Narrow reference scope or split independent tasks; never truncate instructions.
+Codex and Claude receive prompts through stdin so normal work orders are not
+limited by the operating system's per-argument size limit.
+
 Each step receives its complete work order and submits all task outputs as one
 batch. Static gates retain the visible selector intake and frozen input checks,
 require the assigned batch to finish, and reject changes to other tasks' states

@@ -1,3 +1,6 @@
+# Full resolved worker prompt, measured in UTF-8 bytes, not estimated tokens.
+stepPromptMaxBytes: 262144
+
 # Role defaults for design tests; CLI flags override each role independently.
 modelRoles:
   planner:

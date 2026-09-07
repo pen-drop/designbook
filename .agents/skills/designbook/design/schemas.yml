@@ -1189,12 +1189,13 @@ ReferenceMaterial:
   type: object
   title: Concrete design material
   minProperties: 1
-  description: Complete observed or planner-resolved values for this concern. Keys describe structure, ordered children, dimensions, spacing, colors, typography, content or explicit implementation decisions; preserve every relevant detail without summaries.
+  description: Complete planner-resolved target values for this concern. Keys describe concrete dimensions, spacing, colors, typography, content or implementation decisions. Raw source observations live outside packages. Preserve every authored decision; oversized material fails rather than being summarized.
   additionalProperties: true
 
 ReferenceParentSample:
   type: object
   title: Parent layout in one observed condition
+  additionalProperties: false
   required: [state, breakpoint, layout, asset_ids, font_families]
   properties:
     state: { type: string, minLength: 1, description: Exact recorded state name. }
@@ -1211,42 +1212,147 @@ ReferenceParentSample:
       description: Exact fonts[].family identities required by this layout; empty means none.
       items: { type: string, minLength: 1 }
 
+ReferenceDependencies:
+  type: object
+  title: Exact package dependencies
+  additionalProperties: false
+  required: [parent_ids, asset_ids, font_families]
+  properties:
+    parent_ids:
+      type: array
+      uniqueItems: true
+      description: Exact ancestor layout IDs needed by this package. Empty for independent packages and asset provisioning.
+      items: { type: string, minLength: 1 }
+    asset_ids:
+      type: array
+      uniqueItems: true
+      description: Exact images[].url identities used by this package, empty when none.
+      items: { type: string, minLength: 1 }
+    font_families:
+      type: array
+      uniqueItems: true
+      description: Exact fonts[].family identities used by this package, empty when none.
+      items: { type: string, minLength: 1 }
+
+ReferenceStructure:
+  type: object
+  title: Planned target structure
+  additionalProperties: false
+  required: [roots, nodes]
+  description: Concrete target markup or component hierarchy, using local node IDs rather than a copied source DOM. Every node is reachable from a root. Preserve all deliberate target nodes and their values.
+  properties:
+    roots:
+      type: array
+      minItems: 1
+      uniqueItems: true
+      description: Ordered root node IDs.
+      items: { type: string, minLength: 1 }
+    nodes:
+      type: array
+      minItems: 1
+      description: Planned target nodes, with exact attributes/props and ordered child IDs. Raw browser observations stay outside packages.
+      items:
+        type: object
+        additionalProperties: false
+        required: [id, element, children]
+        properties:
+          id: { type: string, minLength: 1, description: Unique local node identity. }
+          element: { type: string, minLength: 1, description: Exact target tag or qualified component identity; use $content for the shell injection point. }
+          children:
+            type: array
+            uniqueItems: true
+            description: Ordered child node IDs, empty for leaves.
+            items: { type: string, minLength: 1 }
+          attributes:
+            type: object
+            description: Exact target markup attributes, keyed by attribute name.
+            additionalProperties: { type: [string, number, boolean] }
+          props:
+            type: object
+            description: Exact component prop values keyed by prop name; complete planned values, not source observations.
+            additionalProperties: true
+          text: { type: string, description: Exact visible leaf text when applicable. }
+          slot: { type: string, description: Exact target parent slot receiving this node. }
+
+ReferenceComponentPackage:
+  type: object
+  title: Component work order
+  additionalProperties: false
+  required: [structure, layout, typography, content, interactions, dependencies]
+  description: Complete concrete decisions for constructing the selected component. This object is returned intact; source DOM/style dumps belong in sample observations, not here.
+  properties:
+    structure: { $ref: "#/ReferenceStructure" }
+    layout: { $ref: "#/ReferenceMaterial" }
+    typography:
+      type: array
+      description: Exact text treatment decisions for this component; empty when it contains no text.
+      items: { $ref: "#/ReferenceMaterial" }
+    content:
+      type: array
+      description: Exact ordered content and bindings for this component; empty when none.
+      items: { $ref: "#/ReferenceMaterial" }
+    interactions:
+      type: array
+      description: Exact trigger, target, behavior and accessibility implementation decisions; empty when none.
+      items: { $ref: "#/ReferenceMaterial" }
+    dependencies: { $ref: "#/ReferenceDependencies" }
+
+ReferenceCompositionPackage:
+  type: object
+  title: Composition work order
+  additionalProperties: false
+  required: [structure, layout, dependencies]
+  description: Concrete target component hierarchy, slots and composition layout. Child components' internal DOM and styling are supplied by their own component packages.
+  properties:
+    structure: { $ref: "#/ReferenceStructure" }
+    layout: { $ref: "#/ReferenceMaterial" }
+    dependencies: { $ref: "#/ReferenceDependencies" }
+
+ReferenceTokensPackage:
+  type: object
+  title: Token work order
+  additionalProperties: false
+  required: [values, dependencies]
+  description: Exact token names and values selected by the planner, with required font/asset dependencies. Carries no source DOM or component structure.
+  properties:
+    values: { $ref: "#/ReferenceMaterial" }
+    dependencies: { $ref: "#/ReferenceDependencies" }
+
+ReferenceAssetsPackage:
+  type: object
+  title: Asset provisioning work order
+  additionalProperties: false
+  required: [dependencies]
+  description: Only the exact local assets and font binaries to provision. Parent layout IDs must be empty; no component/DOM material is loaded for file provisioning.
+  properties:
+    dependencies: { $ref: "#/ReferenceDependencies" }
+
 ReferenceSample:
-  allOf:
-    - $ref: "#/ReferenceParentSample"
-    - type: object
-      required: [structure, typography, content, interactions]
-      properties:
-        structure: { $ref: "#/ReferenceMaterial" }
-        typography:
-          type: array
-          description: Complete concrete typography for all text treatments, including an empty list when there is no text.
-          items: { $ref: "#/ReferenceMaterial" }
-        content:
-          type: array
-          description: Exact ordered text, links, media and data values; empty means no content.
-          items: { $ref: "#/ReferenceMaterial" }
-        interactions:
-          type: array
-          description: Concrete triggers, targets, behavior and accessibility changes; empty means no interactions.
-          items: { $ref: "#/ReferenceMaterial" }
-        component:
-          $ref: "#/ReferenceMaterial"
-        composition:
-          $ref: "#/ReferenceMaterial"
-        tokens:
-          $ref: "#/ReferenceMaterial"
-  title: Scoped design sample
-  description: Complete shared design material plus fixed package-specific decisions. A consuming query requires its package key; component fixes markup/style/behavior decisions, composition fixes hierarchy/slots, tokens fixes concrete token values. Omit unneeded package kinds; execution never invents missing decisions.
+  type: object
+  title: Scoped reference analysis and work orders
+  additionalProperties: false
+  required: [state, breakpoint]
+  description: Exact observed cell with independently complete task-kind work orders. Raw observations remain on disk and are excluded from every worker package. Each declared cell needs at least one package; required consuming kinds are fixed by the planner.
+  properties:
+    state: { type: string, minLength: 1, description: Exact recorded state identity. }
+    breakpoint: { $ref: "#/BreakpointId" }
+    observations:
+      type: object
+      description: Raw source DOM, computed style measurements and visual analysis retained for planner inspection only. Never returned by package queries.
+      additionalProperties: true
+    component: { $ref: "#/ReferenceComponentPackage" }
+    composition: { $ref: "#/ReferenceCompositionPackage" }
+    tokens: { $ref: "#/ReferenceTokensPackage" }
+    assets: { $ref: "#/ReferenceAssetsPackage" }
 
 ReferenceSubject:
   type: object
   title: Exact reference subject
+  additionalProperties: false
   required: [id, selector, samples]
   properties:
     id: { $ref: "#/ElementId" }
     selector: { type: string, description: Exact selector recorded for this identity in reference metadata. }
-    parent: { type: string, minLength: 1, description: Exact ReferenceParent id when ancestor layout is needed. Omit only when the subject is independent. }
     samples:
       type: array
       minItems: 1
@@ -1256,6 +1362,7 @@ ReferenceSubject:
 ReferenceParent:
   type: object
   title: Required ancestor layout
+  additionalProperties: false
   required: [id, samples]
   properties:
     id: { type: string, minLength: 1, description: Exact dependency identity fixed by the planner. }

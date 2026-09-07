@@ -120,3 +120,36 @@ resources. Do not edit those files. Agree a typed request/result interface with
 that agent early; parent connects it to saved task requirements and step context.
 Do not launch model runs or rebuild a live test runtime. Parent performs the
 combined official debo-test/Promptfoo validation.
+
+## Implemented correction after the Astra diagnostic
+
+The first Astra plan passed schema/fidelity checks but copied query responses and
+broad measurements into ordinary context. Even asset/font setup received a
+4,456,252-byte step context. The correction separates reference evidence from
+executor decisions in fresh artifacts:
+
+- `ReferenceSample.observations` retains raw measurements on disk. Each selected
+  `component`, `composition`, `tokens` or `assets` package contains its own complete
+  target decisions and exact parent/asset/font dependencies. Queries return that
+  selected package intact, without the sample's observations or sibling packages.
+- Component/composition structures use an explicit target node graph. Missing,
+  unreachable, repeated and cyclic placements fail validation. Assets packages
+  load only their declared files/fonts, without parent layouts or component DOM.
+- Raw extract/query/measurement shapes in general plan context, params and inputs
+  fail catalogue validation, even when encoded as JSON/YAML strings. Exact
+  catalogue bodies retain their full text with verified provenance. Authored
+  context plus params has a 64 KiB per-task bound; individual package/dependency
+  material has a 64 KiB bound. Failure requires decomposition or narrower typed
+  packages, never automatic truncation or loss of decisions.
+- Promptfoo checks every planned worker prompt before any worker starts, then
+  checks again with actual predecessor results before each invocation. The
+  configurable `stepPromptMaxBytes` default is 262144 UTF-8 bytes. Saved
+  `.context.json` evidence records sizes and limits. This is a transport/context
+  guard, not token estimation or a quality score.
+- Codex and Claude consume prompt text through stdin, avoiding the separate OS
+  argument-size failure. This transport change does not waive the size checks.
+
+Structural checks cannot prove that every design decision is appropriate or that
+an arbitrary prose passage contains no copied measurement. Fresh model execution
+and visual verification remain necessary. Earlier failed artifacts are evidence
+only; they are neither migrated nor repaired into the new format.

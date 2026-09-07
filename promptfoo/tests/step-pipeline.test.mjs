@@ -145,7 +145,15 @@ test("step gate rejects cross-step edits, incomplete batch and extra workflows",
   assert.equal(stepResult(output, context).pass, false);
 });
 
-function simulate(t, { failPhase, contextFailure = false } = {}) {
+function simulate(
+  t,
+  {
+    failPhase,
+    contextFailure = false,
+    largeContext = false,
+    largeLaterContext = false,
+  } = {},
+) {
   const f = fixture(t);
   const calls = [];
   const workflowPath = join(
@@ -173,6 +181,8 @@ function simulate(t, { failPhase, contextFailure = false } = {}) {
       assert.equal(path, workflowPath);
       if (command === "instructions") {
         if (contextFailure) throw new Error("Reference fingerprint changed");
+        if (largeContext || (largeLaterContext && args[1] === "second"))
+          return "MEASUREMENTS ".repeat(40000);
         return args[1] === "first"
           ? "FIRST TASK MATERIAL"
           : "SECOND TASK MATERIAL";
@@ -331,4 +341,31 @@ test("planner and executor models are independently configurable within one prov
     const verify = yaml.load(readFileSync(config.tags.verify_config, "utf8"));
     assert.equal(verify.providers[0].config.model, planner);
   }
+});
+
+test("oversized work order fails before any worker starts and preserves size evidence", (t) => {
+  const f = simulate(t, { largeContext: true });
+  assert.deepEqual(
+    f.calls.map((c) => c.tags.phase),
+    ["plan"],
+  );
+  assert.match(f.result.error, /narrow reference packages/);
+  assert.equal(f.result.mainStatus, 1);
+  const report = JSON.parse(
+    readFileSync(join(f.runDir, "steps/1-first.context.json"), "utf8"),
+  );
+  assert.equal(report.passed, false);
+  assert.ok(report.promptBytes > report.limitBytes);
+  assert.equal(f.document.state.tasks.a.status, "pending");
+});
+
+test("preflight catches an oversized later step before the first worker", (t) => {
+  const f = simulate(t, { largeLaterContext: true });
+  assert.deepEqual(
+    f.calls.map((c) => c.tags.phase),
+    ["plan"],
+  );
+  assert.match(f.result.error, /Step second prompt/);
+  assert.equal(f.document.state.tasks.a.status, "pending");
+  assert.equal(f.document.state.tasks.b.status, "pending");
 });

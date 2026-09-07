@@ -154,7 +154,7 @@ test(
       `#!/usr/bin/env node
 const fs = require('node:fs');
 const cp = require('node:child_process');
-const prompt = process.argv.at(-1);
+const prompt = fs.readFileSync(0, 'utf8');
 fs.appendFileSync(${JSON.stringify(calls)}, JSON.stringify({pid:process.pid, prompt})+'\\n');
 const emit = event => console.log(JSON.stringify(event));
 const run = args => {
