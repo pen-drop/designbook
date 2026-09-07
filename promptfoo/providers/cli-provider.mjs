@@ -1,3 +1,4 @@
+import { validateIntakeReferences } from "../extensions/intake-reference.mjs";
 import { workflowMarkdown } from "../extensions/workflow-markdown.mjs";
 import { writeContextLog } from "./context-log.mjs";
 import {
@@ -282,7 +283,11 @@ class CliProvider {
                 writeFile(join(evidenceDir, logName), stdout),
                 writeFile(join(evidenceDir, "stderr.log"), stderr),
               ]);
-              contextLog = await writeContextLog(this.runtime.name, stdout, evidenceDir);
+              contextLog = await writeContextLog(
+                this.runtime.name,
+                stdout,
+                evidenceDir,
+              );
             } catch (logError) {
               reject(logError);
               return;
@@ -365,9 +370,14 @@ class CliProvider {
 
       // Collect all workspace artifacts after the run
       const artifacts = await this.collectArtifacts(cwd);
-      const documents = { ...artifacts.completedWorkflows, ...artifacts.pendingWorkflows };
+      const documents = {
+        ...artifacts.completedWorkflows,
+        ...artifacts.pendingWorkflows,
+      };
       artifacts.workflowMarkdown = {};
-      for (const [index, [id, document]] of Object.entries(documents).entries()) {
+      for (const [index, [id, document]] of Object.entries(
+        documents,
+      ).entries()) {
         const path = join(evidenceDir, `workflow-${index + 1}.md`);
         await writeFile(path, await workflowMarkdown(document));
         artifacts.workflowMarkdown[id] = path;
@@ -438,6 +448,24 @@ class CliProvider {
               pass: false,
               reason: "Intake requires its complete saved planning catalogue",
             };
+        }
+        if (this.config.intakeOnly && artifacts.designIntake.pass) {
+          const validation = validateIntakeReferences({
+            rows: artifacts.designIntake.rows,
+            metadata,
+            dataDir: await this.resolveDesignbookDir(cwd),
+            catalogue: JSON.parse(
+              await readFile(this.config.intakeCatalogue, "utf8"),
+            ),
+            evidenceDir,
+            workspace: cwd,
+          });
+          await writeFile(
+            join(evidenceDir, "reference-validation.json"),
+            JSON.stringify(validation, null, 2),
+          );
+          if (!validation.pass) artifacts.designIntake = validation;
+          else artifacts.designIntake.references = validation.references;
         }
         await writeFile(
           join(evidenceDir, "design-intake.json"),

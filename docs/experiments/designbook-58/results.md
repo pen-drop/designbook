@@ -304,3 +304,12 @@ Implementation checks before the combined run: `pnpm check` passed 810 tests
 in 93 files after typecheck/lint, addon build passed, and the rebuilt provider
 passed all 52 Node/Promptfoo regression checks. These are implementation checks,
 not model quality evidence.
+
+Two handoff gaps found during integration were corrected in an isolated coding
+checkout so the active acdb837a model run remains unchanged. Downstream inputs
+may no longer bind the complete `reference_extract`. Intake now runs the same
+reference validation engine before freezing: effective schemas, every declared
+cell, every present package kind and local evidence must pass. The compact CLI
+validation is saved in native evidence and the handoff. Isolated checks passed
+828 tests/93 files, addon build, and 55 Node/Promptfoo checks. The active model
+run does not include these additional guards; do not attribute its results to them.

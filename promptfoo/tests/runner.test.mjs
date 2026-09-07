@@ -1191,16 +1191,42 @@ test("separate intake handoff preserves native presentation and freezes referenc
   await mkdir(join(workspace, "designbook/references/site"), {
     recursive: true,
   });
-  await writeFile(reference, '{"header":"observed"}');
+  const analysis = {
+    subjects: [
+      {
+        id: "header",
+        selector: "header",
+        samples: ["sm", "xl"].map((breakpoint) => ({
+          state: "rest",
+          breakpoint,
+          layout: { display: "flex" },
+          structure: { tag: "header" },
+          typography: [],
+          content: [],
+          interactions: [],
+          asset_ids: [],
+          font_families: [],
+          component: { tag: "header" },
+        })),
+      },
+    ],
+    parents: [],
+    images: [],
+    fonts: [],
+  };
+  await writeFile(reference, JSON.stringify(analysis));
   const metadata = join(workspace, "designbook/references/site/meta.yml");
   await writeFile(
     metadata,
-    "source: example\nelements:\n  - id: header\n    selector: header\n    breakpoints: [sm, xl]\n    states: [{name: rest}]\n",
+    "source: example\nextract: extract.json\nelements:\n  - id: header\n    selector: header\n    breakpoints: [sm, xl]\n    states: [{name: rest}]\n",
   );
   for (const bp of ["sm", "xl"])
     await writeFile(
       join(workspace, `designbook/references/site/${bp}--header--rest.png`),
-      "reference capture",
+      Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==",
+        "base64",
+      ),
     );
   const handoff = join(root, "intake-handoff.json");
   const table =
@@ -1217,7 +1243,24 @@ test("separate intake handoff preserves native presentation and freezes referenc
     provider.config.intakeCatalogue,
     JSON.stringify({
       template: { content: "Complete template" },
-      blocks: { write: [{}] },
+      blocks: {
+        extract: [
+          {
+            outputs: {
+              reference: {
+                schema: { type: "object", required: ["extract", "elements"] },
+              },
+              reference_extract: {
+                schema: {
+                  type: "object",
+                  required: ["subjects", "parents", "images", "fonts"],
+                },
+              },
+            },
+            schemas: {},
+          },
+        ],
+      },
     }),
   );
   await stub(
@@ -1226,6 +1269,18 @@ test("separate intake handoff preserves native presentation and freezes referenc
       ...completed,
     ]),
   );
+  await writeFile(reference, "{}");
+  const incomplete = await provider.callApi("Incomplete intake", {
+    vars: { workspace },
+  });
+  assert.equal(incomplete.output.designIntake.pass, false);
+  assert.match(
+    incomplete.output.designIntake.reason,
+    /Enriched reference validation failed/,
+  );
+  assert.equal(incomplete.tokenUsage.total, 110);
+  await assert.rejects(readFile(handoff, "utf8"), /ENOENT/);
+  await writeFile(reference, JSON.stringify(analysis));
   const intake = await provider.callApi("Intake", { vars: { workspace } });
   assert.equal(intake.output.designIntake.pass, true);
   const saved = JSON.parse(await readFile(handoff, "utf8"));
@@ -1248,7 +1303,7 @@ test("separate intake handoff preserves native presentation and freezes referenc
   );
   await writeFile(
     metadata,
-    "elements: [{id: header, selector: header, breakpoints: [sm, xl], states: [{name: rest}]}]\nsource: example\n",
+    "elements: [{id: header, selector: header, breakpoints: [sm, xl], states: [{name: rest}]}]\nextract: extract.json\nsource: example\n",
   );
   const main = await provider.callApi("Execute", { vars: { workspace } });
   assert.equal(main.output.designIntake.pass, true);

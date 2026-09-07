@@ -7,6 +7,7 @@ import { dump } from 'js-yaml';
 import {
   prepareReferenceQuery,
   queryReference,
+  validateReferenceIntake,
   type ReferenceQueryContract,
   type ReferenceQueryRequest,
 } from '../reference-query.js';
@@ -246,5 +247,83 @@ describe('fixed reference packages', () => {
     await run('query');
     expect(process.exitCode).toBe(1);
     expect(JSON.parse(error.mock.calls[0]![0] as string).findings[0]).toContain('sm--header--rest.png');
+  });
+});
+
+describe('pre-freeze reference intake validation', () => {
+  it('validates all cells and only their declared kinds, returning compact frozen scopes', () => {
+    const f = fixture();
+    Reflect.deleteProperty(f.extract.subjects[0]!.samples[0]!, 'composition');
+    f.save();
+    const before = readFileSync(resolve(f.folder, 'extract.json'));
+    const result = validateReferenceIntake(f.folder, contract);
+    expect(result.pass).toBe(true);
+    expect(result.checks).toEqual({ schema: true, subjects: 2, cells: 8, packages: 15 });
+    expect(result.scopes).toHaveLength(15);
+    expect(result.scopes.every((scope) => queryReference(scope, contract).checks.schema)).toBe(true);
+    expect(JSON.stringify(result)).not.toContain('typography');
+    expect(readFileSync(resolve(f.folder, 'extract.json'))).toEqual(before);
+  });
+  it.each([
+    'absent-extract',
+    'raw-extract',
+    'missing-cell',
+    'missing-decisions',
+    'invalid-kind',
+    'missing-font',
+    'missing-asset',
+    'missing-capture',
+    'selector-drift',
+    'missing-subject',
+    'extra-subject',
+    'extra-cell',
+    'empty-matrix',
+  ] as const)('blocks %s before handoff', (issue) => {
+    const f = fixture();
+    const sample = f.extract.subjects[1]!.samples[3]!;
+    if (issue === 'missing-cell') f.extract.subjects[1]!.samples.pop();
+    if (issue === 'missing-decisions') {
+      Reflect.deleteProperty(sample, 'component');
+      Reflect.deleteProperty(sample, 'composition');
+    }
+    if (issue === 'missing-font') f.extract.fonts[0]!.files = [];
+    if (issue === 'selector-drift') f.extract.subjects[1]!.selector = '.different';
+    if (issue === 'missing-subject') f.extract.subjects.pop();
+    if (issue === 'extra-subject') f.extract.subjects.push({ ...f.extract.subjects[0]!, id: 'unplanned' });
+    if (issue === 'extra-cell') f.extract.subjects[1]!.samples.push({ ...sample, state: 'unplanned' });
+    if (issue === 'empty-matrix') f.meta.elements[1]!.breakpoints = [];
+    f.save();
+    if (issue === 'absent-extract') rmSync(resolve(f.folder, 'extract.json'));
+    if (issue === 'raw-extract')
+      writeFileSync(resolve(f.folder, 'extract.json'), JSON.stringify({ url: 'https://example.test', landmarks: [] }));
+    if (issue === 'invalid-kind') {
+      const extract = JSON.parse(readFileSync(resolve(f.folder, 'extract.json'), 'utf8'));
+      extract.subjects[1].samples[3].composition = {};
+      writeFileSync(resolve(f.folder, 'extract.json'), JSON.stringify(extract));
+    }
+    if (issue === 'missing-font') rmSync(resolve(f.folder, 'assets/inter.woff2'));
+    if (issue === 'missing-asset') rmSync(resolve(f.folder, 'assets/logo.svg'));
+    if (issue === 'missing-capture') rmSync(resolve(f.folder, 'xl--footer--open.png'));
+    expect(() => validateReferenceIntake(f.folder, contract)).toThrow();
+  });
+  it('provides the validate CLI without a query request or full extract output', async () => {
+    const f = fixture();
+    writeFileSync(resolve(f.folder, 'contract.json'), JSON.stringify(contract));
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const run = async () => {
+      const program = new Command();
+      register(program);
+      await program.parseAsync(
+        ['reference', 'validate', '--reference', f.folder, '--contract', resolve(f.folder, 'contract.json')],
+        { from: 'user' },
+      );
+    };
+    await run();
+    expect(JSON.parse(log.mock.calls[0]![0] as string).checks.cells).toBe(8);
+    rmSync(resolve(f.folder, 'xl--footer--open.png'));
+    await run();
+    expect(process.exitCode).toBe(1);
+    expect(JSON.parse(error.mock.calls[0]![0] as string).findings[0]).toContain('xl--footer--open.png');
   });
 });

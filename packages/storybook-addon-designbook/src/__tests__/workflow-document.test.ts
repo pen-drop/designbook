@@ -422,3 +422,61 @@ it('allows an absent optional direct output and discards prior optional submissi
   expect(done.state.status).toBe('completed');
   expect(Object.keys(done.state.tasks.write!.results)).toEqual(['vision']);
 });
+
+describe('reference extract consumption boundary', () => {
+  function referenceDefinition(): WorkflowDefinition {
+    const def = definition();
+    const producer = def.tasks[0]!;
+    producer.outputs.reference_extract = {
+      required: true,
+      submission: 'data',
+      validators: [],
+      schema: { type: 'object', required: ['subjects'], properties: { subjects: { type: 'array', minItems: 1 } } },
+    };
+    def.tasks.push({
+      ...structuredClone(producer),
+      id: 'consume',
+      step: 'consume',
+      depends_on: ['write'],
+      inputs: { selected: { task: 'write', result: 'vision' } },
+      outputs: { value: { required: true, submission: 'data', validators: [], schema: { type: 'string' } } },
+    });
+    return def;
+  }
+  it.each(['extract', 'renamed_input'])(
+    'rejects a full extract binding under input name %s, even with a scoped request',
+    (name) => {
+      const def = referenceDefinition();
+      const consumer = def.tasks[1]!;
+      consumer.inputs[name] = { task: 'write', result: 'reference_extract' };
+      expect(() => validateDefinition(def)).toThrow('scoped task.reference query');
+      consumer.reference = {
+        query: {
+          reference: '/tmp/reference',
+          package: 'component',
+          subjects: ['header'],
+          states: ['rest'],
+          breakpoints: ['sm'],
+          fingerprint: 'a'.repeat(64),
+        },
+        reference_schema: {},
+        extract_schema: {},
+      };
+      expect(() => validateDefinition(def)).toThrow('scoped task.reference query');
+    },
+  );
+  it('validates the producer full extract while ordinary downstream inputs remain scoped', async () => {
+    const path = await setup(referenceDefinition());
+    await startTask(path, 'write');
+    await expect(
+      completeTask(path, 'write', { vision: 'Owners', reference_extract: { subjects: [] } }),
+    ).rejects.toThrow('validation failed');
+    await startTask(path, 'write', 'Completed the prepared reference subjects');
+    const full = { subjects: [{ id: 'header' }], analysis: 'FULL_EXTRACT_ONLY_FOR_PRODUCER' };
+    await completeTask(path, 'write', { vision: 'Owners', reference_extract: full });
+    expect((await readDocument(path)).state.tasks.write!.results.reference_extract!.value).toEqual(full);
+    const consumer = await taskContext(path, 'consume');
+    expect(consumer.inputs.selected!.state!.value).toBe('Owners');
+    expect(JSON.stringify(consumer)).not.toContain('FULL_EXTRACT_ONLY_FOR_PRODUCER');
+  });
+});

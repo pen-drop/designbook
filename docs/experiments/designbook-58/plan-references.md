@@ -143,3 +143,8 @@ runs model evaluations or rebuilds a running test checkout; parent owns those.
   validation schemas remain outside the executor response. Single-task inspection
   uses the same packet interface; full-plan Markdown retains the fixed query and
   schema contracts for human inspection without expanding reference artifacts.
+
+Downstream task inputs cannot bind `reference_extract`, under any input name.
+They must use a fixed `task.reference` request, so predecessor resolution cannot
+bypass the scoped packet interface. The extraction producer still validates its
+complete precomputed output.

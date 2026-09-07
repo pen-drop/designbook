@@ -283,6 +283,10 @@ export function validateDefinition(raw: unknown): asserts raw is WorkflowDefinit
       if (!Object.hasOwn(def.context, ref)) throw new Error(`Unknown context ${ref} in ${task.id}`);
     }
     for (const input of Object.values(task.inputs)) {
+      if (input.result === 'reference_extract')
+        throw new Error(
+          `Task ${task.id} must consume reference_extract through a scoped task.reference query, not predecessor inputs`,
+        );
       if (!predecessors(task).has(input.task))
         throw new Error(`Input ${input.task} is not a predecessor of ${task.id}`);
       if (!Object.hasOwn(tasks.get(input.task)!.outputs, input.result))

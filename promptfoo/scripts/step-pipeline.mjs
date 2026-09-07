@@ -164,11 +164,11 @@ export function runStepPipeline({
     mainStatus: null,
     workflowPath,
   };
-  if (planStatus !== 0) return result;
   const progressPath = join(runDir, "step-pipeline.json");
   const saveProgress = () =>
     writeFileSync(progressPath, JSON.stringify(result, null, 2) + "\n");
   saveProgress();
+  if (planStatus !== 0) return result;
   const cli =
     runWorkflow ||
     ((...args) =>

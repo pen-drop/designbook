@@ -191,7 +191,11 @@ cases whose existing contract explicitly selects none). Intake alone provisions
 the fresh workspace. It presents the selected reference/story selectors and
 breakpoints, prepares reference evidence and saves the effective planning
 catalogue. Static checks require matching metadata and every declared capture
-at its contract path. Intake cannot create or execute a saved workflow.
+at its contract path. Before freezing, `reference validate` checks enriched
+extraction against the effective schemas, every declared subject/state/breakpoint
+cell, present package decisions and local dependency files. Its compact report
+is retained in the intake handoff; missing analysis fails before planning.
+Intake cannot create or execute a saved workflow.
 
 Main runs only after intake passes. It reads the compact external handoff,
 reuses the same workspace and catalogue, then authors and executes its complete

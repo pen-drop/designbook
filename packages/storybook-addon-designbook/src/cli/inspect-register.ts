@@ -14,6 +14,28 @@ export function register(program: Command): void {
   const reference = program
     .command('reference')
     .description('Validate and query frozen reference packages without browser or network access.');
+  reference
+    .command('validate')
+    .description(
+      'Validate all declared intake subjects, samples, package decisions and local evidence before freezing.',
+    )
+    .requiredOption('--reference <folder>', 'Absolute reference folder containing metadata and enriched extract')
+    .requiredOption('--contract <json>', 'JSON file with effective referenceSchema, extractSchema and definitions')
+    .action(async (opts: { reference: string; contract: string }) => {
+      const { validateReferenceIntake, ReferenceQueryError } = await import('../reference-query.js');
+      try {
+        const contract = JSON.parse(readFileSync(opts.contract, 'utf8'));
+        console.log(JSON.stringify(validateReferenceIntake(opts.reference, contract)));
+      } catch (error) {
+        console.error(
+          JSON.stringify({
+            ok: false,
+            findings: error instanceof ReferenceQueryError ? error.findings : [(error as Error).message],
+          }),
+        );
+        process.exitCode = 1;
+      }
+    });
   for (const operation of ['prepare', 'query'] as const) {
     reference
       .command(operation)

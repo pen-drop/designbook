@@ -126,13 +126,10 @@ function scopedContract(contract: ReferenceQueryContract): ReferenceQueryContrac
   visit(contract.extractSchema);
   return { referenceSchema: contract.referenceSchema, extractSchema: contract.extractSchema, definitions };
 }
-function evaluate(request: ReferenceQueryRequest, suppliedContract: ReferenceQueryContract): ReferenceQueryResult {
+function loadReference(reference: string, suppliedContract: ReferenceQueryContract) {
   const contract = scopedContract(suppliedContract);
-  if (!isAbsolute(request.reference)) fail('reference: expected absolute folder');
-  if (!['component', 'composition', 'tokens'].includes(request.package))
-    fail('package: expected component, composition or tokens');
-  for (const field of ['subjects', 'states', 'breakpoints'] as const) unique(request[field], field);
-  const folder = realpathSync(request.reference);
+  if (!isAbsolute(reference)) fail('reference: expected absolute folder');
+  const folder = realpathSync(reference);
   const files: Record<string, string> = {};
   const read = (name: string): Buffer => {
     if (typeof name !== 'string' || !name || isAbsolute(name)) fail(`file ${name}: expected reference-relative path`);
@@ -174,6 +171,13 @@ function evaluate(request: ReferenceQueryRequest, suppliedContract: ReferenceQue
   if (typeof meta.extract !== 'string') fail('meta.extract: explicit enriched extract path required');
   const extract = parse(meta.extract) as Extract;
   validate(extract, contract.extractSchema, 'extract');
+  return { folder, files, read, meta, extract, contract };
+}
+function evaluate(request: ReferenceQueryRequest, suppliedContract: ReferenceQueryContract): ReferenceQueryResult {
+  if (!['component', 'composition', 'tokens'].includes(request.package))
+    fail('package: expected component, composition or tokens');
+  for (const field of ['subjects', 'states', 'breakpoints'] as const) unique(request[field], field);
+  const { folder, files, read, meta, extract, contract } = loadReference(request.reference, suppliedContract);
   const subjects = indexed(extract.subjects, (s) => s.id, 'extract.subjects');
   const elements = indexed(meta.elements, (s) => s.id, 'meta.elements');
   const parents = indexed(extract.parents, (s) => s.id, 'extract.parents');
@@ -298,4 +302,67 @@ export function queryReference(request: FrozenReferenceQuery, contract: Referenc
   if (result.provenance.fingerprint !== request.fingerprint)
     fail('fingerprint: reference files, scope or schema changed since intake; rebuild the plan');
   return result;
+}
+
+export interface ReferenceIntakeValidation {
+  pass: true;
+  reference: string;
+  checks: { schema: true; subjects: number; cells: number; packages: number };
+  scopes: FrozenReferenceQuery[];
+}
+
+/** Validate every declared intake cell before any workflow/handoff can be frozen. */
+export function validateReferenceIntake(
+  reference: string,
+  contract: ReferenceQueryContract,
+): ReferenceIntakeValidation {
+  const { meta, extract } = loadReference(reference, contract);
+  const elements = indexed(meta.elements, (element) => element.id, 'meta.elements');
+  const subjects = indexed(extract.subjects, (subject) => subject.id, 'extract.subjects');
+  if (!elements.size) fail('meta.elements: expected at least one intake subject');
+  for (const id of subjects.keys()) if (!elements.has(id)) fail(`subject ${id}: undeclared metadata identity`);
+  const scopes: FrozenReferenceQuery[] = [];
+  let cells = 0;
+  for (const [id, element] of elements) {
+    const subject = subjects.get(id);
+    if (!subject) fail(`subject ${id}: missing enriched analysis`);
+    unique(
+      element.states?.map((state) => state.name),
+      `subject ${id}.states`,
+    );
+    unique(element.breakpoints, `subject ${id}.breakpoints`);
+    const samples = indexed(
+      subject.samples,
+      (sample) => JSON.stringify([sample.state, sample.breakpoint]),
+      `subject ${id}.samples`,
+    );
+    for (const sample of samples.values()) {
+      if (
+        !element.states.some((state) => state.name === sample.state) ||
+        !element.breakpoints.includes(sample.breakpoint)
+      )
+        fail(`subject ${id}: undeclared state=${sample.state} breakpoint=${sample.breakpoint}`);
+    }
+    for (const { name: state } of element.states)
+      for (const breakpoint of element.breakpoints) {
+        const sample = samples.get(JSON.stringify([state, breakpoint]));
+        if (!sample) fail(`subject ${id}.samples: missing state=${state} breakpoint=${breakpoint}`);
+        const kinds = (['component', 'composition', 'tokens'] as const).filter((kind) => Object.hasOwn(sample, kind));
+        if (!kinds.length) fail(`subject ${id}: missing concrete package decisions for ${state}/${breakpoint}`);
+        for (const kind of kinds)
+          scopes.push(
+            prepareReferenceQuery(
+              { reference, package: kind, subjects: [id], states: [state], breakpoints: [breakpoint] },
+              contract,
+            ),
+          );
+        cells++;
+      }
+  }
+  return {
+    pass: true,
+    reference,
+    checks: { schema: true, subjects: elements.size, cells, packages: scopes.length },
+    scopes,
+  };
 }

@@ -27,6 +27,23 @@ from its rendered public `local_path`. Every non-system font, including Google
 fonts, has downloaded binaries for offline execution. Shared dependencies are
 returned once.
 
+## Validate intake before freezing
+
+After enriching the analysis and writing its local evidence, validate the entire
+visible intake inventory with the effective schema contract described below:
+
+```bash
+_debo reference validate --reference /workspace/designbook/references/reference-id --contract contract.json
+```
+
+Every metadata subject and declared state × breakpoint cell must have matching
+analysis and at least one concrete package kind. Every package kind present is
+checked using the same preparation logic as consuming tasks, including parent
+layouts, downloaded assets and fonts, and baseline PNGs. Different cells may
+provide different package kinds. Missing or undeclared subjects/cells, selector
+drift and incomplete evidence block the handoff. Success returns compact counts
+and validated frozen scopes, not the full extract.
+
 ## Prepare the fixed request
 
 Write a JSON request with an absolute reference folder:
