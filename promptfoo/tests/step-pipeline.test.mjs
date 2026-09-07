@@ -31,11 +31,19 @@ function fixture(t) {
     intakeHandoff,
     JSON.stringify({ pass: true, workspace, catalogue }),
   );
+  const intakeReport = join(runDir, "intake.json");
+  writeFileSync(
+    intakeReport,
+    JSON.stringify({
+      results: { results: [{ response: { output: { fileHashes: {} } } }] },
+    }),
+  );
   const base = {
     description: "shell",
     outputPath: join(runDir, "main.json"),
     tags: {
       workflow_id: "design-shell",
+      intake_report: intakeReport,
       model: "claude-opus-5",
       cli: "claude",
     },

@@ -3,6 +3,7 @@ import { join, relative } from "node:path";
 import { execFileSync } from "node:child_process";
 import yaml from "js-yaml";
 import { stateHash } from "../extensions/step-result.mjs";
+import { planArtifactContract } from "../extensions/plan-artifacts.mjs";
 
 const copy = (value) => structuredClone(value);
 const writeConfig = (path, config) =>
@@ -136,6 +137,14 @@ export function runStepPipeline({
       `Use definition.id ${JSON.stringify(workflowId)}. Run workflow validate and workflow create with --catalogue ${JSON.stringify(handoff.catalogue)}. Save the workflow at exactly ${JSON.stringify(workflowPath)}, then run node ${JSON.stringify(join(repo, "promptfoo/scripts/snapshot-definition.mjs"))} ${JSON.stringify(workflowPath)}.\n` +
       `End after saving the complete pending workflow. Do not start/done/block workflow tasks, write component/scene output files, invoke execute-workflow, or provision fixtures. The following model calls execute it.`,
   ];
+  const intakeArtifacts = JSON.parse(
+    readFileSync(base.tags.intake_report, "utf8"),
+  ).results.results[0].response.output;
+  plan.tests[0].vars.plan_artifacts = planArtifactContract(
+    workspace,
+    catalogue.config,
+    intakeArtifacts.fileHashes,
+  );
   plan.tests[0].assert = [
     {
       type: "javascript",
@@ -152,8 +161,7 @@ export function runStepPipeline({
     },
     {
       type: "javascript",
-      value:
-        "![...output.newFiles, ...output.modifiedFiles].some(p => /(?:^|\\/)(?:components|sections|design-system)\\//.test(p))",
+      value: `file://${join(repo, "promptfoo/extensions/plan-artifacts.mjs")}`,
     },
   ];
   writeConfig(planPath, plan);

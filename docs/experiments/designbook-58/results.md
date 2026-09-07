@@ -313,3 +313,13 @@ cell, every present package kind and local evidence must pass. The compact CLI
 validation is saved in native evidence and the handoff. Isolated checks passed
 828 tests/93 files, addon build, and 55 Node/Promptfoo checks. The active model
 run does not include these additional guards; do not attribute its results to them.
+
+The phase artifact assertion was corrected after inspection found that ordinary
+provider output has no `modifiedFiles`, and `newFiles` includes copied skills and
+fixtures. Planning now compares protected application file hashes against the
+intake inventory using effective configured paths. It permits unchanged fixtures
+and authoring scratch files while rejecting generated, changed or deleted
+application artifacts. A regression now runs the actual Promptfoo evaluator with
+stub native CLI processes and real workflow create/start/done commands through
+planning and two distinct execution calls. Final checks: 828 addon tests and
+57 Node/Promptfoo tests passed. This is not a real-model quality result.
