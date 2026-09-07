@@ -107,6 +107,12 @@ it.each(['design-component', 'design-screen', 'design-shell', 'design-entity', '
     );
     expect(catalogue.step_resolved).not.toHaveProperty('create-component');
     expect(catalogue.step_resolved).not.toHaveProperty('create-scene');
+    const refresh = catalogue.step_resolved['refresh-components'];
+    expect(refresh).toBeDefined();
+    for (const entry of Array.isArray(refresh) ? refresh : [refresh!]) {
+      expect(entry.schema!.result.build!.$ref).toBe('#/definitions/StorybookBuild');
+      expect(entry.schema!.result.index!.$ref).toBe('#/definitions/StorybookIndex');
+    }
     if (name !== 'import') {
       const mapping = catalogue.step_resolved['map-entity'];
       expect(mapping).toBeDefined();

@@ -10,6 +10,8 @@ stages:
     steps: [create-tokens]
   components:
     steps: [write-component]
+  component-index:
+    steps: [refresh-components]
   scenes:
     steps: [write-scene]
 ---

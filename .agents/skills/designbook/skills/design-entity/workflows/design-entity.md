@@ -32,6 +32,9 @@ stages:
   component:
     steps:
       - write-component
+  component-index:
+    steps:
+      - refresh-components
   sample-data:
     steps:
       - create-sample-data

@@ -5,7 +5,7 @@ trigger:
 
 # Scenes Critical Constraints
 
-Intake fixes the component IDs used by scene and mapping outputs. If this run writes components, the saved graph includes a Storybook build/restart and index refresh before dependent scene or mapping work. A refresh supplies artifact data for those declared IDs only; newly discovered scope blocks the run. Every prerequisite is an explicit task, never a runtime preflight added by this rule.
+Intake fixes the component IDs used by scene and mapping outputs. If this run writes components, the saved graph includes `refresh-components` after those writes and before dependent scene or mapping work. Every dependent task consumes that predecessor’s refreshed `index` result through an explicit input. A refresh supplies artifact data for those declared IDs only; newly discovered scope blocks the run. Every prerequisite is an explicit task, never a runtime preflight added by this rule.
 
 > Full `*.scenes.yml` format and `SceneNode` types: see [scenes/schemas.yml](../../scenes/schemas.yml).
 
