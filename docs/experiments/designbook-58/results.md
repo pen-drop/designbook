@@ -184,3 +184,32 @@ by the normal result writer. The native intake transcript remains the presentati
 proof; main's declared selectors/breakpoints must agree. Pipeline tests cover
 intake/main/verify failures, setup isolation, handoff scope, metadata formatting
 and changed-reference rejection. Separate runner tests pass 41 checks.
+
+## Diagnostic 05: first intake phase exercised
+
+Source `93ea7d1b`; fresh workspace/report suffix `designbook-58-shell-diagnostic-05`,
+Storybook port 6123. The separate first intake phase passed with a visible
+selector inventory: `scene-header` / `body > app-root > app-site-header` and
+`scene-footer` / `body > app-root > app-footer > footer`, both at `sm,xl`,
+with planned `.page__header` / `.page__footer` story selectors and four real
+baseline captures. Main consumed the handoff, preserved its reference artifacts,
+and passed the presentation-order check before creating its workflow. External
+definition checks reported no mutations in either main or separate verify.
+
+Intake used 2,103,280 tokens in 349,313 ms; main used 4,480,426 tokens in
+490,956 ms; verify used 2,082,497 tokens in 283,575 ms. Total measured CLI
+work: 8,666,203 tokens and 1,123,844 ms. CSV durations additionally include
+provider overhead and are retained separately. This is failed diagnostic cost.
+
+Main built components and Storybook but final rendering blocked: its shell
+used an invented `content_injection` entity instead of the required root
+component `$content` slot. Verify independently blocked because it requested
+`header/footer` baseline IDs although the intake provided `scene-header/scene-footer`.
+It performed no comparisons and produced no usable quality score.
+
+The first static intake gate is now exercised end-to-end. It establishes visible
+presentation, reference selector/capture bindings and ordering; it does not
+establish full reference/extract schema validity or that planned story selectors
+match rendered DOM. The shell structure and verifier subject preservation remain
+open correctness issues. No valid baseline or efficiency improvement is claimed.
+Detailed phase accounting is saved beside the reports in `summary.json`.
