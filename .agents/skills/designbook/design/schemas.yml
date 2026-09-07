@@ -1143,3 +1143,29 @@ StorybookIndex:
       id: {type: string, minLength: 1, description: Story ID returned by the refreshed Storybook index.}
     additionalProperties: true
     description: Preserves the index entry fields supplied by Storybook, such as title, name and importPath.
+
+StorybookChecks:
+  type: array
+  title: Successful browser observations
+  description: Actual browser results and observations for the concrete stories, viewports and interactions fixed during intake.
+  minItems: 1
+  items:
+    type: object
+    required: [url, result, observations]
+    properties:
+      url:
+        type: string
+        minLength: 1
+        description: Actual checked story URL.
+      result:
+        type: object
+        description: Complete CHECK_RESULT returned by the browser check, including its measured diagnostics.
+        required: [ok]
+        properties:
+          ok: {type: boolean, const: true, description: The real browser check succeeded.}
+        additionalProperties: true
+      observations:
+        type: object
+        minProperties: 1
+        description: Observed values keyed by the intake's declared appearance, behavior and responsive criteria, supported by browser logs or captures.
+        additionalProperties: true

@@ -9,6 +9,7 @@ import { resolveAllStages, buildEnvMap } from '../workflow-resolve.js';
 import { resolveWorkflowFile, listWorkflowDefinitions, loadWorkflowDefinition } from './workflow-discovery.js';
 import { workflowDefinitionSchema, validateDefinition, type WorkflowDefinition } from '../workflow-document.js';
 import { saveDefinition, readDocument, taskContext, startTask, completeTask, blockTask } from '../workflow-store.js';
+import { definitionContracts } from '../planning-contracts.js';
 
 function print(value: unknown): void {
   console.log(JSON.stringify(value, null, 2));
@@ -33,20 +34,23 @@ export async function discoverWorkflow(id: string, configFile?: string) {
     blocks: Object.fromEntries(
       Object.entries(resolved.step_resolved).map(([name, entry]) => [
         name,
-        (Array.isArray(entry) ? entry : [entry]).map((block) => ({
-          instructions: embed(block.task_file),
-          rules: block.rules.map(embed),
-          blueprints: block.blueprints.map(embed),
-          config_rules: block.config_rules.map((content, index) => ({
-            source: `${configFile ?? configPath ?? 'configuration'}#workflow.rules.${name}[${index}]`,
-            content,
-          })),
-          config_instructions: block.config_instructions.map((content, index) => ({
-            source: `${configFile ?? configPath ?? 'configuration'}#workflow.tasks.${name}[${index}]`,
-            content,
-          })),
-          schema: block.schema,
-        })),
+        (Array.isArray(entry) ? entry : [entry]).map((block) => {
+          const instructions = embed(block.task_file);
+          return {
+            instructions,
+            rules: block.rules.map(embed),
+            blueprints: block.blueprints.map(embed),
+            config_rules: block.config_rules.map((content, index) => ({
+              source: `${configFile ?? configPath ?? 'configuration'}#workflow.rules.${name}[${index}]`,
+              content,
+            })),
+            config_instructions: block.config_instructions.map((content, index) => ({
+              source: `${configFile ?? configPath ?? 'configuration'}#workflow.tasks.${name}[${index}]`,
+              content,
+            })),
+            ...definitionContracts(block.schema ?? { definitions: {}, params: {}, result: {} }, instructions.content),
+          };
+        }),
       ]),
     ),
     definition_schema: workflowDefinitionSchema,

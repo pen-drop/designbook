@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { globSync } from 'glob';
 import { resolve } from 'node:path';
 import { resolveAllStages, type ResolvedStep } from '../workflow-resolve.js';
-import { validateDefinition, type WorkflowDefinition } from '../workflow-document.js';
+import { schemaValidator, validateDefinition, type WorkflowDefinition } from '../workflow-document.js';
 import type { DesignbookConfig } from '../config.js';
 
 const agents = resolve(process.cwd(), '../../.agents');
@@ -57,6 +57,32 @@ function definitionFor(key: string, schema: object, definitions: Record<string, 
 
 it('ships workflow templates', () => {
   expect(templates.length).toBeGreaterThan(15);
+});
+
+it('requires successful final build and browser evidence in the shared validation task', async () => {
+  const catalogue = await resolveAllStages(
+    resolve(agents, 'skills/designbook/skills/design-shell/workflows/design-shell.md'),
+    config,
+    {},
+    agents,
+  );
+  const block = Object.values(catalogue.step_resolved)
+    .flatMap((entry) => (Array.isArray(entry) ? entry : [entry]))
+    .find((entry) => entry.task_file.endsWith('/validate.md'))!;
+  if (!block.schema) throw new Error('Validation task has no schema');
+  expect(Object.keys(block.schema.result).sort()).toEqual(['build', 'checks']);
+  const ajv = schemaValidator(block.schema.definitions);
+  const build = ajv.compile({ $ref: block.schema.result.build!.$ref });
+  expect(build({ command: 'pnpm build-storybook', cwd: '/app', exitCode: 1, stdout: 'build failed' })).toBe(false);
+  const checks = ajv.compile({ $ref: block.schema.result.checks!.$ref });
+  expect(checks([])).toBe(false);
+  expect(checks([{ url: 'http://localhost/story', result: { ok: false }, observations: { header: 'missing' } }])).toBe(
+    false,
+  );
+  expect(checks([{ url: 'http://localhost/story', result: { ok: true }, observations: {} }])).toBe(false);
+  expect(checks([{ url: 'http://localhost/story', result: { ok: true }, observations: { header: 'visible' } }])).toBe(
+    true,
+  );
 });
 
 describe.each(templates.map((path) => [path.slice(agents.length + 1), path] as const))('%s', (_name, path) => {

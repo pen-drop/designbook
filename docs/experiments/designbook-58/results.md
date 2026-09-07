@@ -79,3 +79,33 @@ Both new regressions failed before their fixes. Afterward `pnpm check` passed
 A bounded `gpt-5.6-luna` optimizer proposed a single-file planning-contract
 correction from the training findings only. The proposal has not been evaluated;
 its native token usage is unknown. It received no held-out inputs or reports.
+
+## Diagnostic 02 audit
+
+Source `651a6580` plus the single-file planning proposal; fresh workspace
+`promptfoo/workspaces/designbook-58-shell-diagnostic-02`, Storybook port 6119.
+Reports and detailed audits: `promptfoo/reports/designbook-58-shell-diagnostic-02/`.
+Main used 6,493,071 tokens in 861,290 ms; separate verify used 4,685,629 tokens
+in 528,755 ms. Total CLI work: 11,178,700 tokens and 1,390,045 ms. These are
+failed diagnostic costs, not savings against diagnostic 01.
+
+Both external definition snapshots remained intact, and PNG outputs used direct
+image contracts. Main failed the stronger browser-observation gate. Inspection
+found that the shared `validate` task had no result declaration, so the planner
+invented a generic result even while preserving declared component contracts.
+The public catalogue also omitted root required lists and mixed observed file
+contents/existence flags with JSON schema entries.
+
+Verify reported score 6 and 2/4 passing comparisons. Image inspection invalidates
+that quality score: the reference `footer` matched an article footer containing
+“​​Aktuelle Themen im Überblick”, while the story capture contained legal/footer
+links. Their mostly empty 1600px canvas gave misleading differences of 0.05–0.11%.
+The story header used the reference's `app-site-header` selector and matched
+nothing. Header warnings were recorded as critical. The run is unevaluable.
+
+The single-file optimizer proposal is not accepted as an efficiency improvement.
+Its exact patch and decision remain in `research-runs/designbook-58/candidates/correctness-01/`.
+The next correctness change exposes definition-ready parameter/output contracts
+in `workflow discover` and gives the shared final validation task required build
+and browser-evidence outputs. This changes the catalogue interface and requires
+fresh baseline runs. No compatibility conversion is introduced.
