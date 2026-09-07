@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   selectorTable,
+  workflowCommand,
   validateDesignIntake,
 } from "../extensions/design-intake.mjs";
 const text =
@@ -99,5 +100,39 @@ test("Claude and Grok assistant text precedes tool use within native message con
       workflows,
     ).pass,
     false,
+  );
+});
+
+test("rejects descriptive story-selector placeholders and ambiguous duplicate subjects", () => {
+  assert.equal(
+    selectorTable(
+      text.replace(
+        "planned: .page__header",
+        "Planned: shell header story selector",
+      ),
+    ),
+    null,
+  );
+  assert.equal(selectorTable(text + "\n" + text.split("\n").at(-1)), null);
+  assert.notEqual(selectorTable(text.split("\n")[1] + "\n" + text), null);
+});
+
+test("ordering checks actual shell commands rather than documentation searches", () => {
+  assert.equal(workflowCommand(`rg 'workflow create' .agents`), false);
+  assert.equal(
+    workflowCommand(`rg 'storybook-addon-designbook workflow create' .agents`),
+    false,
+  );
+  assert.equal(
+    workflowCommand(
+      `/usr/bin/bash -lc 'npx storybook-addon-designbook workflow create plan.yml --output tasks.yml'`,
+    ),
+    true,
+  );
+  assert.equal(
+    workflowCommand(
+      `node /app/dist/cli.js workflow start tasks.yml --task header`,
+    ),
+    true,
   );
 });

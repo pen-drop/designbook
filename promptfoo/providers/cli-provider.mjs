@@ -1,6 +1,5 @@
 import {
   nativeEntries,
-  selectorTable,
   validateDesignIntake,
 } from "../extensions/design-intake.mjs";
 /**
@@ -273,7 +272,12 @@ class CliProvider {
                 continue;
               }
               for (const entry of nativeEntries([event]))
-                if (entry.text && selectorTable(entry.text))
+                if (
+                  entry.text &&
+                  /\|\s*subject\s*\|\s*reference selector\s*\|/i.test(
+                    entry.text,
+                  )
+                )
                   console.log(entry.text);
             }
           });

@@ -15,7 +15,8 @@
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.5.3",
     "prettier-plugin-tailwindcss": "^0.7.2",
-    "promptfoo": "^0.120.24"
+    "promptfoo": "^0.120.24",
+    "shell-quote": "1.8.3"
   },
   "dependencies": {
     "storybook-addon-designbook": "workspace:*"

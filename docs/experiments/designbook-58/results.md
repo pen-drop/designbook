@@ -134,3 +134,26 @@ command, and fails closed when ordering evidence is absent. It also emits the
 table during the CLI run. This static check establishes presentation and scope;
 visual correctness still requires the screenshot audit and separate verifier.
 These are user-requested correctness/measurement changes, not accepted token wins.
+
+
+## Diagnostic 03 audit
+
+Source `0b086d7f`; fresh workspace/report suffix `designbook-58-shell-diagnostic-03`,
+Storybook port 6121. Main selected the actual site footer (newsletter, sponsor
+logos, legal links), but ended at the intake table without creating a main
+workflow. The heading was duplicated and story selectors were descriptive
+placeholders. Main used 1,364,020 tokens in 213,780 ms.
+
+Separate verify used 4,680,474 tokens in 569,041 ms: total 6,044,494 tokens and
+782,821 ms of CLI work. No scene existed; all four story captures fell back.
+Verify also changed frozen selectors and task IDs after snapshot; both integrity
+checks rejected that mutation. Its reported score 12 and 0/4 passes are invalid
+as rendered-design measurements. Detailed audits remain beside the raw reports.
+
+The follow-up prompt explicitly requires completing intake and execution in the
+same invocation. Static intake validation rejects descriptive story-selector
+placeholders/duplicate subjects, handles a valid table after a repeated heading,
+and parses shell quoting so documentation searches do not become lifecycle
+commands. Intake text is displayed even when its table is invalid; validation
+still fails. `pnpm check` passes 783 tests; separate runner checks pass 38 tests.
+No efficiency gain is claimed from this incomplete run.

@@ -1,3 +1,4 @@
+import { parse as parseShell } from "shell-quote";
 const headers = [
   "subject",
   "reference selector",
@@ -28,6 +29,35 @@ export function nativeEntries(events) {
   });
 }
 
+export function workflowCommand(command) {
+  let words;
+  try {
+    words = parseShell(command, (name) => `$${name}`);
+  } catch {
+    return false;
+  }
+  for (let i = 0; i < words.length; i++) {
+    if (typeof words[i] !== "string") continue;
+    if (
+      /(?:^|\/)(?:bash|sh|zsh|fish)$/.test(words[i]) &&
+      typeof words[i + 1] === "string" &&
+      /^-[a-z]*c[a-z]*$/.test(words[i + 1]) &&
+      typeof words[i + 2] === "string" &&
+      workflowCommand(words[i + 2])
+    )
+      return true;
+    if (
+      /(?:^|\/)(?:storybook-addon-designbook|_debo|cli\.(?:mjs|js))$/.test(
+        words[i],
+      ) &&
+      words[i + 1] === "workflow" &&
+      ["create", "start", "done"].includes(words[i + 2])
+    )
+      return true;
+  }
+  return false;
+}
+
 export function selectorTable(text) {
   const lines = text.split(/\r?\n/);
   const cells = (line) =>
@@ -37,11 +67,12 @@ export function selectorTable(text) {
       .replace(/\|$/, "")
       .split(/(?<!\\)\|/)
       .map(clean);
-  const start = lines.findIndex((line) => {
+  const start = lines.findIndex((line, index) => {
     const row = cells(line).map((cell) => cell.toLowerCase());
     return (
       row.length === headers.length &&
-      row.every((cell, i) => cell === headers[i])
+      row.every((cell, i) => cell === headers[i]) &&
+      /^\s*\|?\s*:?-{3}/.test(lines[index + 1] || "")
     );
   });
   if (start < 0 || !/^\s*\|?\s*:?-{3}/.test(lines[start + 1] || ""))
@@ -52,14 +83,20 @@ export function selectorTable(text) {
     const values = cells(line);
     if (
       values.length !== headers.length ||
-      values.some((value) => !value || /^(?:tbd|unknown|\?|-)$/i.test(value))
+      values.some((value) => !value || /^(?:tbd|unknown|\?|-)$/i.test(value)) ||
+      /\b(?:tbd|unknown|story selector|to be (?:defined|determined))\b/i.test(
+        values[2] || "",
+      )
     )
       return null;
     rows.push(
       Object.fromEntries(headers.map((header, i) => [header, values[i]])),
     );
   }
-  return rows.length ? rows : null;
+  return rows.length &&
+    new Set(rows.map((row) => row.subject)).size === rows.length
+    ? rows
+    : null;
 }
 
 /** Deterministic transcript/order and declared-scope check; visual truth is audited separately. */
@@ -69,7 +106,7 @@ export function validateDesignIntake(events, workflows = {}) {
     (entry) => entry.text && selectorTable(entry.text),
   );
   const created = entries.findIndex((entry) =>
-    /\bworkflow\s+(?:create|start|done)\b/.test(entry.command || ""),
+    workflowCommand(entry.command || ""),
   );
   const fail = (reason) => ({ pass: false, reason });
   if (presented < 0)
