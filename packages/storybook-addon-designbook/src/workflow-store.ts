@@ -2,7 +2,7 @@
 import { mkdir, readFile, rename, rm, rmdir, stat, writeFile, unlink, link, open } from 'node:fs/promises';
 import { basename, dirname, extname, join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { dump, load } from 'js-yaml';
 import {
   createDocument,
@@ -209,6 +209,7 @@ export async function completeTask(
     try {
       for (const [key, output] of Object.entries(task.outputs)) {
         let value: unknown;
+        let sha256: string | undefined;
         const errors: string[] = [];
         const submitted = Object.hasOwn(payload, key);
         if (!submitted && output.submission === 'data') {
@@ -219,6 +220,7 @@ export async function completeTask(
         try {
           if (output.submission === 'direct') {
             const bytes = await readFile(output.path!);
+            sha256 = createHash('sha256').update(bytes).digest('hex');
             const extension = extname(output.path!).toLowerCase();
             value = Object.keys(output.schema).length
               ? extension === '.yml' || extension === '.yaml'
@@ -238,6 +240,10 @@ export async function completeTask(
             await writeFile(validationPath, serializeForPath(output.path, value, output.schema as SchemaProperty));
             staged.push({ path: validationPath, target: output.path });
           }
+          if (!sha256 && validationPath && errors.length === 0)
+            sha256 = createHash('sha256')
+              .update(await readFile(validationPath))
+              .digest('hex');
           if (validationPath && output.validators.length && errors.length === 0) {
             const findings = await validateByKeys(
               output.validators,
@@ -246,6 +252,14 @@ export async function completeTask(
             );
             if (findings.valid !== true) errors.push(findings.error ?? 'File validation did not pass');
           }
+          if (
+            sha256 &&
+            validationPath &&
+            createHash('sha256')
+              .update(await readFile(validationPath))
+              .digest('hex') !== sha256
+          )
+            errors.push('Artifact changed during validation');
         } catch (error) {
           if (!output.required && output.submission === 'direct' && (error as NodeJS.ErrnoException).code === 'ENOENT')
             continue;
@@ -253,6 +267,7 @@ export async function completeTask(
         }
         state.results[key] = {
           ...(value !== undefined ? { value } : {}),
+          ...(sha256 && errors.length === 0 ? { sha256 } : {}),
           valid: errors.length === 0,
           errors,
           validated_at: new Date().toISOString(),

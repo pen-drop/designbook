@@ -197,6 +197,19 @@ inventory array) outputs and submits their actual results. Keep the final build
 after scene/mapping writes as a separate task. The workflow-ID maps remain useful for single-run cases;
 `runs[]` is the execution-path identity for repeated cases.
 
+File results carry the executor's `sha256` of the bytes accepted by validation.
+`runs[].artifactIntegrity` compares those hashes with the final files, selecting the
+last declared writer through task dependencies. A changed or missing file fails
+completion even when its stored result is valid. Complete corrections within the
+declared writer before finishing it; later changes need their own predeclared
+writer and validation. A newly discovered correction outside the fixed definition
+blocks that execution.
+
+The scorer writes `outputHashes` into each artifact snapshot for all declared file
+outputs, including direct and binary artifacts. Repeated runs validate each saved
+snapshot separately and also compare the final files against the last execution
+that declared each path. Preserve the scorer-produced snapshots intact.
+
 When `repeat: {count: 2, same_prompt: true}` is present, the Promptfoo driver completes the domain intake and saved executor twice
 within the same evaluation, with identical domain requests and distinct definition IDs. Save a distinct definition and
 execution path for each run. Capture the first run's artifact snapshot and evidence

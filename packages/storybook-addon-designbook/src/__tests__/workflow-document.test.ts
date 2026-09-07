@@ -3,6 +3,7 @@ import { mkdtemp, readdir, readFile, rm, utimes, writeFile } from 'node:fs/promi
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { dump, load } from 'js-yaml';
+import { createHash } from 'node:crypto';
 import {
   createDocument,
   validateDefinition,
@@ -247,6 +248,26 @@ describe('completion and reference boundaries', () => {
 });
 
 describe('artifact and verification contracts', () => {
+  it.each(['data', 'direct'] as const)('records the validated bytes for a %s artifact', async (submission) => {
+    const dir = await mkdtemp(join(tmpdir(), 'workflow-hash-'));
+    dirs.push(dir);
+    const file = join(dir, 'artifact.yml');
+    const def = definition();
+    def.tasks[0]!.outputs = {
+      artifact: { required: true, schema: {}, path: file, submission, validators: [] },
+    };
+    if (submission === 'direct') await writeFile(file, Buffer.from([0, 255, 10, 128]));
+    const path = await setup(def);
+    await startTask(path, 'write');
+    const done = await completeTask(path, 'write', submission === 'data' ? { artifact: { title: 'Validated' } } : {});
+    const expected = createHash('sha256')
+      .update(await readFile(file))
+      .digest('hex');
+    expect(done.state.tasks.write!.results.artifact).toHaveProperty('sha256', expected);
+    await writeFile(file, 'changed after validation');
+    expect((await readDocument(path)).state.tasks.write!.results.artifact).toHaveProperty('sha256', expected);
+  });
+
   it('validates direct CSS as source text instead of interpreting it as YAML', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'workflow-css-'));
     dirs.push(dir);

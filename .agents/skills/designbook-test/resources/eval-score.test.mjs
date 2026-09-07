@@ -4,12 +4,14 @@ import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   collectArtifacts,
   executionComplete,
   evalAssertions,
   collectRuns,
   componentPrerequisites,
+  artifactIntegrity,
 } from "./eval-score.mjs";
 
 test("bounded baseline evidence includes unchanged files and detects damage/deletion", () => {
@@ -59,6 +61,137 @@ const doc = () => ({
       },
     },
   },
+});
+
+test("run completion rejects files changed after validation even with a stale snapshot", () => {
+  const dir = mkdtempSync(join(tmpdir(), "eval-drift-"));
+  try {
+    const file = join(dir, "header.twig");
+    const workflow = join(dir, "tasks.yml");
+    const snapshot = join(dir, "snapshot.json");
+    const document = doc();
+    const original = '<header data-shell-header="">Header</header>\n';
+    document.definition.tasks[0].outputs.artifact.path = file;
+    document.state.tasks.write.results.artifact.value = original;
+    document.state.tasks.write.results.artifact.sha256 = createHash("sha256")
+      .update(original)
+      .digest("hex");
+    writeFileSync(file, original);
+    writeFileSync(workflow, JSON.stringify(document));
+    writeFileSync(
+      snapshot,
+      JSON.stringify({
+        outputHashes: {
+          [file]: document.state.tasks.write.results.artifact.sha256,
+        },
+      }),
+    );
+    const entries = [{ workflow, artifactSnapshot: snapshot }];
+    const collect = () => collectRuns(entries, () => ({}))[0];
+    assert.equal(collect().complete, true);
+    writeFileSync(file, original.replace('=""', '="true"'));
+    assert.equal(collect().complete, false);
+    rmSync(file);
+    assert.equal(collect().complete, false);
+    writeFileSync(file, original);
+    delete document.state.tasks.write.results.artifact.sha256;
+    writeFileSync(workflow, JSON.stringify(document));
+    assert.equal(collect().complete, false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("file integrity follows declared writer dependencies rather than task array order", () => {
+  const first = doc().definition.tasks[0];
+  first.outputs.artifact.path = "/tmp/scene.yml";
+  const last = { ...first, id: "last", depends_on: ["write"] };
+  const document = doc();
+  document.definition.tasks = [last, first];
+  document.state.tasks.write.results.artifact.sha256 = "a".repeat(64);
+  document.state.tasks.last = {
+    status: "done",
+    results: { artifact: { valid: true, value: null, sha256: "b".repeat(64) } },
+  };
+  assert.equal(
+    artifactIntegrity(document, { "/tmp/scene.yml": "b".repeat(64) }).passed,
+    true,
+  );
+  assert.equal(
+    artifactIntegrity(document, { "/tmp/scene.yml": "a".repeat(64) }).passed,
+    false,
+  );
+  last.depends_on = [];
+  assert.equal(
+    artifactIntegrity(document, { "/tmp/scene.yml": "b".repeat(64) }).passed,
+    false,
+  );
+});
+
+test("repeated runs retain historical validation and reject drift in files not rewritten later", () => {
+  const dir = mkdtempSync(join(tmpdir(), "eval-repeat-integrity-"));
+  try {
+    const file = join(dir, "scene.yml");
+    const untouched = join(dir, "neighbor.yml");
+    const hash = (value) => createHash("sha256").update(value).digest("hex");
+    const entries = ["first", "second"].map((value, index) => {
+      const document = doc();
+      document.definition.tasks[0].outputs.artifact.path = file;
+      document.state.tasks.write.results.artifact = {
+        valid: true,
+        value,
+        sha256: hash(value),
+      };
+      if (index === 0) {
+        document.definition.tasks[0].outputs.neighbor = {
+          path: untouched,
+          required: true,
+        };
+        document.state.tasks.write.results.neighbor = {
+          valid: true,
+          value: "keep",
+          sha256: hash("keep"),
+        };
+      } else {
+        document.definition.tasks[0].outputs.neighbor = {
+          path: untouched,
+          required: false,
+          submission: "data",
+        };
+      }
+      const workflow = join(dir, value + ".json");
+      const artifactSnapshot = join(dir, value + "-snapshot.json");
+      writeFileSync(workflow, JSON.stringify(document));
+      writeFileSync(
+        artifactSnapshot,
+        JSON.stringify({
+          outputHashes: {
+            [file]: hash(value),
+            ...(index === 0 ? { [untouched]: hash("keep") } : {}),
+          },
+        }),
+      );
+      return { workflow, artifactSnapshot };
+    });
+    writeFileSync(file, "second");
+    writeFileSync(untouched, "keep");
+    assert.equal(
+      collectRuns(entries).every((run) => run.complete),
+      true,
+    );
+    writeFileSync(untouched, "undeclared edit");
+    assert.equal(collectRuns(entries)[0].complete, false);
+    writeFileSync(untouched, "keep");
+    writeFileSync(
+      entries[0].artifactSnapshot,
+      JSON.stringify({
+        outputHashes: { [file]: hash("wrong"), [untouched]: hash("keep") },
+      }),
+    );
+    assert.equal(collectRuns(entries)[0].complete, false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test("scorer CLI uses the current summary command and shared artifact collector", () => {
@@ -585,52 +718,125 @@ test("shell update preserves the footer while allowing the requested navigation 
 });
 
 const graphDocument = () => ({
-  definition: { tasks: [
-    {id: "component", type: "write-component", depends_on: [], outputs: {"component-twig": {}}},
-    {id: "refresh", type: "build", depends_on: ["component"], outputs: {build: {required: true}, index: {required: true}}},
-    {id: "mapping", type: "map-entity", depends_on: ["refresh"], inputs: {components: {task: "refresh", result: "index"}}},
-    {id: "scene", type: "write-scene", depends_on: ["mapping", "refresh"], inputs: {components: {task: "refresh", result: "index"}}},
-  ]},
-  state: {tasks: {refresh: {status: "done", results: {
-    build: {valid: true, value: {command: "pnpm build-storybook", cwd: "/theme", exitCode: 0, stdout: "Built"}},
-    index: {valid: true, value: [{id: "provider:avatar"}]},
-  }}}},
+  definition: {
+    tasks: [
+      {
+        id: "component",
+        type: "write-component",
+        depends_on: [],
+        outputs: { "component-twig": {} },
+      },
+      {
+        id: "refresh",
+        type: "build",
+        depends_on: ["component"],
+        outputs: { build: { required: true }, index: { required: true } },
+      },
+      {
+        id: "mapping",
+        type: "map-entity",
+        depends_on: ["refresh"],
+        inputs: { components: { task: "refresh", result: "index" } },
+      },
+      {
+        id: "scene",
+        type: "write-scene",
+        depends_on: ["mapping", "refresh"],
+        inputs: { components: { task: "refresh", result: "index" } },
+      },
+    ],
+  },
+  state: {
+    tasks: {
+      refresh: {
+        status: "done",
+        results: {
+          build: {
+            valid: true,
+            value: {
+              command: "pnpm build-storybook",
+              cwd: "/theme",
+              exitCode: 0,
+              stdout: "Built",
+            },
+          },
+          index: { valid: true, value: [{ id: "provider:avatar" }] },
+        },
+      },
+    },
+  },
 });
 
 test("component prerequisites require dependency edges and consumed build/index results", () => {
   assert.equal(componentPrerequisites(graphDocument()).passed, true);
   for (const damage of [
-    d => { d.definition.tasks.splice(1, 1); },
-    d => { d.definition.tasks[1].depends_on = []; },
-    d => { d.definition.tasks[1].depends_on = ["scene"]; },
-    d => { d.definition.tasks[2].depends_on = ["component"]; },
-    d => { d.definition.tasks[3].inputs = {}; },
-    d => { d.state.tasks.refresh.results.index.value = []; },
-    d => { d.state.tasks.refresh.results.build.value.exitCode = 1; },
-    d => { d.definition.tasks[1].outputs.index.required = false; },
-    d => { d.definition.tasks.push({id: "other", type: "write-component", depends_on: []}); },
+    (d) => {
+      d.definition.tasks.splice(1, 1);
+    },
+    (d) => {
+      d.definition.tasks[1].depends_on = [];
+    },
+    (d) => {
+      d.definition.tasks[1].depends_on = ["scene"];
+    },
+    (d) => {
+      d.definition.tasks[2].depends_on = ["component"];
+    },
+    (d) => {
+      d.definition.tasks[3].inputs = {};
+    },
+    (d) => {
+      d.state.tasks.refresh.results.index.value = [];
+    },
+    (d) => {
+      d.state.tasks.refresh.results.build.value.exitCode = 1;
+    },
+    (d) => {
+      d.definition.tasks[1].outputs.index.required = false;
+    },
+    (d) => {
+      d.definition.tasks.push({
+        id: "other",
+        type: "write-component",
+        depends_on: [],
+      });
+    },
   ]) {
     const document = graphDocument();
     damage(document);
     assert.equal(componentPrerequisites(document).passed, false);
   }
   const existing = graphDocument();
-  existing.definition.tasks = existing.definition.tasks.filter(t => t.type !== "write-component");
+  existing.definition.tasks = existing.definition.tasks.filter(
+    (t) => t.type !== "write-component",
+  );
   assert.equal(componentPrerequisites(existing).passed, true);
 });
 
 test("affected cases reject a completed graph with only a final build", () => {
-  for (const name of ["design-shell", "design-shell-update", "design-component-update"]) {
-    const caseDoc = parseYaml(readFileSync(new URL(`cases/${name}.yaml`, suite), "utf8"));
-    const assertion = caseDoc.assert.find(a => a.value.includes("componentPrerequisites"));
+  for (const name of [
+    "design-shell",
+    "design-shell-update",
+    "design-component-update",
+  ]) {
+    const caseDoc = parseYaml(
+      readFileSync(new URL(`cases/${name}.yaml`, suite), "utf8"),
+    );
+    const assertion = caseDoc.assert.find((a) =>
+      a.value.includes("componentPrerequisites"),
+    );
     assert.ok(assertion, name);
     const document = graphDocument();
     document.definition.tasks[1].depends_on = ["scene"];
     document.definition.tasks[2].depends_on = ["component"];
     document.definition.tasks[3].depends_on = ["mapping"];
-    const run = {complete: true, definitionUnchanged: true, componentPrerequisites: componentPrerequisites(document)};
-    assert.equal(evalAssertions([assertion], {runs: [run]}).passed, 0, name);
+    const run = {
+      complete: true,
+      definitionUnchanged: true,
+      componentPrerequisites: componentPrerequisites(document),
+    };
+    assert.equal(evalAssertions([assertion], { runs: [run] }).passed, 0, name);
     run.componentPrerequisites = componentPrerequisites(graphDocument());
-    assert.equal(evalAssertions([assertion], {runs: [run]}).passed, 1, name);
+    assert.equal(evalAssertions([assertion], { runs: [run] }).passed, 1, name);
   }
 });
