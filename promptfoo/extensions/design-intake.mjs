@@ -70,8 +70,11 @@ export function selectorTable(text) {
   const start = lines.findIndex((line, index) => {
     const row = cells(line).map((cell) => {
       const label = cell.toLowerCase();
-      if (label === "source locator") return "reference selector";
-      if (label === "views") return "breakpoints";
+      if (/^(?:native )?source locator(?: on .+)?$/.test(label))
+        return "reference selector";
+      if (/^(?:planned )?story selector$/.test(label)) return "story selector";
+      if (/^views(?: and states)?$/.test(label)) return "breakpoints";
+      if (/^(?:observed )?evidence$/.test(label)) return "evidence";
       return label;
     });
     return (
@@ -94,9 +97,19 @@ export function selectorTable(text) {
       )
     )
       return null;
-    rows.push(
-      Object.fromEntries(headers.map((header, i) => [header, values[i]])),
+    const row = Object.fromEntries(
+      headers.map((header, i) => [header, values[i]]),
     );
+    const sourceCell = line
+      .trim()
+      .replace(/^\|/, "")
+      .replace(/\|$/, "")
+      .split(/(?<!\\)\|/)[1];
+    const literals = [...sourceCell.matchAll(/`([^`]+)`/g)].map((match) =>
+      match[1].trim(),
+    );
+    if (literals.length) row.source_locators = literals;
+    rows.push(row);
   }
   return rows.length &&
     new Set(rows.map((row) => row.subject)).size === rows.length
@@ -125,13 +138,32 @@ export function validateIntakePresentation(
     ? {
         pass: true,
         reason: "Complete selector intake presented",
-        text: presentation.text,
+        text: entries
+          .filter((entry) => entry.text)
+          .map((entry) => entry.text)
+          .join("\n\n"),
         rows: selectorTable(presentation.text),
       }
     : {
         pass: false,
         reason: "Missing complete user-visible selector table in intake",
       };
+}
+
+/** Explicit inventory values may have readable labels, without matching identifier prefixes. */
+export function inventoryMentions(text, value) {
+  if (typeof text !== "string" || typeof value !== "string" || !value)
+    return false;
+  const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(?:^|[^\\w-])${escaped}(?=$|[^\\w-])`, "i").test(text);
+}
+
+/** Locator literals are case-sensitive; prose labels cannot change their meaning. */
+export function locatorPresented(row, value) {
+  return (
+    typeof value === "string" &&
+    (row.source_locators || [row["reference selector"]]).includes(value)
+  );
 }
 
 /** Every published reference scope cell must appear in the native intake. */
@@ -141,13 +173,14 @@ export function validateCapturePresentation(rows, workflows = {}) {
     if (workflow.definition?.capture?.role !== "reference") continue;
     for (const cell of workflow.definition.capture.scope || []) {
       const row = rows?.find((candidate) => candidate.subject === cell.subject);
-      if (!row || row["reference selector"] !== cell.locator.value)
+      if (!row || !locatorPresented(row, cell.locator.value))
         return fail(`Intake omits the source locator for ${cell.subject}`);
-      const views = row.breakpoints.split(/[\s,]+/);
-      if (!views.includes(cell.view) && !views.includes(cell.breakpoint))
+      if (
+        !inventoryMentions(row.breakpoints, cell.view) &&
+        !inventoryMentions(row.breakpoints, cell.breakpoint)
+      )
         return fail(`Intake omits view ${cell.view} for ${cell.subject}`);
-      const state = cell.state.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      if (!new RegExp(`(?:^|\\W)${state}(?:$|\\W)`, "i").test(row.evidence))
+      if (!inventoryMentions(`${row.evidence} ${row.breakpoints}`, cell.state))
         return fail(
           `Intake evidence omits state ${cell.state} for ${cell.subject}`,
         );

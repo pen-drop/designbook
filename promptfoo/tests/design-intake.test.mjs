@@ -163,3 +163,68 @@ test("capture-enabled intake checks presentation while workflow publication is c
     false,
   );
 });
+
+test("readable source headings and annotated views retain explicit capture coverage", () => {
+  const prose = text
+    .replace("Reference selector", "Source locator on https://example.test/")
+    .replace("Story selector", "Planned story selector")
+    .replace("Breakpoints", "Views and states")
+    .replace("Evidence", "Observed evidence")
+    .replace(
+      "| app-site-header |",
+      "| `app-site-header > nav` within `app-site-header` |",
+    )
+    .replace("sm, xl", "sm 640×1600; xl 1440×1600. Both: rest.");
+  const events = [
+    { ...message, item: { ...message.item, text: prose } },
+    create,
+  ];
+  assert.equal(validateDesignIntake(events, workflows).pass, true);
+  assert.equal(
+    validateDesignIntake(
+      [
+        {
+          ...message,
+          item: {
+            ...message.item,
+            text: prose.replaceAll("app-site-header", "app-site-header-other"),
+          },
+        },
+        create,
+      ],
+      workflows,
+    ).pass,
+    false,
+  );
+});
+
+test("source locators preserve exact case and compound-selector identity", () => {
+  for (const [locator, presented] of [
+    ["#Navigation", "#navigation"],
+    ["header", "header.mobile"],
+  ]) {
+    const document = {
+      definition: {
+        capture: {
+          role: "reference",
+          scope: [
+            {
+              subject: "header",
+              view: "sm",
+              state: "rest",
+              locator: { kind: "css", value: locator },
+            },
+          ],
+        },
+      },
+    };
+    const prose = text.replace("app-site-header", presented);
+    assert.equal(
+      validateDesignIntake(
+        [{ ...message, item: { ...message.item, text: prose } }, create],
+        { capture: document },
+      ).pass,
+      false,
+    );
+  }
+});

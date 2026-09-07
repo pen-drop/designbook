@@ -1,7 +1,7 @@
 ---
 name: designbook:design:playwright-capture
 trigger:
-  steps: [capture, re-capture, capture-backend, re-capture-backend, compare, re-compare, polish, polish-config, extract-reference]
+  steps: [capture, re-capture, capture-backend, re-capture-backend, compare, re-compare, polish, polish-config]
 ---
 
 # Playwright Capture

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { captureFixture } from './capture-fixture.js';
+import { captureFixture, png } from './capture-fixture.js';
 import { readPublishedCapture, assertUnpublishedTarget } from '../reference-capture.js';
 import { readDocument, startTask, saveDefinition } from '../workflow-store.js';
 import { prepareReferenceQuery, queryReference } from '../reference-query.js';
@@ -168,5 +168,29 @@ describe('ordinary workflow done capture publication', () => {
     expect(actual.subjects[0]!.locator).toEqual(locator);
     expect(actual.captures[0]!.path).toBe(join(backend.folder, 'mobile--header--open.png'));
     expect([story, backend].map((f) => readFileSync(join(f.folder, 'meta.yml')))).toEqual(before);
+  });
+  it('accepts an image-validated PNG asset separately from observed screenshots', async () => {
+    const f = fixture();
+    const filename = 'assets/logo.png';
+    writeFileSync(join(f.folder, filename), png);
+    f.extract.images[0]!.reference_path = filename;
+    f.extract.images[0]!.local_path = '/logo.png';
+    f.definition.tasks[0]!.outputs.logo_png = {
+      required: true,
+      schema: { $ref: '#/definitions/CaptureFile' },
+      path: join(f.folder, filename),
+      submission: 'direct',
+      validators: ['image'],
+    };
+    const doc = await f.complete();
+    expect(doc.state.capture!.files).toHaveProperty(filename);
+    expect(f.extract.captures.some((capture) => capture.path === filename)).toBe(false);
+    const request = prepareReferenceQuery(
+      { reference: f.folder, package: 'assets', subjects: ['header'], states: ['rest'], views: ['mobile'] },
+      f.contract,
+    );
+    const packet = queryReference(request, f.contract);
+    expect(packet.dependencies.assets[0]!.reference_path).toBe(filename);
+    expect(packet.captures).toHaveLength(1);
   });
 });

@@ -116,6 +116,7 @@ it.each(['design-component', 'design-screen', 'design-shell', 'design-entity', '
       {},
       agents,
     );
+    expect(catalogue.step_resolved).not.toHaveProperty('extract-reference');
     expect(catalogue.step_resolved).not.toHaveProperty('create-component');
     expect(catalogue.step_resolved).not.toHaveProperty('create-scene');
     const refresh = catalogue.step_resolved['refresh-components'];

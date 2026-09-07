@@ -14,7 +14,7 @@ description: Domain decisions required before planning sync-verify artifacts.
    Select corresponding subjects, native views, explicit breakpoint mappings and
    interaction states. A missing story, backend subject or required state blocks
    preparation; a whole-page fallback cannot replace an intended isolated subject.
-3. Follow the [shared capture intake](../../capture-reference/resources/intake.md)
+3. Follow the [shared capture intake](../../extract-reference/resources/intake.md)
    twice, enabling the installed `storybook` and `website` extensions in the
    effective capture configuration: the Storybook integration captures the current story with role
    `reference`; the website integration captures the resolved backend render with

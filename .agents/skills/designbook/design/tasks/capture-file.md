@@ -9,7 +9,7 @@ params:
   properties:
     file_path:
       type: string
-      description: Absolute CLI-owned revision path for one selected asset.
+      description: Absolute CLI-owned revision path for one selected non-PNG asset, such as a font, SVG or JPEG file.
 result:
   type: object
   required: [file]
@@ -22,4 +22,4 @@ result:
 
 # Capture selected evidence file
 
-The exact selected asset file associated with the observation scope.
+The exact selected non-PNG asset file associated with the observation scope.

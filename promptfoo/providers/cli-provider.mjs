@@ -403,7 +403,8 @@ class CliProvider {
         const captures = this.config.intakeOnly
           ? validateIntakeCaptures(artifacts, artifacts.designIntake.rows)
           : null;
-        if (captures && !captures.pass) artifacts.designIntake = captures;
+        if (captures && !captures.pass && artifacts.designIntake.pass)
+          artifacts.designIntake = captures;
         if (
           intakeHandoff &&
           !fixedWorkflowsUnchanged(artifacts, intakeHandoff.fixed_workflows)
@@ -448,6 +449,7 @@ class CliProvider {
         if (this.config.intakeOnly && artifacts.designIntake.pass) {
           const validation = validateIntakeReferences({
             rows: artifacts.designIntake.rows,
+            text: artifacts.designIntake.text,
             metadata,
             publications: captures.references,
             dataDir: await this.resolveDesignbookDir(cwd),

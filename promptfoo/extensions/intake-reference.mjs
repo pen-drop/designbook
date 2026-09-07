@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { inventoryMentions, locatorPresented } from "./design-intake.mjs";
 import { writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,7 +8,7 @@ const repo = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 /** Validate enriched references before freezing them; expose no complete extraction in the handoff. */
 export function validateIntakeReferences(
-  { rows, metadata, dataDir, publications, evidenceDir, workspace },
+  { rows, metadata, dataDir, publications, evidenceDir, workspace, text = "" },
   run,
 ) {
   const selected = rows.filter(
@@ -16,15 +17,32 @@ export function validateIntakeReferences(
   if (!selected.length) return { pass: true, references: [] };
   const paths = new Set();
   for (const row of selected) {
-    const matches = Object.entries(metadata).filter(
+    let matches = Object.entries(metadata).filter(
       ([, meta]) =>
         meta.role === "reference" &&
         meta.elements?.some(
           (element) =>
             element.id === row.subject &&
-            element.locator?.value === row["reference selector"],
+            locatorPresented(row, element.locator?.value),
         ),
     );
+    if (matches.length > 1) {
+      const named = matches.filter(([path]) => {
+        const directory = dirname(
+          join(dataDir, path.slice("designbook/".length)),
+        );
+        const publication = publications?.find(
+          (entry) => resolve(entry.directory) === resolve(directory),
+        );
+        return (
+          publication &&
+          (inventoryMentions(text, publication.revision) ||
+            row.evidence?.includes(directory) ||
+            row.evidence?.includes(dirname(path)))
+        );
+      });
+      if (named.length) matches = named;
+    }
     if (matches.length !== 1)
       return {
         pass: false,
@@ -32,17 +50,17 @@ export function validateIntakeReferences(
       };
     const [path, meta] = matches[0];
     const element = meta.elements.find((entry) => entry.id === row.subject);
-    for (const view of row.breakpoints.split(/[\s,]+/).filter(Boolean)) {
-      if (
-        !element.views?.some(
-          (entry) => entry.id === view || entry.breakpoint === view,
-        )
+    if (
+      !element.views?.some(
+        (entry) =>
+          inventoryMentions(row.breakpoints, entry.id) ||
+          inventoryMentions(row.breakpoints, entry.breakpoint),
       )
-        return {
-          pass: false,
-          reason: `Intake reference omits view ${view} for ${row.subject}`,
-        };
-    }
+    )
+      return {
+        pass: false,
+        reason: `Intake reference omits view ${row.breakpoints} for ${row.subject}`,
+      };
     const directory = dirname(join(dataDir, path.slice("designbook/".length)));
     if (
       !publications?.some(

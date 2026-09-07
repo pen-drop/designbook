@@ -1,5 +1,5 @@
 ---
-name: capture-reference-intake
+name: extract-reference-intake
 description: Assemble a fixed source-specific observation workflow and consume its completed revision.
 ---
 
@@ -20,8 +20,11 @@ description: Assemble a fixed source-specific observation workflow and consume i
    source, role (`reference` or `actual`) and exact scope cells. Resolve the
    CLI-owned location with `workflow capture-location --source-kind <kind> --source-identity <identity>
    --workflow-id <id>` before finalizing output paths. Every file output lies inside
-   the returned directory. Declare screenshots as `capture-screenshot` image-validated
-   direct outputs and assets as `capture-file` direct outputs; its completion supplies validated file evidence. Each selected integration contributes its applicable source tasks and
+   the returned directory. Declare PNG screenshots and PNG image assets as `capture-image` direct outputs
+   with the shared image validator. Declare fonts and other binary assets, including
+   SVG and JPEG images, as `capture-file` direct outputs under their real format
+   extensions. File completion supplies validated evidence; screenshot and asset
+   associations remain distinct in the extract. Each selected integration contributes its applicable source tasks and
    concrete file outputs. The final `publish-capture` task depends on every
    source task and consumes their structured results through predecessor bindings.
 4. Save and invoke `execute-workflow <path>`. Complete tasks through ordinary

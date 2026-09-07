@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { resolveAllStages } from '../workflow-resolve.js';
 
 const agents = resolve(process.cwd(), '../../.agents');
-const template = resolve(agents, 'skills/designbook/skills/capture-reference/workflows/capture-reference.md');
+const template = resolve(agents, 'skills/designbook/skills/extract-reference/workflows/extract-reference.md');
 describe('source integration capture discovery', () => {
   it.each(['website', 'figma', 'storybook'])(
     'assembles only the selected %s source and common outputs',
@@ -26,7 +26,7 @@ describe('source integration capture discovery', () => {
       ]);
       const publish = blocks.find((block) => block.task_file.endsWith('/publish-capture.md'))!;
       expect(Object.keys(publish.schema!.result).sort()).toEqual(['reference', 'reference_extract']);
-      const screenshot = blocks.find((block) => block.task_file.endsWith('/capture-screenshot.md'))!;
+      const screenshot = blocks.find((block) => block.task_file.endsWith('/capture-image.md'))!;
       expect(screenshot.schema!.result.file!.validators).toEqual(['image']);
       expect(screenshot.schema!.result.file!.submission).toBe('direct');
     },
@@ -72,3 +72,47 @@ it.each(['repair', 'repair-config'])(
     expect(comparison.schema!.params).not.toHaveProperty('reference_dir');
   },
 );
+
+it.each([
+  { label: 'two enabled integrations', extensions: ['website', 'storybook'], expected: ['website', 'storybook'] },
+  {
+    label: 'configured extension objects',
+    extensions: [{ id: 'website' }, { id: 'storybook' }],
+    expected: ['website', 'storybook'],
+  },
+  {
+    label: 'all enabled integrations',
+    extensions: ['website', 'figma', 'storybook'],
+    expected: ['website', 'figma', 'storybook'],
+  },
+  { label: 'disabled source integrations', extensions: ['unrelated', 'other'], expected: [] },
+  { label: 'empty enabled list', extensions: [], expected: [] },
+])('capture filters intersect list-valued configuration: $label', async ({ extensions, expected }) => {
+  const catalogue = await resolveAllStages(
+    template,
+    { data: '/tmp/source-multiple-discovery', technology: 'html', extensions },
+    {},
+    agents,
+  );
+  const blocks = Object.values(catalogue.step_resolved).flatMap((block) => (Array.isArray(block) ? block : [block]));
+  expect(
+    blocks
+      .filter((block) => block.task_file.includes('/observe-'))
+      .map((block) => block.task_file)
+      .sort(),
+  ).toEqual(expected.map((source) => resolve(agents, `skills/designbook-${source}/tasks/observe-${source}.md`)).sort());
+  for (const source of expected) {
+    const block = blocks.find((block) => block.task_file.endsWith(`/observe-${source}.md`))!;
+    expect(block.rules).toContain(resolve(agents, `skills/designbook-${source}/rules/capture-observations.md`));
+  }
+});
+
+it('tokens consumes the standalone extracted revision without an extraction task', async () => {
+  const catalogue = await resolveAllStages(
+    resolve(agents, 'skills/designbook/skills/tokens/workflows/tokens.md'),
+    { data: '/tmp/token-extraction', technology: 'html', extensions: ['website'] },
+    {},
+    agents,
+  );
+  expect(catalogue.step_resolved).not.toHaveProperty('extract-reference');
+});

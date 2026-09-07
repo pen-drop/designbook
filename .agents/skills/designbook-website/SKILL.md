@@ -7,4 +7,4 @@ description: Capture selected website DOM, computed properties, assets and brows
 Supports source kind `website` through extension `website`. Load
 [capture instructions](resources/capture.md) for source exploration and output
 translation. The [capture task](tasks/observe-website.md) contributes observations to the
-[shared capture workflow](../designbook/skills/capture-reference/SKILL.md).
+[shared capture workflow](../designbook/skills/extract-reference/SKILL.md).

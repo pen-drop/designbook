@@ -113,3 +113,34 @@ test("explicit text-only intake does not invent reference requirements", (t) => 
   );
   assert.deepEqual(result, { pass: true, references: [] });
 });
+
+test("an explicitly presented revision disambiguates a completed refresh without choosing latest", (t) => {
+  const f = fixture(t);
+  const original = f.publications[0];
+  const refreshed = {
+    ...original,
+    revision: "rev2",
+    directory: join(f.workspace, "data/references/site/rev2"),
+  };
+  f.publications.push(refreshed);
+  f.metadata["designbook/references/site/rev2/meta.yml"] = structuredClone(
+    Object.values(f.metadata)[0],
+  );
+  const run = (args) => {
+    assert.equal(args.at(-1), refreshed.directory);
+    return JSON.stringify({ pass: true, binding: refreshed });
+  };
+  assert.equal(validateIntakeReferences(f, run).pass, false);
+  assert.equal(
+    validateIntakeReferences(
+      { ...f, text: "Selected published revision `rev2`." },
+      run,
+    ).pass,
+    true,
+  );
+  assert.equal(
+    validateIntakeReferences({ ...f, text: "Revisions rev and rev2." }, run)
+      .pass,
+    false,
+  );
+});

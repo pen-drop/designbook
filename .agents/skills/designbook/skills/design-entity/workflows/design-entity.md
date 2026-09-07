@@ -26,9 +26,6 @@ params:
     type: array
     default: []
 stages:
-  reference:
-    steps:
-      - extract-reference
   component:
     steps:
       - write-component

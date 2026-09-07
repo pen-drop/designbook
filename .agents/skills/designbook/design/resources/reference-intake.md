@@ -6,7 +6,7 @@ description: Consume a completed observation revision before fixing the design i
 # Prepare the design reference during intake
 
 1. Select the source integration and complete the
-   [capture workflow intake](../../skills/capture-reference/resources/intake.md).
+   [capture workflow intake](../../skills/extract-reference/resources/intake.md).
    Reuse an already completed revision only when its selected scope supports the
    request. A refresh uses a new fixed capture workflow and revision.
 2. Inspect bounded observations and the associated images from that completed
@@ -19,10 +19,11 @@ description: Consume a completed observation revision before fixing the design i
    [reference packages](reference-packages.md) for typed read-only bindings.
 4. Present the selected source locators, implementation selectors, views, states
    and evidence through [write planning](write-planning.md). Save the exact
-   completed revision binding with the design definition. If an `extract-reference`
-   dependency task is needed, it returns only `reference_dir`; it has no reference
-   file write outputs. Design execution never resubmits the captured metadata,
-   extract or binary files.
+   completed revision binding with the design definition and bind each consuming
+   task directly through its frozen reference query. Reference extraction belongs
+   to the standalone `extract-reference` workflow, not a task in the design plan.
+   Design execution consumes the completed revision without resubmitting captured
+   metadata, extract or binary files.
 
 A deliberately reference-free request records its limitation explicitly and uses
 concrete build/browser criteria. A requested visual comparison requires valid

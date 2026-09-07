@@ -270,8 +270,10 @@ all failed phases, native usage and actual capture evidence in the run audit.
 
 ## Implementation evidence
 
-The shared capture lifecycle and separate website/Figma/Storybook skills are
-implemented. Capture completion uses ordinary workflow output validation and
+The standalone `extract-reference` workflow and separate website/Figma/Storybook
+skills are implemented. Skills invoke this reusable workflow; design and token
+plans bind the finished revision directly. There is no extraction helper task
+inside those plans. Capture completion uses ordinary workflow output validation and
 publication. Design and sync verification consume two published revisions with
 explicit comparison mappings. Repair checks retain their orchestration and resolve
 frozen source queries plus exact predecessor screenshot paths. Promptfoo accepts only completed reference capture
@@ -285,7 +287,41 @@ query below 10 KB while still detecting a mutation to an unrelated published fil
 Figma coverage uses deterministic node/frame fixtures; no live Figma capture has
 been tested.
 
-At this point `pnpm check` passes (848 unit tests), and all 66 Promptfoo harness
-tests pass, including a real Promptfoo invocation with deterministic planner and
-worker CLIs. A fresh real-model functional run is still required; harness success
-alone does not establish generated design quality.
+The implementation passed `pnpm check` and Promptfoo harness tests, including a
+real Promptfoo invocation with deterministic planner and worker CLIs. The first
+real-model run completed two immutable captures but failed its intake assertion;
+see the run evidence below. This is not a successful generated-design baseline.
+
+
+### Standalone workflow clarification and first real-model run
+
+The user clarified that reference extraction should be its own reusable workflow,
+invoked by the skill. The canonical workflow is now `extract-reference`; the
+former `capture-reference` name and the design-plan helper task are removed.
+`workflow done` remains the common writer/validator. PNG captures and PNG assets
+use the same `capture-image` task and existing image validator; other supported
+files preserve their real formats through `capture-file`.
+
+`designbook-58-astra-sonnet-05` tested the earlier capture implementation at
+`d8620735`. Astra completed two fixed 19-task captures. The first extract was
+2,779,837 bytes and exceeded the per-query bound; a new immutable revision reduced
+it to 417,836 bytes and passed reference validation. The original revision and
+both definitions remained intact. The intake assertion failed on readable table
+headings, so planning and Sonnet execution never started. Verification correctly
+reported a missing shell and assigned no visual score.
+
+The audit also found a PNG-extension validation bypass and captures containing
+unselected page content. Followups retain real file formats, route PNG assets
+through image validation, require selected-subject crops, fix discovery with
+multiple enabled extensions, and accept readable table headings and annotated
+views. When several completed revisions match, the explicitly presented revision
+or evidence directory disambiguates them; the harness never chooses an implicit
+latest revision.
+
+Run05 remains failed. A read-only diagnostic replay of its native intake with the
+updated static checks passes presentation, complete scope and explicit r2 binding;
+this does not change the original report or establish a new model baseline.
+All phase audit artifacts are under
+`promptfoo/reports/designbook-58-astra-sonnet-05/`. Total native usage is
+3,139,492 tokens (3,123,286 input including 2,985,088 cached; 16,206 output).
+Peak root-thread input was 103,820 tokens, with no compaction.

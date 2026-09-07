@@ -520,3 +520,28 @@ sum to 3,148,009 ms, excluding external setup/harness overhead. Four CSV rows,
 native logs and audit artifacts are retained under
 `promptfoo/reports/designbook-58-grok46-01/`. Services remain available for
 inspection. No saved input was repaired or rerun by the tester.
+
+
+## Source-neutral capture workflow diagnostic
+
+`designbook-58-astra-sonnet-05` (source `d8620735`, fresh workspace, Storybook 6140)
+completed two reference capture revisions through ordinary `workflow done`.
+Both retained their 19-task definitions and published bytes. The first revision's
+component query exceeded 64 KiB; Astra created a second compact revision whose
+417,836-byte extract passed reference validation. The native intake table was
+present but rejected by the strict header parser, and the overwritten failure
+reason incorrectly reported a missing source locator. Planner and Sonnet never
+started. Automatic verification found no shell, failed 0/4 checks, and correctly
+assigned no visual score.
+
+Native evidence also records PNG assets renamed to `.image` after validator
+rejection, and viewport captures containing unselected body content. Those are
+unresolved failures of this run, retained in its audit. No previous run artifacts
+were used. Subsequent fixes and the user-requested standalone `extract-reference`
+workflow are documented in [the implementation record](reference-capture-workflows.md).
+
+Total tokens: 3,139,492 = 3,123,286 input + 16,206 output. Cached input 2,985,088,
+uncached 138,198. Native phase durations sum to 732,875 ms; peak root-thread input
+103,820 tokens. Reports and complete audit JSONs are in
+`promptfoo/reports/designbook-58-astra-sonnet-05/`. The original failed report and
+CSV rows are unchanged by the later diagnostic replay of updated static checks.
