@@ -354,3 +354,34 @@ The two isolated corrections are integrated on the ticket branch as a4e8ad1b
 and 9296d79f. A fresh full real-model pass remains outstanding after quota
 availability returns; no provider/model substitution or extra model run was
 started under the known limit. DESIGNBOOK-58 remains in coding.
+
+## Codex Astra planner / Luna executor diagnostic
+
+`designbook-58-astra-luna-01` ran `drupal-web/design-shell` from 350fb660,
+with `gpt-6-astra` for intake/planning/verification and `gpt-5.6-luna` for
+execution, both Codex medium. Fresh workspace and Storybook port: 6128.
+Intake passed with three subjects, 13 capture cells and 26 reference packages.
+Planning passed all assertions and saved 25 pending tasks, with an immutable
+Markdown export under `plan-evidence/run-thFQTp/workflow-1.md`.
+
+The first executor step, `setup-assets-fonts`, failed before native process
+creation with `spawn E2BIG`. Its resolved Markdown was 4,456,252 bytes and was
+passed as one CLI argument. Selected shared contexts included 2,227,027 bytes
+of `measurements` and a 1,966,703-byte desktop-header package even for asset/font
+setup. The valid plan therefore still supplies overly broad per-step context.
+Passing large prompts through stdin would address transport only; it would not
+establish that this context fits the executor or that package scoping is adequate.
+No Luna model call occurred and no execution-quality conclusion is possible.
+
+Automatic verification confirmed the missing shell scene and Storybook entry,
+preserved main artifacts, and left comparisons ungraded. No accepted visual
+score exists. Intake used 3,273,470 tokens, planning 2,931,915 and verification
+476,296: 6,681,681 reported tokens, including 6,364,288 cached input tokens.
+Native phase durations sum to 1,448,345 ms (about 24.1 minutes), excluding fixture
+setup and failed-spawn overhead. Executor usage is absent; no estimate is added.
+
+All four phase attempts remain in results.csv. Raw reports and the complete
+`summary.json`, `log-validation.json`, `friction.json` and `context-failure.json`
+are under `promptfoo/reports/designbook-58-astra-luna-01/`. Native failed authoring
+commands and recovered validation errors are retained. This is a diagnostic,
+not a quality/efficiency baseline. No saved artifact was repaired or rerun.
