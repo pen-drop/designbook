@@ -5,6 +5,13 @@ agent prepares inputs and inspects evidence; it does not execute intake or tasks
 inline and does not dispatch a separate case-driver subagent. The selected CLI inside
 Promptfoo loads the domain skill and its saved-workflow executor.
 
+## Execution driver boundary
+
+A CLI prompt already launched by Promptfoo executes the domain intake and saved
+workflow directly in the provisioned workspace. It uses only [Case evidence and
+scoring](#case-evidence-and-scoring) below. The setup and runner steps belong to the
+calling tester; invoking them inside a driver would rebuild its active fixtures.
+
 ## Inputs
 
 Parse `run <suite> [<case>] [--workspace <path>] [--validate <workflow>]`.

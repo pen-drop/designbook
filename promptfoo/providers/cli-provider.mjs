@@ -201,7 +201,7 @@ class CliProvider {
             cwd,
             timeout: this.timeout,
             maxBuffer: 50 * 1024 * 1024,
-            env: { ...process.env, DESIGNBOOK_HOME: cwd },
+            env: { ...process.env, DESIGNBOOK_HOME: cwd, DESIGNBOOK_PROMPTFOO_DRIVER: "1" },
           },
           async (err, stdout, stderr) => {
             try {

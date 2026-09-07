@@ -104,6 +104,7 @@ test("text-only design cases retain semantic evidence through the Promptfoo runn
         new RegExp(`${caseName}\\.yaml$`),
       );
       assert.match(config.prompts[0], /case-runs\.json/);
+      assert.match(config.prompts[0], /already running inside Promptfoo/);
       assert.match(config.prompts[0], /Prior test workspaces, saved definitions, generated artifacts and reports are not inputs/);
       assert.equal(
         config.tests[0].vars.case_file,
@@ -434,7 +435,7 @@ test("generated main/verify configs isolate setup and preserve paths", async (t)
 for (const cli of ["codex", "claude"])
   test(`real Promptfoo loads ${cli} and verifies without resetting the workspace`, async (t) => {
     const { root, workspace, workflow, stub } = await fixture(t);
-    await stub(emit(cli === "codex" ? completed : claudeCompleted), cli);
+    await stub(`if (process.env.DESIGNBOOK_PROMPTFOO_DRIVER !== "1") process.exit(2);\n${emit(cli === "codex" ? completed : claudeCompleted)}`, cli);
     await workflow("archive", "verification", "design-verify", "completed", {
       outtake: measuredTask(0, true),
     });
@@ -914,4 +915,18 @@ test("pending documents at noncanonical paths cannot disappear from workflow gat
   assert.equal(result.definitionUnchanged, false);
   assert.equal(result.pendingWorkflows.blocked.state.status, "blocked");
   assert.ok(result.workflowErrors.some(error => error.error.includes("Duplicate workflow id: main")));
+});
+
+
+test("nested runner refuses before provisioning or writing reports", async (t) => {
+  const {root, workspace} = await fixture(t);
+  const marker = join(workspace, "preserve.txt");
+  await writeFile(marker, "active fixture");
+  const result = spawnSync(process.execPath, ["promptfoo/scripts/run-single.mjs", "design-shell", "--workspace", workspace, "--output", join(root, "nested.json")], {
+    encoding: "utf8", env: {...process.env, DESIGNBOOK_PROMPTFOO_DRIVER: "1"},
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Already inside the Promptfoo CLI driver/);
+  assert.equal(await readFile(marker, "utf8"), "active fixture");
+  await assert.rejects(readFile(join(root, "nested.json")), {code: "ENOENT"});
 });
