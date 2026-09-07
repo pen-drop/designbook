@@ -105,7 +105,10 @@ test("text-only design cases retain semantic evidence through the Promptfoo runn
       );
       assert.match(config.prompts[0], /case-runs\.json/);
       assert.match(config.prompts[0], /already running inside Promptfoo/);
-      assert.match(config.prompts[0], /Prior test workspaces, saved definitions, generated artifacts and reports are not inputs/);
+      assert.match(
+        config.prompts[0],
+        /Prior test workspaces, saved definitions, generated artifacts and reports are not inputs/,
+      );
       assert.equal(
         config.tests[0].vars.case_file,
         config.providers[0].config.caseFile,
@@ -362,6 +365,97 @@ test("zero exit without completed turn is a failure", async (t) => {
   assert.match(result.error, /did not complete/);
 });
 
+test("native terminal usage survives a nonzero exit and artifact collection failure", async (t) => {
+  const { provider, workspace, stub } = await fixture(t);
+  await stub(emit(completed) + "\nprocess.exitCode = 1;");
+  const failed = await provider.callApi("Fail after usage", {
+    vars: { workspace },
+  });
+  assert.match(failed.error, /CLI error/);
+  assert.equal(failed.tokenUsage.total, 110);
+  assert.equal(failed.metadata.run.usage.input_tokens, 100);
+  assert.equal(
+    JSON.parse(
+      await readFile(join(failed.metadata.evidenceDir, "run.json"), "utf8"),
+    ).usage.output_tokens,
+    10,
+  );
+
+  await stub(emit(completed));
+  provider.collectArtifacts = async () => {
+    throw new Error("Missing manifest");
+  };
+  const collection = await provider.callApi("Artifact failure", {
+    vars: { workspace },
+  });
+  assert.match(collection.error, /Missing manifest/);
+  assert.equal(collection.tokenUsage.total, 110);
+});
+
+test("Grok aggregates multiple model turns once and rejects incomplete or inconsistent usage", async () => {
+  const { grokRuntime } = await import("../providers/grok-cli.mjs");
+  const events = [
+    {
+      type: "assistant",
+      parent_tool_use_id: null,
+      message: {
+        id: "msg_0",
+        usage: {
+          input_tokens: 30,
+          output_tokens: 6,
+          cache_read_input_tokens: 1,
+          cache_creation_input_tokens: 0,
+        },
+      },
+    },
+    {
+      type: "assistant",
+      parent_tool_use_id: null,
+      message: {
+        id: "msg_1",
+        usage: {
+          input_tokens: 2,
+          output_tokens: 4,
+          cache_read_input_tokens: 31,
+          cache_creation_input_tokens: 0,
+        },
+      },
+    },
+    {
+      type: "result",
+      subtype: "success",
+      is_error: false,
+      result: "Done",
+      usage: {
+        input_tokens: 32,
+        output_tokens: 10,
+        cache_read_input_tokens: 32,
+        cache_creation_input_tokens: 0,
+      },
+    },
+  ];
+  const parsed = grokRuntime.parse(events);
+  assert.equal(parsed.usage.input_tokens, 64);
+  assert.equal(parsed.usage.cached_input_tokens, 32);
+  assert.equal(parsed.usage.output_tokens, 10);
+  assert.equal(parsed.usageScope, "session-no-subagents");
+  assert.equal(parsed.subagentCount, 0);
+  assert.throws(() => grokRuntime.parse(events.slice(0, -1)), /missing result/);
+  const mismatch = structuredClone(events);
+  mismatch[2].usage.input_tokens++;
+  assert.throws(() => grokRuntime.parse(mismatch), /usage mismatch/);
+  assert.throws(() => grokRuntime.parse([events[0], ...events]), /duplicate/);
+  const child = structuredClone(events);
+  child[0].parent_tool_use_id = "subagent";
+  assert.throws(() => grokRuntime.parse(child), /subagent/);
+  const missing = structuredClone(events);
+  delete missing[0].message.usage.output_tokens;
+  assert.throws(() => grokRuntime.parse(missing), /usage mismatch/);
+  const failure = structuredClone(events);
+  failure[2].is_error = true;
+  assert.throws(() => grokRuntime.parse(failure), /did not complete/);
+});
+
 test("generated main/verify configs isolate setup and preserve paths", async (t) => {
   const { root, workspace } = await fixture(t);
   const promptFile = join(root, "verify.txt");
@@ -432,10 +526,26 @@ test("generated main/verify configs isolate setup and preserve paths", async (t)
   );
 });
 
-for (const cli of ["codex", "claude"])
+for (const cli of ["codex", "claude", "grok"])
   test(`real Promptfoo loads ${cli} and verifies without resetting the workspace`, async (t) => {
     const { root, workspace, workflow, stub } = await fixture(t);
-    await stub(`if (process.env.DESIGNBOOK_PROMPTFOO_DRIVER !== "1") process.exit(2);\n${emit(cli === "codex" ? completed : claudeCompleted)}`, cli);
+    const events =
+      cli === "codex"
+        ? completed
+        : cli === "claude"
+          ? claudeCompleted
+          : [
+              {
+                type: "assistant",
+                parent_tool_use_id: null,
+                message: { id: "msg_0", usage: claudeCompleted[0].usage },
+              },
+              ...claudeCompleted,
+            ];
+    await stub(
+      `if (process.env.DESIGNBOOK_PROMPTFOO_DRIVER !== "1") process.exit(2);\n${emit(events)}`,
+      cli,
+    );
     await workflow("archive", "verification", "design-verify", "completed", {
       outtake: measuredTask(0, true),
     });
@@ -583,6 +693,44 @@ test("CSV history appends concurrent runs and keeps missing measurements empty",
   assert.match(rows.join("\n"), /"a,""suite"/);
   const failed = rows.find((row) => row.includes('"failed"'));
   assert.match(failed, /"fail","0","0","","","","","",""/);
+});
+
+test("CSV retains measured usage and evidence for failed provider responses", async (t) => {
+  const { root } = await fixture(t);
+  const { afterAll } = await import("../extensions/result-history.mjs");
+  const csv = join(root, "failure.csv");
+  await afterAll({
+    config: {
+      tags: { history_csv: csv, cli: "codex", reasoning_effort: "medium" },
+    },
+    results: [
+      {
+        success: false,
+        response: {
+          error: "collection failed",
+          metadata: {
+            run: {
+              usage: completed[1].usage,
+              usageScope: "thread-tree",
+              subagentCount: 0,
+              evidenceDir: "raw-evidence",
+            },
+          },
+        },
+      },
+    ],
+  });
+  const [header, row] = (await readFile(csv, "utf8")).trim().split("\n");
+  const fields = Object.fromEntries(
+    header.split(",").map((name, i) => [name, row.split(",")[i].slice(1, -1)]),
+  );
+  assert.equal(fields.status, "fail");
+  assert.equal(fields.total_tokens, "110");
+  assert.equal(fields.usage_source, "codex-native");
+  assert.equal(fields.usage_scope, "thread-tree");
+  assert.equal(fields.subagent_input_tokens, "0");
+  assert.equal(fields.reasoning_effort, "medium");
+  assert.equal(fields.evidence_dir, "raw-evidence");
 });
 
 test("snapshot helper preserves multiline instruction content and refuses overwrites", async (t) => {
@@ -902,31 +1050,57 @@ process.exitCode = Number(config.tags.phase === 'main' ? process.env.TEST_MAIN_E
   }
 });
 
-
 test("pending documents at noncanonical paths cannot disappear from workflow gates", async (t) => {
-  const {provider, workspace, workflow} = await fixture(t);
+  const { provider, workspace, workflow } = await fixture(t);
   await workflow("changes", "completed", "main", "completed");
   const root = join(workspace, "designbook/workflows");
-  await writeFile(join(root, "changes/initial-attempt"), yaml.dump({definition: {id: "main"}, state: {status: "pending", tasks: {}}}));
+  await writeFile(
+    join(root, "changes/initial-attempt"),
+    yaml.dump({
+      definition: { id: "main" },
+      state: { status: "pending", tasks: {} },
+    }),
+  );
   await mkdir(join(root, "attempts"));
-  await writeFile(join(root, "attempts/blocked.yml"), yaml.dump({definition: {id: "blocked"}, state: {status: "blocked", tasks: {}}}));
+  await writeFile(
+    join(root, "attempts/blocked.yml"),
+    yaml.dump({
+      definition: { id: "blocked" },
+      state: { status: "blocked", tasks: {} },
+    }),
+  );
   await writeFile(join(root, "notes.md"), "Not a workflow");
   const result = await provider.collectArtifacts(workspace);
   assert.equal(result.definitionUnchanged, false);
   assert.equal(result.pendingWorkflows.blocked.state.status, "blocked");
-  assert.ok(result.workflowErrors.some(error => error.error.includes("Duplicate workflow id: main")));
+  assert.ok(
+    result.workflowErrors.some((error) =>
+      error.error.includes("Duplicate workflow id: main"),
+    ),
+  );
 });
 
-
 test("nested runner refuses before provisioning or writing reports", async (t) => {
-  const {root, workspace} = await fixture(t);
+  const { root, workspace } = await fixture(t);
   const marker = join(workspace, "preserve.txt");
   await writeFile(marker, "active fixture");
-  const result = spawnSync(process.execPath, ["promptfoo/scripts/run-single.mjs", "design-shell", "--workspace", workspace, "--output", join(root, "nested.json")], {
-    encoding: "utf8", env: {...process.env, DESIGNBOOK_PROMPTFOO_DRIVER: "1"},
-  });
+  const result = spawnSync(
+    process.execPath,
+    [
+      "promptfoo/scripts/run-single.mjs",
+      "design-shell",
+      "--workspace",
+      workspace,
+      "--output",
+      join(root, "nested.json"),
+    ],
+    {
+      encoding: "utf8",
+      env: { ...process.env, DESIGNBOOK_PROMPTFOO_DRIVER: "1" },
+    },
+  );
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /Already inside the Promptfoo CLI driver/);
   assert.equal(await readFile(marker, "utf8"), "active fixture");
-  await assert.rejects(readFile(join(root, "nested.json")), {code: "ENOENT"});
+  await assert.rejects(readFile(join(root, "nested.json")), { code: "ENOENT" });
 });

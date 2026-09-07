@@ -67,10 +67,22 @@ assert:                      # assertions evaluated by promptfoo
 npx promptfoo view
 ```
 
-Select a CLI with `--provider codex|claude` and optionally `--model <id>`.
+Select a CLI with `--provider codex|claude|grok` and optionally `--model <id>`.
 Defaults are `gpt-5.6-luna` and `claude-opus-5`; both use the one-hour limit in
 `configs/base.yaml`. The automatic verify phase uses the same provider/model.
 `--storybook-port <port>` provisions this workspace's server before measurement.
+
+Grok uses `grok-4.6` with `streaming-messages-json`. Its adapter checks that
+the terminal usage equals the sum of the complete assistant-message counters;
+cache reads and writes are added to ordinary input once. Grok subagents are
+disabled until their native accounting is verified. Codex reasoning is pinned
+to `medium` (overridable through provider `reasoningEffort`), independently of
+the invoking user's CLI default.
+
+Failed processes and artifact collection retain valid terminal usage in response
+metadata and CSV history. Incomplete or invalid native logs leave usage unknown.
+CSV records usage source/scope, measured subagent contribution, reasoning setting
+and raw evidence directory. Unknown historical fields remain empty.
 
 Run two independent `run-single.sh` invocations with distinct workspaces and
 report directories to compare models. Prepare fresh workspaces sequentially

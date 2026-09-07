@@ -47,6 +47,13 @@ const columns = [
   ...verificationColumns,
   "cli",
   "cache_write_input_tokens",
+  "usage_source",
+  "usage_scope",
+  "subagent_count",
+  "subagent_input_tokens",
+  "subagent_output_tokens",
+  "reasoning_effort",
+  "evidence_dir",
 ];
 const cell = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
 
@@ -189,7 +196,15 @@ export async function afterAll({ results, evalId, config, suite }) {
   const csv = tags.history_csv;
   const rows = results.map((result) => {
     const output = result.response?.output;
-    const usage = output?.usage;
+    const run = output || result.response?.metadata?.run;
+    const usage = run?.usage;
+    const subagents = run?.usageBreakdown?.subagents;
+    const subagentUsage = (key) =>
+      Array.isArray(subagents)
+        ? subagents.reduce((sum, thread) => sum + thread.usage[key], 0)
+        : run?.subagentCount === 0
+          ? 0
+          : undefined;
     const verification = verificationMetrics(output, tags.workflow_id);
     const details = verificationDetails(output, tags.workflow_id);
     const checks = result.gradingResult?.componentResults || [];
@@ -221,6 +236,13 @@ export async function afterAll({ results, evalId, config, suite }) {
       ...verificationColumns.map((column) => details[column]),
       output?.cli || tags.cli,
       usage?.cache_write_input_tokens,
+      usage ? `${run?.cli || tags.cli}-native` : undefined,
+      run?.usageScope,
+      run?.subagentCount,
+      subagentUsage("input_tokens"),
+      subagentUsage("output_tokens"),
+      tags.reasoning_effort,
+      run?.evidenceDir || result.response?.metadata?.evidenceDir,
     ]
       .map(cell)
       .join(",");

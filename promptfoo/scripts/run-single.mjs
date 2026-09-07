@@ -13,7 +13,9 @@ import { execFileSync, spawnSync } from "node:child_process";
 import yaml from "js-yaml";
 
 if (process.env.DESIGNBOOK_PROMPTFOO_DRIVER === "1")
-  throw new Error("Already inside the Promptfoo CLI driver: execute the domain intake and saved workflow; nested tester runs would reset the active workspace.");
+  throw new Error(
+    "Already inside the Promptfoo CLI driver: execute the domain intake and saved workflow; nested tester runs would reset the active workspace.",
+  );
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const args = process.argv.slice(2);
@@ -71,11 +73,15 @@ const base = yaml.load(
   readFileSync(join(repo, "promptfoo/configs/base.yaml"), "utf8"),
 );
 const cli = opts.provider || "codex";
-if (!["codex", "claude"].includes(cli))
-  throw new Error("provider must be codex or claude");
+if (!["codex", "claude", "grok"].includes(cli))
+  throw new Error("provider must be codex, claude or grok");
 const model =
   opts.model ||
-  (cli === "claude" ? "claude-opus-5" : base.providers[0].config.model);
+  (cli === "grok"
+    ? "grok-4.6"
+    : cli === "claude"
+      ? "claude-opus-5"
+      : base.providers[0].config.model);
 const storybookPort =
   opts["storybook-port"] === undefined
     ? undefined
@@ -186,6 +192,10 @@ const config = {
     report: relative(repo, output),
     model: providers[0].config.model,
     cli,
+    reasoning_effort:
+      cli === "codex"
+        ? providers[0].config.reasoningEffort || "medium"
+        : "cli-default",
     git_commit: execFileSync("git", ["rev-parse", "HEAD"], {
       cwd: repo,
       encoding: "utf8",

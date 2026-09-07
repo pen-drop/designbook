@@ -185,9 +185,15 @@ class CliProvider {
     }
     await writeFile(join(evidenceDir, "prompt.txt"), resolvedPrompt);
     const started = Date.now();
-    const args = this.runtime.args(cwd, resolvedPrompt, this.model);
+    const args = this.runtime.args(
+      cwd,
+      resolvedPrompt,
+      this.model,
+      this.config,
+    );
     const label = this.runtime.label;
     const logName = `${this.runtime.name}.jsonl`;
+    let measured;
 
     try {
       const raw = await new Promise((resolve, reject) => {
@@ -201,7 +207,11 @@ class CliProvider {
             cwd,
             timeout: this.timeout,
             maxBuffer: 50 * 1024 * 1024,
-            env: { ...process.env, DESIGNBOOK_HOME: cwd, DESIGNBOOK_PROMPTFOO_DRIVER: "1" },
+            env: {
+              ...process.env,
+              DESIGNBOOK_HOME: cwd,
+              DESIGNBOOK_PROMPTFOO_DRIVER: "1",
+            },
           },
           async (err, stdout, stderr) => {
             try {
@@ -256,6 +266,14 @@ class CliProvider {
         );
       }
 
+      measured = {
+        usage,
+        modelUsage,
+        usageScope,
+        subagentCount,
+        usageBreakdown,
+      };
+
       // Collect all workspace artifacts after the run
       const artifacts = await this.collectArtifacts(cwd);
 
@@ -309,23 +327,59 @@ class CliProvider {
         ...(tokenUsage ? { tokenUsage } : {}),
       };
     } catch (err) {
+      // A process/collection failure must not erase valid native terminal usage.
+      // Incomplete or invalid logs stay unknown; never infer missing counters.
+      if (!measured) {
+        try {
+          const events = (await readFile(join(evidenceDir, logName), "utf8"))
+            .split(/\r?\n/)
+            .filter(Boolean)
+            .map(JSON.parse);
+          const parsed = await this.runtime.parse(events, { evidenceDir });
+          const usage = parsed.usage;
+          if (
+            ["input_tokens", "cached_input_tokens", "output_tokens"].every(
+              (key) => Number.isSafeInteger(usage?.[key]) && usage[key] >= 0,
+            ) &&
+            usage.cached_input_tokens <= usage.input_tokens
+          ) {
+            const { text: _text, ...measurement } = parsed;
+            measured = measurement;
+          }
+        } catch {
+          // The original error and raw logs remain the failure evidence.
+        }
+      }
       await writeFile(join(evidenceDir, "error.txt"), err.message);
+      const run = {
+        model: this.model,
+        cli: this.runtime.name,
+        workspace: cwd,
+        durationMs: Date.now() - started,
+        usage: null,
+        ...measured,
+        evidenceDir,
+        error: err.message,
+      };
       await writeFile(
         join(evidenceDir, "run.json"),
-        JSON.stringify(
-          {
-            model: this.model,
-            workspace: cwd,
-            durationMs: Date.now() - started,
-            usage: null,
-            evidenceDir,
-            error: err.message,
-          },
-          null,
-          2,
-        ),
+        JSON.stringify(run, null, 2),
       );
-      return { error: err.message, metadata: { evidenceDir } };
+      return {
+        error: err.message,
+        metadata: { evidenceDir, run },
+        ...(measured
+          ? {
+              tokenUsage: {
+                prompt: measured.usage.input_tokens,
+                completion: measured.usage.output_tokens,
+                cached: measured.usage.cached_input_tokens,
+                total:
+                  measured.usage.input_tokens + measured.usage.output_tokens,
+              },
+            }
+          : {}),
+      };
     }
   }
 
@@ -425,7 +479,9 @@ class CliProvider {
       }
 
       // Completion follows saved state. Run IDs remain exact; retries are evidence.
-      for (const { path, document: parsed, error } of savedWorkflows(designbookDir)) {
+      for (const { path, document: parsed, error } of savedWorkflows(
+        designbookDir,
+      )) {
         const file = relative(workspaceDir, path);
         try {
           if (error) throw new Error(error);
