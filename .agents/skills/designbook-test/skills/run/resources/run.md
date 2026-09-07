@@ -180,7 +180,12 @@ The before-file contains only the definition object. Require a positive assertio
 count, all assertions passed and no failures. The process exit code alone does not
 mean the case passed. Every execution must contain the exact nonempty planned task
 set, completed state and valid required results; the scorer exposes this as
-`runs[].complete`. The workflow-ID maps remain useful for single-run cases;
+`runs[].complete`. `runs[].componentPrerequisites` checks component batches before
+mapping/scene writes: each consumer depends on a refresh after the component writes
+and consumes its `index` output. For this evidence contract, a refresh declares
+required `build` (the command result shape above) and `index` (the nonempty refreshed
+inventory array) outputs and submits their actual results. Keep the final build
+after scene/mapping writes as a separate task. The workflow-ID maps remain useful for single-run cases;
 `runs[]` is the execution-path identity for repeated cases.
 
 When `repeat: {count: 2, same_prompt: true}` is present, the Promptfoo driver completes the domain intake and saved executor twice

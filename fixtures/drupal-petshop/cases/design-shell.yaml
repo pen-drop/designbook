@@ -21,6 +21,8 @@ evidence:
     - designbook/design-system/design-system.scenes.yml
 assert:
   - type: javascript
+    value: output.runs.length > 0 && output.runs.every(r => r.componentPrerequisites?.passed === true)
+  - type: javascript
     value: output.runs.length === 1 && output.runs.every(r => r.complete && r.definitionUnchanged)
   - type: javascript
     value: Object.keys(output.pendingWorkflows).length === 0 && output.definitionUnchanged === true

@@ -146,6 +146,47 @@ export function executionComplete(document) {
   });
 }
 
+// Case graph evidence uses stage types and explicit output/input contracts, never
+// task titles or array ordering. Component batches precede mapping/scene writes.
+export function componentPrerequisites(document) {
+  const tasks = document.definition?.tasks ?? [];
+  const byId = new Map(tasks.map(task => [task.id, task]));
+  const writers = tasks.filter(task => task.type === "write-component" ||
+    Object.keys(task.outputs ?? {}).some(key => key.startsWith("component-")));
+  const consumers = tasks.filter(task => ["map-entity", "write-scene"].includes(task.type) ||
+    (task.type !== "create-scene-file" && Object.keys(task.outputs ?? {}).some(key =>
+      ["entity-mapping", "scene-file"].includes(key))));
+  const ancestors = (id, seen = new Set()) => {
+    for (const parent of byId.get(id)?.depends_on ?? []) {
+      if (!seen.has(parent)) { seen.add(parent); ancestors(parent, seen); }
+    }
+    return seen;
+  };
+  const failures = [];
+  if (writers.length === 0) return {passed: true, failures};
+  for (const consumer of consumers) {
+    const before = ancestors(consumer.id);
+    const refreshes = Object.values(consumer.inputs ?? {})
+      .filter(input => input.result === "index" && before.has(input.task))
+      .map(input => byId.get(input.task)).filter(Boolean);
+    const covered = writers.every(writer => refreshes.some(refresh => {
+      const preceding = ancestors(refresh.id);
+      const state = document.state?.tasks?.[refresh.id];
+      const build = state?.results?.build;
+      const index = state?.results?.index;
+      return preceding.has(writer.id) && !preceding.has(consumer.id) &&
+        refresh.outputs?.build?.required === true && refresh.outputs?.index?.required === true &&
+        state?.status === "done" && build?.valid === true && index?.valid === true &&
+        build.value?.command === "pnpm build-storybook" && build.value.exitCode === 0 &&
+        typeof build.value.cwd === "string" && build.value.cwd.length > 0 &&
+        typeof build.value.stdout === "string" && build.value.stdout.trim().length > 0 &&
+        Array.isArray(index.value) && index.value.length > 0;
+    }));
+    if (!covered) failures.push(`${consumer.id}: missing component → build/index → consumer dependency and index input`);
+  }
+  return {passed: failures.length === 0, failures};
+}
+
 export function collectRuns(entries, summarize = () => undefined) {
   const paths = new Set();
   return entries.map((entry) => {
@@ -161,6 +202,7 @@ export function collectRuns(entries, summarize = () => undefined) {
       document,
       summary: summarize(path),
       complete: executionComplete(document),
+      componentPrerequisites: componentPrerequisites(document),
       definitionUnchanged:
         before !== null &&
         JSON.stringify(document.definition) === JSON.stringify(before),

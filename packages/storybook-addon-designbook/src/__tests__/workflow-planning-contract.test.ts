@@ -107,6 +107,13 @@ it.each(['design-component', 'design-screen', 'design-shell', 'design-entity', '
     );
     expect(catalogue.step_resolved).not.toHaveProperty('create-component');
     expect(catalogue.step_resolved).not.toHaveProperty('create-scene');
+    if (name !== 'import') {
+      const mapping = catalogue.step_resolved['map-entity'];
+      expect(mapping).toBeDefined();
+      for (const entry of Array.isArray(mapping) ? mapping : [mapping!]) {
+        expect(entry.rules.filter((path) => path.endsWith('/entity-reference-rendering.md'))).toHaveLength(1);
+      }
+    }
     const raw = catalogue.step_resolved['write-scene'];
     expect(raw).toBeDefined();
     const block = Array.isArray(raw) ? raw[0]! : raw!;

@@ -9,6 +9,7 @@ import {
   executionComplete,
   evalAssertions,
   collectRuns,
+  componentPrerequisites,
 } from "./eval-score.mjs";
 
 test("bounded baseline evidence includes unchanged files and detects damage/deletion", () => {
@@ -581,4 +582,55 @@ test("shell update preserves the footer while allowing the requested navigation 
     evalAssertions(preservation, output).passed < preservation.length,
     "removing the unchanged footer must fail preservation",
   );
+});
+
+const graphDocument = () => ({
+  definition: { tasks: [
+    {id: "component", type: "write-component", depends_on: [], outputs: {"component-twig": {}}},
+    {id: "refresh", type: "build", depends_on: ["component"], outputs: {build: {required: true}, index: {required: true}}},
+    {id: "mapping", type: "map-entity", depends_on: ["refresh"], inputs: {components: {task: "refresh", result: "index"}}},
+    {id: "scene", type: "write-scene", depends_on: ["mapping", "refresh"], inputs: {components: {task: "refresh", result: "index"}}},
+  ]},
+  state: {tasks: {refresh: {status: "done", results: {
+    build: {valid: true, value: {command: "pnpm build-storybook", cwd: "/theme", exitCode: 0, stdout: "Built"}},
+    index: {valid: true, value: [{id: "provider:avatar"}]},
+  }}}},
+});
+
+test("component prerequisites require dependency edges and consumed build/index results", () => {
+  assert.equal(componentPrerequisites(graphDocument()).passed, true);
+  for (const damage of [
+    d => { d.definition.tasks.splice(1, 1); },
+    d => { d.definition.tasks[1].depends_on = []; },
+    d => { d.definition.tasks[1].depends_on = ["scene"]; },
+    d => { d.definition.tasks[2].depends_on = ["component"]; },
+    d => { d.definition.tasks[3].inputs = {}; },
+    d => { d.state.tasks.refresh.results.index.value = []; },
+    d => { d.state.tasks.refresh.results.build.value.exitCode = 1; },
+    d => { d.definition.tasks[1].outputs.index.required = false; },
+    d => { d.definition.tasks.push({id: "other", type: "write-component", depends_on: []}); },
+  ]) {
+    const document = graphDocument();
+    damage(document);
+    assert.equal(componentPrerequisites(document).passed, false);
+  }
+  const existing = graphDocument();
+  existing.definition.tasks = existing.definition.tasks.filter(t => t.type !== "write-component");
+  assert.equal(componentPrerequisites(existing).passed, true);
+});
+
+test("affected cases reject a completed graph with only a final build", () => {
+  for (const name of ["design-shell", "design-shell-update", "design-component-update"]) {
+    const caseDoc = parseYaml(readFileSync(new URL(`cases/${name}.yaml`, suite), "utf8"));
+    const assertion = caseDoc.assert.find(a => a.value.includes("componentPrerequisites"));
+    assert.ok(assertion, name);
+    const document = graphDocument();
+    document.definition.tasks[1].depends_on = ["scene"];
+    document.definition.tasks[2].depends_on = ["component"];
+    document.definition.tasks[3].depends_on = ["mapping"];
+    const run = {complete: true, definitionUnchanged: true, componentPrerequisites: componentPrerequisites(document)};
+    assert.equal(evalAssertions([assertion], {runs: [run]}).passed, 0, name);
+    run.componentPrerequisites = componentPrerequisites(graphDocument());
+    assert.equal(evalAssertions([assertion], {runs: [run]}).passed, 1, name);
+  }
 });
