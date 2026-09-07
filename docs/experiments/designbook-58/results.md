@@ -423,3 +423,31 @@ applied to this run.
 The earlier `designbook-58-astra-sonnet-01` attempt was stopped during intake
 at the user's request to inspect context first. No planner or worker started.
 Its retained partial usage is 21,815 tokens; no final phase usage is inferred.
+
+## Astra / Sonnet rerun after literal prompt transport correction
+
+`designbook-58-astra-sonnet-03` ran from ec7a4708 in a fresh workspace on
+Storybook port 6132. The intake failed before planning or Sonnet execution.
+Astra presented the exact requested five-column selector table, but used
+separate rows for each state, repeating the three subject IDs. The static
+`selectorTable` parser requires unique subjects and reported the misleading
+error "Missing complete user-visible selector table in intake". Removing only
+duplicate subject rows in memory makes that same parser accept the table;
+no run artifact was changed. The intake prompt does not explicitly state the
+one-row-per-subject requirement. The native transcript retains all 13 capture
+cells and the presented evidence paths.
+
+Automatic verification failed all four header/footer breakpoint prerequisites:
+no main definition, shell scene or target DOM existed. The inspected diagnostic
+screenshot is an actual Storybook missing-story page, excluded from scoring.
+There is no visual score and no new executor-quality result. An initial missing
+shell-dom.json inspection command was recovered by a subsequent write/read;
+both attempts remain in the native log.
+
+Intake used 3,194,027 tokens; verification used 842,092. Total 4,036,119:
+4,016,278 input (3,841,408 cached) and 19,841 output. Reported native durations
+sum to 835,374 ms, excluding setup and harness overhead. Planning/worker usage
+is absent because those phases never started. Both CSV rows, raw reports,
+`summary.json`, `log-validation.json` and `friction.json` are retained under
+`promptfoo/reports/designbook-58-astra-sonnet-03/`. This run establishes an intake
+presentation-contract mismatch, not a regression in Sonnet or the transport fix.
