@@ -369,7 +369,7 @@ class CliProvider {
       artifacts.workflowMarkdown = {};
       for (const [index, [id, document]] of Object.entries(documents).entries()) {
         const path = join(evidenceDir, `workflow-${index + 1}.md`);
-        await writeFile(path, workflowMarkdown(document));
+        await writeFile(path, await workflowMarkdown(document));
         artifacts.workflowMarkdown[id] = path;
       }
 

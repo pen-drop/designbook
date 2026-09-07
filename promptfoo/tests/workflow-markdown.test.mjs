@@ -2,8 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { workflowMarkdown } from "../extensions/workflow-markdown.mjs";
 
-test("reading view retains instructions, constraints and resolved predecessor results", () => {
-  const output = workflowMarkdown({
+test("reading view retains instructions, constraints and resolved predecessor results", async () => {
+  const output = await workflowMarkdown({
     definition: {
       id: "shell",
       title: "Shell",
@@ -54,4 +54,19 @@ test("reading view retains instructions, constraints and resolved predecessor re
     output.includes("````yaml"),
     "embedded code cannot terminate the metadata fence",
   );
+});
+
+test("provider can load the exporter before fresh fixture setup builds the addon", async (t) => {
+  const { mkdtemp, mkdir, copyFile, rm } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { pathToFileURL } = await import("node:url");
+  const root = await mkdtemp(join(tmpdir(), "unbuilt-workflow-export-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const folder = join(root, "promptfoo", "extensions");
+  await mkdir(folder, { recursive: true });
+  const path = join(folder, "workflow-markdown.mjs");
+  await copyFile(new URL("../extensions/workflow-markdown.mjs", import.meta.url), path);
+  const module = await import(pathToFileURL(path).href);
+  assert.equal(typeof module.workflowMarkdown, "function");
 });
