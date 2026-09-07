@@ -17,6 +17,8 @@ import { runStepPipeline } from "../scripts/step-pipeline.mjs";
 
 const repo = fileURLToPath(new URL("../..", import.meta.url));
 const report = (path) => JSON.parse(readFileSync(path, "utf8"));
+const literalMarkup =
+  '{{ <img src="image.svg"> }} {% if active %}literal{% endif %} {# retain comment #}';
 
 test(
   "real Promptfoo executes a pending planner handoff and two isolated native workers",
@@ -46,7 +48,7 @@ test(
     );
     const content = {
       source: "fixture-task.md",
-      content: "Write the specified text value exactly.",
+      content: `Write the specified text value exactly. ${literalMarkup}`,
     };
     const output = {
       value: {
@@ -307,8 +309,10 @@ emit({type:'turn.completed',usage:{input_tokens:100,cached_input_tokens:80,outpu
         /PLANNER_ONLY_GOAL|Two independent model calls execute/,
       );
     assert.match(nativeCalls[1].prompt, /Assigned step: first/);
+    assert.ok(nativeCalls[1].prompt.includes(literalMarkup));
     assert.doesNotMatch(nativeCalls[1].prompt, /Task: second/);
     assert.match(nativeCalls[2].prompt, /Assigned step: second/);
+    assert.ok(nativeCalls[2].prompt.includes(literalMarkup));
     const rows = readFileSync(history, "utf8").trim().split("\n");
     assert.equal(rows.length, 4);
     assert.match(rows[1], /"plan"/);

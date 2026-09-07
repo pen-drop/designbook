@@ -279,6 +279,7 @@ test("runner exposes explicit planner/executor selection without changing verifi
   ).trim();
   const config = yaml.load(readFileSync(path, "utf8"));
   assert.equal(config.tags.execution_mode, "separate-steps");
+  assert.equal(typeof config.tags.step_prompt_max_bytes, "string");
   assert.equal(config.tags.executor_model, "gpt-5.6-luna");
   const verify = yaml.load(readFileSync(config.tags.verify_config, "utf8"));
   assert.equal(verify.providers[0].config.model, "claude-opus-5");
@@ -333,6 +334,7 @@ test("planner and executor models are independently configurable within one prov
     ).trim();
     const config = yaml.load(readFileSync(path, "utf8"));
     assert.equal(config.tags.execution_mode, "separate-steps");
+    assert.equal(typeof config.tags.step_prompt_max_bytes, "string");
     assert.equal(config.tags.planner_cli, cli);
     assert.equal(config.tags.planner_model, planner);
     assert.equal(config.tags.executor_cli, cli);

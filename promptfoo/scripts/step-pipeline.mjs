@@ -6,8 +6,19 @@ import { stateHash } from "../extensions/step-result.mjs";
 import { planArtifactContract } from "../extensions/plan-artifacts.mjs";
 
 const copy = (value) => structuredClone(value);
-const writeConfig = (path, config) =>
-  writeFileSync(path, yaml.dump(config, { lineWidth: 120, noRefs: true }));
+const writeConfig = (path, config) => {
+  const serialized = copy(config);
+  if (serialized.tags.phase === "execute-step") {
+    // The CLI has already resolved this work order. A nested value bypasses
+    // Promptfoo's string-variable rendering, preserving Twig/code literally.
+    serialized.tests = serialized.tests.map((test) => ({
+      ...test,
+      vars: { ...test.vars, native_work_order: { text: config.prompts[0] } },
+    }));
+    serialized.prompts = ["{{ native_work_order.text }}"];
+  }
+  writeFileSync(path, yaml.dump(serialized, { lineWidth: 120, noRefs: true }));
+};
 
 export function executorConfig(
   base,
@@ -199,7 +210,7 @@ export function runStepPipeline({
     mkdirSync(join(runDir, "steps"), { recursive: true });
     const checkContext = (config, context, step, i) => {
       const promptBytes = Buffer.byteLength(config.prompts[0], "utf8");
-      const limitBytes = base.tags.step_prompt_max_bytes ?? 262144;
+      const limitBytes = Number(base.tags.step_prompt_max_bytes ?? 262144);
       if (!Number.isSafeInteger(limitBytes) || limitBytes <= 0)
         throw new Error("step_prompt_max_bytes must be a positive integer");
       const contextReport = {

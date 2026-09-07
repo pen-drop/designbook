@@ -235,7 +235,7 @@ const config = {
     ...(executor
       ? {
           execution_mode: "separate-steps",
-          step_prompt_max_bytes: base.stepPromptMaxBytes,
+          step_prompt_max_bytes: String(base.stepPromptMaxBytes),
           planner_cli: cli,
           planner_model: model,
           executor_cli: executor.cli,

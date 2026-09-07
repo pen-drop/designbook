@@ -385,3 +385,41 @@ All four phase attempts remain in results.csv. Raw reports and the complete
 are under `promptfoo/reports/designbook-58-astra-luna-01/`. Native failed authoring
 commands and recovered validation errors are retained. This is a diagnostic,
 not a quality/efficiency baseline. No saved artifact was repaired or rerun.
+
+## Astra planner / Sonnet worker with scoped reference queries
+
+`designbook-58-astra-sonnet-02` ran from ddceda34 in a fresh workspace on
+Storybook port 6130. Intake and planning used Codex `gpt-6-astra`; workers
+used Claude alias `sonnet` (the first native log identifies `claude-sonnet-5`).
+Intake passed three subjects, nine state/breakpoint cells and 36 typed packages.
+Planning passed with 40 tasks in 22 steps. The Markdown export is 541,754 bytes,
+also copied to `/tmp/designbook-58-astra-plan.md`. All 22 complete worker prompts
+passed the 262,144-byte preflight: 22,541–164,633 bytes. These are byte sizes,
+not token estimates or a controlled quality comparison with the previous plan.
+
+The three asset-provisioning workers passed. Worker four (`write-primitives-images`)
+failed before native invocation: Promptfoo parsed literal markup in the resolved
+work order as Nunjucks and reported `unexpected token: <`. Automatic verification
+failed without a validated score-report. No complete shell or visual quality
+result exists. The run is retained unchanged as a failed diagnostic.
+
+Reported usage totals 11,779,847 tokens: 11,722,120 input (including 11,192,825
+cached input) and 57,727 output. This is cumulative usage across native turns,
+not the size of one prompt. The fourth worker has no native usage; none is estimated.
+Reports, phase usage, byte bounds and transport findings are retained under
+`promptfoo/reports/designbook-58-astra-sonnet-02/`, including `summary.json`,
+`log-validation.json` and `friction.json`. The audit does not establish a complete
+successful native-log or visual check.
+
+The transport correction serializes each already resolved worker prompt as a
+nested object variable, preventing Promptfoo from evaluating embedded Twig/code.
+The native pipeline regression first reproduced the same failure, then passed
+with literal interpolation, control and comment syntax preserved at the worker.
+Byte preflight still measures the original complete prompt. The separate
+nonfatal numeric-tag warning is corrected by serializing the byte-limit tag
+as a string and parsing it for validation. These corrections are not retroactively
+applied to this run.
+
+The earlier `designbook-58-astra-sonnet-01` attempt was stopped during intake
+at the user's request to inspect context first. No planner or worker started.
+Its retained partial usage is 21,815 tokens; no final phase usage is inferred.
