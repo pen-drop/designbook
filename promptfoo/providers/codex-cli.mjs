@@ -1,4 +1,5 @@
 import CliProvider from "./cli-provider.mjs";
+import { collectCodexUsage } from "./codex-usage.mjs";
 
 export const codexRuntime = {
   name: "codex",
@@ -16,7 +17,7 @@ export const codexRuntime = {
     cwd,
     prompt,
   ],
-  parse(events) {
+  async parse(events, options) {
     if (
       !events.some((event) => event.type === "turn.completed") ||
       events.some((event) => event.type === "turn.failed")
@@ -41,9 +42,11 @@ export const codexRuntime = {
       );
     return {
       text: messages.filter(Boolean).at(-1) || "",
-      usage: events.findLast(
-        (event) => event.type === "turn.completed" && event.usage,
-      )?.usage,
+      ...(await collectCodexUsage(
+        events,
+        events.findLast((event) => event.type === "turn.completed" && event.usage)?.usage,
+        options,
+      )),
     };
   },
 };

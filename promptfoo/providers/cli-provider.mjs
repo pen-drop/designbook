@@ -231,7 +231,8 @@ class CliProvider {
         .split(/\r?\n/)
         .filter(Boolean)
         .map((line) => JSON.parse(line));
-      const { text, usage, modelUsage } = this.runtime.parse(events);
+      const { text, usage, modelUsage, usageScope, subagentCount, usageBreakdown } =
+        await this.runtime.parse(events, { evidenceDir });
       if (
         ["input_tokens", "cached_input_tokens", "output_tokens"].some(
           (key) => !Number.isSafeInteger(usage?.[key]) || usage[key] < 0,
@@ -262,6 +263,8 @@ class CliProvider {
         model: this.model,
         cli: this.runtime.name,
         ...(modelUsage ? { modelUsage } : {}),
+        ...(usageScope ? { usageScope, subagentCount } : {}),
+        ...(usageBreakdown ? { usageBreakdown } : {}),
         workspace: cwd,
         usage,
         durationMs: Date.now() - started,
