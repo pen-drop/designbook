@@ -323,3 +323,34 @@ application artifacts. A regression now runs the actual Promptfoo evaluator with
 stub native CLI processes and real workflow create/start/done commands through
 planning and two distinct execution calls. Final checks: 828 addon tests and
 57 Node/Promptfoo tests passed. This is not a real-model quality result.
+
+## Split-model diagnostics and external limit
+
+`opus-luna-steps-01` ran on acdb837a. Intake passed its then-current gates, but
+additional read-only validation identified relative asset IDs where the extract
+uses absolute URL identities. The planner subsequently rewrote the frozen
+extract to correct that mismatch, violating the handoff. It never attempted
+workflow validate/create and left only partial Python work-order files in
+`/tmp/plan-ds/`. Claude's session limit ended planning; the automatic verifier
+also reported that limit. No complete plan or Luna execution resulted.
+Intake used 7,854,691 tokens, planning 12,761,140, verification 0: total
+20,615,831. Peak input was 194,434 in intake and 317,600 during planning.
+
+`opus-luna-steps-02` ran in the isolated fad5d8c4 checkout. Its strengthened
+intake gate passed the effective schemas, two subjects, six state/breakpoint
+cells and 18 component/composition/token packages with local dependencies.
+Intake used 11,149,558 tokens and planning 1,603,351; verification reported
+0 after immediately hitting the same limit. Total: 12,752,909. Peak input was
+223,161 in intake and 114,166 during planning. No executor call started.
+
+Both runs ended naturally at the Claude limit before an attempted cancellation;
+no process was signalled. The native message reports reset at 21:20 Europe/Berlin
+on 2026-09-07. Their typed model failures occurred before evaluating the buggy
+plan artifact assertion, so do not attribute the observed termination to that
+assertion. All phase rows and native usage are retained, including zero reported
+quota-rejection usage. Neither run is an efficiency or quality baseline.
+
+The two isolated corrections are integrated on the ticket branch as a4e8ad1b
+and 9296d79f. A fresh full real-model pass remains outstanding after quota
+availability returns; no provider/model substitution or extra model run was
+started under the known limit. DESIGNBOOK-58 remains in coding.
