@@ -229,6 +229,13 @@ export function validateDefinition(raw: unknown): asserts raw is WorkflowDefinit
     }
     for (const output of Object.values(task.outputs)) {
       ajv.compile(output.schema);
+      if (
+        (/\.png$/i.test(output.path ?? '') || output.validators.includes('image')) &&
+        (output.submission !== 'direct' ||
+          Object.keys(output.schema).length !== 0 ||
+          !output.validators.includes('image'))
+      )
+        throw new Error(`PNG output in ${task.id} requires direct submission, an empty schema and the image validator`);
       if (output.submission === 'direct' && !output.path)
         throw new Error(`Direct output in ${task.id} requires a path`);
       if (output.validators.length && !output.path) throw new Error(`File validators in ${task.id} require a path`);

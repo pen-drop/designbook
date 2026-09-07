@@ -21,7 +21,10 @@ async function fixture(t) {
     await mkdir(path, { recursive: true });
     await writeFile(
       join(path, "tasks.yml"),
-      yaml.dump({ definition: { id }, state: { status, tasks } }),
+      yaml.dump({
+        definition: { id },
+        state: { status, tasks, created_at: "2026-09-07T12:00:00Z" },
+      }),
     );
     await writeFile(join(path, "definition-before.yml"), yaml.dump({ id }));
   };
@@ -626,6 +629,39 @@ test("Claude usage requires a successful terminal result and complete native cou
     10,
   );
 });
+
+for (const cli of ["claude", "grok"])
+  test(`${cli} terminal errors keep measured usage without becoming successful responses`, async (t) => {
+    const { root, workspace, stub } = await fixture(t);
+    const { default: Cli } = await import(`../providers/${cli}-cli.mjs`);
+    const terminal = {
+      ...structuredClone(claudeCompleted[0]),
+      subtype: "error_max_turns",
+      is_error: true,
+    };
+    const events =
+      cli === "grok"
+        ? [
+            {
+              type: "assistant",
+              parent_tool_use_id: null,
+              message: { id: "msg_0", usage: terminal.usage },
+            },
+            terminal,
+          ]
+        : [terminal];
+    await stub(emit(events), cli);
+    const provider = new Cli({
+      config: { evidenceDir: join(root, "error-evidence") },
+    });
+    const result = await provider.callApi("Fail with measured usage", {
+      vars: { workspace },
+    });
+    assert.match(result.error, /did not complete/);
+    assert.equal(result.output, undefined);
+    assert.equal(result.tokenUsage.total, 110);
+    assert.equal(result.metadata.run.usage.input_tokens, 100);
+  });
 
 test("missing or changed definition snapshots fail the integrity gate", async (t) => {
   const { provider, workspace, workflow } = await fixture(t);

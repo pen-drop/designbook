@@ -16,12 +16,19 @@ export const claudeRuntime = {
     "--",
     prompt,
   ],
-  parse: (events) => parseMessagesResult(events, "Claude"),
+  parse: (events, options) => parseMessagesResult(events, "Claude", options),
 };
 
-export function parseMessagesResult(events, label) {
+export function parseMessagesResult(
+  events,
+  label,
+  { allowFailure = false } = {},
+) {
   const result = events.findLast((event) => event.type === "result");
-  if (!result || result.is_error || result.subtype !== "success") {
+  if (
+    !result ||
+    (!allowFailure && (result.is_error || result.subtype !== "success"))
+  ) {
     throw new Error(
       `${label} CLI did not complete successfully: ${result?.errors?.join("; ") || result?.subtype || "missing result"}; inspect ${label.toLowerCase()}.jsonl`,
     );

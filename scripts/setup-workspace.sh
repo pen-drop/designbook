@@ -173,20 +173,21 @@ if [ ${#FEATURE_ARGS[@]} -gt 0 ]; then
   '
 fi
 
-# Symlink agent directories into the WORKSPACE ROOT (not the theme) so the CLI
+# Copy agent directories into the WORKSPACE ROOT (not the theme) so the CLI
 # and every agent (Claude, Cursor, Codex) can resolve skills and commands from
 # where designbook.config.yml now lives.
 # The skills/commands inside .claude, .cursor and .codex are themselves relative
 # symlinks into .agents, so .agents must also be present alongside them.
-ln -sfn "$REPO_ROOT/.claude" "$WORKSPACE_DIR/.claude"
-ln -sfn "$REPO_ROOT/.cursor" "$WORKSPACE_DIR/.cursor"
-ln -sfn "$REPO_ROOT/.codex" "$WORKSPACE_DIR/.codex"
-ln -sfn "$REPO_ROOT/.agents" "$WORKSPACE_DIR/.agents"
+cp -a "$REPO_ROOT/.agents" "$WORKSPACE_DIR/.agents"
+cp -a "$REPO_ROOT/.claude" "$WORKSPACE_DIR/.claude"
+cp -a "$REPO_ROOT/.cursor" "$WORKSPACE_DIR/.cursor"
+cp -a "$REPO_ROOT/.codex" "$WORKSPACE_DIR/.codex"
 
 # No theme-dir .agents symlink is needed: debo-test drives workflow CLI commands
 # from the WORKSPACE ROOT (where designbook.config.yml lives). Storybook still
 # runs from the theme dir. resolveSkillsRoot walks UP from the config dir and
-# finds these symlinks at the workspace root.
+# finds the copied skills at the workspace root. Later source edits do not alter
+# an already provisioned run's instruction inputs.
 
 # Initialize git repo in the theme dir (where Storybook runs from).
 cd "$THEME_DIR"
@@ -260,6 +261,21 @@ pnpm install --no-frozen-lockfile --config.confirmModulesPurge=false
 # keeps dist current; the vite watcher already ignores the symlinked tree).
 echo "Linking local storybook-addon-designbook..."
 pnpm add -D "link:$REPO_ROOT/packages/storybook-addon-designbook"
+
+# The driver runs from the workspace root containing designbook.config.yml.
+# Give that directory its own local CLI and delegate Storybook builds to the theme.
+WORKSPACE_DIR="$WORKSPACE_DIR" ADDON_DIR="$REPO_ROOT/packages/storybook-addon-designbook" \
+node -e '
+  const fs = require("fs");
+  const path = require("path");
+  fs.writeFileSync(path.join(process.env.WORKSPACE_DIR, "package.json"), JSON.stringify({
+    name: "designbook-test-workspace",
+    private: true,
+    scripts: { "build-storybook": "pnpm --dir web/themes/custom/test_integration_drupal build-storybook" },
+    devDependencies: { "storybook-addon-designbook": `link:${process.env.ADDON_DIR}` }
+  }, null, 2) + "\n");
+'
+(cd "$WORKSPACE_DIR" && pnpm install --no-frozen-lockfile --config.confirmModulesPurge=false)
 
 echo ""
 echo "✓ Workspace ready (Drupal layout, ddev NOT started)"

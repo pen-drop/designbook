@@ -143,6 +143,7 @@ const providers = base.providers.map((p) => ({
     ...p.config,
     model,
     evidenceDir: join(runDir, "evidence"),
+    definitionSnapshotDir: join(runDir, "definitions"),
     ...(caseDoc.evidence && opts.phase === "main"
       ? { caseFile: join(cases, `${opts.case}.yaml`) }
       : {}),
@@ -251,6 +252,11 @@ const designCase =
   /^(design-shell|design-entity|design-screen|design-section)(?:-|$)/.test(
     opts.case,
   );
+if (opts.phase === "main" && designCase)
+  assertions.push({
+    type: "javascript",
+    value: `file://${join(repo, "promptfoo/extensions/design-main-result.mjs")}`,
+  });
 if (
   opts.phase === "main" &&
   (caseDoc.verify || (designCase && caseDoc.validate !== "none"))

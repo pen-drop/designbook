@@ -56,6 +56,43 @@ async function setup(def = definition()) {
 }
 
 describe('static definition contract', () => {
+  it('requires PNG outputs to use direct submission, an empty schema and image validation', () => {
+    const def = definition();
+    const output = def.tasks[0]!.outputs.vision!;
+    Object.assign(output, { path: '/tmp/capture.png', submission: 'direct', schema: {}, validators: ['image'] });
+    expect(() => validateDefinition(def)).not.toThrow();
+    output.schema = { type: 'string' };
+    expect(() => validateDefinition(def)).toThrow('PNG output');
+    output.schema = {};
+    output.submission = 'data';
+    expect(() => validateDefinition(def)).toThrow('PNG output');
+    output.submission = 'direct';
+    output.validators = [];
+    expect(() => validateDefinition(def)).toThrow('PNG output');
+  });
+
+  it('stores PNG file identity without embedding binary contents into workflow state', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'workflow-png-'));
+    dirs.push(dir);
+    const file = join(dir, 'capture.png');
+    const bytes = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=',
+      'base64',
+    );
+    await writeFile(file, bytes);
+    const def = definition();
+    def.tasks[0]!.outputs = {
+      image: { required: true, path: file, submission: 'direct', schema: {}, validators: ['image'] },
+    };
+    const path = await setup(def);
+    await startTask(path, 'write');
+    const doc = await completeTask(path, 'write', {});
+    expect(doc.state.tasks.write!.results.image!.valid).toBe(true);
+    expect(doc.state.tasks.write!.results.image!.value).toBeNull();
+    expect(doc.state.tasks.write!.results.image!.sha256).toBe(createHash('sha256').update(bytes).digest('hex'));
+    expect(await readFile(path, 'utf8')).not.toContain('PNG');
+  });
+
   it('rejects incomplete structure before creating any tasks', () => {
     const def = definition();
     delete (def.tasks[0] as Partial<(typeof def.tasks)[0]>)!.target;

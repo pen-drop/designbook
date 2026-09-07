@@ -35,6 +35,10 @@ import { createHash } from "node:crypto";
 import { dirname, join, relative, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { createRequire } from "node:module";
+import {
+  auditDefinitionSnapshots,
+  snapshotExistingDefinitions,
+} from "../scripts/definition-snapshots.mjs";
 
 import {
   collectCaseArtifacts,
@@ -176,6 +180,11 @@ class CliProvider {
         context?.vars,
         prompt,
       ));
+      if (this.config.definitionSnapshotDir)
+        snapshotExistingDefinitions(
+          savedWorkflows(await this.resolveDesignbookDir(cwd)),
+          this.config.definitionSnapshotDir,
+        );
     } catch (err) {
       await writeFile(
         join(evidenceDir, "setup-error.txt"),
@@ -211,6 +220,12 @@ class CliProvider {
               ...process.env,
               DESIGNBOOK_HOME: cwd,
               DESIGNBOOK_PROMPTFOO_DRIVER: "1",
+              ...(this.config.definitionSnapshotDir
+                ? {
+                    DESIGNBOOK_DEFINITION_SNAPSHOTS:
+                      this.config.definitionSnapshotDir,
+                  }
+                : {}),
             },
           },
           async (err, stdout, stderr) => {
@@ -335,7 +350,10 @@ class CliProvider {
             .split(/\r?\n/)
             .filter(Boolean)
             .map(JSON.parse);
-          const parsed = await this.runtime.parse(events, { evidenceDir });
+          const parsed = await this.runtime.parse(events, {
+            evidenceDir,
+            allowFailure: true,
+          });
           const usage = parsed.usage;
           if (
             ["input_tokens", "cached_input_tokens", "output_tokens"].every(
@@ -390,6 +408,7 @@ class CliProvider {
   async collectArtifacts(workspaceDir) {
     const designbookDir = await this.resolveDesignbookDir(workspaceDir);
     const workflowPaths = [];
+    let workflowDocuments = [];
     const result = {
       newFiles: [],
       completedWorkflows: {},
@@ -479,9 +498,8 @@ class CliProvider {
       }
 
       // Completion follows saved state. Run IDs remain exact; retries are evidence.
-      for (const { path, document: parsed, error } of savedWorkflows(
-        designbookDir,
-      )) {
+      workflowDocuments = savedWorkflows(designbookDir);
+      for (const { path, document: parsed, error } of workflowDocuments) {
         const file = relative(workspaceDir, path);
         try {
           if (error) throw new Error(error);
@@ -521,6 +539,13 @@ class CliProvider {
       result.workflowErrors.push({ error: err.message });
     }
 
+    if (this.config.definitionSnapshotDir)
+      result.definitionErrors.push(
+        ...auditDefinitionSnapshots(
+          workflowDocuments,
+          this.config.definitionSnapshotDir,
+        ),
+      );
     result.definitionUnchanged =
       result.definitionErrors.length === 0 &&
       result.workflowErrors.length === 0 &&

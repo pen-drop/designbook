@@ -16,8 +16,8 @@ export const grokRuntime = {
     "--single",
     prompt,
   ],
-  parse(events) {
-    const parsed = parseMessagesResult(events, "Grok");
+  parse(events, options) {
+    const parsed = parseMessagesResult(events, "Grok", options);
     const messages = events.filter((event) => event.type === "assistant");
     if (
       !messages.length ||

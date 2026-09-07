@@ -1,0 +1,81 @@
+# DESIGNBOOK-58 measurement work
+
+Coding is in progress. No efficiency measure has been accepted and no valid
+Codex baseline exists yet. The historical design runs remain diagnostic.
+
+The frozen case selections and preflight settings are in `manifest.json`.
+Reference content still needs a fixed artifact snapshot before efficiency
+comparisons; the current diagnostic uses the cases' original live reference.
+
+## Measurement changes
+
+Commit `732b84f5` adds Grok 4.6 to the existing Promptfoo provider pipeline,
+checks terminal usage against every complete assistant message, pins Codex
+reasoning to medium, and retains valid terminal usage after process or artifact
+collection failures. CSV records native usage source, scope, known subagent
+contribution and evidence paths. Historical missing values remain unknown.
+These are measurement corrections, not measured workflow optimizations.
+
+The Grok preflight exercised two model turns and a real `pwd` tool call.
+Native terminal counts matched per-message sums: 66,125 total input tokens
+(including 33,024 cache reads), 125 output tokens, 66,250 total tokens.
+The CLI reported 13,570 ms; this is its native duration, not total provisioning
+or outer process wall time. Reasoning tokens were unavailable. This smoke is
+recorded as `cli-preflight/grok-tool-smoke`, not as a design case or baseline.
+Raw evidence: `promptfoo/reports/designbook-58-preflight/grok-smoke.jsonl`.
+
+Validation before commit: `pnpm check` passed typecheck, lint and 778 tests
+across 89 files. The separate `node --test promptfoo/tests/runner.test.mjs`
+passed all 26 tests, including all three adapters through Promptfoo, invalid
+Grok counters/terminal results, failed-run usage retention and CSV accounting.
+
+## Attempts
+
+| Attempt | Source | Purpose | Status |
+| --- | --- | --- | --- |
+| designbook-58-preflight | 90a8e5ef + measurement patch | Grok native counter contract | Smoke passed; no design score |
+| designbook-58-shell-diagnostic-01 | 732b84f5 | Fresh Codex shell plus separate verify | Invalid; 0/4 visual checks passed |
+
+The shell diagnostic uses `gpt-5.6-luna`, medium reasoning, a 3,600,000 ms
+limit per CLI call, disabled Promptfoo caching, and Storybook port 6118.
+Its report directory is `promptfoo/reports/designbook-58-shell-diagnostic-01/`;
+its fresh workspace is `promptfoo/workspaces/designbook-58-shell-diagnostic-01/`.
+Full temporary workspaces and raw logs remain outside Git.
+
+## Outstanding gates
+
+AC1–AC3 need runtime contract corrections and diagnostic evidence. AC4–AC6
+need successful baseline repetitions, isolated candidate comparisons, the
+combined comparison and model/held-out validation. AC7 has a versioned
+measurement history and report, but experiment accounting is incomplete.
+AC8's code checks pass; the real workflow gate failed.
+Optimizer/coordinator usage has not been measured and remains unknown.
+
+## Diagnostic 01 audit
+
+Main used 6,615,929 tokens in 586,121 ms; verify used 7,162,552 tokens in
+627,685 ms. Total measured CLI work: 13,778,481 tokens and 1,213,806 ms
+(20.23 minutes), including 13,259,008 cached input tokens and 8,901 reasoning
+tokens as subsets. Provisioning adds outer wall time and is not in these CLI
+phase durations. The original CSV phase rows retain Promptfoo's raw outcomes:
+main passed its weak assertions; verify failed with score 12 and 0/4 checks.
+All four captures were error pages/missing selectors, so their 61.58–77.31%
+diff ratios do not measure rendered design fidelity.
+
+Native log audit found a deleted/recreated workflow and before snapshot
+(main events `item_55`/`item_57`), failed Storybook build (`item_59`), and
+weakened output schemas. The initial definition was recovered from native event
+`item_40` into `initial-observed-workflow.json` alongside the reports. Verification
+embedded PNG bytes into YAML through string output schemas. The detailed audit,
+friction, summaries and screenshot evidence stay in the diagnostic report/workspace.
+
+The next infrastructure correction adds external creation-time/definition
+snapshots, fail-closed build/browser acceptance, PNG definition validation,
+root workspace CLI/build tooling and copied skill inputs. It also retains valid
+Claude/Grok terminal-error usage without treating those responses as success.
+Both new regressions failed before their fixes. Afterward `pnpm check` passed
+780 tests in 89 files; all 32 separate Promptfoo tests passed.
+
+A bounded `gpt-5.6-luna` optimizer proposed a single-file planning-contract
+correction from the training findings only. The proposal has not been evaluated;
+its native token usage is unknown. It received no held-out inputs or reports.
