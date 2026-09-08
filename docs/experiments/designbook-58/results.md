@@ -659,3 +659,34 @@ selector decisions still fail. A read-only diagnostic against the original nativ
 messages accepts Opus/Luna presentation and captured scope, while Opus-only remains
 rejected. Original 07 reports and CSV results remain failed; fresh 08 runs are
 required to measure execution with the corrected gate.
+
+
+## Opus comparison retries (08)
+
+Fresh retries at `1df2bbbe`, ports 6148 and 6150, again stopped at intake.
+Opus-only presented concrete `.page__header`/`.page__footer` selectors under
+`Subject ID`; Opus/Luna presented a complete table with German column headings.
+Both were parser false negatives. The follow-up recognizes these equivalent
+English/German headings without changing exact selector values. A read-only
+diagnostic accepts both native inventories and their capture scope. Original
+reports remain failed; no planner or executor ran.
+
+Opus-only completed one 16-task reference capture. All SVG assets including the
+ministry logo were present and valid, but six screenshots were created through
+`capture screenshot --selector`, whose existing implementation moves the selected
+element into a replacement document body. The resulting 1600/1680-pixel images
+lose the source layout context and contain large transparent areas.
+
+Opus/Luna preserved three fixed capture attempts: the first blocked before
+publication because its declared files omitted the icon sprite; the next published
+that dependency; a third corrected observed form attributes and SVG text labels.
+Published bytes and definitions stayed unchanged. Header crops are usable, but
+footer capture also relocated the subject and the ministry SVG geometry is missing
+from both published revisions. The initial blocked capture remains visible and
+would still fail the incomplete-workflow gate even with its presentation accepted.
+
+Both automatic verifiers correctly report missing main output without inventing
+selectors, comparisons or scores. Opus-only: 27,869,408 tokens, native duration
+1,879,551 ms, peak context 290,505. Opus/Luna: 31,032,783 tokens, native duration
+2,274,157 ms, peak context 277,461. Detailed audits and all raw failures are kept
+in their `promptfoo/reports/designbook-58-*-08/` directories.

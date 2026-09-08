@@ -123,6 +123,12 @@ test("recognizes semantic columns with separate states and preserves exact locat
   const rows = selectorTable(presentation);
   assert.deepEqual(rows[0].source_locators, ["app-site-header"]);
   assert.match(rows[0].breakpoints, /states: rest/);
+  const german = presentation
+    .replace("Subject", "Subject ID")
+    .replace("Native source locator (CSS)", "Nativer Referenz-Locator")
+    .replace("Planned story selector", "Geplanter Story-Selektor")
+    .replace("Observed evidence", "Beobachtete Evidenz");
+  assert.deepEqual(selectorTable(german), rows);
   assert.equal(
     validateDesignIntake(
       [{ ...message, item: { ...message.item, text: presentation } }, create],

@@ -70,9 +70,20 @@ export function selectorTable(text) {
   let columns;
   const start = lines.findIndex((line, index) => {
     const row = cells(line).map((cell) => {
-      const label = cell.toLowerCase();
+      const label = cell
+        .toLowerCase()
+        .replace(/\b(?:nativer|native)\b/g, "native")
+        .replace(/\breferenz\b/g, "reference")
+        .replace(/\bquelle\b/g, "source")
+        .replace(/\bgeplanter?\b/g, "planned")
+        .replace(/\bselektor\b/g, "selector")
+        .replace(/\bbeobachtete\b/g, "observed")
+        .replace(/\bevidenz\b/g, "evidence")
+        .replace(/\b(?:zustände|zustaende)\b/g, "states")
+        .replaceAll("-", " ");
+      if (/^(?:subject|region)(?: id)?$/.test(label)) return "subject";
       if (
-        /^(?:native )?(?:(?:source|reference) )?locator(?: \([^)]*\))?(?: on .+)?$/.test(
+        /^(?:native )?(?:css )?(?:(?:source|reference) )?locator(?: \([^)]*\))?(?: on .+)?$/.test(
           label,
         )
       )
