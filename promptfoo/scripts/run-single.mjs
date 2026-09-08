@@ -373,15 +373,13 @@ if (
   opts.phase === "main" &&
   (caseDoc.verify || (designCase && caseDoc.validate !== "none"))
 ) {
-  const verificationCase =
-    caseDoc.verify ||
-    opts.case
-      .replace(/^design-section/, "design-screen")
-      .replace(/^design-/, "design-verify-");
-  const verificationCasePath = join(cases, `${verificationCase}.yaml`);
-  const criteria = existsSync(verificationCasePath)
-    ? yaml.load(readFileSync(verificationCasePath, "utf8")).prompt
-    : "Run /debo design-verify against the design just produced, using the original reference, regions, breakpoints and thresholds from its saved inputs. Missing comparison inputs fail the check; never compare the generated design to itself.";
+  const thresholdPercent = base.verificationThresholdPercent;
+  if (
+    !Number.isFinite(thresholdPercent) ||
+    thresholdPercent < 0 ||
+    thresholdPercent > 100
+  )
+    throw new Error("verificationThresholdPercent must be between 0 and 100");
   const verifyOutput = join(dirname(output), "verify.json");
   if (output === verifyOutput || existsSync(verifyOutput))
     throw new Error(
@@ -389,8 +387,9 @@ if (
     );
   verifyConfigPath = join(runDir, "verify-promptfooconfig.yaml");
   const verifyPrompt =
-    criteria.replaceAll("{{workspace}}", workspace) +
-    `\nCheck the ACTUAL design created by the main workflow ${JSON.stringify(workflowId)} in this workspace. Keep its artifacts and fixtures. Do not import verification fixtures. Read that saved main definition for the original reference and targets; these take precedence over example stories/references in the criteria above. If the main run had no reference, fail with missing-reference evidence. Never substitute a different reference or compare output to itself.\n` +
+    `You are working in ${JSON.stringify(workspace)}. Run /debo design-verify on the ACTUAL design created by the main workflow ${JSON.stringify(workflowId)}. Keep its artifacts and fixtures.\n` +
+    "Use only the saved main definition for the published reference binding and actual story/scene IDs, source and story selectors, regions, views/breakpoints and states. Preserve exact selector strings. Cover every planned comparison cell, including non-default states. Do not load a standalone verification fixture or its prompt to obtain targets. Missing or ambiguous saved targets fail with evidence; never guess replacement selectors or compare output to itself.\n" +
+    `Use the comparison threshold fixed in the saved main definition; when it declares none, use the configured test threshold of ${thresholdPercent}%. Never relax the threshold. If the main run had no reference, fail with missing-reference evidence.\n` +
     "Before capturing, confirm the produced scene exists and the Storybook server belongs to this workspace. Missing scenes, error pages or missing target selectors fail verification; preserve their evidence without grading them as rendered designs.\n" +
     `Complete the source-neutral actual capture through the Storybook integration skill before planning comparison. Preserve the published reference revision; never recapture or rewrite it. Save separate effective discovery catalogues for capture and verification and pass the matching --catalogue to workflow validate and workflow create. Use "design-verify" as the comparison definition.id. Immediately after EVERY workflow create (including actual capture), run node ${JSON.stringify(join(repo, "promptfoo/scripts/snapshot-definition.mjs"))} <saved-tasks.yml>, then execute-workflow. Preserve the complete score-report and capture/comparison evidence. Return the check findings; any repair belongs to a separate test run and must not mutate these main artifacts.\n` +
     "Run CLI commands from the workspace root. Missing inputs are failures; this test has no interactive user.";
@@ -488,6 +487,13 @@ if (!opts["config-only"]) {
     } else mainStatus = evaluate(configPath);
   }
   // Verification remains a separate attempt, including when earlier design parts fail.
+  if (verifyConfig && stepPipeline?.workflowPath) {
+    verifyConfig.prompts[0] += `\nSaved main workflow: ${JSON.stringify(stepPipeline.workflowPath)}. Read this definition to resolve verification targets.\n`;
+    writeFileSync(
+      verifyConfigPath,
+      yaml.dump(verifyConfig, { lineWidth: 120, noRefs: true }),
+    );
+  }
   const verifyStatus = verifyConfig ? evaluate(verifyConfigPath) : null;
   const passed =
     intakeStatus === 0 &&

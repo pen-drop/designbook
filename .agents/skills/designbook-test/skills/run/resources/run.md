@@ -88,8 +88,11 @@ For design-shell, design-entity and design-screen, the Promptfoo runner executes
 assertions. Other rendered-design fixtures declare `verify: <case>` to use the
 same pipeline. A case with explicit `validate: none` uses its concrete main-run
 build/browser acceptance criteria without reference comparison; an explicit `verify`
-case still requests that separate phase. Only the verifier case's prompt is reused; its fixtures are never
-layered over the main output. Both CSV rows share a `run_id`; the verification row
+case still requests that separate phase. Automatic verification resolves the original
+reference binding, story/scene IDs, exact selectors, views and states exclusively
+from the saved main definition. The standalone verifier case's prompt and fixtures
+are not reused. Preserve any saved comparison threshold; when absent, use the
+configured `verificationThresholdPercent` fallback. Both CSV rows share a `run_id`; the verification row
 has `workflow_id=design-verify` and its own CLI tokens and measured score.
 
 In separate-step mode, also read `plan.json`, `step-pipeline.json` and every

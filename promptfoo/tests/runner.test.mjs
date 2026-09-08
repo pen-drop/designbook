@@ -1058,7 +1058,11 @@ process.exitCode = Number(config.tags.phase === 'intake' ? process.env.TEST_INTA
     assert.equal(verify.tests[0].vars.workspace, workspace);
     assert.equal(verify.tests[0].vars.suite, undefined);
     assert.equal(verify.tests[0].vars.case, undefined);
-    assert.match(verify.prompts[0], /original reference/);
+    assert.match(verify.prompts[0], /published reference binding/);
+    assert.doesNotMatch(
+      verify.prompts[0],
+      /\.page__header|\.page__footer|criteria above/,
+    );
   }
 });
 

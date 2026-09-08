@@ -115,8 +115,12 @@ is rejected so earlier results remain intact.
 a workspace. Main phases rebuild fixtures; verify phases require the existing
 workspace and a prompt file. CLI JSONL/stderr and available dbo.log files are kept
 for auditing; usage is reported per phase. Design-shell, design-entity and design-screen always start a separate design-verify evaluation after the main
-phase. Fixtures may declare `verify: <case>` to select its criteria; only that
-case's prompt is used. Both reports share a run directory and `run_id`. The runner
+phase. Fixtures may declare `verify: <case>` to request the follow-up. Automatic
+verification takes its reference binding, stories, exact selectors, views and
+states exclusively from the saved main plan; it never copies the standalone
+verification case's prompt or imports its fixtures. The saved comparison threshold
+is used when present; otherwise `verificationThresholdPercent` in `configs/base.yaml`
+applies (3% by default). Both reports share a run directory and `run_id`. The runner
 fails if either phase fails, comparisons do not pass, or verification changes
 main artifacts. The shared skill still audits the real capture/comparison logs.
 Calling `promptfoo eval` directly on an individual generated config runs only

@@ -283,6 +283,13 @@ test("runner exposes explicit planner/executor selection without changing verifi
   assert.equal(config.tags.executor_model, "gpt-5.6-luna");
   const verify = yaml.load(readFileSync(config.tags.verify_config, "utf8"));
   assert.equal(verify.providers[0].config.model, "claude-opus-5");
+  const verifyPrompt = verify.prompts[0];
+  assert.doesNotMatch(verifyPrompt, /\.page__header|\.page__footer|leando\.de/);
+  assert.doesNotMatch(verifyPrompt, /criteria above|take precedence/);
+  assert.match(verifyPrompt, /Use only the saved main definition/);
+  assert.match(verifyPrompt, /Preserve exact selector strings/);
+  assert.match(verifyPrompt, /including non-default states/);
+  assert.match(verifyPrompt, /configured test threshold of 3%/);
   assert.throws(
     () =>
       execFileSync(
