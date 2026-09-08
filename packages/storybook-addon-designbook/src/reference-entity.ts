@@ -1,8 +1,8 @@
-import { existsSync, readFileSync, realpathSync } from 'node:fs';
+import { existsSync, realpathSync } from 'node:fs';
 import { join, relative, resolve, isAbsolute } from 'node:path';
-import { parse } from 'yaml';
 import type { DesignbookConfig } from './config.js';
 import { readPublishedCapture, type ObservationMeta, type ObservationExtract } from './reference-capture.js';
+import { projectPublishedObservations } from './reference-project.js';
 
 export type ReferenceElement = ObservationMeta['elements'][number];
 export interface ReferenceJSON {
@@ -38,8 +38,7 @@ export class Reference {
     if (relativeDirectory.startsWith('..') || isAbsolute(relativeDirectory)) return null;
     const published = readPublishedCapture(directory);
     if (`${published.id}/${published.revision}` !== binding) throw new Error('Reference binding identity differs');
-    const meta = parse(readFileSync(join(directory, 'meta.yml'), 'utf8')) as ObservationMeta;
-    const extract = JSON.parse(readFileSync(join(directory, 'extract.json'), 'utf8')) as ObservationExtract;
+    const { meta, extract } = projectPublishedObservations(directory);
     return new Reference(published.id, published.revision, `references/${binding}`, meta, extract.captures);
   }
 

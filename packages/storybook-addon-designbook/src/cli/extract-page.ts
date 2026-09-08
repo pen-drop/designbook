@@ -1,17 +1,10 @@
 /**
- * `_debo extract <url>` — one headless browser pass that dumps a reference page's
- * structure into an `observations.json` skeleton the `extract-reference` task then
- * fills the judgment gaps on. The mechanics (landmarks, interactive elements,
- * forms, images/assets, fonts, colors) live here in code; the completeness
- * judgment stays model work in the task.
- *
- * Built on the existing `inspect/` capture + style-env primitives so there is one
- * browser-automation path in the addon, not per-run improvised playwright
- * one-liners.
+ * Browser pass that writes one source dump (`extract.json`) and returns the
+ * catalogue skeleton for `reference save` stdout.
  */
 
-import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { mkdir } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import type { CapturedSource, PropertyNode } from '../inspect/element-walker.js';
 import type { StyleEnv } from '../inspect/style-env.js';
 import type { DesignbookConfig } from '../config.js';
@@ -82,7 +75,6 @@ export function cssFontFamilies(value: string): string[] {
   return families;
 }
 
-
 /** Collect the ids of every descendant of `rootId` from the flat node list. */
 function descendantIds(nodes: PropertyNode[], rootId: string): Set<string> {
   const byParent = new Map<string, string[]>();
@@ -102,7 +94,7 @@ function descendantIds(nodes: PropertyNode[], rootId: string): Set<string> {
 }
 
 /**
- * Assemble the observations.json skeleton from a captured DOM tree and (optional)
+ * Assemble the catalogue skeleton from a captured DOM tree and (optional)
  * document style env. Pure: same inputs → same output, no browser or IO.
  */
 export function buildExtractSkeleton(
@@ -178,27 +170,24 @@ export function parseBreakpointNames(raw: string | undefined): string[] {
 }
 
 /**
- * Capture the DOM tree (one pass) and the document style env (a second short pass,
- * best-effort) and write the extract skeleton to `<out>/observations.json`. Also writes
- * the raw captured tree so the task can query it with jq without pasting it into
- * the conversation.
+ * Capture the DOM tree into `<out>/extract.json` and return the catalogue skeleton.
  */
 export async function runExtractPage(
   url: string,
   outDir: string,
   opts: { breakpoints: string[]; fonts: string[] },
   config: DesignbookConfig,
-): Promise<string> {
+): Promise<{ dumpPath: string; catalogue: ExtractSkeleton }> {
   const { capture } = await import('../inspect/capture.js');
   const { resolveBreakpointWidths } = await import('../inspect/breakpoint-widths.js');
 
   await mkdir(outDir, { recursive: true });
-  const capturedPath = resolve(outDir, 'captured.json');
+  const dumpPath = resolve(outDir, 'extract.json');
   const widths = resolveBreakpointWidths(config, opts.breakpoints);
-  await capture(url, capturedPath, widths);
+  await capture(url, dumpPath, widths);
 
   const { readFile } = await import('node:fs/promises');
-  const captured = JSON.parse(await readFile(capturedPath, 'utf-8')) as CapturedSource;
+  const captured = JSON.parse(await readFile(dumpPath, 'utf-8')) as CapturedSource;
 
   let styleEnv: StyleEnv | undefined;
   try {
@@ -208,12 +197,9 @@ export async function runExtractPage(
     styleEnv = undefined; // degrade — the captured tree still yields fonts/colors
   }
 
-  const skeleton = buildExtractSkeleton(captured, styleEnv, {
+  const catalogue = buildExtractSkeleton(captured, styleEnv, {
     url,
     breakpoints: widths.map((w) => w.name).filter(Boolean),
   });
-  const outPath = resolve(outDir, 'observations.json');
-  await mkdir(dirname(outPath), { recursive: true });
-  await writeFile(outPath, JSON.stringify(skeleton, null, 2));
-  return outPath;
+  return { dumpPath, catalogue };
 }

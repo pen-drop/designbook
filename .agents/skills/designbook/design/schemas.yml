@@ -160,14 +160,46 @@ Reference:
       minItems: 1
       description: Selected subjects with their observed state and view coverage.
       items: { $ref: "#/ObservationElement" }
-    extract: { type: string, const: extract.json, description: Shared extract written by workflow done. }
+    extract: { type: string, const: extract.json, description: Source dump written by `reference save`. Query projects observations from this file plus meta.yml and PNGs. }
     assets_dir: { type: string, const: assets, description: Revision-relative asset directory. }
+
+SourceDump:
+  type: object
+  title: Stored source extract
+  description: >
+    One browser dump for a capture revision (`extract.json`). Agents consume it
+    through `reference save` stdout and `reference query`, never by opening the file.
+    Walker-specific extra keys on the dump object are allowed.
+  additionalProperties: true
+  required: [source_kind, source_ref, nodes]
+  properties:
+    source_kind:
+      type: string
+      minLength: 1
+      description: Walker identity such as url-dom.
+    source_ref:
+      type: string
+      minLength: 1
+      description: Observed source identity, typically the URL.
+    captured_at:
+      type: string
+      description: Capture timestamp.
+    adapter_version:
+      type: string
+      description: Walker version string.
+    nodes:
+      type: array
+      description: Observed nodes with native locators, boxes and styles. Extra walker keys are allowed.
+      items:
+        type: object
+        additionalProperties: true
+        description: One captured node. Keys include id, kind, locator, box and style.
 
 ReferenceFolder:
   type: string
   description: >
     Path to a scene's verification material — contains `extract.json`
-    (reference structure) and reference screenshots per breakpoint/element/state.
+    (source dump), `meta.yml`, and screenshots per breakpoint/element/state.
     Format: `<breakpoint>--<element>--<state>.png`.
   examples: ["$DESIGNBOOK_DATA/references/hero", "/tmp/refs/article"]
 

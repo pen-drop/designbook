@@ -16,6 +16,8 @@ established. Present the selected scope through the
 [intake contract](../../../design/resources/write-planning.md).
 Resolve output paths with `workflow capture-location --source-kind <kind>
 --source-identity <identity> --workflow-id <id>` before authoring file tasks.
+Read the source catalogue from `reference save --reference <revision-dir> --url
+<source-identity>` stdout.
 
 Follow the [shared builder](../../../resources/workflow-building.md), then
 invoke [execute-workflow](../../execute-workflow/SKILL.md) with the saved

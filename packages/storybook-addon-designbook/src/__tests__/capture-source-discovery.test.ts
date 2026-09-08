@@ -48,7 +48,7 @@ describe('source integration capture discovery', () => {
       expect(storybook.rules).toContain(observeRuleFile('storybook'));
       expect(storybook.rules.some((rule) => rule.endsWith('/playwright-capture.md'))).toBe(false);
       const publish = blocks.find((block) => block.task_file.endsWith('/publish-capture.md'))!;
-      expect(Object.keys(publish.schema!.result).sort()).toEqual(['reference', 'reference_extract']);
+      expect(Object.keys(publish.schema!.result).sort()).toEqual(['reference']);
       const screenshot = blocks.find((block) => block.task_file.endsWith('/capture-image.md'))!;
       expect(screenshot.schema!.result.file!.validators).toEqual(['image']);
       expect(screenshot.schema!.result.file!.submission).toBe('direct');

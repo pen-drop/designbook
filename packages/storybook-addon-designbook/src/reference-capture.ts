@@ -5,6 +5,7 @@ import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { load } from 'js-yaml';
 import type { WorkflowDefinition, WorkflowDocument } from './workflow-document.js';
 import { validateImage } from './validators/image.js';
+import { loadSourceDump, projectObservations, SOURCE_DUMP } from './reference-project.js';
 
 export interface SourceLocator {
   kind: string;
@@ -78,7 +79,13 @@ export interface ObservationExtract {
     samples: Array<{ view: string; state: string; layout: unknown; asset_ids: string[]; font_families: string[] }>;
   }>;
   images: Array<Record<string, unknown> & { url: string; reference_path: string }>;
-  fonts: Array<Record<string, unknown> & { family: string; source: string; files?: Array<{ local_path: string }> }>;
+  fonts: Array<
+    Record<string, unknown> & {
+      family: string;
+      source: string;
+      files?: Array<{ local_path: string; format?: string }>;
+    }
+  >;
   captures: Array<{ subject: string; view: string; state: string; path: string; width: number; height: number }>;
 }
 const text = { type: 'string', minLength: 1 };
@@ -156,19 +163,17 @@ export function validateCaptureDefinition(def: WorkflowDefinition): void {
   if (!def.capture) return;
   const { directory } = captureDefinitionLocation(def);
   const outputs = def.tasks.flatMap((task) => Object.entries(task.outputs));
-  for (const [key, filename] of [
-    ['reference', 'meta.yml'],
-    ['reference_extract', 'extract.json'],
-  ]) {
-    const matches = outputs.filter(([name]) => name === key);
-    if (
-      matches.length !== 1 ||
-      matches[0]![1].path !== join(directory, filename!) ||
-      matches[0]![1].submission !== 'data' ||
-      !matches[0]![1].required
-    )
-      throw new Error(`Capture requires one required data output ${key} at ${join(directory, filename!)}`);
-  }
+  const metaOut = outputs.filter(([name]) => name === 'reference');
+  if (
+    metaOut.length !== 1 ||
+    metaOut[0]![1].path !== join(directory, 'meta.yml') ||
+    metaOut[0]![1].submission !== 'data' ||
+    !metaOut[0]![1].required
+  )
+    throw new Error(`Capture requires one required data output reference at ${join(directory, 'meta.yml')}`);
+  const dumpOut = outputs.filter(([, output]) => output.path === join(directory, SOURCE_DUMP));
+  if (dumpOut.length !== 1 || dumpOut[0]![1].submission !== 'direct' || !dumpOut[0]![1].required)
+    throw new Error(`Capture requires one required dump at ${join(directory, SOURCE_DUMP)}`);
   const seen = new Set<string>();
   for (const cell of def.capture.scope) {
     const key = JSON.stringify([cell.subject, cell.view, cell.state]);
@@ -329,9 +334,7 @@ export function validateCaptureObservations(
 export function publishCapture(doc: WorkflowDocument, workflow: string): CaptureBinding {
   const location = captureDefinitionLocation(doc.definition);
   const meta = load(readCaptureFile(location.directory, 'meta.yml').toString('utf8')) as ObservationMeta;
-  const extract = JSON.parse(
-    readCaptureFile(location.directory, 'extract.json').toString('utf8'),
-  ) as ObservationExtract;
+  const extract = projectObservations(loadSourceDump(location.directory), meta, location.directory);
   const files = validateCaptureObservations(location.directory, doc.definition.capture!, meta, extract);
   const declared = new Map<string, string>();
   for (const task of doc.definition.tasks)

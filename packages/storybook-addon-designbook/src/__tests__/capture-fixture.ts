@@ -3,6 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { load } from 'js-yaml';
 import { captureLocation, type ObservationMeta, type ObservationExtract } from '../reference-capture.js';
+import type { CapturedSource } from '../inspect/element-walker.js';
 import { saveDefinition, startTask, completeTask } from '../workflow-store.js';
 import type { WorkflowDefinition, TaskDefinition } from '../workflow-document.js';
 export const png = Buffer.from(
@@ -98,6 +99,47 @@ export function captureFixture(
       })),
     ),
   };
+  const dump: CapturedSource = {
+    source_kind: kind === 'figma' ? 'figma' : 'url-dom',
+    source_ref: source.identity,
+    captured_at: '2026-01-01T00:00:00.000Z',
+    adapter_version: 'test',
+    nodes: [
+      {
+        id: 'node',
+        child_ids: ['img'],
+        label: 'Home',
+        kind: kind === 'figma' ? 'FRAME' : 'header',
+        bbox: { x: 0, y: 0, width: 390, height: 844 },
+        text: 'Home',
+        style: {
+          layout: 'flex-row',
+          gap: '8px',
+          padding: '0',
+          margin: '0',
+          background: '#fff',
+          foreground: '#fff',
+          font_family: 'Inter',
+          font_size: '16px',
+          font_weight: '400',
+        },
+        source: { locator: locator.value },
+      },
+      {
+        id: 'img',
+        parent_id: 'node',
+        child_ids: [],
+        label: 'logo',
+        kind: 'image',
+        bbox: { x: 0, y: 0, width: 1, height: 1 },
+        src: 'logo',
+        alt: 'Logo',
+        style: { padding: '0', margin: '0', background: '' },
+        source: { locator: `${locator.value} img` },
+      },
+    ],
+  };
+  writeFileSync(join(location.directory, 'extract.json'), JSON.stringify(dump));
   writeFileSync(join(location.directory, 'assets/logo.svg'), '<svg/>');
   writeFileSync(join(location.directory, 'assets/inter.woff2'), 'font bytes');
   for (const capture of extract.captures) writeFileSync(join(location.directory, capture.path), png);
@@ -117,7 +159,7 @@ export function captureFixture(
     outputs: {},
   });
   const files = task('files');
-  for (const name of [...extract.captures.map((c) => c.path), 'assets/logo.svg', 'assets/inter.woff2'])
+  for (const name of ['extract.json', ...extract.captures.map((c) => c.path), 'assets/logo.svg', 'assets/inter.woff2'])
     files.outputs[name] = {
       required: true,
       schema: {},
@@ -131,13 +173,6 @@ export function captureFixture(
       required: true,
       schema: contract.referenceSchema,
       path: join(location.directory, 'meta.yml'),
-      submission: 'data',
-      validators: [],
-    },
-    reference_extract: {
-      required: true,
-      schema: contract.extractSchema,
-      path: join(location.directory, 'extract.json'),
       submission: 'data',
       validators: [],
     },
@@ -174,7 +209,7 @@ export function captureFixture(
     await completeTask(workflow, 'files', {});
     await startTask(workflow, 'publish');
   };
-  const finish = () => completeTask(workflow, 'publish', { reference: meta, reference_extract: extract });
+  const finish = () => completeTask(workflow, 'publish', { reference: meta });
   const complete = async () => {
     await prepare();
     return finish();

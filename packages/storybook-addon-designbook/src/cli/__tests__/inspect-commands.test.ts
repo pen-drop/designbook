@@ -1,12 +1,16 @@
-import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { afterEach, describe, it, expect, vi } from 'vitest';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import { Command } from 'commander';
 import { load as parseYaml } from 'js-yaml';
 import { buildExtractSkeleton, cssFontFamilies, parseBreakpointNames } from '../extract-page.js';
 import { matrixCellsFromMeta, planCaptureMatrix, ensureCellsPlanned, type MatrixCell } from '../capture-matrix.js';
 import { isStorybookStale } from '../check-story.js';
 import { parseStepsArg } from '../capture-screenshot.js';
+import { register } from '../inspect-register.js';
+import { png } from '../../__tests__/capture-fixture.js';
 import type { CapturedSource, PropertyNode } from '../../inspect/element-walker.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -213,7 +217,7 @@ describe('capture-matrix: planning', () => {
   });
 });
 
-describe('capture screenshot: parseStepsArg', () => {
+describe('reference capture-image: parseStepsArg', () => {
   it('parses a JSON steps array', () => {
     expect(parseStepsArg('[{"action":"click","selector":".t","timeout":300}]')).toEqual([
       { action: 'click', selector: '.t', timeout: 300 },
@@ -244,5 +248,34 @@ describe('check-story: staleness', () => {
 
   it('is not stale when the daemon start time is unknown', () => {
     expect(isStorybookStale([Date.now()], undefined)).toBe(false);
+  });
+});
+
+describe('reference CLI surface', () => {
+  const dirs: string[] = [];
+  afterEach(() => dirs.splice(0).forEach((dir) => rmSync(dir, { recursive: true, force: true })));
+
+  it('registers save, capture-image and image; drops extract and capture screenshot', () => {
+    const program = new Command();
+    register(program);
+    expect(program.commands.map((command) => command.name())).not.toContain('extract');
+    const reference = program.commands.find((command) => command.name() === 'reference')!;
+    expect(reference.commands.map((command) => command.name())).toEqual(
+      expect.arrayContaining(['save', 'capture-image', 'image', 'validate', 'prepare', 'query']),
+    );
+    const capture = program.commands.find((command) => command.name() === 'capture')!;
+    expect(capture.commands.map((command) => command.name())).toEqual(['matrix']);
+  });
+
+  it('reference image prints PNG dimensions without pixel bytes', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'reference-image-'));
+    dirs.push(dir);
+    writeFileSync(join(dir, 'shot.png'), png);
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const program = new Command();
+    register(program);
+    await program.parseAsync(['reference', 'image', '--reference', dir, '--path', 'shot.png'], { from: 'user' });
+    expect(JSON.parse(log.mock.calls[0]![0] as string)).toEqual({ path: 'shot.png', width: 1, height: 1 });
+    log.mockRestore();
   });
 });

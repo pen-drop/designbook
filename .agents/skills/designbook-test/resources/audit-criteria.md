@@ -52,7 +52,7 @@ For each loaded file, check:
 
 - Does the file reference CLI commands or params that exist?
 - Does it describe manual steps that the CLI handles automatically?
-- Extract/capture HOW must name `_debo extract` and `_debo capture screenshot`
+- Extract/capture HOW must name `_debo reference save` and `_debo reference capture-image`
   (or `_debo capture matrix`). Flag playwright-cli recipes, addon-source reads,
   or other workarounds in their place.
 - Are `domain:` values current (valid taxonomy, no stale domains)?

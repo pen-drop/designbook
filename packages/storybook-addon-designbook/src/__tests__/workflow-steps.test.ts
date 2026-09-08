@@ -282,7 +282,10 @@ it('resolves one frozen observed packet per step from its capture contract and r
   const root = await mkdtemp(join(tmpdir(), 'step-reference-'));
   directories.push(root);
   const fixture = captureFixture(root);
-  fixture.extract.subjects[0]!.samples[0]!.observations.content = [{ text: 'EXACT_HEADER_OBSERVATION' }];
+  const dumpPath = join(fixture.folder, 'extract.json');
+  const dump = JSON.parse(await readFile(dumpPath, 'utf8')) as { nodes: Array<{ text?: string }> };
+  dump.nodes[0]!.text = 'EXACT_HEADER_OBSERVATION';
+  await writeFile(dumpPath, JSON.stringify(dump));
   await fixture.complete();
   const { contract, folder } = fixture;
   const query = prepareReferenceQuery(

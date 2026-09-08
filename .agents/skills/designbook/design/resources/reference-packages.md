@@ -5,10 +5,11 @@ description: Bind bounded observed evidence to complete planner-authored work or
 
 # Reference observations during planning
 
-Start from a completed capture revision. The authoritative metadata and extract
-schemas are the `reference` and `reference_extract` outputs of `publish-capture`.
-The CLI derives this contract from the published owning workflow when `--contract`
-is omitted. An explicit contract retains the effective schemas and all transitive definitions.
+Start from a completed capture revision. The authoritative metadata schema is
+the `reference` output of `publish-capture`. Query observations use the
+projected `DesignReference` schema. The CLI derives this contract from the
+published owning workflow when `--contract` is omitted. An explicit contract
+retains the effective schemas and all transitive definitions.
 The capture extract contains observations; target structure, styling, content
 bindings and behavior decisions belong in the design plan.
 

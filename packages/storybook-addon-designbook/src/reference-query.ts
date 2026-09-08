@@ -6,12 +6,11 @@ import { isAbsolute, resolve, relative } from 'node:path';
 import { load } from 'js-yaml';
 import {
   readPublishedCapture,
-  readCaptureFile,
   type CaptureBinding,
-  type ObservationMeta,
   type ObservationExtract,
   type ObservationSample,
 } from './reference-capture.js';
+import { projectPublishedObservations } from './reference-project.js';
 
 export type ReferencePackageKind = 'component' | 'composition' | 'tokens' | 'assets';
 export interface ReferenceQueryRequest {
@@ -133,7 +132,7 @@ export function publishedReferenceContract(reference: string): ReferenceQueryCon
   const outputs = doc.definition.tasks.flatMap((task) => Object.entries(task.outputs));
   return {
     referenceSchema: outputs.find(([key]) => key === 'reference')![1].schema,
-    extractSchema: outputs.find(([key]) => key === 'reference_extract')![1].schema,
+    extractSchema: { $ref: '#/definitions/DesignReference' },
     definitions: doc.definition.schemas,
   };
 }
@@ -146,8 +145,7 @@ function loadReference(reference: string, suppliedContract: ReferenceQueryContra
     const check = ajv.compile({ ...schema, definitions: contract.definitions });
     if (!check(value)) fail(`${label}: ${ajv.errorsText(check.errors)}`);
   };
-  const meta = load(readCaptureFile(reference, 'meta.yml').toString('utf8')) as ObservationMeta;
-  const extract = JSON.parse(readCaptureFile(reference, 'extract.json').toString('utf8')) as ObservationExtract;
+  const { meta, extract } = projectPublishedObservations(reference);
   validate(meta, contract.referenceSchema, 'meta');
   validate(extract, contract.extractSchema, 'extract');
   return { binding, contract, meta, extract };

@@ -36,29 +36,25 @@ describe('ordinary workflow done capture publication', () => {
     'wrong-source-revision',
     'missing-node',
     'cycle',
-    'wrong-dimensions',
     'missing-asset',
     'undeclared-asset',
   ] as const)('blocks publication for %s and preserves corrective lifecycle', async (issue) => {
     const f = fixture('figma');
-    const sample = f.extract.subjects[0]!.samples[0]!;
-    if (issue === 'missing-state') f.extract.subjects[0]!.samples.pop();
-    if (issue === 'required-unavailable')
-      sample.unavailable.push({
-        property: 'menu-open',
-        reason: 'Selected file has no matching variant',
-        required: true,
-      });
-    if (issue === 'wrong-locator') f.extract.subjects[0]!.locator = { kind: 'node', value: 'unselected:1' };
+    const dumpPath = join(f.folder, 'extract.json');
+    const dump = JSON.parse(readFileSync(dumpPath, 'utf8')) as {
+      nodes: Array<{ id: string; child_ids: string[]; source: { locator: string }; src?: string }>;
+    };
+    if (issue === 'required-unavailable' || issue === 'wrong-locator') dump.nodes[0]!.source.locator = 'unselected:1';
     if (issue === 'wrong-source-revision') f.meta.source = { ...f.meta.source, revision: 'version-2' };
-    if (issue === 'missing-node') sample.structure.nodes[0]!.children = ['missing'];
-    if (issue === 'cycle') sample.structure.nodes[0]!.children = ['node'];
-    if (issue === 'wrong-dimensions') f.extract.captures[0]!.width = 12;
+    if (issue === 'missing-node') dump.nodes[0]!.child_ids = ['missing'];
+    if (issue === 'cycle') dump.nodes[0]!.child_ids = ['node'];
     if (issue === 'undeclared-asset') {
-      f.extract.images[0]!.reference_path = 'assets/extra.svg';
+      dump.nodes[1]!.src = 'extra';
       writeFileSync(join(f.folder, 'assets/extra.svg'), '<svg/>');
     }
+    writeFileSync(dumpPath, JSON.stringify(dump));
     await f.prepare();
+    if (issue === 'missing-state') rmSync(join(f.folder, 'mobile--header--rest.png'));
     if (issue === 'missing-asset') rmSync(join(f.folder, 'assets/logo.svg'));
     await expect(f.finish()).rejects.toThrow();
     expect(existsSync(join(f.folder, 'publication.json'))).toBe(false);
@@ -66,13 +62,16 @@ describe('ordinary workflow done capture publication', () => {
   });
   it('repairs a missing observation via corrective done, without changing its fixed definition', async () => {
     const f = fixture('figma');
-    const sample = f.extract.subjects[0]!.samples[0]!;
-    sample.unavailable.push({ property: 'state', reason: 'No open variant selected', required: true });
+    const dumpPath = join(f.folder, 'extract.json');
+    const originalDump = readFileSync(dumpPath);
     await f.prepare();
+    const dump = JSON.parse(originalDump.toString('utf8')) as { nodes: Array<{ source: { locator: string } }> };
+    dump.nodes[0]!.source.locator = 'missing';
+    writeFileSync(dumpPath, JSON.stringify(dump));
     const before = (await readDocument(f.workflow)).state.definition_digest;
     await expect(f.finish()).rejects.toThrow('Missing required evidence');
     await startTask(f.workflow, 'publish', 'Received the selected variant evidence');
-    sample.unavailable = [];
+    writeFileSync(dumpPath, originalDump);
     await f.finish();
     expect((await readDocument(f.workflow)).state.definition_digest).toBe(before);
   });
@@ -85,12 +84,12 @@ describe('ordinary workflow done capture publication', () => {
     );
     const before = readFileSync(join(f.folder, 'extract.json'));
     const next = fixture('website', 'capture-refresh', f.root);
-    next.extract.subjects[0]!.samples[0]!.unavailable = [{ property: 'font', reason: 'missing', required: true }];
     await next.prepare();
+    rmSync(join(next.folder, 'assets/logo.svg'));
     await expect(next.finish()).rejects.toThrow();
     expect(readPublishedCapture(f.folder).revision).toBe(f.location.revision);
     await startTask(next.workflow, 'publish', 'Font available');
-    next.extract.subjects[0]!.samples[0]!.unavailable = [];
+    writeFileSync(join(next.folder, 'assets/logo.svg'), '<svg/>');
     await next.finish();
     expect(next.location.id).toBe(f.location.id);
     expect(next.location.revision).not.toBe(f.location.revision);
@@ -145,6 +144,28 @@ describe('ordinary workflow done capture publication', () => {
       if (cell.state === 'open') cell.state = 'expanded';
       if (cell.view === 'mobile') cell.view = 'narrow';
     }
+    const dumpPath = join(backend.folder, 'extract.json');
+    const dump = JSON.parse(readFileSync(dumpPath, 'utf8')) as { nodes: Array<{ source: { locator: string } }> };
+    dump.nodes[0]!.source.locator = locator.value;
+    writeFileSync(dumpPath, JSON.stringify(dump));
+    const filesTask = backend.definition.tasks[0]!;
+    for (const view of ['mobile', 'desktop'] as const) {
+      for (const state of ['rest', 'open'] as const) {
+        const from = join(backend.folder, `${view}--header--${state}.png`);
+        const toView = view === 'mobile' ? 'narrow' : 'desktop';
+        const toState = state === 'open' ? 'expanded' : 'rest';
+        const rel = `${toView}--backend-entity--${toState}.png`;
+        const to = join(backend.folder, rel);
+        writeFileSync(to, readFileSync(from));
+        filesTask.outputs[rel] = {
+          required: true,
+          schema: {},
+          path: to,
+          submission: 'direct',
+          validators: ['image'],
+        };
+      }
+    }
     await backend.complete();
     const before = [story, backend].map((f) => readFileSync(join(f.folder, 'meta.yml')));
     const sourceQuery = prepareReferenceQuery(
@@ -166,7 +187,7 @@ describe('ordinary workflow done capture publication', () => {
     expect(source.captures[0]).toMatchObject({ subject: 'header', view: 'mobile', state: 'open' });
     expect(actual.captures[0]).toMatchObject({ subject: 'backend-entity', view: 'narrow', state: 'expanded' });
     expect(actual.subjects[0]!.locator).toEqual(locator);
-    expect(actual.captures[0]!.path).toBe(join(backend.folder, 'mobile--header--open.png'));
+    expect(actual.captures[0]!.path).toBe(join(backend.folder, 'narrow--backend-entity--expanded.png'));
     expect([story, backend].map((f) => readFileSync(join(f.folder, 'meta.yml')))).toEqual(before);
   });
   it('accepts an image-validated PNG asset separately from observed screenshots', async () => {
@@ -190,7 +211,7 @@ describe('ordinary workflow done capture publication', () => {
       f.contract,
     );
     const packet = queryReference(request, f.contract);
-    expect(packet.dependencies.assets[0]!.reference_path).toBe(filename);
+    expect(packet.dependencies.assets[0]!.reference_path).toMatch(/^assets\/logo\./);
     expect(packet.captures).toHaveLength(1);
   });
 });

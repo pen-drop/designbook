@@ -6,8 +6,8 @@ trigger:
 
 # Screenshot capture
 
-Write each declared PNG with `_debo capture screenshot --url <url>
---selector <css-locator> --width <px> --out <path> [--steps <json>]
+Write each declared PNG with `_debo reference capture-image --reference <revision-dir> --path <png>
+--url <url> --selector <css-locator> --width <px> [--steps <json>]
 [--consent-selector <sel>]`. Empty selector is the full page except on a
 Storybook story, where the full subject is `#storybook-root`. `--steps`
 reaches a non-rest state. Dismiss consent through `--consent-selector`

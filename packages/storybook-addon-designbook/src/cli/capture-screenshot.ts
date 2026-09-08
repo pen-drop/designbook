@@ -1,11 +1,7 @@
 /**
- * `_debo capture screenshot` — capture ONE element (or story root, or full page)
- * in a single browser session, using the same isolate-and-capture core as
- * `capture matrix`. This is the story-side accelerator referenced from
- * `ensure-baseline` / `capture-storybook`: point it at a story iframe or a
- * reference URL with a selector, optional state steps, and a breakpoint width,
- * and it produces one PNG with the mandated settle — no per-run improvised
- * playwright one-liners.
+ * Runner for `reference capture-image` — capture ONE element (or story root,
+ * or full page) in a single browser session, using the same isolate-and-capture
+ * core as `capture matrix`.
  */
 
 import { mkdir } from 'node:fs/promises';

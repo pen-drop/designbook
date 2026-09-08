@@ -96,15 +96,40 @@ export function publishedCapture(workspace) {
       path: join(location.directory, "meta.yml"),
       schema: { $ref: "#/definitions/Reference" },
     },
-    reference_extract: {
+    extract: {
       required: true,
-      submission: "data",
+      submission: "direct",
       validators: [],
       path: join(location.directory, "extract.json"),
-      schema: { $ref: "#/definitions/DesignReference" },
+      schema: { $ref: "#/definitions/SourceDump" },
     },
   };
   mkdirSync(location.directory, { recursive: true });
+  writeFileSync(
+    join(location.directory, "extract.json"),
+    JSON.stringify({
+      source_kind: "url-dom",
+      source_ref: source.identity,
+      captured_at: "2026-01-01T00:00:00.000Z",
+      adapter_version: "test",
+      nodes: [
+        {
+          id: "header",
+          child_ids: [],
+          label: "header",
+          kind: "header",
+          bbox: { x: 0, y: 0, width: 1, height: 1 },
+          style: {
+            layout: "flex-row",
+            padding: "0",
+            margin: "0",
+            background: "",
+          },
+          source: { locator: "header" },
+        },
+      ],
+    }),
+  );
   for (const capture of extract.captures) {
     const path = join(location.directory, capture.path);
     writeFileSync(
@@ -192,7 +217,7 @@ export function publishedCapture(workspace) {
   writeFileSync(
     resultsFile,
     JSON.stringify({
-      capture: { reference: meta, reference_extract: extract },
+      capture: { reference: meta },
     }),
   );
   invoke(
