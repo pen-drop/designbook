@@ -28,7 +28,9 @@ pnpm --filter storybook-addon-designbook lint:fix
 
 Skill source files live in `.agents/skills/` — that is the canonical location. `.claude/skills/` is a symlink to it and must not be edited separately.
 
-Before creating OR editing any task/rule/blueprint/workflow/schemas.yml under `.agents/skills/designbook/`, `.agents/skills/designbook-*/` (drupal, css-tailwind, stitch, devtools), or the skill-creator's own `rules/` and `resources/`, you MUST load `designbook-skill-creator` first. This is not optional — writing these files without the skill loaded regularly produces invalid output (HOW mixed into WHAT, rules with own params, inline-duplicated schemas).
+Before creating or editing any skill, `CLAUDE.md`, or `AGENTS.md`, load `writing-for-agents` first.
+
+Before creating OR editing any task/rule/blueprint/workflow/schemas.yml under `.agents/skills/designbook/`, `.agents/skills/designbook-*/` (drupal, css-tailwind, stitch, devtools), or the skill-creator's own `rules/` and `resources/`, you MUST load `designbook-skill-creator` first (including `rules/writing-files.md`). This is not optional — writing these files without the skill loaded regularly produces invalid output (HOW mixed into WHAT, rules with own params, inline-duplicated schemas).
 
 ## Skill Architecture
 
