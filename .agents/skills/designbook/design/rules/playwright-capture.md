@@ -1,176 +1,24 @@
 ---
 name: designbook:design:playwright-capture
 trigger:
-  steps: [capture, re-capture, capture-backend, re-capture-backend, compare, re-compare, polish, polish-config, observe-website, observe-storybook]
+  steps: [capture, re-capture, capture-backend, re-capture-backend, compare, re-compare, polish, polish-config]
 ---
 
-# Playwright Capture
+# Screenshot capture
 
-Hard constraints for capturing screenshots via Playwright. All browser interaction uses `playwright-cli` — see [cli-playwright.md](../../resources/cli-playwright.md) for the full command reference.
+Write each declared PNG with `_debo capture screenshot --url <url>
+--selector <css-locator> --width <px> --out <path> [--steps <json>]
+[--consent-selector <sel>]`. Empty selector is the full page except on a
+Storybook story, where the full subject is `#storybook-root`. `--steps`
+reaches a non-rest state. Dismiss consent through `--consent-selector`
+before the shot.
 
-## Declared output paths
+A whole element × state × breakpoint matrix uses `_debo capture matrix
+<meta.yml> --url <url> --out <dir>`. After template, scene or CSS writes,
+restart with `_debo storybook start --force` before recapture.
 
-Capture directly to the absolute screenshot output path in the saved task definition (`submission: direct`).
-Create its directory before capture. The executor submits the existing task to done, which validates the declared image output.
-In the examples below, `STAGED` denotes that declared output path.
-
-## Capture Modes
-
-### Full capture (empty selector)
-
-```bash
-npx playwright-cli open
-npx playwright-cli goto "${url}"
-npx playwright-cli resize ${viewportWidth} 1600
-npx playwright-cli run-code "async (page) => {
-  try { await page.waitForLoadState('networkidle'); } catch {}
-  await page.evaluate(() => document.fonts.ready);
-  await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
-}"
-npx playwright-cli screenshot --full-page --filename "${STAGED}"
-npx playwright-cli close
-```
-
-> ⛔ **A Storybook STORY's full capture is its rendered content, not a viewport screenshot.**
-> When capturing a **story** with an empty `selector`, the selector resolves to
-> `#storybook-root` (the container Storybook renders the story into) and is captured
-> via the **isolate-and-capture** mode (see the Element capture section below) — NOT a
-> `--full-page` viewport shot. A `--full-page` viewport shot of a story includes the
-> full 1600px empty canvas around the isolated component, causing dimensional drift
-> against the reference. Reference URLs (not stories) still use
-> `--full-page` for an empty element selector.
-
-### Element capture (region with CSS selector)
-
-Do NOT crop the element's bounding box. Instead **isolate** the first matched
-element, force the isolated capture surface to the breakpoint width, and capture
-the whole viewport full-page & transparent — see the
-**Isolate-and-capture** pattern in [cli-playwright.md](../../resources/cli-playwright.md).
-There is NO `snapshot`/`screenshot <ref>` path any more.
-
-Protocol after `resize` + settle (and after any `check.steps`):
-
-```bash
-SEL='<css-selector>'
-npx playwright-cli -s=<ws> run-code "async (page) => {
-  try { await page.waitForLoadState('networkidle'); } catch {}
-  try { await page.waitForSelector('${SEL}', { state: 'visible', timeout: 8000 }); } catch {}
-  await page.evaluate(() => document.fonts.ready);
-  await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
-}"
-# 1) Detect matches (eval prints the count; branch in the shell):
-COUNT=$(npx playwright-cli -s=<ws> eval "() => document.querySelectorAll('${SEL}').length")
-if [ "$COUNT" = "0" ]; then
-  # selector matched nothing → full-page fallback + warn, never fail
-  npx playwright-cli -s=<ws> run-code "async (page) => { await page.screenshot({ path: '<STAGED>', fullPage: true }) }"
-else
-  # 2) isolate (hoist first match to body root):
-  npx playwright-cli -s=<ws> run-code "async (page) => {
-    await page.evaluate((viewportWidth) => {
-      const el = document.querySelector('${SEL}');
-      const surface = document.createElement('div');
-      surface.setAttribute('data-designbook-capture-surface', '');
-      surface.style.boxSizing = 'border-box';
-      surface.style.width = viewportWidth + 'px';
-      surface.style.minWidth = viewportWidth + 'px';
-      surface.style.margin = '0';
-      surface.style.padding = '0';
-      surface.style.background = 'transparent';
-      surface.appendChild(el);
-      document.body.replaceChildren(surface);
-      el.style.margin = '0';
-      el.style.inset = 'auto';
-      document.documentElement.style.background = 'transparent';
-      document.documentElement.style.width = viewportWidth + 'px';
-      document.documentElement.style.minWidth = viewportWidth + 'px';
-      document.body.style.background = 'transparent';
-      document.body.style.margin = '0';
-      document.body.style.width = viewportWidth + 'px';
-      document.body.style.minWidth = viewportWidth + 'px';
-      document.body.style.overflowX = 'hidden';
-    }, ${viewportWidth});
-  }"
-  npx playwright-cli -s=<ws> run-code "async (page) => { await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))) }"
-  # 3) full-page transparent capture:
-  npx playwright-cli -s=<ws> run-code "async (page) => { await page.screenshot({ path: '<STAGED>', fullPage: true, omitBackground: true }) }"
-fi
-```
-
-This mode applies to **both** captures, but each side uses its OWN selector — the
-story DOM (design-system components) differs from the reference DOM:
-- the **Storybook story** capture isolates the element's `selector` from the story's
-  `StoryMeta` binding (the story-side selector for that element)
-- the **reference** capture isolates the element's `selector` from the Reference
-  `meta.yml` (the reference-side selector for that element)
-
-Why isolate instead of crop: cropping the bbox drags in overlapping neighbors and
-background pixels (false diffs), and crops the element inside its original layout
-container so its responsive width is wrong. Isolating hoists the first match to the
-`body` root inside a transparent capture surface pinned to the breakpoint width —
-the screenshot dimensions stay identical on reference and story sides even when the
-component content uses a narrower max-width. Media queries respond to the
-breakpoint viewport, and transparent background drops out of the diff on both sides.
-A component is standalone by design; if a reference element breaks once detached
-from its ancestors, that is a real finding, not noise.
-
-When the match count is `0` on compare, recapture and polish steps, fall back to
-full-page with a warning. On `observe-website` and `observe-storybook` a missing
-selected subject or state is a failed observation. This lets a shell header
-verify use `.page__header` for the story and `app-site-header` for the
-reference, or an entity use an empty story selector (full component) with
-`app-signage` for the reference.
-
-**Known limitations (accepted):** `document.querySelector` does not pierce Shadow
-DOM or iframes — selectors into a web component's shadow root or an embedded iframe
-match nothing and fall back to full-page (use a light-DOM/host selector instead).
-`@container` queries whose container ancestor is removed by the hoist may stop
-applying. Out-of-flow descendants (`position: absolute/fixed`) may not extend the
-scroll height and can be clipped despite full-page.
-
-## Constraints
-
-- **Pin the session to the workspace** — pass `-s=<workspace>` on every `playwright-cli` call (`open`, `goto`, `resize`, `snapshot`, `screenshot`, `eval`, `close`). The unnamed default session is process-global and shared across workspaces; a concurrent run in another workspace can hijack it mid-capture and silently photograph the wrong Storybook. Use a session name unique to this workspace.
-- **Dismiss consent/cookie overlays before reference captures** — a consent banner overlaying the reference page corrupts the reference screenshot (and every diff against it). Close it (click reject/accept) before the first reference `screenshot`, and pass the same instruction to any compare/verify subagent that recaptures.
-- Viewport height MUST be 1600px for consistency across captures
-- The CSR-robust settle MUST be used to allow rendering to settle: `waitForLoadState('networkidle')` + `waitForSelector(<target>, {state:'visible'})` in `try/catch` + `document.fonts.ready` + double-rAF. For element captures `<target>` is the CSS selector being captured; for full-page captures (no single target) omit `waitForSelector`. A fixed `waitForTimeout` MUST NOT be used as the settle — it is both slow and unreliable for client-side rendering where the DOM may not yet exist when the timeout fires.
-- **Run state steps before the screenshot** when the state is non-rest. After resize + settle, execute each step in order via `playwright-cli` (`click`/`hover`/`focus` against `step.selector`, or a bare wait), settling `step.timeout` ms after each, THEN capture. `rest` has no steps — capture the as-rendered view. State steps mutate page state, so load the session fresh per state (or navigate back) rather than carrying an opened state into the next capture.
-- If a selector matches no elements on compare, recapture and polish steps, skip with a warning. On `observe-website` and `observe-storybook` a missing selected subject is a failed observation.
-- **Filename convention** — every captured PNG is named `<breakpoint>--<element>--<state>.png` (e.g. `sm--header--rest.png`, `xl--nav--open.png`). The `rest` state is included literally, never omitted.
-- **Output directories** — reference baselines write to `references/<hash>/`; story captures write to `stories/<id>/screenshots/`. Directories MUST be created before capture (`mkdir -p`).
-- Reuse an open session across multiple captures for the same URL — only `open`/`close` once
-
-## Context Hygiene
-
-Raw browser dumps MUST NOT enter the conversation — they inflate context by
-hundreds of thousands of tokens across a run and crowd out the actual work.
-
-- **Write every raw dump to a file, then query it.** DOM/style/accessibility
-  snapshots, full stylesheets, `/index.json`, and `extract.json` itself go to a
-  file (workspace tmp or `/tmp`); read only the distilled answer back with
-  `jq` / `python3` / `grep`. Never paste a page snapshot or a full stylesheet
-  into the conversation.
-- **Prefer the shipped commands over improvised one-liners.** `_debo extract`
-  writes `observations.json` + `captured.json` to disk in one browser pass —
-  query them with `jq`, do not echo them. `_debo capture screenshot` writes each
-  observe-website and observe-storybook cell to its declared PNG. `_debo capture matrix` and
-  `_debo storybook check` likewise emit compact JSON result lines; consume those,
-  not raw page state.
-
-## Storybook Restart
-
-After modifying component templates, scene definitions, or CSS during a polish step, Storybook MUST be restarted before recapture:
-
-```bash
-_debo storybook start --force
-```
-
-The `_debo capture matrix <meta.yml> --url <url> --out <dir>` command captures the
-whole element × state × breakpoint matrix in one browser session (widths from
-`design-tokens.yml`): it expands `meta.elements[]` × `states[]` × `breakpoints[]`,
-isolates each element's `selector`, runs each state's `steps`, names each PNG
-`<breakpoint>--<element>--<state>.png`, reuses frozen PNGs, takes an optional
-`--consent-selector` to dismiss a consent banner once, and fails loudly if the
-meta plans zero cells. For a single element/story shot use
-`_debo capture screenshot --url <url> --selector <sel> --width <px> --out <png>
-[--steps <json>] [--consent-selector <sel>]`. Use these instead of re-improvising
-per-breakpoint one-liners.
+Capture directly to the absolute screenshot path in the saved task
+(`submission: direct`). Inspect the resulting image: the selected subject,
+requested state and relevant overlay must be visible. On compare, recapture
+and polish, a selector with no matches skips with a warning. Create the
+output directory before the command. A nonzero CLI exit is the diagnosis.

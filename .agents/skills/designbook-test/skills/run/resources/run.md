@@ -12,6 +12,13 @@ workflow directly in the provisioned workspace. It uses only [Case evidence and
 scoring](#case-evidence-and-scoring) below. The setup and runner steps belong to the
 calling tester; invoking them inside a driver would rebuild its active fixtures.
 
+Workers run `_debo` / `npx storybook-addon-designbook` for catalogue, extract,
+capture, Storybook and workflow commands. DOM evidence is `_debo extract`.
+Screenshots are `_debo capture screenshot` or `_debo capture matrix`. Skill
+descriptions are not the command spec. Audit JSONL for those commands; a
+playwright-cli one-liner or addon-source read in place of them fails the log
+gate.
+
 ## Inputs
 
 Parse `run <suite> [<case>] [--workspace <path>] [--validate <workflow>]`.

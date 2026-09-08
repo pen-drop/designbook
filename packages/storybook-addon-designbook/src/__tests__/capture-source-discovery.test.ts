@@ -43,6 +43,10 @@ describe('source integration capture discovery', () => {
       const website = blocks.find((block) => block.task_file.endsWith('/observe-website.md'))!;
       expect(website.rules).toContain(observeRuleFile('website'));
       expect(website.rules.some((rule) => rule.endsWith('/cli-surface.md'))).toBe(true);
+      expect(website.rules.some((rule) => rule.endsWith('/playwright-capture.md'))).toBe(false);
+      const storybook = blocks.find((block) => block.task_file.endsWith('/observe-storybook.md'))!;
+      expect(storybook.rules).toContain(observeRuleFile('storybook'));
+      expect(storybook.rules.some((rule) => rule.endsWith('/playwright-capture.md'))).toBe(false);
       const publish = blocks.find((block) => block.task_file.endsWith('/publish-capture.md'))!;
       expect(Object.keys(publish.schema!.result).sort()).toEqual(['reference', 'reference_extract']);
       const screenshot = blocks.find((block) => block.task_file.endsWith('/capture-image.md'))!;
