@@ -545,3 +545,81 @@ uncached 138,198. Native phase durations sum to 732,875 ms; peak root-thread inp
 103,820 tokens. Reports and complete audit JSONs are in
 `promptfoo/reports/designbook-58-astra-sonnet-05/`. The original failed report and
 CSV rows are unchanged by the later diagnostic replay of updated static checks.
+
+
+## Standalone extract-reference workflow: Astra/Sonnet06
+
+`designbook-58-astra-sonnet-06` tests source `65bf57e8` in a fresh workspace
+with Storybook on port 6142. Intake completed one 33-task standalone
+`extract-reference` workflow, publishing one `meta.yml` and a 408,939-byte
+`extract.json` for nine selected subject/view/state cells. All 36 bounded query
+packages validated, and the native selector presentation passed the first static
+gate. The design catalogue contains no extraction helper task.
+
+The native evidence audit nevertheless fails intake asset completeness: 16 saved
+SVG assets are not valid standalone XML (one duplicate namespace declaration,
+15 unbound `xlink` prefixes), and external symbol definitions were omitted from
+the publication. Planning fetched the missing sprite live from the current source.
+That invalidates this run as evidence of planning exclusively from a complete
+frozen reference, despite its passing formal intake and planning assertions.
+The planner embedded concrete target SVG bytes in the worker instructions; the
+first worker did not fetch the source again.
+
+The fixed plan has 51 tasks in 48 steps; its definition snapshot is 1,200,365 bytes.
+Complete worker work orders passed the 256-KiB preflight. Recorded prompts range
+from 11,109 to 175,567 bytes, including resolved predecessors when available. The first worker completed both icon and logo tasks together,
+preserving the definition and published reference bytes. Its native model is
+`claude-sonnet-5` (configured CLI alias `sonnet`). Its first request already
+contained 111,883 input tokens before tool results; the CLI also loads its global
+tools, skills, MCP servers and plugins, so exported work-order bytes do not measure
+the entire model context. Peak context reached 183,728 tokens. Native evidence
+shows no full-plan or raw-extract read in that worker.
+
+Subsequent foundation execution read another task's result envelope from the saved
+workflow to understand `workflow done`. The strict step-only audit records that
+access as a failure. Several workers inspect CLI source or retry completion calls
+to discover the submission format; a concrete completion example in the work order
+is a remaining efficiency opportunity. These findings are preserved in the
+per-phase audits under `promptfoo/reports/designbook-58-astra-sonnet-06/`.
+
+The runner finished with exit 1 after 20 attempted worker calls: 19 passed, and
+`verify-header-sm-default` correctly blocked because the menu button declares
+`aria-controls="shell-menu"` while the rendered menu panel has no `id="shell-menu"`.
+The worker preserved the fixed definition and did not repair components outside
+its scope. The components build succeeded and the refreshed Storybook index
+contained all 19 declared stories. Remaining design steps did not start.
+
+Automatic verification also failed, but for a different reason: its prompt retains
+`.page__header` and `.page__footer` from the fixture, whereas the saved main plan
+and actual render use `[data-designbook-region="header"]` and the corresponding
+footer attribute. Although the prompt says saved main targets take precedence,
+the verifier used the stale classes. Its failed selector checks do not establish
+that the shell is absent. Screenshots show a real shell with visible layout
+problems; there is no accepted pixel-comparison score. The main worker screenshot
+also moved the header out of its original DOM context and retained a transparent
+full-height canvas, so it is unsuitable as a reference pixel comparison.
+
+All 23 phase rows are retained in `promptfoo/results.csv`. Phase token totals:
+
+| Phase | Input | Cached input | Output | Total |
+| --- | ---: | ---: | ---: | ---: |
+| Intake | 2,371,919 | 2,287,104 | 12,709 | 2,384,628 |
+| Plan | 7,671,006 | 7,499,136 | 36,018 | 7,707,024 |
+| 20 workers | 47,696,972 | 45,437,118 | 431,271 | 48,128,243 |
+| Verification | 967,281 | 900,096 | 4,918 | 972,199 |
+| Total | 58,707,178 | 56,123,454 | 484,916 | 59,192,094 |
+
+Uncached input is 2,583,724 tokens. Reported reasoning (280,324 tokens) is a
+subset of output, not an extra addition. CSV phase durations sum to 7,338,434 ms
+(about 122 minutes), excluding setup and harness gaps. Full native audit and
+per-phase usage are retained under `promptfoo/reports/designbook-58-astra-sonnet-06/`.
+Native audit durations sum to 7,307,572 ms; peak root-thread input is 194,681
+tokens in the navigation worker. The different CSV duration includes provider
+overhead. No source or running-workspace repair was injected into this run.
+
+The standalone extraction/reuse lifecycle is exercised successfully, but this run
+is not a passing design-quality baseline. Remaining issues are complete portable
+SVG capture, a self-contained completion-call contract, stronger step-local reads,
+consistent verifier target bindings and the generated menu/layout defects.
+The many tiny story and check steps also repeat the worker environment overhead;
+batching related tasks is supported but used sparingly by this plan.
