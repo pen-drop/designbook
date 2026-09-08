@@ -2,10 +2,11 @@
 
 Used after a domain intake has identified the requested work. The planner authors the concrete task list; the CLI supplies and validates its building blocks.
 
-First command of every intake: `workflow discover <id>`. Save that JSON. It is
-the palette: matched tasks, rules, blueprints and schemas for every step in the
-workflow file. Instantiate concrete tasks from those blocks; one block may
-become several tasks.
+First command of every intake: `workflow discover <id>`. Save that JSON from
+CLI stdout. It is the palette: matched tasks, rules, blueprints and schemas for
+every step in the workflow file. Instantiate concrete tasks from those blocks;
+one block may become several tasks. Skill descriptions fire the skill; the
+catalogue is the command contract.
 
 1. Save the catalogue with `npx storybook-addon-designbook workflow discover <id> > <catalogue.json>`, then read that saved catalogue. Inspect the workflow file, all matched task instructions, rules, blueprints, schemas and configuration. Complete the intake's reference analysis and structural decisions. A nonzero `workflow discover`, `workflow schema` or `workflow validate` exit stops planning with that exact message. Completion: all target objects and required inputs are known.
 2. Write a definition YAML following `workflow schema`. Fill `id`, `title`, `template` (source and full content), absolute `workspace_root`, the complete effective catalogue `config` object (including resolved `data` and `designbook.home`), concrete `inputs` with `inputs_schema`, embedded `context`, `schemas`, and `tasks`. Each registry entry has `source`, exact `content`, and optional `sources` for additional origins of identical content. Copy relevant referenced instruction material into the document too: provenance paths never become runtime load instructions. Completion: every applicable instruction and schema is embedded.

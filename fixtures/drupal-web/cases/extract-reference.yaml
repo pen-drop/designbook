@@ -5,7 +5,8 @@ prompt: |
   You are working in the directory {{workspace}}.
   Run /extract-reference leando.de. Do NOT ask any questions.
   Capture https://leando.de as a website design reference (homepage).
-  Use the catalogue from `workflow discover extract-reference`.
+  Use the catalogue from `npx storybook-addon-designbook workflow discover extract-reference` stdout.
+  The CLI is the command contract; skill descriptions are not.
   Download required font and image assets from the live source into the capture revision; those are capture outputs, not missing user inputs.
   Execute the saved workflow to a published capture revision.
   Execute the workflow now.

@@ -1,7 +1,8 @@
 # Workflow CLI
 
-These commands are the specification. A nonzero exit ends the work; report that
-exact stderr/stdout. The matched [CLI surface](../workflow/rules/cli-surface.md)
+These commands are the specification. Skill descriptions fire the skill; they
+are not the command contract. A nonzero exit ends the work; report that exact
+stderr/stdout. The matched [CLI surface](../workflow/rules/cli-surface.md)
 rule owns that failure contract.
 
 Planning: `workflow discover <id>` is the intake catalogue. Optional `--step <id>` resolves one step from the workflow file. Then `workflow schema`, `workflow validate <definition.yml> --catalogue <catalogue.json>`, `workflow create <definition.yml> --catalogue <catalogue.json> --output <path>`.

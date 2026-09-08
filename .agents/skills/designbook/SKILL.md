@@ -8,8 +8,9 @@ description: >
   under `skills/<workflow>/`; this index points to them and documents the global
   flags. Never create component files without a designbook skill. Each intake's
   first command is `workflow discover <workflow>`. `_debo` /
-  `npx storybook-addon-designbook` is the command surface: a nonzero CLI exit
-  ends the work with that exact message.
+  `npx storybook-addon-designbook` is the only command surface — run it, read
+  stdout. Skill descriptions fire the skill; they are not the command spec. A
+  nonzero CLI exit ends the work with that exact message.
 ---
 
 Choose the matching domain sub-skill below. Every intake starts with
