@@ -2,6 +2,15 @@
 
 This is a test workspace for the Drupal integration. It is a standalone git repo created by `setup-workspace.sh`.
 
+## CLI
+
+`_debo` / `npx storybook-addon-designbook` is the command contract. Run the
+command; stdout and stderr are the spec. Skill descriptions fire the skill;
+they are not the command spec. Every intake starts with `workflow discover
+<id>`. Extract with `_debo extract <url> --out <dir>`. Screenshots with
+`_debo capture screenshot` (or `_debo capture matrix`). A nonzero CLI exit
+ends the work with that exact message.
+
 ## Symlinks
 
 | Path | Target | Purpose |
