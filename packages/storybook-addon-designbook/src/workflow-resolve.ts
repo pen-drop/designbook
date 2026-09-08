@@ -120,7 +120,8 @@ function assertParamsAreJsonSchema(taskFilePaths: string[], skillsRoot: string, 
 // ── Step Resolution (all steps at once) ────────────────────────────
 
 /**
- * Resolve every step of a workflow template into its effective planning blocks.
+ * Resolve every step of a workflow file into its effective planning blocks.
+ * Pass `options.steps` to resolve a subset of steps listed in the file.
  */
 export async function resolveAllStages(
   workflowFilePath: string,
@@ -128,6 +129,7 @@ export async function resolveAllStages(
   rawConfig: Record<string, unknown>,
   agentsDir: string,
   sources?: SkillSource[],
+  options?: { steps?: string[] },
 ): Promise<ResolvedSteps> {
   const wfFm = parseFrontmatter(workflowFilePath) as WorkflowFrontmatter | null;
   const stages = wfFm?.stages;
@@ -142,9 +144,19 @@ export async function resolveAllStages(
   const collectedSchemas: Record<string, object> = {};
   const allExtensionFiles: string[] = [];
 
-  for (const step of Object.values(stages).flatMap((stage) => stage.steps ?? [])) {
+  const templateSteps = Object.values(stages).flatMap((stage) => stage.steps ?? []);
+  if (options?.steps?.length) {
+    for (const step of options.steps) {
+      if (!templateSteps.includes(step)) {
+        throw new Error(`Step "${step}" is not in the workflow file`);
+      }
+    }
+  }
+  const stepsToResolve = options?.steps?.length ? options.steps : templateSteps;
+
+  for (const step of stepsToResolve) {
     let resolvedTaskFiles = resolveTaskFilesRich(step, config, agentsDir, sources);
-    // If the plain step didn't match, try the workflow-qualified name (e.g. "intake" → "design-shell:intake")
+    // If the plain step didn't match, try the workflow-qualified name (e.g. "outtake" → "design-verify:outtake")
     if (resolvedTaskFiles.length === 0 && !step.includes(':') && workflowId) {
       resolvedTaskFiles = resolveTaskFilesRich(`${workflowId}:${step}`, config, agentsDir, sources);
     }

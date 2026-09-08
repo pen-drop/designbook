@@ -4,6 +4,18 @@ import { resolveAllStages } from '../workflow-resolve.js';
 
 const agents = resolve(process.cwd(), '../../.agents');
 const template = resolve(agents, 'skills/designbook/skills/extract-reference/workflows/extract-reference.md');
+
+function observeTaskFile(source: string) {
+  return source === 'figma'
+    ? resolve(agents, `skills/designbook-${source}/tasks/observe-${source}.md`)
+    : resolve(agents, `skills/designbook/design/tasks/observe-${source}.md`);
+}
+
+function observeRuleFile(source: string) {
+  return source === 'figma'
+    ? resolve(agents, `skills/designbook-${source}/rules/capture-observations.md`)
+    : resolve(agents, `skills/designbook/design/rules/${source}-capture-observations.md`);
+}
 describe('source integration capture discovery', () => {
   it.each(['website', 'figma', 'storybook'])(
     'assembles only the selected %s source and common outputs',
@@ -21,9 +33,16 @@ describe('source integration capture discovery', () => {
       const blocks = Object.values(catalogue.step_resolved).flatMap((block) =>
         Array.isArray(block) ? block : [block],
       );
-      expect(blocks.filter((block) => block.task_file.includes('/observe-')).map((block) => block.task_file)).toEqual([
-        resolve(agents, `skills/designbook-${source}/tasks/observe-${source}.md`),
-      ]);
+      const observed = [...new Set(['website', 'storybook', source])].sort();
+      expect(
+        blocks
+          .filter((block) => block.task_file.includes('/observe-'))
+          .map((block) => block.task_file)
+          .sort(),
+      ).toEqual(observed.map((name) => observeTaskFile(name)).sort());
+      const website = blocks.find((block) => block.task_file.endsWith('/observe-website.md'))!;
+      expect(website.rules).toContain(observeRuleFile('website'));
+      expect(website.rules.some((rule) => rule.endsWith('/cli-surface.md'))).toBe(true);
       const publish = blocks.find((block) => block.task_file.endsWith('/publish-capture.md'))!;
       expect(Object.keys(publish.schema!.result).sort()).toEqual(['reference', 'reference_extract']);
       const screenshot = blocks.find((block) => block.task_file.endsWith('/capture-image.md'))!;
@@ -31,6 +50,21 @@ describe('source integration capture discovery', () => {
       expect(screenshot.schema!.result.file!.submission).toBe('direct');
     },
   );
+});
+
+describe('discover step subset', () => {
+  it.each(['intake', 'not-a-step'])('rejects a step that is not in the workflow file: %s', async (step) => {
+    await expect(
+      resolveAllStages(
+        template,
+        { data: '/tmp/source-discovery', technology: 'html', extensions: [] },
+        {},
+        agents,
+        undefined,
+        { steps: [step] },
+      ),
+    ).rejects.toThrow(/not in the workflow file/);
+  });
 });
 
 it.each(['design-verify', 'sync-verify'])(
@@ -85,8 +119,8 @@ it.each([
     extensions: ['website', 'figma', 'storybook'],
     expected: ['website', 'figma', 'storybook'],
   },
-  { label: 'disabled source integrations', extensions: ['unrelated', 'other'], expected: [] },
-  { label: 'empty enabled list', extensions: [], expected: [] },
+  { label: 'disabled source integrations', extensions: ['unrelated', 'other'], expected: ['website', 'storybook'] },
+  { label: 'empty enabled list', extensions: [], expected: ['website', 'storybook'] },
 ])('capture filters intersect list-valued configuration: $label', async ({ extensions, expected }) => {
   const catalogue = await resolveAllStages(
     template,
@@ -100,10 +134,10 @@ it.each([
       .filter((block) => block.task_file.includes('/observe-'))
       .map((block) => block.task_file)
       .sort(),
-  ).toEqual(expected.map((source) => resolve(agents, `skills/designbook-${source}/tasks/observe-${source}.md`)).sort());
+  ).toEqual(expected.map((source) => observeTaskFile(source)).sort());
   for (const source of expected) {
     const block = blocks.find((block) => block.task_file.endsWith(`/observe-${source}.md`))!;
-    expect(block.rules).toContain(resolve(agents, `skills/designbook-${source}/rules/capture-observations.md`));
+    expect(block.rules).toContain(observeRuleFile(source));
   }
 });
 

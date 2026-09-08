@@ -51,6 +51,38 @@ export interface ExtractSkeleton {
 
 const INTERACTIVE_KINDS = new Set(['button', 'link', 'input']);
 
+/**
+ * Split a computed CSS `font-family` stack into family identities.
+ * `"Sarabun Light", sans-serif` → `Sarabun Light`, `sans-serif`.
+ */
+export function cssFontFamilies(value: string): string[] {
+  const families: string[] = [];
+  let current = '';
+  let quote: '"' | "'" | null = null;
+  for (const ch of value) {
+    if (quote) {
+      if (ch === quote) quote = null;
+      else current += ch;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      continue;
+    }
+    if (ch === ',') {
+      const family = current.trim();
+      if (family) families.push(family);
+      current = '';
+      continue;
+    }
+    current += ch;
+  }
+  const family = current.trim();
+  if (family) families.push(family);
+  return families;
+}
+
+
 /** Collect the ids of every descendant of `rootId` from the flat node list. */
 function descendantIds(nodes: PropertyNode[], rootId: string): Set<string> {
   const byParent = new Map<string, string[]>();
@@ -114,12 +146,15 @@ export function buildExtractSkeleton(
       images.push({ src: n.src, ...(n.alt ? { alt: n.alt } : {}), locator: n.source.locator });
     }
 
-    if (n.style?.font_family) fonts.add(n.style.font_family);
+    if (n.style?.font_family) for (const family of cssFontFamilies(n.style.font_family)) fonts.add(family);
     if (n.style?.background) colors.add(n.style.background);
     if (n.style?.foreground) colors.add(n.style.foreground);
   }
 
-  for (const f of styleEnv?.fonts ?? []) if (f.family) fonts.add(f.family);
+  for (const f of styleEnv?.fonts ?? []) {
+    if (!f.family) continue;
+    for (const family of cssFontFamilies(f.family)) fonts.add(family);
+  }
 
   return {
     url: meta.url,

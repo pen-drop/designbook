@@ -40,7 +40,7 @@ function print(value: unknown): void {
 }
 
 /** Planning catalogue: embeds selected building blocks, but never creates concrete tasks. */
-export async function discoverWorkflow(id: string, configFile?: string) {
+export async function discoverWorkflow(id: string, configFile?: string, step?: string) {
   const draft = configFile ? (JSON.parse(readFileSync(configFile, 'utf8')) as DesignbookConfig) : undefined;
   const config = draft ?? loadConfig();
   const configPath = findConfig();
@@ -49,7 +49,14 @@ export async function discoverWorkflow(id: string, configFile?: string) {
   const sources = resolveSkillSources(configDir, { config });
   const file = resolveWorkflowFile(id, agentsDir, sources);
   const rawConfig = draft ?? (configPath ? (load(readFileSync(configPath, 'utf8')) as Record<string, unknown>) : {});
-  const resolved = await resolveAllStages(file, config, rawConfig, agentsDir, sources);
+  const resolved = await resolveAllStages(
+    file,
+    config,
+    rawConfig,
+    agentsDir,
+    sources,
+    step ? { steps: [step] } : undefined,
+  );
   const embed = (source: string) => ({ source, content: readFileSync(source, 'utf8') });
   return {
     template: embed(file),
@@ -109,8 +116,9 @@ export function register(program: Command): void {
     .command('discover <template>')
     .description('Read effective planning blocks; produces no tasks')
     .option('--config <path>', 'Effective draft configuration JSON for installation planning')
-    .action(async (template: string, opts: { config?: string }) =>
-      print(await discoverWorkflow(template, opts.config)),
+    .option('--step <id>', 'Resolve only this step from the workflow file')
+    .action(async (template: string, opts: { config?: string; step?: string }) =>
+      print(await discoverWorkflow(template, opts.config, opts.step)),
     );
   workflow
     .command('capture-location')

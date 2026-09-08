@@ -7,7 +7,6 @@ import { execFileSync, spawnSync } from "node:child_process";
 import yaml from "js-yaml";
 import Provider from "../providers/codex-cli.mjs";
 import caseResult from "../extensions/case-result.mjs";
-import { publishedCapture } from "./published-capture-fixture.mjs";
 
 async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), "promptfoo-contract-"));
@@ -467,7 +466,7 @@ test("generated main/verify configs isolate setup and preserve paths", async (t)
   assert.equal(main.providers[0].config.timeout, 3600000);
   assert.equal(main.providers[0].config.model, "claude-opus-5");
   assert.equal(main.tags.executor_model, "gpt-5.6-luna");
-  assert.equal(main.tags.execution_mode, "separate-steps");
+  assert.equal(main.tags.execution_mode, "planner-executor");
   const claude = await generate([
     "--provider",
     "claude",
@@ -985,7 +984,7 @@ test("verification assertion rejects visual failures and changes to main artifac
   assert.equal(verifyResult(output, context).pass, false);
 });
 
-test("shell, entity and screen still verify when intake fails or omits its handoff", async (t) => {
+test("shell, entity and screen skip verification when intake fails or omits its handoff", async (t) => {
   const { root, workspace } = await fixture(t);
   const bin = join(root, "bin");
   await mkdir(bin);
@@ -1039,6 +1038,14 @@ process.exitCode = Number(config.tags.phase === 'intake' ? process.env.TEST_INTA
       },
     );
     assert.equal(child.status, 1, child.stderr);
+    const directory = (await import("node:path")).dirname(
+      child.stdout.trim().split("\n")[0],
+    );
+    const pipeline = JSON.parse(
+      await readFile(join(directory, "pipeline.json"), "utf8"),
+    );
+    assert.equal(pipeline.verify.skipped, true);
+    assert.equal(pipeline.verify.exitCode, undefined);
   }
   const configs = (await readFile(calls, "utf8"))
     .trim()
@@ -1046,24 +1053,8 @@ process.exitCode = Number(config.tags.phase === 'intake' ? process.env.TEST_INTA
     .map((line) => JSON.parse(line));
   assert.deepEqual(
     configs.map((c) => c.tags.phase),
-    Array.from({ length: 6 }, () => ["intake", "verify"]).flat(),
+    Array(6).fill("intake"),
   );
-  for (let index = 0; index < configs.length; index += 2) {
-    const intake = configs[index],
-      verify = configs[index + 1];
-    assert.equal(intake.tags.run_id, verify.tags.run_id);
-    assert.equal(intake.tests[0].vars.suite, "drupal-web");
-    assert.equal(verify.providers[0].config.intakeHandoffInput, undefined);
-    assert.equal(verify.tags.workflow_id, "design-verify");
-    assert.equal(verify.tests[0].vars.workspace, workspace);
-    assert.equal(verify.tests[0].vars.suite, undefined);
-    assert.equal(verify.tests[0].vars.case, undefined);
-    assert.match(verify.prompts[0], /published reference binding/);
-    assert.doesNotMatch(
-      verify.prompts[0],
-      /\.page__header|\.page__footer|criteria above/,
-    );
-  }
 });
 
 test("pending documents at noncanonical paths cannot disappear from workflow gates", async (t) => {
@@ -1121,114 +1112,44 @@ test("nested runner refuses before provisioning or writing reports", async (t) =
   await assert.rejects(readFile(join(root, "nested.json")), { code: "ENOENT" });
 });
 
-test("provider retains deterministic intake failure beside successful CLI usage", async (t) => {
-  const { provider, workspace, stub } = await fixture(t);
-  provider.config.requireDesignIntake = true;
-  await stub(emit(completed));
-  const response = await provider.callApi("Design intake", {
-    vars: { workspace },
-  });
-  assert.equal(response.output.designIntake.pass, false);
-  assert.equal(response.tokenUsage.total, 110);
-  const evidence = JSON.parse(
-    await readFile(
-      join(response.metadata.evidenceDir, "design-intake.json"),
-      "utf8",
-    ),
-  );
-  assert.equal(evidence.pass, false);
-});
-
-test("separate intake handoff retains published capture workflows and exact reference bytes", async (t) => {
-  const { root, workspace, provider, stub } = await fixture(t);
-  const capture = publishedCapture(workspace);
-  const reference = join(capture.directory, "extract.json");
-  const metadata = join(capture.directory, "meta.yml");
-  const original = await readFile(reference);
-  const handoff = join(root, "intake-handoff.json");
-  const table =
-    "| Subject | Source locator | Story selector | Views | Evidence |\n|---|---|---|---|---|\n| header | header | planned: .header | sm, xl | mobile/desktop rest PNGs: header observed |";
-  Object.assign(provider.config, {
-    requireDesignIntake: true,
-    intakeOnly: true,
-    intakeHandoffOutput: handoff,
-    intakeCatalogue: join(workspace, ".designbook-intake/catalogue.json"),
-  });
-  await mkdir(join(workspace, ".designbook-intake"));
+test("intake transports arbitrary presentation and retains blocked attempts without domain parsing", async (t) => {
+  const { root, workspace, provider, stub, workflow } = await fixture(t);
+  await workflow("changes", "old-attempt", "old-attempt", "blocked");
+  const handoff = join(root, "handoff.json");
+  const catalogue = join(root, "catalogue.json");
   await writeFile(
-    provider.config.intakeCatalogue,
-    JSON.stringify({
-      template: { content: "Design planning catalogue" },
-      blocks: { design: [{}] },
-    }),
+    catalogue,
+    JSON.stringify({ config: { data: join(workspace, "designbook") } }),
   );
+  Object.assign(provider.config, {
+    intakeOnly: true,
+    intakeCatalogue: catalogue,
+    intakeHandoffOutput: handoff,
+  });
+  const presentation =
+    "Referenz: revision-2. Header: .kopf → .shell-header. Ansicht: mobil. Evidenz: header.png";
   await stub(
     emit([
       {
-        type: "item.started",
-        item: {
-          type: "command_execution",
-          command: `node cli.js workflow done ${capture.workflow} --step capture --data-file capture-results.json`,
-        },
+        type: "item.completed",
+        item: { type: "agent_message", text: presentation },
       },
-      { type: "item.completed", item: { type: "agent_message", text: table } },
       ...completed,
     ]),
   );
-  await writeFile(reference, "{}");
-  const incomplete = await provider.callApi("Incomplete intake", {
-    vars: { workspace },
-  });
-  assert.equal(incomplete.output.designIntake.pass, false);
-  assert.match(
-    incomplete.output.designIntake.reason,
-    /Published reference validation failed/,
-  );
-  assert.equal(incomplete.tokenUsage.total, 110);
-  await assert.rejects(readFile(handoff, "utf8"), /ENOENT/);
-  await writeFile(reference, original);
-  const intake = await provider.callApi("Intake", { vars: { workspace } });
+  const response = await provider.callApi("Intake", { vars: { workspace } });
+  assert.equal(response.error, undefined);
+  assert.equal(response.tokenUsage.total, 110);
   assert.equal(
-    intake.output.designIntake.pass,
-    true,
-    intake.output.designIntake.reason,
+    response.output.pendingWorkflows["old-attempt"].state.status,
+    "blocked",
   );
   const saved = JSON.parse(await readFile(handoff, "utf8"));
-  assert.ok(saved.fixed_workflows["capture-fixture"]);
-  assert.equal(saved.references[0].binding.directory, capture.directory);
-  provider.config.intakeOnly = false;
-  provider.config.intakeHandoffInput = handoff;
-  delete provider.config.intakeHandoffOutput;
-  await stub(
-    emit([
-      {
-        type: "item.started",
-        item: {
-          type: "command_execution",
-          command:
-            "npx storybook-addon-designbook workflow create plan.yml --output tasks.yml",
-        },
-      },
-      ...completed,
-    ]),
-  );
-  const main = await provider.callApi("Execute", { vars: { workspace } });
-  assert.equal(
-    main.output.designIntake.pass,
-    true,
-    main.output.designIntake.reason,
-  );
-  for (const path of [metadata, reference]) {
-    const bytes = await readFile(path);
-    await writeFile(path, Buffer.concat([bytes, Buffer.from("\n")]));
-    const changed = await provider.callApi("Execute", { vars: { workspace } });
-    assert.equal(changed.output.designIntake.pass, false);
-    assert.match(
-      changed.output.designIntake.reason,
-      /changed frozen intake evidence/,
-    );
-    await writeFile(path, bytes);
-  }
+  assert.ok(saved.text.includes(presentation));
+  assert.equal(saved.catalogue, catalogue);
+  assert.equal(saved.workspace, workspace);
+  assert.equal(saved.references, undefined);
+  assert.equal(response.output.designIntake, undefined);
 });
 
 for (const cli of ["codex", "claude"]) {

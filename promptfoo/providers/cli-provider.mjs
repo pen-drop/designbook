@@ -1,13 +1,6 @@
-import { validateIntakeReferences } from "../extensions/intake-reference.mjs";
-import { validateIntakeCaptures } from "../extensions/intake-capture.mjs";
-import { fixedWorkflowsUnchanged } from "../extensions/step-result.mjs";
+import { nativeEntries } from "./native-presentation.mjs";
 import { workflowMarkdown } from "../extensions/workflow-markdown.mjs";
 import { writeContextLog } from "./context-log.mjs";
-import {
-  nativeEntries,
-  validateDesignIntake,
-  validateIntakePresentation,
-} from "../extensions/design-intake.mjs";
 /**
  * Shared workspace, artifact and evidence handling for CLI providers.
  * This uses the user's CLI subscription (OAuth auth) instead of an API key.
@@ -178,27 +171,6 @@ class CliProvider {
     return { cwd, prompt };
   }
 
-  async intakeFingerprints(cwd, artifacts) {
-    const files = Object.fromEntries(
-      Object.entries(artifacts.fileHashes).filter(
-        ([path]) =>
-          path.startsWith("designbook/references/") ||
-          path === ".designbook-intake/catalogue.json",
-      ),
-    );
-    const metadata = {};
-    const dataDir = await this.resolveDesignbookDir(cwd);
-    for (const path of Object.keys(files)) {
-      if (!/\.ya?ml$/.test(path)) continue;
-      const value = yaml.load(
-        await readFile(join(dataDir, path.slice("designbook/".length)), "utf8"),
-      );
-      if (path.endsWith("/meta.yml")) metadata[path] = value;
-      // Published capture results have one writer and remain byte-identical.
-    }
-    return { files, metadata };
-  }
-
   async callApi(prompt, context) {
     const evidenceRoot = resolve(
       this.config.evidenceDir || "promptfoo/reports/evidence",
@@ -314,13 +286,7 @@ class CliProvider {
                 continue;
               }
               for (const entry of nativeEntries([event]))
-                if (
-                  entry.text &&
-                  /\|\s*subject\s*\|\s*reference selector\s*\|/i.test(
-                    entry.text,
-                  )
-                )
-                  console.log(entry.text);
+                if (entry.text) console.log(entry.text);
             }
           });
         }
@@ -380,117 +346,33 @@ class CliProvider {
         artifacts.workflowMarkdown[id] = path;
       }
 
-      if (this.config.requireDesignIntake) {
-        const intakeEvents = intakeHandoff
-          ? (await readFile(intakeHandoff.native_log, "utf8"))
-              .trim()
-              .split(/\r?\n/)
-              .filter(Boolean)
-              .map(JSON.parse)
-          : [];
-        const presentationEvents = nativeEntries(intakeEvents)
-          .filter((entry) => entry.text)
-          .map((entry) => ({
-            type: "item.completed",
-            item: { type: "agent_message", text: entry.text },
-          }));
-        artifacts.designIntake = this.config.intakeOnly
-          ? validateIntakePresentation(events, { captureWorkflows: true })
-          : validateDesignIntake([...presentationEvents, ...events], {
-              ...artifacts.completedWorkflows,
-              ...artifacts.pendingWorkflows,
-            });
-        const captures = this.config.intakeOnly
-          ? validateIntakeCaptures(artifacts, artifacts.designIntake.rows)
-          : null;
-        if (captures && !captures.pass && artifacts.designIntake.pass)
-          artifacts.designIntake = captures;
-        if (
-          intakeHandoff &&
-          !fixedWorkflowsUnchanged(artifacts, intakeHandoff.fixed_workflows)
-        )
-          artifacts.designIntake = {
-            pass: false,
-            reason: "Execution changed a completed capture workflow",
-          };
-        const { files: frozenFiles, metadata } = await this.intakeFingerprints(
-          cwd,
-          artifacts,
+      if (this.config.intakeOnly && this.config.intakeHandoffOutput) {
+        // Transport the model's presentation verbatim. Skills and the CLI own
+        // reference selection, publication and domain validation.
+        const catalogue = JSON.parse(
+          await readFile(this.config.intakeCatalogue, "utf8"),
         );
-        if (
-          intakeHandoff &&
-          Object.entries(intakeHandoff.frozen_files).some(
-            ([path, hash]) => frozenFiles[path] !== hash,
-          )
-        )
-          artifacts.designIntake = {
-            pass: false,
-            reason: "Execution changed frozen intake evidence",
-          };
-        if (this.config.intakeOnly && this.config.intakeCatalogue) {
-          let catalogue;
-          try {
-            catalogue = JSON.parse(
-              await readFile(this.config.intakeCatalogue, "utf8"),
-            );
-          } catch {
-            /* Report the failed gate with measured usage. */
-          }
-          if (
-            !catalogue?.template?.content ||
-            !catalogue.blocks ||
-            !Object.keys(catalogue.blocks).length
-          )
-            artifacts.designIntake = {
-              pass: false,
-              reason: "Intake requires its complete saved planning catalogue",
-            };
-        }
-        if (this.config.intakeOnly && artifacts.designIntake.pass) {
-          const validation = validateIntakeReferences({
-            rows: artifacts.designIntake.rows,
-            text: artifacts.designIntake.text,
-            metadata,
-            publications: captures.references,
-            dataDir: await this.resolveDesignbookDir(cwd),
-            catalogue: JSON.parse(
-              await readFile(this.config.intakeCatalogue, "utf8"),
-            ),
-            evidenceDir,
-            workspace: cwd,
-          });
-          await writeFile(
-            join(evidenceDir, "reference-validation.json"),
-            JSON.stringify(validation, null, 2),
-          );
-          if (!validation.pass) artifacts.designIntake = validation;
-          else artifacts.designIntake.references = validation.references;
-        }
+        if (!catalogue.config?.data)
+          throw new Error("Missing intake catalogue data directory");
         await writeFile(
-          join(evidenceDir, "design-intake.json"),
-          JSON.stringify(artifacts.designIntake, null, 2),
+          this.config.intakeHandoffOutput,
+          JSON.stringify(
+            {
+              pass: true,
+              workspace: cwd,
+              text:
+                nativeEntries(events)
+                  .filter((entry) => entry.text)
+                  .map((entry) => entry.text)
+                  .join("\n\n") || text,
+              native_log: join(evidenceDir, logName),
+              catalogue: this.config.intakeCatalogue,
+            },
+            null,
+            2,
+          ),
+          { flag: "wx" },
         );
-        if (
-          this.config.intakeOnly &&
-          artifacts.designIntake.pass &&
-          this.config.intakeHandoffOutput
-        )
-          await writeFile(
-            this.config.intakeHandoffOutput,
-            JSON.stringify(
-              {
-                ...artifacts.designIntake,
-                workspace: cwd,
-                native_log: join(evidenceDir, logName),
-                catalogue: this.config.intakeCatalogue,
-                frozen_files: frozenFiles,
-                fixed_workflows: captures.fixed_workflows,
-              },
-              null,
-              2,
-            ),
-            { flag: "wx" },
-          );
       }
 
       const tokenUsage = {

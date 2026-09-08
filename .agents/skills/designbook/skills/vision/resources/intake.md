@@ -7,7 +7,7 @@ description: Domain decisions required before planning vision artifacts.
 
 Read existing vision if present. Resolve product name, purpose, audience, problems, and features from the request. Ask together for missing required fields from the discovered Vision schema. Finish the product conversation before planning the artifact task.
 
-Use the request and existing project artifacts as input. Load the effective planning catalogue using the [shared builder](../../../resources/workflow-building.md) before deciding framework/backend-specific constraints. Ask only questions not answered by those inputs.
+Use the request, existing project artifacts, and the saved discover catalogue as input. Ask only questions not answered by those inputs.
 
 Completion: every target, structural parameter, dependency and applicable rule is determined. Record the complete decisions as definition inputs and concrete task parameters; intake itself creates no run task or progress entry.
 

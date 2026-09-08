@@ -13,8 +13,7 @@ import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import yaml from "js-yaml";
-import { runStepPipeline } from "../scripts/step-pipeline.mjs";
-import { stateHash } from "../extensions/step-result.mjs";
+import { runModelPipeline } from "../scripts/model-pipeline.mjs";
 import { publishedCapture } from "./published-capture-fixture.mjs";
 import CliProvider from "../providers/cli-provider.mjs";
 
@@ -24,7 +23,7 @@ const literalMarkup =
   '{{ <img src="image.svg"> }} {% if active %}literal{% endif %} {# retain comment #}';
 
 test(
-  "real Promptfoo executes a pending planner handoff and two isolated native workers",
+  "real Promptfoo executes a pending planner handoff and one native executor for multiple steps",
   { timeout: 120000 },
   async (t) => {
     const root = mkdtempSync(join(tmpdir(), "step-pipeline-native-"));
@@ -64,7 +63,7 @@ test(
     const catalogue = {
       template: {
         source: "fixture.md",
-        content: "Two independent model calls execute two ordered steps.",
+        content: "One executor processes two ordered steps.",
       },
       config: { data },
       blocks: {
@@ -108,11 +107,12 @@ test(
       schemas: {},
       tasks: [
         { ...task, id: "first", step: "first", depends_on: [], inputs: {} },
+        { ...task, id: "peer", step: "first", depends_on: [], inputs: {} },
         {
           ...task,
           id: "second",
           step: "second",
-          depends_on: ["first"],
+          depends_on: ["first", "peer"],
           inputs: { prior: { task: "first", result: "value" } },
         },
       ],
@@ -140,7 +140,6 @@ test(
         catalogue: cataloguePath,
         native_log: native,
         rows: [],
-        fixed_workflows: { "capture-fixture": stateHash(captureDocument) },
         frozen_files: {
           ".designbook-intake/catalogue.json": createHash("sha256")
             .update(readFileSync(cataloguePath))
@@ -179,11 +178,13 @@ if (prompt.includes('You are the planning model')) {
   run(['workflow','create',path,'--catalogue',${JSON.stringify(cataloguePath)},'--output',${JSON.stringify(workflow)}]);
   cp.execFileSync(process.execPath,[${JSON.stringify(join(repo, "promptfoo/scripts/snapshot-definition.mjs"))},${JSON.stringify(workflow)}],{encoding:'utf8'});
 } else {
-  const step = prompt.match(/Assigned step: ([a-z]+)/)[1];
+  for (const step of ['first', 'second']) {
+  run(['workflow','instructions',${JSON.stringify(workflow)},'--step',step,'--format','md']);
   run(['workflow','start',${JSON.stringify(workflow)},'--step',step]);
   const path = ${JSON.stringify(root)}+'/'+step+'-results.json';
-  fs.writeFileSync(path,JSON.stringify({[step]:{value:step+' completed'}}));
+  fs.writeFileSync(path,JSON.stringify(step === 'first' ? {first:{value:'first completed'},peer:{value:'peer completed'}} : {second:{value:'second completed'}}));
   run(['workflow','done',${JSON.stringify(workflow)},'--step',step,'--data-file',path]);
+  }
 }
 emit({type:'item.completed',item:{type:'agent_message',text:'Finished assigned role.'}});
 emit({type:'turn.completed',usage:{input_tokens:100,cached_input_tokens:80,output_tokens:10,reasoning_output_tokens:4}});
@@ -226,10 +227,6 @@ emit({type:'turn.completed',usage:{input_tokens:100,cached_input_tokens:80,outpu
               value:
                 "output.completedWorkflows['native-probe']?.state.status === 'completed' && output.definitionUnchanged === true",
             },
-            {
-              type: "javascript",
-              value: `file://${join(repo, "promptfoo/extensions/design-intake.mjs")}`,
-            },
           ],
         },
       ],
@@ -238,7 +235,7 @@ emit({type:'turn.completed',usage:{input_tokens:100,cached_input_tokens:80,outpu
       ],
     };
     const evaluations = [];
-    const result = runStepPipeline({
+    const result = runModelPipeline({
       repo,
       workspace,
       runDir,
@@ -285,7 +282,7 @@ emit({type:'turn.completed',usage:{input_tokens:100,cached_input_tokens:80,outpu
       0,
       JSON.stringify({ result, evaluations }, null, 2),
     );
-    assert.equal(result.steps.length, 2);
+    assert.equal(result.steps, undefined);
     const planned = report(result.plan.report).results.results[0];
     assert.equal(planned.success, true);
     assert.equal(planned.response.output.model, "planner-stub");
@@ -298,39 +295,36 @@ emit({type:'turn.completed',usage:{input_tokens:100,cached_input_tokens:80,outpu
         planned.response.output.pendingWorkflows["native-probe"].state.tasks,
       ).every((s) => s.attempts === 0),
     );
-    for (const step of result.steps) {
-      const evaluation = report(step.report).results.results[0];
-      assert.equal(evaluation.success, true);
-      assert.equal(evaluation.response.output.model, "worker-stub");
-      assert.equal(evaluation.response.tokenUsage.total, 110);
-    }
+    const execution = report(result.execution.report).results.results[0];
+    assert.equal(execution.success, true);
+    assert.equal(execution.response.output.model, "worker-stub");
+    assert.equal(execution.response.tokenUsage.total, 110);
     const final = yaml.load(readFileSync(workflow, "utf8"));
     assert.equal(final.state.status, "completed");
-    assert.equal(
-      stateHash(yaml.load(readFileSync(captured.workflow, "utf8"))),
-      stateHash(captureDocument),
+    assert.deepEqual(
+      yaml.load(readFileSync(captured.workflow, "utf8")),
+      captureDocument,
     );
     const nativeCalls = readFileSync(calls, "utf8")
       .trim()
       .split("\n")
       .map(JSON.parse);
-    assert.equal(nativeCalls.length, 3);
-    assert.equal(new Set(nativeCalls.map((c) => c.pid)).size, 3);
+    assert.equal(nativeCalls.length, 2);
+    assert.equal(new Set(nativeCalls.map((c) => c.pid)).size, 2);
     assert.match(nativeCalls[0].prompt, /PLANNER_ONLY_GOAL/);
     for (const call of nativeCalls.slice(1))
       assert.doesNotMatch(
         call.prompt,
         /PLANNER_ONLY_GOAL|Two independent model calls execute/,
       );
-    assert.match(nativeCalls[1].prompt, /Assigned step: first/);
-    assert.ok(nativeCalls[1].prompt.includes(literalMarkup));
-    assert.doesNotMatch(nativeCalls[1].prompt, /Task: second/);
-    assert.match(nativeCalls[2].prompt, /Assigned step: second/);
-    assert.ok(nativeCalls[2].prompt.includes(literalMarkup));
+    assert.match(nativeCalls[1].prompt, /execute-workflow/);
+    assert.ok(nativeCalls[1].prompt.includes(workflow));
+    assert.ok(!nativeCalls[1].prompt.includes(literalMarkup));
+    assert.ok(Buffer.byteLength(nativeCalls[1].prompt) < 2000);
     const rows = readFileSync(history, "utf8").trim().split("\n");
-    assert.equal(rows.length, 4);
+    assert.equal(rows.length, 3);
     assert.match(rows[1], /"plan"/);
-    for (const row of rows.slice(2)) assert.match(row, /"execute-step"/);
+    for (const row of rows.slice(2)) assert.match(row, /"main"/);
     for (const row of rows.slice(1))
       assert.match(row, /"100","80","20","10","4","110"/);
   },

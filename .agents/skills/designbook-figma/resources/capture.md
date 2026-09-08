@@ -4,6 +4,7 @@ description: Assemble a source capture using the integration's observed-data ins
 ---
 
 Follow the [shared capture intake](../../designbook/skills/extract-reference/resources/intake.md).
-Load [source capture rules](../rules/capture-observations.md) during exploration
-and preserve their discovered content in the saved workflow. The rules own source
-access and translation; shared intake owns scope, paths and completion.
+Every intake's first command is `workflow discover <id>`.
+This integration's rules match `observe-figma` when extension `figma`
+is configured. Execution uses the catalogue `observe-figma` block. Shared
+intake owns scope, paths and completion.

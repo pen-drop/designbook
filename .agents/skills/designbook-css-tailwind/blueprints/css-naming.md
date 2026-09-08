@@ -3,7 +3,7 @@ type: css-naming
 name: tailwind
 priority: 10
 trigger:
-  steps: [tokens:intake, create-tokens]
+  steps: [create-tokens]
 filter:
   frameworks.css: tailwind
 ---

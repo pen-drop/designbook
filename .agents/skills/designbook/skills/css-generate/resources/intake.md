@@ -7,7 +7,7 @@ description: Domain decisions required before planning css-generate artifacts.
 
 Read the tokens and effective CSS framework configuration. Enumerate source files, transforms and target CSS files. Decide whether missing transforms must be authored and identify their paths before planning generation and validation.
 
-Use the request and existing project artifacts as input. Load the effective planning catalogue using the [shared builder](../../../resources/workflow-building.md) before deciding framework/backend-specific constraints. Ask only questions not answered by those inputs.
+Use the request, existing project artifacts, and the saved discover catalogue as input. Ask only questions not answered by those inputs.
 
 Completion: every target, structural parameter, dependency and applicable rule is determined. Record the complete decisions as definition inputs and concrete task parameters; intake itself creates no run task or progress entry.
 

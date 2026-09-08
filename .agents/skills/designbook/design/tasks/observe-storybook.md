@@ -2,21 +2,19 @@
 title: Observe storybook
 trigger:
   steps: [observe-storybook]
-filter:
-  extensions: [storybook]
 domain: [references]
 params:
   type: object
   required: [source]
   properties:
     source:
-      $ref: ../../designbook/design/schemas.yml#/ObservationSource
+      $ref: ../schemas.yml#/ObservationSource
 result:
   type: object
   required: [observations]
   properties:
     observations:
-      $ref: ../../designbook/design/schemas.yml#/DesignReference
+      $ref: ../schemas.yml#/DesignReference
 ---
 
 # Observe storybook

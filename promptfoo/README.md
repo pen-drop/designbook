@@ -114,8 +114,8 @@ is rejected so earlier results remain intact.
 `--config-only` validates/generates configuration without starting a model or rebuilding
 a workspace. Main phases rebuild fixtures; verify phases require the existing
 workspace and a prompt file. CLI JSONL/stderr and available dbo.log files are kept
-for auditing; usage is reported per phase. Design-shell, design-entity and design-screen always start a separate design-verify evaluation after the main
-phase. Fixtures may declare `verify: <case>` to request the follow-up. Automatic
+for auditing; usage is reported per phase. Design-shell, design-entity and design-screen start a separate design-verify evaluation after successful main
+execution. Fixtures may declare `verify: <case>` to request the follow-up. Automatic
 verification takes its reference binding, stories, exact selectors, views and
 states exclusively from the saved main plan; it never copies the standalone
 verification case's prompt or imports its fixtures. The saved comparison threshold
@@ -188,32 +188,32 @@ git diff --name-only        # see what changed
 ```
 
 
-### Design intake gate
+### Design pipeline responsibilities
 
-Design cases run `intake → main → verify` (verification remains omitted only for
-cases whose existing contract explicitly selects none). Intake alone provisions
-the fresh workspace. It presents the selected source locators, Storybook selectors
-and views, completes reference capture through the selected integration skill,
-and saves the effective design planning catalogue separately. Static checks require
-matching published metadata and every declared capture file. `reference validate`
-loads the publication's observation schemas and checks subject/state/view coverage
-and local dependency files. Its compact report and revision binding are retained
-in the intake handoff; missing evidence fails before planning. Intake may execute
-only reference-capture workflows. Figma locators remain native node IDs.
+Promptfoo provisions the workspace, selects the planner and executor models,
+starts one executor agent for the complete saved workflow, and records native logs, tokens and
+results. Installed skills own intake presentation, reference selection/capture,
+planning instructions and design verification. The Designbook CLI owns domain
+schemas, publication and workflow validation.
 
-Main runs only after intake passes. It reads the compact external handoff,
-reuses the same workspace and catalogue, then authors and executes its complete
-design workflow. The harness checks native presentation order and declared scope,
-preserves every capture/asset/catalogue byte (including meta.yml and extract.json),
-and requires completed capture workflow documents to remain unchanged. Planning
-leaves every design task pending; each worker completes only its assigned step.
-A failed intake leaves main explicitly skipped; requested separate verification
-still runs and the pipeline fails. No successful main report is invented.
+The intake handoff carries the assistant presentation verbatim, the saved catalogue
+path and the native log path. Promptfoo does not parse selector tables, recognize
+column labels, match reference metadata or reject historical capture attempts.
+There is currently no independent static check of selector-presentation completeness
+in Promptfoo; that requirement remains in the installed intake skill.
 
-The generated configs identify the intake report, handoff and native evidence.
-CSV stores `intake`, `main` and `verify` as separate rows under one `run_id`.
-Efficiency totals must include every phase; compare this pipeline only against
-a baseline established with the same phase structure and gates.
+Planning must leave the target plan pending and application artifacts untouched.
+The executor follows the installed execute-workflow skill, completing all tasks
+of one step together before continuing to the next. Unrelated workflow attempts remain in the evidence but are not a
+run-wide completion gate. Final case/build checks and validated comparison scores
+remain the outcome checks; verification may not change the main artifacts.
+
+Failed intake, planning or execution skips automatic verification with an explicit
+reason in `pipeline.json`. No verifier model is launched and no score or token row
+is invented. Successful main execution starts a separate design-verify call using
+the planner model. The generated configs identify every attempted phase and log.
+All actual calls, including failures, remain in the CSV history. This changed test
+harness requires a fresh baseline before efficiency comparisons.
 
 ### Context logs
 
@@ -249,7 +249,7 @@ only the immutable plan, with each shared instruction/context body once and stab
 internal links. Runtime state/results remain in JSON inspection and reports.
 
 
-### Separate planner and step executor
+### Separate planner and executor
 
 Every design intake test uses separately configured planner and executor roles.
 Set defaults in `configs/base.yaml` under `modelRoles.planner` and
@@ -271,41 +271,24 @@ or Claude with `--provider claude --model opus --executor-provider claude --exec
 Model IDs/aliases are forwarded to the selected native CLI; configuration tests
 verify routing, not account availability or model quality.
 
-The pipeline is `intake → plan → execute-step × N → verify`. To override the
-executor, supply both executor flags. `--provider` and `--model` configure the
-planner; automatic verification uses that same configuration. This mode currently supports nonrepeated design cases without a
-case evidence manifest (including `drupal-web/design-shell`); unsupported cases
-fail before workspace provisioning instead of falling back to one model.
-Standalone verification and non-design utility cases retain their own pipeline. `--config-only` records the selected roles; plan and step configs are
-generated after the validated intake fixes the workspace paths.
+The pipeline is `intake → plan → execute-workflow → verify`. Intake and planning
+use the planner model. Planning writes the complete `tasks.yml`, with every task
+assigned to a step. Promptfoo then invokes the configured executor model exactly
+once with the saved path and the installed `execute-workflow` skill.
 
-Planning copies the effective contracts exactly, fixes every design decision and
-prepares frozen reference packages before saving. Both `workflow validate` and
-`workflow create` require the saved discover catalogue via `--catalogue`. No task
-runs in the planning call. The harness routes ready steps through the CLI and
-starts a fresh native CLI process for each step; the planner's history, full
-catalogue and full-plan export are not included in that process's prompt.
+The executor owns the step loop: obtain ready steps from the Designbook CLI,
+read instructions for the current step, produce all tasks in that step, submit
+them together and continue until complete or blocked. Promptfoo does not read or
+embed step work orders, choose ready steps, or launch a model for each component.
+The worker startup prompt contains the saved path, not the full plan or extract.
 
-Before the first worker starts, every planned step is checked. The check repeats
-with actual predecessor results immediately before each call. The harness saves `<step>.context.json` with the
-resolved context bytes, complete prompt bytes and configured limit. Set
-`stepPromptMaxBytes` in `configs/base.yaml` (default 262144 UTF-8 bytes).
-Oversized work orders fail before a model call, retaining planning usage and
-size evidence. This is a byte guard, not a token estimate or quality score.
-Narrow reference scope or split independent tasks; never truncate instructions.
-Codex and Claude receive prompts through stdin so normal work orders are not
-limited by the operating system's per-argument size limit.
+Both model roles remain independently configurable, including choosing the same
+model for both. Automatic verification uses the planner model and runs only after
+successful execution. `plan.json`, `main.json`, `model-pipeline.json`, native logs
+and `pipeline.json` preserve results and failures. Each actual model call has one
+CSV row; per-step CLI activity is recorded inside the executor's native log.
 
-Each step receives its complete work order and submits all task outputs as one
-batch. Static gates retain the visible selector intake and frozen input checks,
-require the assigned batch to finish, and reject changes to other tasks' states
-or the workflow definition. Missing decisions block the step. Final case/build
-assertions and separate verification remain required. Prompt scoping is not a
-filesystem access restriction; native tool logs remain part of the evidence audit.
-
-`plan.json`, per-step configs/reports/prompts in `steps/`, native context logs and
-`step-pipeline.json` preserve the handoffs and failures. The last step writes
-`main.json`; an earlier failure leaves main explicitly incomplete. Every evaluated
-phase gets its own CSV row and model usage; include intake, planning, all attempted
-steps and verification in totals. This structure permits measurement of a smaller
-executor; it does not establish a quality or token advantage by itself.
+The one-hour timeout applies to the entire executor invocation. A model context
+may accumulate during execution; a single agent does not imply a fresh context
+per step. There is no Promptfoo per-step prompt-size gate because the work orders
+are now retrieved by the agent through CLI tool calls.

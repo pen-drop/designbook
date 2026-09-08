@@ -1,6 +1,3 @@
-# Full resolved worker prompt, measured in UTF-8 bytes, not estimated tokens.
-stepPromptMaxBytes: 262144
-
 # Automatic verification fallback when the saved main plan declares no threshold.
 verificationThresholdPercent: 3
 

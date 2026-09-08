@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { load as parseYaml } from 'js-yaml';
-import { buildExtractSkeleton, parseBreakpointNames } from '../extract-page.js';
+import { buildExtractSkeleton, cssFontFamilies, parseBreakpointNames } from '../extract-page.js';
 import { matrixCellsFromMeta, planCaptureMatrix, ensureCellsPlanned, type MatrixCell } from '../capture-matrix.js';
 import { isStorybookStale } from '../check-story.js';
 import { parseStepsArg } from '../capture-screenshot.js';
@@ -72,6 +72,34 @@ describe('extract-page: buildExtractSkeleton', () => {
   it('parseBreakpointNames splits, trims and drops blanks', () => {
     expect(parseBreakpointNames(' sm , xl ,')).toEqual(['sm', 'xl']);
     expect(parseBreakpointNames(undefined)).toEqual([]);
+  });
+
+  it('splits computed CSS font stacks into family identities', () => {
+    expect(cssFontFamilies('"Sarabun Light", sans-serif')).toEqual(['Sarabun Light', 'sans-serif']);
+    expect(cssFontFamilies('Reef, sans-serif')).toEqual(['Reef', 'sans-serif']);
+    expect(cssFontFamilies('system-ui, -apple-system, "Segoe UI", Roboto')).toEqual([
+      'system-ui',
+      '-apple-system',
+      'Segoe UI',
+      'Roboto',
+    ]);
+    const skel = buildExtractSkeleton(
+      captured([
+        node({
+          id: 'copy',
+          kind: 'container',
+          style: {
+            padding: '0',
+            margin: '0',
+            background: '',
+            font_family: '"Sarabun Light", sans-serif',
+          },
+        }),
+      ]),
+      { root_vars: {}, fonts: [{ family: 'Reef, sans-serif', loaded: true }] },
+      { url: 'u', breakpoints: [] },
+    );
+    expect(skel.fonts).toEqual(['Reef', 'Sarabun Light', 'sans-serif']);
   });
 });
 

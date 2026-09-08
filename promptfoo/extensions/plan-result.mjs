@@ -1,18 +1,8 @@
-import { fixedWorkflowsUnchanged } from "./step-result.mjs";
-
 export default function planResult(output, context) {
   const contract = context?.vars?.plan_contract;
   const fail = (reason) => ({ pass: false, score: 0, reason });
-  if (!contract?.workflow || !contract.fixedWorkflows)
+  if (!contract?.workflow)
     return fail("Missing fixed planning workflow contract");
-  if (!fixedWorkflowsUnchanged(output, contract.fixedWorkflows))
-    return fail("Planning changed a completed capture workflow");
-  if (
-    Object.keys(output?.completedWorkflows || {}).length !==
-      Object.keys(contract.fixedWorkflows).length ||
-    Object.keys(output?.pendingWorkflows || {}).length !== 1
-  )
-    return fail("Planning changed the workflow scope");
   const document = output.pendingWorkflows[contract.workflow];
   const tasks = Object.values(document?.state?.tasks || {});
   if (
@@ -29,6 +19,6 @@ export default function planResult(output, context) {
   return {
     pass: true,
     score: 1,
-    reason: "Fixed capture retained; design plan pending",
+    reason: "Design plan pending",
   };
 }

@@ -5,8 +5,8 @@ description: Domain decisions required before planning sync-verify artifacts.
 
 # sync-verify intake
 
-1. Load the effective comparison catalogue through the [shared builder](../../../resources/workflow-building.md).
-   Use its backend integration and subject-mapping rules to resolve the exact
+1. Use the saved discover catalogue's backend integration and subject-mapping
+   rules to resolve the exact
    Storybook story, kind, backend render URL, authentication and configuration
    fix surface. Keep config-entity, entity-view mapping and full scene scopes
    distinct. Present both native locators and their intended subject to the user.
