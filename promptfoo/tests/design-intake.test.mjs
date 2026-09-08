@@ -114,6 +114,47 @@ test("rejects descriptive story-selector placeholders and ambiguous duplicate su
   assert.notEqual(selectorTable(text.split("\n")[1] + "\n" + text), null);
 });
 
+test("recognizes semantic columns with separate states and preserves exact locators", () => {
+  const presentation = [
+    "| Subject | Native source locator (CSS) | Planned story selector | Views → breakpoint | States | Observed evidence |",
+    "| --- | --- | --- | --- | --- | --- |",
+    "| header | `app-site-header` | planned: `#storybook-root header` | 640×1600 → sm, 1280×1600 → xl | rest | header-sm.png, header-xl.png: logo and navigation observed |",
+  ].join("\n");
+  const rows = selectorTable(presentation);
+  assert.deepEqual(rows[0].source_locators, ["app-site-header"]);
+  assert.match(rows[0].breakpoints, /states: rest/);
+  assert.equal(
+    validateDesignIntake(
+      [{ ...message, item: { ...message.item, text: presentation } }, create],
+      workflows,
+    ).pass,
+    true,
+  );
+  const reordered = [
+    "| States | Evidence | Story selector | Subject | Reference selector | Views (breakpoint) |",
+    "| --- | --- | --- | --- | --- | --- |",
+    "| rest | header.png: logo observed | `#Header` | header | `app-site-header` | sm, xl |",
+  ].join("\n");
+  assert.deepEqual(selectorTable(reordered)[0].source_locators, [
+    "app-site-header",
+  ]);
+  assert.equal(selectorTable(reordered)[0]["story selector"], "#Header");
+});
+
+test("flexible tables still reject missing, ambiguous or deferred selector decisions", () => {
+  for (const placeholder of [
+    "planned header slot; concrete element selector is the next planner's decision",
+    "selector will be chosen later",
+    "deferred to planning",
+  ])
+    assert.equal(
+      selectorTable(text.replace("planned: .page__header", placeholder)),
+      null,
+    );
+  assert.equal(selectorTable(text.replace("Story selector", "Notes")), null);
+  assert.equal(selectorTable(text.replace("Evidence", "Story selector")), null);
+});
+
 test("ordering checks actual shell commands rather than documentation searches", () => {
   assert.equal(workflowCommand(`rg 'workflow create' .agents`), false);
   assert.equal(

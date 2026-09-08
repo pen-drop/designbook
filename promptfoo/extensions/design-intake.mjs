@@ -67,32 +67,40 @@ export function selectorTable(text) {
       .replace(/\|$/, "")
       .split(/(?<!\\)\|/)
       .map(clean);
+  let columns;
   const start = lines.findIndex((line, index) => {
     const row = cells(line).map((cell) => {
       const label = cell.toLowerCase();
-      if (/^(?:native )?source locator(?: on .+)?$/.test(label))
+      if (
+        /^(?:native )?(?:(?:source|reference) )?locator(?: \([^)]*\))?(?: on .+)?$/.test(
+          label,
+        )
+      )
         return "reference selector";
       if (/^(?:planned )?story selector$/.test(label)) return "story selector";
-      if (/^views(?: and states)?$/.test(label)) return "breakpoints";
+      if (/^(?:views|breakpoints)(?:\b.*)?$/.test(label)) return "breakpoints";
+      if (/^states?$/.test(label)) return "states";
       if (/^(?:observed )?evidence$/.test(label)) return "evidence";
       return label;
     });
-    return (
-      row.length === headers.length &&
-      row.every((cell, i) => cell === headers[i]) &&
-      /^\s*\|?\s*:?-{3}/.test(lines[index + 1] || "")
-    );
+    const complete =
+      headers.every(
+        (header) => row.filter((cell) => cell === header).length === 1,
+      ) && /^\s*\|?\s*:?-{3}/.test(lines[index + 1] || "");
+    if (complete) columns = row;
+    return complete;
   });
   if (start < 0 || !/^\s*\|?\s*:?-{3}/.test(lines[start + 1] || ""))
     return null;
   const rows = [];
   for (const line of lines.slice(start + 2)) {
     if (!line.includes("|")) break;
-    const values = cells(line);
+    const allValues = cells(line);
+    const values = headers.map((header) => allValues[columns.indexOf(header)]);
     if (
-      values.length !== headers.length ||
+      allValues.length !== columns.length ||
       values.some((value) => !value || /^(?:tbd|unknown|\?|-)$/i.test(value)) ||
-      /\b(?:tbd|unknown|story selector|to be (?:defined|determined))\b/i.test(
+      /\b(?:tbd|unknown|story selector|to be (?:defined|determined)|(?:next )?planner['’]?s? decision|(?:decided|chosen|defined|determined) later|deferred)\b/i.test(
         values[2] || "",
       )
     )
@@ -100,11 +108,13 @@ export function selectorTable(text) {
     const row = Object.fromEntries(
       headers.map((header, i) => [header, values[i]]),
     );
+    if (columns.includes("states"))
+      row.breakpoints += `; states: ${allValues[columns.indexOf("states")]}`;
     const sourceCell = line
       .trim()
       .replace(/^\|/, "")
       .replace(/\|$/, "")
-      .split(/(?<!\\)\|/)[1];
+      .split(/(?<!\\)\|/)[columns.indexOf("reference selector")];
     const literals = [...sourceCell.matchAll(/`([^`]+)`/g)].map((match) =>
       match[1].trim(),
     );

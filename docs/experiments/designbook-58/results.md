@@ -623,3 +623,39 @@ SVG capture, a self-contained completion-call contract, stronger step-local read
 consistent verifier target bindings and the generated menu/layout defects.
 The many tiny story and check steps also repeat the worker environment overhead;
 batching related tasks is supported but used sparingly by this plan.
+
+
+## Verification target fix and Opus comparisons (07)
+
+Source `551fa99c` removes standalone verification fixture prompts from automatic
+follow-up verification. Reference bindings, story IDs, exact selectors, views and
+states come exclusively from the saved main plan. The pipeline supplies its exact
+saved path when available. The saved threshold is preserved; an explicit
+`verificationThresholdPercent: 3` config supplies the fallback. Regression tests
+check the generated shell prompt contains neither obsolete wrapper selectors nor
+the fixture reference URL.
+
+Fresh `designbook-58-opus-only-07` and `designbook-58-opus-luna-07` were launched
+with the same source and fixture, on ports 6144 and 6146. Both completed reference
+capture but failed the first selector-presentation gate. Planning and workers never
+started, so these attempts do not compare Opus and Luna execution performance.
+
+Opus/Luna presented a complete six-column inventory, separating views and states;
+its source locator header included `(CSS)`. The parser incorrectly required five
+columns and rejected it. All six screenshots were audited as proper source crops;
+the complete SVG sprite was published and standalone SVGs parsed successfully.
+Opus-only also used six columns, but explicitly deferred the concrete header
+selector to the planner. That is a real intake failure. Its ministry logo geometry
+was also missing from the published assets/structure despite a claim it was saved.
+
+Both automatic verifiers correctly blocked on missing actual output and did not
+substitute stale selectors or fabricate a pixel score. Total native usage was
+23,942,655 tokens / 1,875,310 ms for Opus/Luna, and 29,046,465 tokens / 2,024,242 ms
+for Opus-only. Full audits remain under their original report directories.
+
+The parser follow-up maps semantic column names, allows a separate states column
+and preserves literal selector identity. Missing, ambiguous or explicitly deferred
+selector decisions still fail. A read-only diagnostic against the original native
+messages accepts Opus/Luna presentation and captured scope, while Opus-only remains
+rejected. Original 07 reports and CSV results remain failed; fresh 08 runs are
+required to measure execution with the corrected gate.
