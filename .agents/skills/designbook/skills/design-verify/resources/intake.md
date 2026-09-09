@@ -13,4 +13,8 @@ Completion: every target, structural parameter, dependency and applicable rule i
 
 Follow the [shared builder](../../../resources/workflow-building.md), then invoke [execute-workflow](../../execute-workflow/SKILL.md) with the saved plan path automatically.
 
-After that check completes, follow [verification handoff](../../../resources/verification-handoff.md) with its complete issue list.
+After that check completes, write the deterministic score to a file with
+`_debo verify score --result <compare-result.json> --output $DESIGNBOOK_DATA/verify-score.json`
+(severity sum over the issues; 0 = perfect), then follow
+[verification handoff](../../../resources/verification-handoff.md) with its complete
+issue list. The score file is the run's machine-readable result.
