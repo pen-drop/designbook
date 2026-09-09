@@ -89,7 +89,11 @@ export function parsePlan(md: string): Plan {
   const title = lines.find((l) => /^#\s+Plan:/.test(l));
   if (title) plan.workflow = title.replace(/^#\s+Plan:\s*/, '').trim();
   const digest = lines.find((l) => /^<!--\s*digest:/.test(l));
-  if (digest) plan.digest = digest.replace(/^<!--\s*digest:\s*/, '').replace(/\s*-->\s*$/, '').trim();
+  if (digest)
+    plan.digest = digest
+      .replace(/^<!--\s*digest:\s*/, '')
+      .replace(/\s*-->\s*$/, '')
+      .trim();
 
   let i = 0;
   while (i < lines.length) {
@@ -184,7 +188,8 @@ export function parsePlan(md: string): Plan {
             i = next;
             if (kind === 'Params') task.params = body ? ((parseYaml(body) as Record<string, unknown>) ?? {}) : {};
             else if (kind === 'Results')
-              task.results = body && !/^<!--/.test(body) ? ((parseYaml(body) as Record<string, unknown>) ?? null) : null;
+              task.results =
+                body && !/^<!--/.test(body) ? ((parseYaml(body) as Record<string, unknown>) ?? null) : null;
           }
         }
         step.tasks.push(task);
@@ -320,5 +325,7 @@ export function planDigest(plan: Omit<Plan, 'digest'>): string {
       tasks: step.tasks.map((task) => ({ ...task, results: null })),
     })),
   };
-  return createHash('sha256').update(dumpYaml(canonical, { sortKeys: true, lineWidth: -1 })).digest('hex');
+  return createHash('sha256')
+    .update(dumpYaml(canonical, { sortKeys: true, lineWidth: -1 }))
+    .digest('hex');
 }

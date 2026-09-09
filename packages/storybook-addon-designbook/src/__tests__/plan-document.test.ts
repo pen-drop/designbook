@@ -25,14 +25,22 @@ function planWithObligation(tasks: string[]): Plan {
         key: 'ctx:publish-capture',
         kind: 'rule',
         source: '/abs/rules/publish-capture.md',
-        content: '---\nintake_obligation: the capture must be published as a fixed revision\nrequires_task: publish-capture\n---\nBody.',
+        content:
+          '---\nintake_obligation: the capture must be published as a fixed revision\nrequires_task: publish-capture\n---\nBody.',
       },
     },
     steps: [
       {
         name: 'publication',
         context: ['ctx:publish-capture'],
-        tasks: tasks.map((name) => ({ name, title: '', done: false, params: {}, contract: { outputs: {} }, results: null })),
+        tasks: tasks.map((name) => ({
+          name,
+          title: '',
+          done: false,
+          params: {},
+          contract: { outputs: {} },
+          results: null,
+        })),
       },
     ],
   };
@@ -106,7 +114,9 @@ describe('plan-document', () => {
       done: false,
       params: {},
       contract: {
-        outputs: { component: { required: true, submission: 'data', schema: { $ref: '#/definitions/ComponentResult' } } },
+        outputs: {
+          component: { required: true, submission: 'data', schema: { $ref: '#/definitions/ComponentResult' } },
+        },
       },
       results: null,
     };

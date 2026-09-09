@@ -17,12 +17,7 @@ import { findConfig, loadConfig, resolveSkillsRoot, type DesignbookConfig } from
 import { resolveSkillSources } from './skill-resolver.js';
 import type { SkillSource } from './skill-sources.js';
 import { resolveWorkflowFile } from './cli/workflow-discovery.js';
-import {
-  matchBlueprintFiles,
-  matchRuleFiles,
-  parseFrontmatter,
-  resolveTaskFilesRich,
-} from './planning-sources.js';
+import { matchBlueprintFiles, matchRuleFiles, parseFrontmatter, resolveTaskFilesRich } from './planning-sources.js';
 import { buildEnvMap } from './planning-sources.js';
 import { buildSchemaBlock, type SchemaEntry } from './schema-block.js';
 
@@ -168,7 +163,10 @@ class ContextRegistry {
   }
 }
 
-export async function resolveIntakeContext(workflowId: string, opts: ResolveIntakeOptions = {}): Promise<IntakeContext> {
+export async function resolveIntakeContext(
+  workflowId: string,
+  opts: ResolveIntakeOptions = {},
+): Promise<IntakeContext> {
   const configPath = findConfig();
   const configDir = opts.configDir ?? (configPath ? dirname(configPath) : process.cwd());
   const config = opts.config ?? loadConfig(opts.configDir);
@@ -234,13 +232,18 @@ export async function resolveIntakeContext(workflowId: string, opts: ResolveInta
     return contracts;
   };
 
-  const matchFiles = (step: string, effectiveDomains?: string[]): Array<{ source: string; kind: 'rule' | 'blueprint' }> => [
-    ...matchRuleFiles(step, config, agentsDir, undefined, effectiveDomains, sources).map(
-      (source) => ({ source, kind: 'rule' as const }),
-    ),
-    ...matchBlueprintFiles(step, config, agentsDir, undefined, effectiveDomains, sources).map(
-      (source) => ({ source, kind: 'blueprint' as const }),
-    ),
+  const matchFiles = (
+    step: string,
+    effectiveDomains?: string[],
+  ): Array<{ source: string; kind: 'rule' | 'blueprint' }> => [
+    ...matchRuleFiles(step, config, agentsDir, undefined, effectiveDomains, sources).map((source) => ({
+      source,
+      kind: 'rule' as const,
+    })),
+    ...matchBlueprintFiles(step, config, agentsDir, undefined, effectiveDomains, sources).map((source) => ({
+      source,
+      kind: 'blueprint' as const,
+    })),
   ];
 
   const steps: IntakeStep[] = [];

@@ -3,11 +3,9 @@ import { Command } from 'commander';
 import { loadConfig, normalizeExtensions, getExtensionIds, getExtensionSkillIds } from './config.js';
 import { validateData } from './validators/data.js';
 import { validateEntityMapping } from './validators/entity-mapping.js';
-import { register as registerWorkflow } from './cli/workflow.js';
 import { register as registerIntake } from './cli/intake.js';
 import { register as registerPlan } from './cli/plan.js';
 import { register as registerStorybook } from './cli/storybook.js';
-import { register as registerRunbook } from './cli/runbook.js';
 import { register as registerCompareImages } from './cli/compare-images.js';
 import { register as registerInspect } from './cli/inspect-register.js';
 
@@ -131,11 +129,9 @@ program
   });
 
 // Register submodules
-registerWorkflow(program);
 registerIntake(program);
 registerPlan(program);
 registerStorybook(program);
-registerRunbook(program);
 registerCompareImages(program);
 registerInspect(program);
 

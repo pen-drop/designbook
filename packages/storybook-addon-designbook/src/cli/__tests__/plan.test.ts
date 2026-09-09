@@ -27,7 +27,9 @@ function freshPlan(): Plan {
             done: false,
             params: {},
             contract: {
-              outputs: { component: { required: true, submission: 'data', schema: { $ref: '#/definitions/ComponentResult' } } },
+              outputs: {
+                component: { required: true, submission: 'data', schema: { $ref: '#/definitions/ComponentResult' } },
+              },
             },
             results: null,
           },
@@ -75,7 +77,14 @@ function planWithObligation(tasks: string[]): Plan {
       {
         name: 'publication',
         context: ['ctx:publish-capture'],
-        tasks: tasks.map((name) => ({ name, title: '', done: false, params: {}, contract: { outputs: {} }, results: null })),
+        tasks: tasks.map((name) => ({
+          name,
+          title: '',
+          done: false,
+          params: {},
+          contract: { outputs: {} },
+          results: null,
+        })),
       },
     ],
   };
