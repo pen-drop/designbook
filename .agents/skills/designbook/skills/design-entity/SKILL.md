@@ -5,4 +5,4 @@ description: >
   Create or change one entity view or form mode. Use for entity mappings, sample data for a mode, or its standalone preview.
 ---
 
-First command: `workflow discover design-entity`. Then follow [intake](resources/intake.md).
+First command: `intake design-entity`. Then follow [intake](resources/intake.md).

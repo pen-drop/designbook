@@ -48,6 +48,6 @@ Set `DESIGNBOOK_DISABLE_AUTODETECT=1` to turn off runtime detection entirely
 
 - [cli-config.md](cli-config.md) — `config` — Shell exports for `$DESIGNBOOK_*` variables
 - [cli-storybook.md](cli-storybook.md) — `storybook` — Storybook daemon lifecycle (start, stop, status, logs, restart)
-- [cli-workflow.md](cli-workflow.md) — `workflow` — Planning catalogue, saved documents, task validation and progress
+- [cli-workflow.md](cli-workflow.md) — `intake` + `plan` — Resolve the planning context, then validate execution against the saved MD plan
 - [cli-validate.md](cli-validate.md) — `validate` — Schema validation for data, tokens, components, data-model, entity-mapping
 - [cli-playwright.md](cli-playwright.md) — `playwright-cli` — Browser automation for screenshots, DOM extraction, and element interaction

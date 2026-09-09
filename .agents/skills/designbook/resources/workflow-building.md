@@ -1,25 +1,63 @@
-# Build a workflow
+# Build a workflow plan
 
-Used after a domain intake has identified the requested work. The planner authors the concrete task list; the CLI supplies and validates its building blocks.
+Used after a domain intake has identified the requested work. The planner authors
+the concrete MD plan; the CLI supplies the planning context and later validates
+each result against the plan.
 
-First command of every intake: `workflow discover <id>`. Save that JSON from
-CLI stdout. It is the palette: matched tasks, rules, blueprints and schemas for
-every step in the workflow file. Instantiate concrete tasks from those blocks;
-one block may become several tasks. Skill descriptions fire the skill; the
-catalogue is the command contract.
+First command of every intake: `intake <workflow>`. Save that JSON from CLI
+stdout. It is the context: the intake rules and blueprints (canonical body
+embedded, with `source`), the per-step task palette with frozen output contracts,
+the `definitions` those contracts reference, each step's `context` key references
+with a `read_order`, and any `open_selectors` with their `gated` groups. Skill
+descriptions fire the skill; this context is the command contract.
 
-1. Save the catalogue with `npx storybook-addon-designbook workflow discover <id> > <catalogue.json>`, then read that saved catalogue. Inspect the workflow file, all matched task instructions, rules, blueprints, schemas and configuration. Complete the intake's reference analysis and structural decisions. A nonzero `workflow discover`, `workflow schema` or `workflow validate` exit stops planning with that exact message. Completion: all target objects and required inputs are known.
-2. Write a definition YAML following `workflow schema`. Fill `id`, `title`, `template` (source and full content), absolute `workspace_root`, the complete effective catalogue `config` object (including resolved `data` and `designbook.home`), concrete `inputs` with `inputs_schema`, embedded `context`, `schemas`, and `tasks`. A capture catalogue (observe / capture-file / capture-image / publish-capture) also fills `capture` with the same block already resolved through `workflow capture-location` — role, source, optional prelude, and the fixed scope. Discover marks `capture` required on those templates. Each registry entry has `source`, exact `content`, and optional `sources` for additional origins of identical content. Copy relevant referenced instruction material into the document too: provenance paths never become runtime load instructions. Completion: every applicable instruction and schema is embedded.
-3. Author each task explicitly: stable unique `id`, explicit `step` ID, `title`, `type`, concrete `target`, `depends_on`, `params`, `params_schema`, predecessor `inputs`, `instructions` as one internal context ID, internal `context` references and `outputs`. Store each distinct instruction/rule/blueprint body once in the flat context registry; tasks reference its ID. Preserve byte-different bodies separately. Resolve every structural parameter and output path now. Group independent tasks of the same workflow stage under one concrete `step` ID (for example, header/footer component tasks in `write-component`). Tasks in one step have no dependencies on each other and are submitted together. Dependencies cross steps; repeated stage occurrences separated by dependencies use distinct step IDs. Step dependencies must be acyclic. Turn repetition hints into concrete tasks yourself. Include prerequisite CSS/setup work when needed. The planner fixes component decomposition, root/slot composition, concrete visual values, asset choices, responsive/state behavior and acceptance observations in task params and task-specific context. Prepare fixed reference packages with [reference packages](../design/resources/reference-packages.md) before creation: use a completed capture revision and `reference prepare` with the published `reference` metadata schema and the projected `DesignReference` observation schema, then save `task.reference: { query: <frozen request>, reference_schema: <schema>, extract_schema: <schema> }` and their transitive definitions in `schemas`. Execution receives complete work orders and reports missing decisions as planning failures. Completion: the complete ordered dependency graph, rule assignment and decision-critical task data are fixed.
-4. Copy each matched block's `params_schema`, `outputs`, and shared `schemas` into the task/document. These are definition contracts: preserve every output key, requiredness, type, constraint, submission mode and validator. Resolve structural placeholders and relocate schema references internally without weakening them. Use `param_bindings` to obtain planning-time file values and resolved inputs; its paths, existence flags and file contents are bindings, not JSON schema. Complete `output_preparation` queries during intake and embed their results; carry authored-generator instructions in context and declare generator artifact paths as outputs. File output paths must be absolute. Completion: compare each authored parameter schema and output against the matched block after structural and internal-reference resolution.
-5. A task may read a known predecessor result through `inputs: { name: { task: predecessor-id, result: output-key } }`. These values supply artifact content, never target selection, dependencies, task counts or rule assignment. Include the predecessor in `depends_on`. Completion: every result reference names a declared output on a predecessor.
-6. Run `workflow validate <definition.yml> --catalogue <catalogue.json>`, correct all reported definition and catalogue-fidelity errors, then `workflow create <definition.yml> --catalogue <catalogue.json> --output <run-path>`. Resolve the run path from the copied `config.data`: `$DESIGNBOOK_DATA/workflows/changes/<unique-run-id>/tasks.yml`. The workspace root and Storybook application directory can differ; a workspace-relative `designbook/` path is not a substitute for the resolved data directory. Creation deduplicates exact registry bodies and preserves all source provenance before freezing the definition. Completion: the CLI returns the path of a newly persisted document containing its fixed definition and initial state.
-7. Hand the saved path to a separate execution invocation using `execute-workflow <run-path>`. Keep planner discovery and full-plan contents out of the executor conversation. Completion: the executor has completed the fixed tasks or recorded a concrete, resumable blockade.
+1. Read the intake context in `read_order`: the rules and blueprints first, then
+   the task palette. Complete the intake's reference analysis and structural
+   decisions. Resolve every `open_selectors` value — pick each selector's variant
+   and fold that variant's `gated` context and tasks into the plan; leave no open
+   selector unresolved. A nonzero `intake` exit stops planning with that exact
+   message. Completion: all target objects, required inputs, and selector choices
+   are known.
+2. Write the MD plan. It carries two plan-wide registries the steps draw from by
+   reference, plus the steps themselves:
+   - `## Schemas` — a `definitions:` block holding every type the task contracts
+     reference, copied from the intake context. Task contracts reference it by
+     `$ref: '#/definitions/<Name>'`, never inline.
+   - `## Context` — each applicable rule/blueprint embedded once under a stable
+     `### <key> (<kind>, source: <path>)` heading with its canonical body. A rule
+     that applies to several steps is stored once and referenced per step.
+   - `## Steps` — one `### Step: <name>` per execution step, a `Context: [key, …]`
+     reference line, and a `- [ ] <task-name> — <title>` checkbox per task. Each
+     task carries `#### Params`, a `#### Contract` fenced block (its frozen
+     `outputs`, copied from the palette), and an empty `#### Results` block.
+   Completion: every applicable rule, blueprint, and task contract is embedded or
+   referenced; the plan reads as a self-contained work order.
+3. Author each task explicitly from the palette: the checkbox line names the task
+   and its concrete title/target; `#### Params` holds the resolved structural
+   parameters; `#### Contract` holds the palette's `outputs` verbatim (every
+   output key, requiredness, submission mode, validators, and `$ref` schema).
+   Turn repetition hints into concrete checkbox tasks yourself. Group a stage's
+   independent tasks under one `### Step`; cross-step order is the execution
+   order. The planner fixes component decomposition, composition, concrete visual
+   values, asset choices, responsive/state behavior, and acceptance observations
+   in task params. Prepare fixed reference packages with
+   [reference packages](../design/resources/reference-packages.md) before
+   authoring a task that consumes one. Completion: the ordered steps, their
+   context references, and decision-critical task params are fixed.
+4. Seal the plan digest over `workflow + definitions + context + steps` (results
+   excluded) and write it into the `<!-- digest: … -->` line. This freezes the
+   definition; execution refuses a plan whose recomputed digest differs.
+   Completion: the plan is saved with its sealed digest.
+5. Run `plan validate <plan>` and correct every reported missing obligation
+   (source + obligation). Completion: `plan validate` reports `ok: true`.
+6. Hand the saved plan path to a separate execution invocation using
+   `execute-workflow <plan-path>`. Keep planner discovery and full-plan contents
+   out of the executor conversation. Completion: the executor has completed the
+   fixed tasks or recorded a concrete, resumable blockade.
 
-Use JSON result files for CLI submission. Keep field names aligned with `workflow schema`; it is the canonical machine contract. Config instructions are content in the YAML, not paths to reread from config during execution.
-
-The catalogue gate checks exact task instructions and matched context, parameter/output schema equivalence (including renamed internal definitions), requiredness, submission modes and validators. It checks concrete catalogue paths exactly and requires resolved absolute paths for templated paths. Semantic visual completeness and the correctness of planner-resolved template values still require the intake and design checks.
-
-Reference transport: keep raw captures, complete extracts and query response JSON on disk. A consuming task uses its typed `reference` requirement; its ordinary context, params and workflow inputs contain concrete implementation decisions and artifact paths. The planner must not paste reference payloads into those general fields, even as encoded JSON/YAML or under a different source name. Setup tasks request the `assets` package when they need a frozen asset inventory. A predecessor binding to `reference_extract` is rejected; the separate capture workflow validates and writes its observations through ordinary `workflow done`; design tasks consume the published revision without rewriting it.
-
-Each task has at most 65,536 UTF-8 bytes of authored context plus serialized params, counting shared registry IDs once. Exact catalogue content with verified provenance is exempt and stays complete. Output and validation schemas retain their full constraints. On a boundary error, select a narrower typed package, point to relevant project artifacts, or split the planned work into precise tasks; never truncate required instructions or leave decisions to execution. CLI validation checks this boundary before saving. The Promptfoo executor separately checks the complete resolved step prompt before invoking its worker.
+The plan is the single source of truth for execution. Config instructions are
+content embedded in the plan, not paths to reread during execution. Reference
+transport: keep raw captures, extracts, and query response JSON on disk; a
+consuming task uses its typed `reference` requirement, and the separate capture
+workflow validates and publishes its observations (see
+[the executor](workflow-execution.md)).

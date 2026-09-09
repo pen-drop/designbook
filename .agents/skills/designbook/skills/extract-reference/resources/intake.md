@@ -5,7 +5,7 @@ description: Domain decisions for a fixed source observation workflow.
 
 # Capture the selected scope
 
-Select one source from the saved discover catalogue. Website and Storybook
+Select one source from the saved intake context. Website and Storybook
 blocks are always present; a missing Figma block means that source is not
 configured. Competing sources remain separate references.
 
@@ -38,18 +38,23 @@ Order the resolution steps so each one has what it needs:
    `subject.found: true` and identifies the intended subject. If a locator
    changes, update the draft and repeat steps 3–5, saving the declared states
    into the newly resolved directory. An unresolved or ambiguous subject blocks
-   finalizing the definition.
-6. Freeze the confirmed block as the definition's `capture:` and author the
-   file tasks with outputs in its resolved directory. Follow the
-   [shared builder](../../../resources/workflow-building.md) to complete and
-   validate the definition. Embed `Reference`, `DesignReference` and their
-   transitive definitions in `schemas` before execution: later design workflows
-   derive the published revision's query contract from this document.
-   Completion: the validated definition contains the confirmed capture block,
-   matching output paths and the complete query schemas.
+   finalizing the plan.
+6. Author the MD plan with the observe, capture-file/capture-image and
+   publish-capture steps, their outputs in the resolved revision directory.
+   Carry the confirmed capture block as the publish-capture task's params, and
+   embed `Reference`, `DesignReference` and their transitive definitions in the
+   plan's `## Schemas`: later design workflows derive the published revision's
+   query contract from the publication. Follow the
+   [shared builder](../../../resources/workflow-building.md) to write and seal
+   the plan. The publish-capture step runs `_debo reference publish --capture
+   <capture.json> --workflow-id <id> --owner <plan-path> --contract
+   <contract.json>` (contract = `{ referenceSchema: <Reference>, definitions }`)
+   to validate the observations and write the self-contained binding, then
+   records that result with `plan done`. Completion: the sealed plan carries the
+   capture block in the publish task params, matching output paths, and the
+   query schemas.
 
-Invoke [execute-workflow](../../execute-workflow/SKILL.md) with the saved,
-validated document path.
+Invoke [execute-workflow](../../execute-workflow/SKILL.md) with the saved plan path.
 
 Close the run by naming the published revision to the user: the full revision
 directory, and what that directory now holds. `_debo reference validate
