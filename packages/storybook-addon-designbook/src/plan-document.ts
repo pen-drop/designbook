@@ -11,6 +11,7 @@
 
 import { createHash } from 'node:crypto';
 import Ajv from 'ajv';
+import fm from 'front-matter';
 import { load as parseYaml, dump as dumpYaml } from 'js-yaml';
 
 export interface EmbeddedContent {
@@ -277,6 +278,35 @@ export function validateTaskResult(
     if (!validate(result[key])) errors.push(`output "${key}": ${ajv.errorsText(validate.errors)}`);
   }
   return { ok: errors.length === 0, errors };
+}
+
+export interface MissingObligation {
+  source: string;
+  obligation: string;
+}
+export interface CompletenessReport {
+  ok: boolean;
+  missing: MissingObligation[];
+}
+
+/**
+ * The autonomy check (AC-5): the plan must be executable without the intake skill.
+ * Every obligation rule embedded in the plan (`intake_obligation` in its frontmatter,
+ * optionally with `requires_task`) must have its required task frozen into the plan.
+ * A missing obligation is reported with its source and text — a mere "read" flag does
+ * not count as satisfaction.
+ */
+export function validatePlanCompleteness(plan: Plan): CompletenessReport {
+  const taskNames = new Set(plan.steps.flatMap((s) => s.tasks.map((t) => t.name)));
+  const missing: MissingObligation[] = [];
+  for (const entry of Object.values(plan.context)) {
+    const attrs = (fm<Record<string, unknown>>(entry.content).attributes ?? {}) as Record<string, unknown>;
+    const obligation = attrs['intake_obligation'];
+    if (typeof obligation !== 'string') continue;
+    const requiresTask = typeof attrs['requires_task'] === 'string' ? (attrs['requires_task'] as string) : undefined;
+    if (!requiresTask || !taskNames.has(requiresTask)) missing.push({ source: entry.source, obligation });
+  }
+  return { ok: missing.length === 0, missing };
 }
 
 /** SHA-256 over workflow + definitions + context + steps, with all results nulled. */

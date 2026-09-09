@@ -4,7 +4,39 @@
  * digest that freezes the definition. Parse/serialize must round-trip losslessly.
  */
 import { describe, it, expect } from 'vitest';
-import { parsePlan, serializePlan, planDigest, validateTaskResult, type PlanTask } from '../plan-document.js';
+import {
+  parsePlan,
+  serializePlan,
+  planDigest,
+  validateTaskResult,
+  validatePlanCompleteness,
+  type Plan,
+  type PlanTask,
+} from '../plan-document.js';
+
+/** A plan carrying one obligation rule (requires the publish-capture task) and `tasks`. */
+function planWithObligation(tasks: string[]): Plan {
+  return {
+    workflow: 'extract-reference',
+    digest: 'x',
+    definitions: {},
+    context: {
+      'ctx:publish-capture': {
+        key: 'ctx:publish-capture',
+        kind: 'rule',
+        source: '/abs/rules/publish-capture.md',
+        content: '---\nintake_obligation: the capture must be published as a fixed revision\nrequires_task: publish-capture\n---\nBody.',
+      },
+    },
+    steps: [
+      {
+        name: 'publication',
+        context: ['ctx:publish-capture'],
+        tasks: tasks.map((name) => ({ name, title: '', done: false, params: {}, contract: { outputs: {} }, results: null })),
+      },
+    ],
+  };
+}
 
 const MD = `# Plan: design-component
 <!-- digest: PLACEHOLDER -->
@@ -80,5 +112,22 @@ describe('plan-document', () => {
     };
     expect(validateTaskResult(task, { component: {} }, definitions).ok).toBe(false);
     expect(validateTaskResult(task, { component: { id: 'pet-card' } }, definitions).ok).toBe(true);
+  });
+
+  it('validatePlanCompleteness reports a missing obligation with source', () => {
+    const report = validatePlanCompleteness(planWithObligation([])); // no publish-capture task
+    expect(report.ok).toBe(false);
+    expect(report.missing).toContainEqual(
+      expect.objectContaining({ source: expect.stringMatching(/publish-capture/), obligation: expect.any(String) }),
+    );
+  });
+
+  it('validatePlanCompleteness passes for a complete plan', () => {
+    expect(validatePlanCompleteness(planWithObligation(['publish-capture'])).ok).toBe(true);
+  });
+
+  it('completeness survives a plan round-trip through markdown', () => {
+    const md = serializePlan(planWithObligation([]));
+    expect(validatePlanCompleteness(parsePlan(md)).ok).toBe(false);
   });
 });

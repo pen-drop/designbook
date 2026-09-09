@@ -1,6 +1,14 @@
 import { readFileSync, writeFileSync, renameSync } from 'node:fs';
 import type { Command } from 'commander';
-import { parsePlan, serializePlan, planDigest, validateTaskResult, type PlanTask } from '../plan-document.js';
+import {
+  parsePlan,
+  serializePlan,
+  planDigest,
+  validateTaskResult,
+  validatePlanCompleteness,
+  type Plan,
+  type PlanTask,
+} from '../plan-document.js';
 
 function print(value: unknown): void {
   process.stdout.write(JSON.stringify(value, null, 2));
@@ -47,4 +55,62 @@ export function register(program: Command): void {
       writePlan(path, serializePlan(parsed));
       print({ ok: true, task: task.name });
     });
+
+  plan
+    .command('validate <path>')
+    .description('Report obligations whose required task is absent from the plan (AC-5)')
+    .action((path: string) => {
+      const parsed = parsePlan(readFileSync(path, 'utf8'));
+      const report = validatePlanCompleteness(parsed);
+      print(report);
+      if (!report.ok) process.exitCode = 1;
+    });
+
+  plan
+    .command('steps <path>')
+    .description('List steps and per-task checkbox state; reads the plan only')
+    .action((path: string) => {
+      const parsed = parsePlan(readFileSync(path, 'utf8'));
+      print(overview(parsed));
+    });
+
+  plan
+    .command('instructions <path>')
+    .requiredOption('--step <name>', 'Step to read')
+    .description('Emit a step: its referenced context (resolved from the registry) and task contracts')
+    .action((path: string, opts: { step: string }) => {
+      const parsed = parsePlan(readFileSync(path, 'utf8'));
+      const step = parsed.steps.find((s) => s.name === opts.step);
+      if (!step) return fail(`unknown step "${opts.step}"`);
+      print({
+        step: step.name,
+        context: step.context.map((key) => parsed.context[key]).filter(Boolean),
+        tasks: step.tasks,
+      });
+    });
+
+  plan
+    .command('summary <path>')
+    .description('Report done/total task counts and any incomplete tasks')
+    .action((path: string) => {
+      const parsed = parsePlan(readFileSync(path, 'utf8'));
+      const tasks = parsed.steps.flatMap((s) => s.tasks);
+      print({
+        workflow: parsed.workflow,
+        done: tasks.filter((t) => t.done).length,
+        total: tasks.length,
+        pending: tasks.filter((t) => !t.done).map((t) => t.name),
+      });
+    });
+}
+
+function overview(plan: Plan): unknown {
+  return {
+    workflow: plan.workflow,
+    steps: plan.steps.map((step) => ({
+      name: step.name,
+      context: step.context,
+      tasks: step.tasks.map((t) => ({ name: t.name, title: t.title, done: t.done })),
+    })),
+  };
 }

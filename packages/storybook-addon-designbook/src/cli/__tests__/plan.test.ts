@@ -39,11 +39,46 @@ function freshPlan(): Plan {
   return plan;
 }
 
-async function run(args: string[]): Promise<void> {
+async function run(args: string[]): Promise<string> {
   const program = new Command();
   program.exitOverride();
   registerPlan(program);
-  await program.parseAsync(['node', 'cli', ...args]);
+  let out = '';
+  const original = process.stdout.write.bind(process.stdout);
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    out += typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString('utf8');
+    return true;
+  }) as typeof process.stdout.write;
+  try {
+    await program.parseAsync(['node', 'cli', ...args]);
+  } finally {
+    process.stdout.write = original;
+  }
+  return out;
+}
+
+/** A plan whose only obligation rule requires a task the plan may or may not contain. */
+function planWithObligation(tasks: string[]): Plan {
+  return {
+    workflow: 'extract-reference',
+    digest: 'x',
+    definitions: {},
+    context: {
+      'ctx:publish-capture': {
+        key: 'ctx:publish-capture',
+        kind: 'rule',
+        source: '/abs/rules/publish-capture.md',
+        content: '---\nintake_obligation: the capture must be published\nrequires_task: publish-capture\n---\nBody.',
+      },
+    },
+    steps: [
+      {
+        name: 'publication',
+        context: ['ctx:publish-capture'],
+        tasks: tasks.map((name) => ({ name, title: '', done: false, params: {}, contract: { outputs: {} }, results: null })),
+      },
+    ],
+  };
 }
 
 describe('plan done', () => {
@@ -97,6 +132,58 @@ describe('plan done', () => {
       expect(process.exitCode).toBe(1);
     } finally {
       process.exitCode = undefined;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('plan validate', () => {
+  it('reports a missing obligation with source and exits nonzero', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'plan-validate-'));
+    const planPath = join(dir, 'plan.md');
+    writeFileSync(planPath, serializePlan(planWithObligation([])));
+    try {
+      process.exitCode = undefined;
+      const out = await run(['plan', 'validate', planPath]);
+      expect(process.exitCode).toBe(1);
+      const report = JSON.parse(out);
+      expect(report.ok).toBe(false);
+      expect(report.missing[0].source).toMatch(/publish-capture/);
+    } finally {
+      process.exitCode = undefined;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('passes a complete plan', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'plan-validate-'));
+    const planPath = join(dir, 'plan.md');
+    writeFileSync(planPath, serializePlan(planWithObligation(['publish-capture'])));
+    try {
+      process.exitCode = undefined;
+      const out = await run(['plan', 'validate', planPath]);
+      expect(process.exitCode ?? 0).toBe(0);
+      expect(JSON.parse(out).ok).toBe(true);
+    } finally {
+      process.exitCode = undefined;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('plan steps', () => {
+  it('lists steps and per-task checkbox state without discovery', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'plan-steps-'));
+    const planPath = join(dir, 'plan.md');
+    const plan = planWithObligation(['publish-capture']);
+    plan.steps[0]!.tasks[0]!.done = true;
+    writeFileSync(planPath, serializePlan(plan));
+    try {
+      const out = await run(['plan', 'steps', planPath]);
+      const overview = JSON.parse(out);
+      expect(overview.workflow).toBe('extract-reference');
+      expect(overview.steps[0].tasks[0]).toEqual({ name: 'publish-capture', title: '', done: true });
+    } finally {
       rmSync(dir, { recursive: true, force: true });
     }
   });
