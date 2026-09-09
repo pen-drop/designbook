@@ -4,6 +4,7 @@ import { loadConfig, normalizeExtensions, getExtensionIds, getExtensionSkillIds 
 import { validateData } from './validators/data.js';
 import { validateEntityMapping } from './validators/entity-mapping.js';
 import { register as registerWorkflow } from './cli/workflow.js';
+import { register as registerIntake } from './cli/intake.js';
 import { register as registerStorybook } from './cli/storybook.js';
 import { register as registerRunbook } from './cli/runbook.js';
 import { register as registerCompareImages } from './cli/compare-images.js';
@@ -130,6 +131,7 @@ program
 
 // Register submodules
 registerWorkflow(program);
+registerIntake(program);
 registerStorybook(program);
 registerRunbook(program);
 registerCompareImages(program);
