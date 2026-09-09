@@ -1,6 +1,6 @@
 description: "designbook data-vision — intake → MD plan → plan done through the loose runner"
 
-outputPath: file://reports/designbook-data-vision.json
+outputPath: promptfoo/reports/designbook-data-vision.json
 
 prompts:
   - id: data-vision
