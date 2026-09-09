@@ -60,16 +60,20 @@ Löst für einen Workflow den Intake-Kontext auf, indem der synthetische Step `<
 - Produces:
   ```ts
   export interface EmbeddedContent { source: string; content: string }
-  export interface IntakeRule extends EmbeddedContent { name: string }
-  export interface IntakeBlueprint extends EmbeddedContent { type: string; name: string }
-  export interface TaskContract extends EmbeddedContent { name: string; step: string; outputs: unknown }
+  export interface ContextEntry extends EmbeddedContent { key: string; kind: 'rule' | 'blueprint' }
+  export interface TaskContract { name: string; step: string; outputs: unknown; source: string }
+  export interface IntakeStep {
+    name: string;            // execution step id
+    context: string[];       // keys in die geteilte Context-Registry (Per-Step-Referenzen)
+    read_order: string[];    // geordnete Context-Keys, vor abhängigen Entscheidungen zu lesen
+    tasks: TaskContract[];   // Task-Palette-Kandidaten für diesen Step
+  }
   export interface IntakeContext {
     workflow: string;
     config: Record<string, unknown>;
-    read_order: Array<{ source: string; kind: 'rule' | 'blueprint' | 'task' }>;
-    rules: IntakeRule[];
-    blueprints: IntakeBlueprint[];
-    tasks: TaskContract[];
+    definitions: Record<string, unknown>;   // eingefrorene #/definitions/<Name> aus schemas.yml
+    context: Record<string, ContextEntry>;  // geteilte Registry, dedupliziert; Wiederholung wird referenziert, nicht kopiert
+    steps: IntakeStep[];
     open_selectors: OpenSelector[];   // Task 2
     gated: GatedGroup[];              // Task 2
   }
@@ -85,20 +89,24 @@ import { resolveIntakeContext } from '../intake-resolve';
 // designbook/design/rules/entity-reference-rendering.md (trigger.steps: [design-shell:intake]).
 
 describe('resolveIntakeContext', () => {
-  it('resolves rules tagged <wf>:intake for the matching workflow', () => {
+  it('resolves rules tagged <wf>:intake into the shared registry, referenced per step', () => {
     const ctx = resolveIntakeContext('design-shell', { configDir: FIXTURE });
-    const names = ctx.rules.map((r) => r.name);
-    expect(names).toContain('entity-reference-rendering');
-    // provenance + content present, canonical source path embedded
-    const rule = ctx.rules.find((r) => r.name === 'entity-reference-rendering')!;
-    expect(rule.source).toMatch(/rules\/entity-reference-rendering\.md$/);
-    expect(rule.content.length).toBeGreaterThan(0);
+    const entry = Object.values(ctx.context).find((c) =>
+      c.source.endsWith('rules/entity-reference-rendering.md'));
+    expect(entry).toBeDefined();
+    expect(entry!.content.length).toBeGreaterThan(0); // kanonischer Inhalt eingebettet
+    // mindestens ein Step referenziert den Eintrag per Key (nicht per Kopie)
+    expect(ctx.steps.some((s) => s.context.includes(entry!.key))).toBe(true);
+    // Wiederholung über Steps => genau EIN Registry-Eintrag
+    const dupes = Object.values(ctx.context).filter((c) => c.source === entry!.source);
+    expect(dupes.length).toBe(1);
   });
 
   it('does NOT resolve a rule whose intake token names a different workflow', () => {
     const ctx = resolveIntakeContext('tokens', { configDir: FIXTURE });
     // entity-reference-rendering only names design-*:intake, not tokens:intake
-    expect(ctx.rules.map((r) => r.name)).not.toContain('entity-reference-rendering');
+    const sources = Object.values(ctx.context).map((c) => c.source);
+    expect(sources.some((s) => s.endsWith('entity-reference-rendering.md'))).toBe(false);
   });
 });
 ```
@@ -110,7 +118,7 @@ Expected: FAIL — `resolveIntakeContext` not defined.
 
 - [ ] **Step 3: Implement `resolveIntakeContext`**
 
-Setze `context = { steps: ['<wf>:intake', `${workflowId}:intake`], domain: ['design.intake'] }` und speise es in die extrahierten Matcher (`matchRuleFiles`/`matchBlueprintFiles`/`resolveTaskFilesRich`-Äquivalent). Embedde jede gematchte Datei via `readFileSync(source,'utf8')`. Baue `read_order` aus den gematchten Quellen (rules → blueprints → tasks). Config-Filter über `buildEnrichedConfig` (bestehend).
+Setze `context = { steps: ['<wf>:intake', `${workflowId}:intake`], domain: ['design.intake'] }` und speise es in die extrahierten Matcher (`matchRuleFiles`/`matchBlueprintFiles`/`resolveTaskFilesRich`-Äquivalent). Embedde jede gematchte Datei einmal via `readFileSync(source,'utf8')` in die geteilte `context`-Registry unter einem stabilen, source-abgeleiteten Key (byte-identische Wiederholung ⇒ ein Eintrag). Jeder `IntakeStep` referenziert nur die Keys, die für ihn matchen — keine Kopie. Baue `read_order` je Step aus den referenzierten Keys (rules → blueprints → tasks). Ziehe die von den Task-Contracts benötigten Typen transitiv aus `schemas.yml` in `definitions`. Config-Filter über `buildEnrichedConfig` (bestehend).
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -139,7 +147,7 @@ Deklariert im Workflow-Frontmatter, welche Dimensionen der Intake auflösen muss
 - Produces:
   ```ts
   export interface OpenSelector { name: string; variants: string[]; resolved: false }
-  export interface GatedGroup { selector: string; variant: string; rules: IntakeRule[]; tasks: TaskContract[] }
+  export interface GatedGroup { selector: string; variant: string; context: ContextEntry[]; tasks: TaskContract[] }
   ```
 - Workflow-Frontmatter (authored, designbook-skill-creator/workflow-files.md):
   ```yaml
@@ -159,13 +167,14 @@ Deklariert im Workflow-Frontmatter, welche Dimensionen der Intake auflösen muss
 it('marks source open and gates source-specific rules for extract-reference', () => {
   const ctx = resolveIntakeContext('extract-reference', { configDir: FIXTURE });
   expect(ctx.open_selectors.map((s) => s.name)).toContain('source');
-  // website-capture-observations is NOT in the flat rule set...
-  expect(ctx.rules.map((r) => r.name)).not.toContain('website-capture-observations');
+  // website-capture-observations is NOT in the flat shared registry...
+  const flatSources = Object.values(ctx.context).map((c) => c.source);
+  expect(flatSources.some((s) => s.endsWith('website-capture-observations.md'))).toBe(false);
   // ...it is gated under source=website
   const website = ctx.gated.find((g) => g.selector === 'source' && g.variant === 'website')!;
-  expect(website.rules.map((r) => r.name)).toContain('website-capture-observations');
+  expect(website.context.some((c) => c.source.endsWith('website-capture-observations.md'))).toBe(true);
   const storybook = ctx.gated.find((g) => g.selector === 'source' && g.variant === 'storybook')!;
-  expect(storybook.rules.map((r) => r.name)).toContain('storybook-capture-observations');
+  expect(storybook.context.some((c) => c.source.endsWith('storybook-capture-observations.md'))).toBe(true);
 });
 ```
 
@@ -237,20 +246,28 @@ Definiert das MD-Plan-Format und seine verlustfreie Round-Trip-Serialisierung.
 **Interfaces:**
 - Produces:
   ```ts
+  export interface EmbeddedContent { source: string; content: string }
+  export interface ContextEntry extends EmbeddedContent { key: string; kind: 'rule' | 'blueprint' }
+  export interface OutputContract { required: boolean; schema: unknown; submission: 'data' | 'direct'; path?: string; validators?: string[] }
   export interface PlanTask {
     name: string;            // z.B. create-component
     title: string;           // z.B. pet-card
     done: boolean;           // Checkbox-Status
-    context: string;         // eingebetteter Pflicht-Kontext (Markdown)
     params: Record<string, unknown>;
-    contract: { outputs: Record<string, OutputContract> }; // eingefroren aus Task-Datei
+    contract: { outputs: Record<string, OutputContract> }; // schema via { $ref: '#/definitions/<Name>' }
     results: Record<string, unknown> | null;               // von `done` gefüllt
   }
-  export interface OutputContract { required: boolean; schema: unknown; submission: 'data' | 'direct'; path?: string; validators?: string[] }
-  export interface Plan { workflow: string; digest: string; tasks: PlanTask[] }
+  export interface PlanStep { name: string; context: string[]; tasks: PlanTask[] } // context = Registry-Keys (Referenzen)
+  export interface Plan {
+    workflow: string;
+    digest: string;
+    definitions: Record<string, unknown>;   // ## Schemas: #/definitions/<Name>
+    context: Record<string, ContextEntry>;  // ## Context: geteilte Registry, per Step referenziert
+    steps: PlanStep[];
+  }
   export function parsePlan(md: string): Plan
   export function serializePlan(plan: Plan): string
-  export function planDigest(plan: Omit<Plan, 'digest'>): string  // SHA-256 über Tasks ohne results
+  export function planDigest(plan: Omit<Plan, 'digest'>): string  // SHA-256 über workflow+definitions+context+steps ohne results
   ```
 
 - [ ] **Step 1: Write the failing test** — Round-Trip + Digest-Stabilität.
@@ -259,45 +276,60 @@ Definiert das MD-Plan-Format und seine verlustfreie Round-Trip-Serialisierung.
 import { parsePlan, serializePlan, planDigest } from '../plan-document';
 const MD = `# Plan: design-component
 <!-- digest: PLACEHOLDER -->
-## Tasks
+
+## Schemas
+~~~yaml
+definitions:
+  ComponentResult: { type: object, required: [id], properties: { id: { type: string } } }
+~~~
+
+## Context
+### ctx:x (source: /abs/rules/x.md)
+Regel X Body
+
+## Steps
+
+### Step: component
+Context: [ctx:x]
 
 - [ ] create-component — pet-card
 
-  ### Kontext
-  Regel X (source: /abs/rules/x.md)
-
-  ### Params
+  #### Params
   component_id: pet-card
 
-  ### Contract
+  #### Contract
   ~~~yaml
   outputs:
-    component: { required: true, schema: { $ref: '#/ComponentResult' }, submission: data }
+    component: { required: true, schema: { $ref: '#/definitions/ComponentResult' }, submission: data }
   ~~~
 
-  ### Results
+  #### Results
   <!-- pending -->
 `;
-it('round-trips a plan without loss', () => {
+it('round-trips a plan with shared registries and per-step references', () => {
   const plan = parsePlan(MD);
   expect(plan.workflow).toBe('design-component');
-  expect(plan.tasks[0].name).toBe('create-component');
-  expect(plan.tasks[0].done).toBe(false);
-  expect(plan.tasks[0].contract.outputs.component.required).toBe(true);
-  expect(parsePlan(serializePlan(plan)).tasks[0].contract).toEqual(plan.tasks[0].contract);
+  expect(plan.definitions.ComponentResult).toBeDefined();
+  expect(Object.keys(plan.context)).toContain('ctx:x');
+  expect(plan.steps[0].name).toBe('component');
+  expect(plan.steps[0].context).toEqual(['ctx:x']); // Referenz, kein inlined Body
+  expect(plan.steps[0].tasks[0].name).toBe('create-component');
+  expect(plan.steps[0].tasks[0].done).toBe(false);
+  expect(plan.steps[0].tasks[0].contract.outputs.component.schema).toEqual({ $ref: '#/definitions/ComponentResult' });
+  expect(parsePlan(serializePlan(plan))).toEqual(plan);
 });
-it('digest ignores results but changes with contract edits', () => {
+it('digest covers definitions/context/steps but ignores results', () => {
   const plan = parsePlan(MD);
   const d1 = planDigest(plan);
-  plan.tasks[0].results = { component: { ok: true } };
+  plan.steps[0].tasks[0].results = { component: { id: 'pet-card' } };
   expect(planDigest(plan)).toBe(d1); // results excluded
-  plan.tasks[0].contract.outputs.component.required = false;
-  expect(planDigest(plan)).not.toBe(d1); // contract included
+  plan.definitions.ComponentResult = { type: 'object' };
+  expect(planDigest(plan)).not.toBe(d1); // definitions included
 });
 ```
 
 - [ ] **Step 2: Run** `pnpm --filter storybook-addon-designbook test plan-document` — Expected: FAIL.
-- [ ] **Step 3: Implement** Parser (Headings + Checkbox + fenced `~~~yaml` Contract via js-yaml + Params + Results), Serializer (deterministische Reihenfolge), `planDigest` (js-yaml canonical über `{workflow, tasks: tasks ohne results}` → sha256).
+- [ ] **Step 3: Implement** Parser (`## Schemas` `definitions:` via js-yaml → `plan.definitions`; `## Context` `### <key> (source: …)` + Body → `plan.context`; `## Steps` `### Step: <name>` + `Context: [keys]`-Referenzen + Checkbox-Tasks mit fenced `~~~yaml` Contract/Params/Results), Serializer (deterministische Reihenfolge), `planDigest` (js-yaml canonical über `{workflow, definitions, context, steps}` mit auf `null` genullten `results` → sha256).
 - [ ] **Step 4: Run** wie oben — Expected: PASS.
 - [ ] **Step 5: Commit**
 
@@ -321,7 +353,11 @@ Validiert ein Ergebnis ausschließlich gegen den im Plan eingebetteten Contract;
 - Produces:
   ```ts
   export interface TaskValidation { ok: boolean; errors: string[] }
-  export function validateTaskResult(task: PlanTask, result: Record<string, unknown>): TaskValidation
+  export function validateTaskResult(
+    task: PlanTask,
+    result: Record<string, unknown>,
+    definitions: Record<string, unknown>,   // plan.definitions, für $ref-Auflösung
+  ): TaskValidation
   // cli/plan.ts: register() → `done <plan> --task <name> --data-file <json>`
   ```
 - Consumes: AJV (draft-07); Datei-Validators-Registry (bestehend `getValidatorKeys`/`validateByKeys` aus dem alten Store — nach `plan-document.ts` mitnehmen, nicht neu erfinden).
@@ -329,12 +365,13 @@ Validiert ein Ergebnis ausschließlich gegen den im Plan eingebetteten Contract;
 - [ ] **Step 1: Write the failing test**
 
 ```ts
-it('validateTaskResult rejects a result violating the embedded schema', () => {
-  const task: PlanTask = { name: 'create-component', title: 't', done: false, context: '', params: {},
+it('validateTaskResult resolves $ref against plan.definitions and rejects violations', () => {
+  const definitions = { ComponentResult: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } } };
+  const task: PlanTask = { name: 'create-component', title: 't', done: false, params: {},
     contract: { outputs: { component: { required: true, submission: 'data',
-      schema: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } } } } }, results: null };
-  expect(validateTaskResult(task, { component: {} }).ok).toBe(false);
-  expect(validateTaskResult(task, { component: { id: 'pet-card' } }).ok).toBe(true);
+      schema: { $ref: '#/definitions/ComponentResult' } } } }, results: null };
+  expect(validateTaskResult(task, { component: {} }, definitions).ok).toBe(false);
+  expect(validateTaskResult(task, { component: { id: 'pet-card' } }, definitions).ok).toBe(true);
 });
 ```
 Und CLI-Ebene:
@@ -346,7 +383,7 @@ it('done ticks the checkbox and records results on valid input; rejects on diges
 ```
 
 - [ ] **Step 2: Run** `pnpm --filter storybook-addon-designbook test plan` — Expected: FAIL.
-- [ ] **Step 3: Implement** `validateTaskResult` (AJV compile pro Output-Schema + Datei-Validators für `direct`); `cli/plan.ts done` liest Plan, prüft `planDigest` gegen den im File eingebetteten Digest, validiert, setzt `task.done=true` + `task.results`, schreibt Plan atomar zurück. Keine Skill-Auflösung.
+- [ ] **Step 3: Implement** `validateTaskResult` (AJV mit `plan.definitions` als `#/definitions/*` registriert, dann Output-Schema `$ref`-aufgelöst validieren + Datei-Validators für `direct`); `cli/plan.ts done` liest Plan, prüft `planDigest` gegen den im File eingebetteten Digest, validiert, setzt `task.done=true` + `task.results`, schreibt Plan atomar zurück. Keine Skill-Auflösung.
 - [ ] **Step 4: Run** wie oben — Expected: PASS.
 - [ ] **Step 5: Commit**
 
@@ -489,7 +526,7 @@ git commit -m "test(engine): fresh cases for design-component, extract-reference
 - AC-1 (Verantwortlichkeiten/Datenfluss/Verträge) → Spec + Tasks 1–6 Interfaces.
 - AC-2 (CLI liefert Intake-Regeln/Blueprints; Metadaten/Domain abgedeckt; keine ausführbaren Intake-Tasks) → Tasks 1, 3.
 - AC-3 (Matching-Kombinationen; offener Kontext ≠ vollständig) → Tasks 1, 2.
-- AC-4 (kanonischer Inhalt+Herkunft+Leseauftrag) → Task 1 (`EmbeddedContent.source`, `read_order`).
+- AC-4 (kanonischer Inhalt+Herkunft+Leseauftrag) → Task 1 (`ContextEntry.source`, geteilte `context`-Registry, `IntakeStep.read_order`).
 - AC-5 (fehlende Pflicht mit Quelle; kein gelesen-Flag) → Task 6 (`validatePlanCompleteness`).
 - AC-6 (Ausführung ohne Discovery; Digest) → Tasks 4, 5.
 - AC-7 (frische Fälle; pnpm check grün) → Task 10.
@@ -497,4 +534,4 @@ git commit -m "test(engine): fresh cases for design-component, extract-reference
 
 **Placeholder scan:** Keine „TBD/TODO"; die einzige bewusste Implementierer-Entscheidung ist die Runbook-Konsumprüfung (Task 7 Step 1/Modify) und die Panel-Komponentenlokalisierung (Task 8 Step 1) — beide mit konkretem grep-Einstieg statt offenem Platzhalter.
 
-**Type consistency:** `IntakeContext`/`EmbeddedContent`/`OpenSelector`/`GatedGroup` (Tasks 1–2), `Plan`/`PlanTask`/`OutputContract`/`planDigest` (Task 4), `validateTaskResult`/`TaskValidation` (Task 5), `validatePlanCompleteness`/`CompletenessReport`/`MissingObligation` (Task 6) sind über alle Tasks konsistent benannt.
+**Type consistency:** `IntakeContext`/`EmbeddedContent`/`ContextEntry`/`IntakeStep`/`OpenSelector`/`GatedGroup` (Tasks 1–2), `Plan`/`PlanStep`/`PlanTask`/`OutputContract`/`planDigest` mit geteilten `definitions`- und `context`-Registries plus Per-Step-`context`-Referenzen (Task 4), `validateTaskResult`/`TaskValidation` mit `definitions`-Parameter (Task 5), `validatePlanCompleteness`/`CompletenessReport`/`MissingObligation` (Task 6) sind über alle Tasks konsistent benannt. `ContextEntry` ist in `intake-resolve.ts` (Task 1) und `plan-document.ts` (Task 4) formgleich.

@@ -95,30 +95,57 @@ Die strikte trigger- / deferring-filter-Semantik bleibt der Sicherheitshebel: of
 
 **Autonomie-Vertrag (AC-5):** der Plan muss ohne Intake-Skill autonom ausführbar sein. Fehlt eine Pflichtregel oder ein gefordertes Planungsergebnis, ist der Plan unvollständig/ungültig und wird von `done` bzw. einem Plan-Validate abgewiesen — mit Quelle und fehlender Pflicht. Ein bloßes „gelesen“-Flag zählt nicht als Erfüllungsnachweis.
 
-Beispiel-Skelett eines Task-Abschnitts im MD-Plan:
+### Kontext pro Step, Wiederholung per Referenz
+
+Kontext ist **pro Step** gebunden, nicht pro Task inline dupliziert. Der Plan trägt zwei plan-weite Registries, aus denen die Steps per Referenz schöpfen:
+
+- **`## Context`** — jede Rule/jedes Blueprint einmalig unter einem stabilen, source-abgeleiteten Key mit Herkunft. Jeder Step deklariert `Context: [key, …]` als reine Referenzen. Eine Rule, die in mehreren Steps gilt, steht **einmal** in der Registry und wird pro Step referenziert; kein Duplikat. Das entspricht dem Dedup-Modell der alten `definition.context`-Registry.
+- **`## Schemas`** — ein `definitions:`-Block, in den der Intake alle benötigten Typen aus `schemas.yml` einmalig einfriert (transitiv aufgelöste `#/definitions/<Name>`). Jeder Task-Contract referenziert per `$ref: '#/definitions/<Name>'`, nie inline dupliziert. `workflow done` kompiliert die `definitions`-Registry einmal in AJV und validiert gegen das `$ref`-aufgelöste Schema.
+
+Beispiel-Skelett eines MD-Plans:
 
 ~~~markdown
-## Tasks
+# Plan: design-component
+<!-- digest: <sha256 über workflow + definitions + context + steps (ohne results)> -->
+
+## Schemas
+```yaml
+definitions:
+  ComponentResult:
+    type: object
+    required: [id]
+    properties: { id: { type: string } }
+```
+
+## Context
+### ctx:entity-reference-rendering (source: /abs/.../rules/entity-reference-rendering.md)
+<eingebetteter kanonischer Body>
+
+### ctx:static-assets (source: /abs/.../blueprints/static-assets.md)
+<eingebetteter kanonischer Body>
+
+## Steps
+
+### Step: component
+Context: [ctx:entity-reference-rendering, ctx:static-assets]
 
 - [ ] create-component — pet-card
 
-  ### Kontext
-  Eingebetteter Pflicht-Kontext (Rules/Blueprints, source: <kanonischer Pfad>).
-
-  ### Params
+  #### Params
   component_id: pet-card
   target: components/pet-card/
 
-  ### Contract
+  #### Contract
   ```yaml
-  # eingefroren aus der Task-Datei: Output-Schema + Validators
   outputs:
     component:
-      schema: { $ref: '#/ComponentResult' }
+      required: true
+      submission: data
+      schema: { $ref: '#/definitions/ComponentResult' }
       validators: [component]
   ```
 
-  ### Results
+  #### Results
   <!-- von `workflow done` gefüllt -->
 ~~~
 
