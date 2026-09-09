@@ -42,6 +42,23 @@ describe('resolveIntakeContext', () => {
     expect(sources.some((s) => s.endsWith('entity-reference-rendering.md'))).toBe(false);
   });
 
+  it('marks source open and gates source-specific rules for extract-reference', async () => {
+    const ctx = await resolveIntakeContext('extract-reference', { agentsDir: agents, config });
+    expect(ctx.open_selectors.map((s) => s.name)).toContain('source');
+    // website-capture-observations is NOT in the flat shared registry...
+    const flatSources = Object.values(ctx.context).map((c) => c.source);
+    expect(flatSources.some((s) => s.endsWith('website-capture-observations.md'))).toBe(false);
+    // ...it is gated under source=website
+    const website = ctx.gated.find((g) => g.selector === 'source' && g.variant === 'website')!;
+    expect(website).toBeDefined();
+    expect(website.context.some((c) => c.source.endsWith('website-capture-observations.md'))).toBe(true);
+    const storybook = ctx.gated.find((g) => g.selector === 'source' && g.variant === 'storybook')!;
+    expect(storybook).toBeDefined();
+    expect(storybook.context.some((c) => c.source.endsWith('storybook-capture-observations.md'))).toBe(true);
+    // the gated steps must not leak into the flat step set as a misleadingly complete rule set
+    expect(ctx.steps.some((s) => s.name === 'observe-website')).toBe(false);
+  });
+
   it('freezes the task-palette output contracts with their definitions', async () => {
     const ctx = await resolveIntakeContext('design-shell', { agentsDir: agents, config });
     const validate = ctx.steps.find((s) => s.name === 'validate');

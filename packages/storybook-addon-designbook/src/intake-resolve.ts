@@ -95,8 +95,14 @@ interface StageDef {
   steps?: string[];
   domain?: string[] | string;
 }
+interface OpenSelectorDecl {
+  name: string;
+  variants: string[];
+  gates?: Record<string, { steps?: string[] }>;
+}
 interface WorkflowFrontmatter {
   stages?: Record<string, StageDef>;
+  intake?: { open_selectors?: OpenSelectorDecl[] };
 }
 
 /** Strip binding/preparation keys, leaving the JSON Schema an output contract carries. */
@@ -177,6 +183,21 @@ export async function resolveIntakeContext(workflowId: string, opts: ResolveInta
   const stages = wfFm?.stages ?? {};
   const executionSteps = Object.values(stages).flatMap((stage) => stage.steps ?? []);
 
+  // Open selectors the intake must resolve before it can freeze the steps they gate.
+  const selectorDecls = wfFm?.intake?.open_selectors ?? [];
+  const openSelectors: OpenSelector[] = selectorDecls.map((s) => ({
+    name: s.name,
+    variants: s.variants,
+    resolved: false,
+  }));
+  // Map each gated execution step → its (selector, variant) so it never lands flat.
+  const gateOf = new Map<string, { selector: string; variant: string }>();
+  for (const decl of selectorDecls) {
+    for (const [variant, gate] of Object.entries(decl.gates ?? {})) {
+      for (const step of gate.steps ?? []) gateOf.set(step, { selector: decl.name, variant });
+    }
+  }
+
   const registry = new ContextRegistry();
   const definitions: Record<string, unknown> = {};
 
@@ -213,18 +234,22 @@ export async function resolveIntakeContext(workflowId: string, opts: ResolveInta
     return contracts;
   };
 
-  const matchContext = (step: string, effectiveDomains?: string[]): string[] => {
-    const rules = matchRuleFiles(step, config, agentsDir, undefined, effectiveDomains, sources);
-    const blueprints = matchBlueprintFiles(step, config, agentsDir, undefined, effectiveDomains, sources);
-    return [...rules.map((s) => registry.embed(s, 'rule')), ...blueprints.map((s) => registry.embed(s, 'blueprint'))];
-  };
+  const matchFiles = (step: string, effectiveDomains?: string[]): Array<{ source: string; kind: 'rule' | 'blueprint' }> => [
+    ...matchRuleFiles(step, config, agentsDir, undefined, effectiveDomains, sources).map(
+      (source) => ({ source, kind: 'rule' as const }),
+    ),
+    ...matchBlueprintFiles(step, config, agentsDir, undefined, effectiveDomains, sources).map(
+      (source) => ({ source, kind: 'blueprint' as const }),
+    ),
+  ];
 
   const steps: IntakeStep[] = [];
+  const gatedByGroup = new Map<string, GatedGroup>();
 
   // Synthetic intake planning step: resolves `<wf>:intake`-tagged and
   // `design.intake`-domain rules/blueprints that inform structural decisions.
   const intakeStep = `${workflowId}:intake`;
-  const intakeContext = matchContext(intakeStep, ['design.intake']);
+  const intakeContext = matchFiles(intakeStep, ['design.intake']).map((f) => registry.embed(f.source, f.kind));
   steps.push({ name: intakeStep, context: intakeContext, read_order: intakeContext, tasks: [] });
 
   // Execution steps carry the task palette plus their step-scoped context.
@@ -235,7 +260,33 @@ export async function resolveIntakeContext(workflowId: string, opts: ResolveInta
       stages,
       step,
     );
-    const context = matchContext(step, domains.length > 0 ? domains : undefined);
+    const files = matchFiles(step, domains.length > 0 ? domains : undefined);
+
+    const gate = gateOf.get(step);
+    if (gate) {
+      // Gated: hold the context/tasks under the selector variant, out of the flat set,
+      // so an unresolved selector never yields a misleadingly complete rule set.
+      const groupKey = `${gate.selector}::${gate.variant}`;
+      const group =
+        gatedByGroup.get(groupKey) ??
+        (() => {
+          const g: GatedGroup = { selector: gate.selector, variant: gate.variant, context: [], tasks: [] };
+          gatedByGroup.set(groupKey, g);
+          return g;
+        })();
+      for (const f of files) {
+        group.context.push({
+          key: `ctx:${basename(f.source).replace(/\.md$/, '')}`,
+          kind: f.kind,
+          source: f.source,
+          content: readFileSync(f.source, 'utf8'),
+        });
+      }
+      group.tasks.push(...tasks);
+      continue;
+    }
+
+    const context = files.map((f) => registry.embed(f.source, f.kind));
     steps.push({ name: step, context, read_order: context, tasks });
   }
 
@@ -245,7 +296,7 @@ export async function resolveIntakeContext(workflowId: string, opts: ResolveInta
     definitions,
     context: registry.toRecord(),
     steps,
-    open_selectors: [],
-    gated: [],
+    open_selectors: openSelectors,
+    gated: Array.from(gatedByGroup.values()),
   };
 }

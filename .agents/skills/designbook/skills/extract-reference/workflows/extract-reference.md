@@ -1,6 +1,14 @@
 ---
 title: Extract Reference
 description: Record a fixed selected scope using discovered source integration tasks and publish shared observations.
+intake:
+  open_selectors:
+    - name: source
+      variants: [website, figma, storybook]
+      gates:
+        website: { steps: [observe-website] }
+        figma: { steps: [observe-figma] }
+        storybook: { steps: [observe-storybook] }
 stages:
   source:
     steps: [observe-website, observe-figma, observe-storybook]
