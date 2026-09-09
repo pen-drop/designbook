@@ -1,4 +1,6 @@
-import { readFileSync, writeFileSync, renameSync } from 'node:fs';
+import { readFileSync, writeFileSync, renameSync, mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
+import { dump as dumpYaml } from 'js-yaml';
 import type { Command } from 'commander';
 import {
   parsePlan,
@@ -50,10 +52,31 @@ export function register(program: Command): void {
       const result = JSON.parse(readFileSync(opts.dataFile, 'utf8')) as Record<string, unknown>;
       const validation = validateTaskResult(task, result, parsed.definitions);
       if (!validation.ok) return fail(validation.errors.join('; '));
+      // Materialize `data` outputs that declare a path: the plan is the definition,
+      // so completing the task writes the workspace artifact (vision.yml, …).
+      for (const [key, output] of Object.entries(task.contract.outputs)) {
+        if (output.submission === 'data' && output.path && key in result) {
+          const body = /\.ya?ml$/.test(output.path)
+            ? dumpYaml(result[key])
+            : JSON.stringify(result[key], null, 2) + '\n';
+          mkdirSync(dirname(output.path), { recursive: true });
+          writeFileSync(output.path, body);
+        }
+      }
       task.done = true;
       task.results = result;
       writePlan(path, serializePlan(parsed));
       print({ ok: true, task: task.name });
+    });
+
+  plan
+    .command('seal <path>')
+    .description('Compute and write the plan digest, freezing the definition for execution')
+    .action((path: string) => {
+      const parsed = parsePlan(readFileSync(path, 'utf8'));
+      parsed.digest = planDigest(parsed);
+      writePlan(path, serializePlan(parsed));
+      print({ ok: true, digest: parsed.digest });
     });
 
   plan

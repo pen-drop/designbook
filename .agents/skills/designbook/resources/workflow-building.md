@@ -44,12 +44,12 @@ descriptions fire the skill; this context is the command contract.
    [reference packages](../design/resources/reference-packages.md) before
    authoring a task that consumes one. Completion: the ordered steps, their
    context references, and decision-critical task params are fixed.
-4. Seal the plan digest over `workflow + definitions + context + steps` (results
-   excluded) and write it into the `<!-- digest: … -->` line. This freezes the
+4. Run `plan validate <plan>` and correct every reported missing obligation
+   (source + obligation). Completion: `plan validate` reports `ok: true`.
+5. Run `plan seal <plan>` to compute and write the `<!-- digest: … -->` line over
+   `workflow + definitions + context + steps` (results excluded). This freezes the
    definition; execution refuses a plan whose recomputed digest differs.
    Completion: the plan is saved with its sealed digest.
-5. Run `plan validate <plan>` and correct every reported missing obligation
-   (source + obligation). Completion: `plan validate` reports `ok: true`.
 6. Hand the saved plan path to a separate execution invocation using
    `execute-workflow <plan-path>`. Keep planner discovery and full-plan contents
    out of the executor conversation. Completion: the executor has completed the

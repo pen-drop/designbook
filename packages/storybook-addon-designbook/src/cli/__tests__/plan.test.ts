@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { join } from 'node:path';
-import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { Command } from 'commander';
 import { register as registerPlan } from '../plan.js';
@@ -139,6 +139,73 @@ describe('plan done', () => {
       process.exitCode = undefined;
       await run(['plan', 'done', planPath, '--task', 'create-component', '--data-file', dataPath]);
       expect(process.exitCode).toBe(1);
+    } finally {
+      process.exitCode = undefined;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('plan done data output', () => {
+  it('writes a data output with a path to that file as YAML', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'plan-data-'));
+    const planPath = join(dir, 'plan.md');
+    const dataPath = join(dir, 'r.json');
+    const outPath = join(dir, 'vision.yml');
+    const plan: Plan = {
+      workflow: 'vision',
+      digest: '',
+      definitions: { Vision: { type: 'object', required: ['product_name'], properties: { product_name: { type: 'string' } } } },
+      context: {},
+      steps: [
+        {
+          name: 'create-vision',
+          context: [],
+          tasks: [
+            {
+              name: 'create-vision',
+              title: '',
+              done: false,
+              params: {},
+              contract: {
+                outputs: { vision: { required: true, submission: 'data', schema: { $ref: '#/definitions/Vision' }, path: outPath } },
+              },
+              results: null,
+            },
+          ],
+        },
+      ],
+    };
+    plan.digest = planDigest(plan);
+    writeFileSync(planPath, serializePlan(plan));
+    writeFileSync(dataPath, JSON.stringify({ vision: { product_name: 'PetMatch' } }));
+    try {
+      process.exitCode = undefined;
+      await run(['plan', 'done', planPath, '--task', 'create-vision', '--data-file', dataPath]);
+      expect(process.exitCode ?? 0).toBe(0);
+      expect(existsSync(outPath)).toBe(true);
+      expect(readFileSync(outPath, 'utf8')).toMatch(/product_name: PetMatch/);
+    } finally {
+      process.exitCode = undefined;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('plan seal', () => {
+  it('computes and writes the digest so execution accepts the plan', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'plan-seal-'));
+    const planPath = join(dir, 'plan.md');
+    const plan = planWithObligation(['publish-capture']);
+    plan.digest = 'PLACEHOLDER';
+    writeFileSync(planPath, serializePlan(plan));
+    try {
+      process.exitCode = undefined;
+      await run(['plan', 'seal', planPath]);
+      expect(process.exitCode ?? 0).toBe(0);
+      const sealed = parsePlan(readFileSync(planPath, 'utf8'));
+      expect(sealed.digest).toBe(planDigest(sealed));
+      expect(sealed.digest).not.toBe('PLACEHOLDER');
     } finally {
       process.exitCode = undefined;
       rmSync(dir, { recursive: true, force: true });
