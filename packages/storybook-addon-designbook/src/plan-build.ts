@@ -14,7 +14,15 @@ import { readFileSync } from 'node:fs';
 import { basename } from 'node:path';
 import Ajv from 'ajv';
 import { resolveIntakeContext, type ResolveIntakeOptions, type TaskContract } from './intake-resolve.js';
-import { planDigest, type ContextEntry, type Plan, type PlanStep, type PlanTask } from './plan-document.js';
+import {
+  parsePlan,
+  serializePlan,
+  planDigest,
+  type ContextEntry,
+  type Plan,
+  type PlanStep,
+  type PlanTask,
+} from './plan-document.js';
 
 export interface TaskDecision {
   /** Execution step this task belongs to. */
@@ -108,13 +116,17 @@ export async function buildPlan(taskList: TaskList, opts: ResolveIntakeOptions =
     steps.push({ name: s.name, context: [...s.context], tasks });
   }
 
-  const plan: Plan = {
+  const draft: Plan = {
     workflow: taskList.workflow,
     digest: '',
     definitions: intake.definitions,
     context: registry,
     steps,
   };
+  // Seal on the canonical parsed form: parsePlan trims embedded bodies, so the
+  // digest must be computed over what execution will re-parse — not the raw
+  // in-memory plan — or `plan done` would report a digest mismatch.
+  const plan = parsePlan(serializePlan(draft));
   plan.digest = planDigest(plan);
   return { plan, plan_path: intake.plan_path, errors: [] };
 }

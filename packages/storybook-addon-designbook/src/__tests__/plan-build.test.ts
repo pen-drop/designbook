@@ -6,7 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import { resolve } from 'node:path';
 import { buildPlan } from '../plan-build.js';
-import { planDigest, validatePlanCompleteness } from '../plan-document.js';
+import { parsePlan, serializePlan, planDigest, validatePlanCompleteness } from '../plan-document.js';
 import type { DesignbookConfig } from '../config.js';
 
 const agents = resolve(process.cwd(), '../../.agents');
@@ -32,6 +32,9 @@ describe('buildPlan', () => {
     expect(plan!.steps.map((s) => s.name)).toEqual(['create-vision']);
     expect(plan!.steps[0]!.tasks[0]!.instruction).toBeTruthy(); // task body referenced, not inlined
     expect(plan!.digest).toBe(planDigest(plan!)); // auto-sealed
+    // The sealed digest must survive the write→read round-trip, or `plan done`
+    // would report a digest mismatch (embedded bodies are trimmed on parse).
+    expect(planDigest(parsePlan(serializePlan(plan!)))).toBe(plan!.digest);
     expect(validatePlanCompleteness(plan!).ok).toBe(true);
     expect(plan_path).toBe(`${config.data}/plans/vision.plan.md`);
   });
