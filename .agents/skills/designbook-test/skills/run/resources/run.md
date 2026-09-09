@@ -14,10 +14,10 @@ calling tester; invoking them inside a driver would rebuild its active fixtures.
 
 Workers run `_debo` / `npx storybook-addon-designbook` for catalogue, extract,
 capture, Storybook and workflow commands. Source dumps are `_debo reference save`.
-Screenshots are `_debo reference capture-image` or `_debo capture matrix`. Skill
-descriptions are not the command spec. Audit JSONL for those commands; a
-playwright-cli one-liner or addon-source read in place of them fails the log
-gate.
+Screenshots are `_debo reference capture-image` or `_debo capture matrix`. Asset
+files are `_debo reference capture-file`. Skill descriptions are not the command
+spec. Audit JSONL for those commands; a playwright-cli one-liner or addon-source
+read in place of them fails the log gate.
 
 ## Inputs
 

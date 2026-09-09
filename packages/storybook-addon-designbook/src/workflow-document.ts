@@ -7,6 +7,7 @@ import { validateAuthoredContext } from './workflow-context-boundary.js';
 import { getValidatorKeys } from './validation-registry.js';
 import {
   captureDefinitionSchema,
+  isCaptureWorkflow,
   validateCaptureDefinition,
   type CaptureDefinition,
   type CaptureBinding,
@@ -217,6 +218,15 @@ export const workflowDefinitionSchema = {
     },
   },
 };
+
+/** Capture workflows require `capture` in the discover catalogue; other templates keep it optional. */
+export function definitionSchemaFor(steps: Iterable<string>) {
+  if (!isCaptureWorkflow(steps)) return workflowDefinitionSchema;
+  return {
+    ...workflowDefinitionSchema,
+    required: [...workflowDefinitionSchema.required, 'capture'],
+  };
+}
 
 export function schemaValidator(schemas: Record<string, object>): Ajv {
   const ajv = new Ajv({ allErrors: true, strict: false });

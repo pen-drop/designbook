@@ -1,11 +1,11 @@
 /**
- * CLI registration for `reference` (save, capture-image, image, validate,
- * prepare, query) and `capture matrix`.
+ * CLI registration for `reference` (save, capture-image, capture-file, image,
+ * validate, prepare, query) and `capture matrix`.
  */
 
 import type { Command } from 'commander';
 import { readFileSync } from 'node:fs';
-import { isAbsolute, join } from 'node:path';
+import { isAbsolute, join, relative, resolve } from 'node:path';
 import { load as parseYaml } from 'js-yaml';
 import { loadConfig } from '../config.js';
 import { assertUnpublishedTarget } from '../reference-capture.js';
@@ -190,6 +190,31 @@ export function register(program: Command): void {
         }
       },
     );
+  reference
+    .command('capture-file')
+    .description('Download one source asset into the revision directory as served.')
+    .requiredOption('--reference <folder>', 'Absolute capture revision directory')
+    .requiredOption('--path <rel>', 'Asset path relative to --reference')
+    .requiredOption('--url <url>', 'Absolute http(s) URL of the source asset')
+    .option('--session <name>', 'Named session to observe as (see config sessions:)', 'anonymous')
+    .action(async (opts: { reference: string; path: string; url: string; session: string }) => {
+      const config = loadConfig();
+      const { runCaptureFile } = await import('./capture-file.js');
+      try {
+        if (!isAbsolute(opts.reference)) throw new Error('reference: expected absolute revision directory');
+        if (isAbsolute(opts.path)) throw new Error('path: expected a path relative to --reference');
+        const outPath = join(opts.reference, opts.path);
+        const rel = relative(resolve(opts.reference), resolve(outPath));
+        if (rel === '..' || rel.startsWith('../') || isAbsolute(rel))
+          throw new Error('path: expected a path inside --reference');
+        assertUnpublishedTarget(outPath);
+        const result = await runCaptureFile({ url: opts.url, outPath, session: opts.session }, config);
+        console.log(JSON.stringify({ path: opts.path, bytes: result.bytes }));
+      } catch (err) {
+        console.error(`Error: ${(err as Error).message}`);
+        process.exitCode = 1;
+      }
+    });
   reference
     .command('prelude')
     .description(

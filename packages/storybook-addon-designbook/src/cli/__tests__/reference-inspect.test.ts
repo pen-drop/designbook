@@ -69,6 +69,27 @@ describe('reference inspect', () => {
     expect(result.subject).toEqual({ locator: 'body > main', found: false });
   });
 
+  it('names the recorded locator when the request was written shorter', () => {
+    const result = inspectReference({ reference: revision(tree), state: 'rest', locator: 'header' });
+    expect(result.subject).toMatchObject({
+      found: false,
+      miss: { suffix_matches: ['body > header'] },
+    });
+  });
+
+  it('names the deepest resolved ancestor and the children that exist there', () => {
+    const result = inspectReference({
+      reference: revision([node('body', 'body', { child_ids: ['root'] }), ...tree]),
+      state: 'rest',
+      locator: 'body > header > nav:nth-of-type(2)',
+    });
+    expect(result.subject!.miss).toEqual({
+      resolved_prefix: 'body > header',
+      failed_segment: 'nav:nth-of-type(2)',
+      children: ['body > header > img', 'body > header > nav'],
+    });
+  });
+
   it('bounds the reported subtree by depth and marks truncation', () => {
     const shallow = inspectReference({
       reference: revision(tree),

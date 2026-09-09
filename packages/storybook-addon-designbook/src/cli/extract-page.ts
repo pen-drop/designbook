@@ -240,5 +240,13 @@ export async function runExtractPage(
     url,
     breakpoints: widths.map((w) => w.name).filter(Boolean),
   });
+
+  // The walk records computed `font-family` stacks, which name OS fallbacks the
+  // source does not ship. Persisting the used `@font-face` families alongside
+  // the nodes is what later lets the projection tell "self-hosted, download it"
+  // from "named as a fallback, nothing to download".
+  const { writeFile } = await import('node:fs/promises');
+  await writeFile(dumpPath, JSON.stringify({ ...captured, font_faces: catalogue.font_faces }, null, 2), 'utf-8');
+
   return { dumpPath, catalogue };
 }

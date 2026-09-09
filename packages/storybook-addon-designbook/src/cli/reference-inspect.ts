@@ -27,6 +27,22 @@ export interface InspectNode {
   text?: string;
 }
 
+/**
+ * Why a locator did not resolve, in the terms the agent can act on. A dump
+ * records one exact locator per node, so a selector that addresses the right
+ * element in the browser still misses here when it is written differently.
+ */
+export interface InspectMiss {
+  /** Recorded locators ending in the requested path — the same node, named in full. */
+  suffix_matches?: string[];
+  /** Deepest ancestor of the requested path that the dump does record. */
+  resolved_prefix?: string;
+  /** First requested segment absent under `resolved_prefix`. */
+  failed_segment?: string;
+  /** Recorded children of `resolved_prefix` — the segments that exist instead. */
+  children?: string[];
+}
+
 export interface InspectResult {
   state: string;
   /** Total nodes in the state's dump — the observation the answer comes from. */
@@ -49,11 +65,16 @@ export interface InspectResult {
     /** Subtree shape down to `depth`, truncated at `limit` nodes. */
     tree?: InspectNode[];
     truncated?: boolean;
+    /** Present when `found` is false and the dump offers a way forward. */
+    miss?: InspectMiss;
   };
 }
 
 const DEFAULT_DEPTH = 2;
 const DEFAULT_LIMIT = 40;
+/** Walker locator separator — `getDomPath` joins its segments with this. */
+const SEPARATOR = ' > ';
+const MAX_CANDIDATES = 10;
 
 function subtree(dump: CapturedSource, root: PropertyNode): PropertyNode[] {
   const byId = new Map(dump.nodes.map((node) => [node.id, node]));
@@ -66,6 +87,46 @@ function subtree(dump: CapturedSource, root: PropertyNode): PropertyNode[] {
   };
   walk(root.id);
   return out;
+}
+
+/**
+ * Probe the requested path hierarchically so a miss names its own cause.
+ *
+ * Two mechanisms, because the two realistic misses have different answers: a
+ * locator written shorter than the recorded path (`app-site-header` for
+ * `body > app-root > app-site-header`) is found by suffix, while a path whose
+ * tail is wrong (a stale `nth-of-type`, an element the walk never saw because
+ * it was hidden) is found by keeping the ancestors that do resolve and naming
+ * the children that exist there instead.
+ */
+function locatorMiss(dump: CapturedSource, locator: string): InspectMiss {
+  const requested = locator
+    .split(SEPARATOR)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+  if (!requested.length) return {};
+  const path = requested.join(SEPARATOR);
+  const miss: InspectMiss = {};
+
+  const suffixMatches = dump.nodes
+    .map((node) => node.source.locator)
+    .filter((recorded) => recorded === path || recorded.endsWith(SEPARATOR + path));
+  if (suffixMatches.length) miss.suffix_matches = suffixMatches.slice(0, MAX_CANDIDATES);
+
+  for (let depth = requested.length - 1; depth > 0; depth--) {
+    const prefix = requested.slice(0, depth).join(SEPARATOR);
+    const ancestor = dump.nodes.find((node) => node.source.locator === prefix);
+    if (!ancestor) continue;
+    const byId = new Map(dump.nodes.map((node) => [node.id, node]));
+    miss.resolved_prefix = prefix;
+    miss.failed_segment = requested[depth]!;
+    miss.children = ancestor.child_ids
+      .map((id) => byId.get(id)?.source.locator)
+      .filter((child): child is string => Boolean(child))
+      .slice(0, MAX_CANDIDATES);
+    break;
+  }
+  return miss;
 }
 
 export function inspectReference(opts: {
@@ -88,7 +149,12 @@ export function inspectReference(opts: {
     // An unresolved locator is the answer, not an error: intake asks this
     // question precisely to find out, and a nonzero exit would hide the
     // candidates the agent needs to correct it.
-    result.subject = { locator: opts.locator, found: false };
+    const miss = locatorMiss(dump, opts.locator);
+    result.subject = {
+      locator: opts.locator,
+      found: false,
+      ...(Object.keys(miss).length ? { miss } : {}),
+    };
     return result;
   }
 

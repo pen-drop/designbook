@@ -1,7 +1,7 @@
 /**
  * Shared pre-capture preparation for every browser pass — the dump written by
- * `reference save` and every screenshot written by `reference capture-image` or
- * `capture matrix`.
+ * `reference save`, screenshots from `reference capture-image` or `capture matrix`,
+ * and session-authenticated asset downloads from `reference capture-file`.
  *
  * Two orthogonal concepts live here, and they are deliberately separate from the
  * per-shot `--steps` vocabulary in `capture-browser.ts`:

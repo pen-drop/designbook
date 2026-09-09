@@ -6,8 +6,10 @@ import { dump, load } from 'js-yaml';
 import { createHash } from 'node:crypto';
 import {
   createDocument,
+  definitionSchemaFor,
   validateDefinition,
   validateDocument,
+  workflowDefinitionSchema,
   type WorkflowDefinition,
   type WorkflowDocument,
 } from '../workflow-document.js';
@@ -135,6 +137,23 @@ describe('static definition contract', () => {
     }
     def.tasks[0]!.outputs.vision!.path = '/tmp/designbook/vision.yml';
     expect(() => validateDefinition(def)).not.toThrow();
+  });
+  it('requires a capture block when tasks include capture steps', () => {
+    const def = definition();
+    def.tasks[0]!.step = 'publish-capture';
+    expect(() => validateDefinition(def)).toThrow('Capture workflow requires a capture block');
+    def.tasks[0]!.step = 'observe-website';
+    expect(() => validateDefinition(def)).toThrow('Capture workflow requires a capture block');
+    def.tasks[0]!.step = 'capture-file';
+    expect(() => validateDefinition(def)).toThrow('Capture workflow requires a capture block');
+  });
+  it('keeps capture optional on non-capture workflows', () => {
+    expect(() => validateDefinition(definition())).not.toThrow();
+  });
+  it('marks capture required in the discover schema only for capture steps', () => {
+    expect(definitionSchemaFor(['create-tokens']).required).toEqual(workflowDefinitionSchema.required);
+    expect(definitionSchemaFor(['publish-capture']).required).toContain('capture');
+    expect(definitionSchemaFor(['observe-website', 'capture-image']).required).toContain('capture');
   });
 });
 

@@ -149,6 +149,17 @@ export function projectObservations(
   const fontSeen = new Set<string>();
   const imageSeen = new Set<string>();
 
+  // Only a family the observed document declares as `@font-face` is a font the
+  // source ships. Every other non-generic token in a computed `font-family`
+  // stack — `"Segoe UI"`, `Arial`, `Apple Color Emoji` — is an OS fallback the
+  // page names but never delivers, so demanding a binary for it would make any
+  // real-world site unpublishable.
+  const declaredFaces = new Set(
+    [...dumps.values()].flatMap((dump) =>
+      (dump.font_faces ?? []).flatMap((face) => cssFontFamilies(face.family).map(fontIdentity)),
+    ),
+  );
+
   const rememberFont = (family: string) => {
     const name = fontIdentity(family);
     if (!name || fontSeen.has(name)) return name;
@@ -164,9 +175,12 @@ export function projectObservations(
           .replace(/[^a-z0-9]/g, '')
           .includes(needle),
     );
+    // A declared face owes a binary even when none was downloaded yet; a family
+    // whose binary already sits in `assets/` is self-hosted on that evidence.
+    const shipped = !generic && (declaredFaces.has(name) || Boolean(local));
     fonts.push({
       family: name,
-      source: generic ? 'system' : local ? 'self-hosted' : 'other',
+      source: generic ? 'system' : shipped ? 'self-hosted' : 'other',
       ...(local ? { files: [{ local_path: local, format: local.split('.').pop() }] } : generic ? {} : { files: [] }),
     });
     return name;

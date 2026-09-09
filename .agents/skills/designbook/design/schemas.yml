@@ -207,8 +207,10 @@ ReferenceFolder:
   type: string
   description: >
     Path to a scene's verification material — contains one source dump per
-    declared state (`extract--<state>.json`), `meta.yml`, and screenshots per
-    breakpoint/element/state. Format: `<breakpoint>--<element>--<state>.png`.
+    declared state (`extract--<state>.json`), `meta.yml`, and one screenshot per
+    view/element/state cell, named `<view>--<element>--<state>.png`. The leading
+    segment is the view id the metadata declares; a view carries a breakpoint
+    only where that mapping is established, and the file name stays on the view.
   examples: ["$DESIGNBOOK_DATA/references/hero", "/tmp/refs/article"]
 
 CompareArtifact:

@@ -11,6 +11,7 @@ import { resolveAllStages, buildEnvMap } from '../workflow-resolve.js';
 import { resolveWorkflowFile, listWorkflowDefinitions, loadWorkflowDefinition } from './workflow-discovery.js';
 import {
   workflowDefinitionSchema,
+  definitionSchemaFor,
   validateDefinition,
   validateCatalogueDefinition,
   type PlanningCatalogue,
@@ -84,7 +85,7 @@ export async function discoverWorkflow(id: string, configFile?: string, step?: s
         }),
       ]),
     ),
-    definition_schema: workflowDefinitionSchema,
+    definition_schema: definitionSchemaFor(Object.keys(resolved.step_resolved)),
   };
 }
 

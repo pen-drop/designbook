@@ -33,8 +33,10 @@ describe the observed Storybook DOM. Record explicit subject/view/state
 correspondences in the verification plan. Font identities are `@font-face`
 family names, or the first unquoted CSS family token; the catalogue's
 `font_faces` carries their binary URLs. Download required image files and each
-non-system font's binaries into the declared capture asset outputs. PNG assets and screenshots use `capture-image`; fonts,
-SVG and JPEG assets use `capture-file` with their real format extensions.
+non-system font's binaries into the declared capture asset outputs with
+`_debo reference capture-file --reference <revision-dir> --path
+assets/<basename> --url <absolute-http-url> --session anonymous`. Screenshots
+use `capture-image`.
 Record unavailable required observations explicitly; a nonzero selector count
 alone does not establish subject identity.
 
@@ -47,8 +49,11 @@ contract](../resources/reference-packages.md).
 
 `_debo reference inspect --reference <revision-dir> --state <name> --locator
 <css>` resolves one locator against an unpublished dump and reports its subtree,
-contained images and font families. Every selected locator is confirmed this way
-before the scope is fixed. `playwright-cli` covers one purpose here — diagnosing
+contained images and font families. Confirm every selected locator in each
+selected state before freezing the capture block: `subject.found` is true and
+the returned subject and subtree establish the intended identity. Follow the
+[intake resolution sequence](../../skills/extract-reference/resources/intake.md)
+when a correction changes the revision directory. `playwright-cli` covers one purpose here — diagnosing
 a capture that produced nothing — and that use is named with its purpose in the
 intake.
 

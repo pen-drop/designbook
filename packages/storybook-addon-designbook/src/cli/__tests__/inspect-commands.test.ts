@@ -284,13 +284,13 @@ describe('reference CLI surface', () => {
   const dirs: string[] = [];
   afterEach(() => dirs.splice(0).forEach((dir) => rmSync(dir, { recursive: true, force: true })));
 
-  it('registers save, capture-image and image; drops extract and capture screenshot', () => {
+  it('registers save, capture-image, capture-file and image; drops extract and capture screenshot', () => {
     const program = new Command();
     register(program);
     expect(program.commands.map((command) => command.name())).not.toContain('extract');
     const reference = program.commands.find((command) => command.name() === 'reference')!;
     expect(reference.commands.map((command) => command.name())).toEqual(
-      expect.arrayContaining(['save', 'capture-image', 'image', 'validate', 'prepare', 'query']),
+      expect.arrayContaining(['save', 'capture-image', 'capture-file', 'image', 'validate', 'prepare', 'query']),
     );
     const capture = program.commands.find((command) => command.name() === 'capture')!;
     expect(capture.commands.map((command) => command.name())).toEqual(['matrix']);

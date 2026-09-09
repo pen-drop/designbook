@@ -195,8 +195,27 @@ export function assertUnpublishedTarget(path: string): void {
     parent = next;
   }
 }
+/** Steps that write a capture revision. Other workflows keep `capture` optional. */
+export const CAPTURE_STEPS = new Set([
+  'observe-website',
+  'observe-figma',
+  'observe-storybook',
+  'capture-file',
+  'capture-image',
+  'publish-capture',
+]);
+
+export function isCaptureWorkflow(steps: Iterable<string>): boolean {
+  for (const step of steps) if (CAPTURE_STEPS.has(step)) return true;
+  return false;
+}
+
 export function validateCaptureDefinition(def: WorkflowDefinition): void {
-  if (!def.capture) return;
+  if (!def.capture) {
+    if (isCaptureWorkflow(def.tasks.map((task) => task.step)))
+      throw new Error('Capture workflow requires a capture block');
+    return;
+  }
   const { directory } = captureDefinitionLocation(def);
   const outputs = def.tasks.flatMap((task) => Object.entries(task.outputs));
   const metaOut = outputs.filter(([name]) => name === 'reference');
@@ -305,7 +324,10 @@ export function validateCaptureObservations(
     for (const family of deps.font_families) {
       const font = fonts.get(family);
       if (!font) throw new Error(`Missing font ${family}`);
-      if (font.source !== 'system' && !font.files?.length) throw new Error(`Missing local font files ${family}`);
+      // Only a `@font-face` family the source ships owes the revision a binary.
+      // An `other` family is an OS fallback the stack names and the source never
+      // delivers, so there is nothing to download and nothing to miss.
+      if (font.source === 'self-hosted' && !font.files?.length) throw new Error(`Missing local font files ${family}`);
       for (const file of font.files ?? []) files.add(file.local_path);
     }
   };

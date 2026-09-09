@@ -9,7 +9,7 @@ params:
   properties:
     file_path:
       type: string
-      description: Absolute CLI-owned revision path for one selected PNG screenshot or downloaded PNG image asset.
+      description: Absolute CLI-owned revision path for one selected PNG screenshot.
 result:
   type: object
   required: [file]
@@ -23,5 +23,5 @@ result:
 
 # Capture selected PNG image
 
-A valid selected PNG image file, either visual capture evidence or an image asset.
+A valid selected PNG screenshot of the observed subject.
 Its observation association is declared separately in the shared extract.

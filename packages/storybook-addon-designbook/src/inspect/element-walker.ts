@@ -71,6 +71,15 @@ export interface CapturedSource {
   adapter_version: string;
   /** Smallest captured breakpoint — the mobile-first base for `nodes[].style`. Absent for single-viewport captures. */
   base_breakpoint?: string;
+  /**
+   * The `@font-face` families the observed document declares, restricted to the
+   * ones it actually renders. This separates a font the source *ships* from a
+   * family a `font-family` stack merely names as an OS fallback: a computed
+   * stack lists `"Segoe UI"` and `Arial` on every node, and neither has a binary
+   * the source could ever hand over. Absent when the style environment could not
+   * be read.
+   */
+  font_faces?: Array<{ family: string; weight?: string; style?: string; urls: string[] }>;
   nodes: PropertyNode[];
 }
 

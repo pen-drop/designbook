@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { resolve } from 'node:path';
 import { resolveAllStages } from '../workflow-resolve.js';
+import { definitionSchemaFor } from '../workflow-document.js';
 
 const agents = resolve(process.cwd(), '../../.agents');
 const template = resolve(agents, 'skills/designbook/skills/extract-reference/workflows/extract-reference.md');
@@ -52,6 +53,7 @@ describe('source integration capture discovery', () => {
       const screenshot = blocks.find((block) => block.task_file.endsWith('/capture-image.md'))!;
       expect(screenshot.schema!.result.file!.validators).toEqual(['image']);
       expect(screenshot.schema!.result.file!.submission).toBe('direct');
+      expect(definitionSchemaFor(Object.keys(catalogue.step_resolved)).required).toContain('capture');
     },
   );
 });

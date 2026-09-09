@@ -22,11 +22,15 @@ inspection.
 
 Native CSS locators stay on observed nodes. Font identities are `@font-face`
 family names, or the first unquoted CSS family token; the catalogue's
-`font_faces` carries their binary URLs. Download required image files and each
-non-system font's binaries into the declared capture asset outputs. PNG assets
-and screenshots use `capture-image`; fonts, SVG and JPEG assets use
-`capture-file` with their real format extensions. Preserve each downloaded
-file's format and extension. Record unavailable required observations
+`font_faces` carries their binary URLs. Each family the observed document
+declares as `@font-face` owes a local binary; a family that appears only inside
+a computed `font-family` stack is an operating-system fallback the source never
+ships, and owes none. Download every owed binary and every picture the selected
+subtrees reference into `assets/` with `_debo reference capture-file
+--reference <revision-dir> --path assets/<basename> --url <absolute-http-url>
+--session <name>`, each under the basename of its recorded source — that is
+the path publication reads it from. Screenshots use `capture-image`. Preserve
+each downloaded file's format and extension. Record unavailable required observations
 explicitly; a nonzero selector count alone does not establish subject identity.
 
 ## Read the extract, not the page
@@ -35,8 +39,24 @@ The saved dump and the catalogue answer the structural questions of intake.
 `_debo reference inspect --reference <revision-dir> --state <name> --locator
 <css>` resolves one locator against an unpublished dump and reports its subtree,
 contained images and font families; without `--locator` it reports the dump's
-totals. Every selected locator is confirmed this way before the scope is fixed —
-a locator that resolves to no node yields an empty projection at publication.
+totals.
+
+A selected locator is the one the dump recorded, character for character. The
+walk stores one exact locator per node (`body > app-root > app-site-header`) and
+the projection matches it by equality, so a shorter selector that reaches the
+same element in a browser is a different string and resolves to nothing. On a
+miss, `subject.miss.suffix_matches` lists candidate full locators;
+`resolved_prefix` and `children`, when present, help locate a different tail.
+Inspect candidate locators and compare the returned subject and subtree with
+the intended subject. Accept a locator only when `subject.found` is true and
+the subject identity is established; multiple suffix matches require that
+comparison, not selection by list position. If identity remains ambiguous,
+report the unresolved subject and stop finalizing the definition.
+
+Confirm every selected locator in each selected state before freezing the
+capture block. Follow the [intake resolution sequence](../../skills/extract-reference/resources/intake.md)
+when a correction changes the revision directory. A locator that resolves to
+no node yields an empty projection at publication.
 
 `playwright-cli` covers exactly three purposes, and each use is named with its
 purpose in the intake:

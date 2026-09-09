@@ -9,7 +9,8 @@ command; stdout and stderr are the spec. Skill descriptions fire the skill;
 they are not the command spec. Every intake starts with `workflow discover
 <id>`. Source dumps with `_debo reference save --reference <dir> --url <url>`.
 Screenshots with `_debo reference capture-image` (or `_debo capture matrix`).
-A nonzero CLI exit ends the work with that exact message.
+Asset files with `_debo reference capture-file`. A nonzero CLI exit ends the
+work with that exact message.
 
 ## Symlinks
 
