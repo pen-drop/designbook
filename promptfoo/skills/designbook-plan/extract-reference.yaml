@@ -1,0 +1,61 @@
+description: "designbook extract-reference — capture a website reference through the new engine"
+
+outputPath: promptfoo/reports/designbook-extract-reference.json
+
+prompts:
+  - id: extract-reference
+    label: extract-reference
+    raw: |
+      You are working in the directory {{workspace}}. It contains
+      `designbook.config.yml` and a `.agents/skills/designbook` skill tree.
+
+      Set up the CLI once:
+        _debo() { npx storybook-addon-designbook "$@"; }
+        eval "$(_debo config)"
+
+      Read `.agents/skills/designbook/skills/extract-reference/SKILL.md` and its
+      `resources/intake.md`, plus `.agents/skills/designbook/resources/`
+      (`cli-workflow.md`, `workflow-building.md`, `workflow-execution.md`) and the
+      capture-observation rule for a website source. Follow them exactly.
+
+      Request: extract a fixed REFERENCE from the website `https://example.com`.
+      One subject `main` = the main content container (`body > div`), one view
+      `desktop` (width 1280), one state `rest`, session `anonymous`, role
+      `reference`. No prelude.
+
+      Drive the real capture IO and the new engine:
+        - `_debo reference capture-location --capture <block.json> --workflow-id <id>`
+        - `_debo reference save --reference <dir> --url https://example.com --state rest --session anonymous`
+        - `_debo reference inspect --reference <dir> --state rest --locator "body > div"`
+        - `_debo reference capture-image --reference <dir> --path desktop--main--rest.png --url https://example.com --selector "body > div" --width 1280 --session anonymous`
+      Then author the MD plan at the intake context's `plan_path`, embedding
+      `Reference`, `DesignReference` and their definitions in `## Schemas`, with the
+      confirmed capture block as the publish task's params. `_debo plan validate`,
+      `_debo plan seal`, then execute each step with `_debo plan done`. Author the
+      `meta.yml` observation metadata for the publish step, and publish with
+      `_debo reference publish --capture <block.json> --workflow-id <id> --owner <plan_path> --contract <contract.json>`.
+
+      Report the revision directory and the produced files.
+
+providers:
+  - id: file://../../providers/codex-cli.mjs
+    label: gpt-5.6-luna
+    config:
+      model: gpt-5.6-luna
+      timeout: 3600000
+
+defaultTest:
+  options:
+    provider:
+      id: file://../../providers/codex-cli.mjs
+      config:
+        model: gpt-5.6-luna
+        timeout: 3600000
+
+tests:
+  - description: "extract-reference: intake → capture → MD plan → published/observed revision"
+    vars:
+      workspace: workspaces/extract-ref
+    assert:
+      - type: javascript
+        value: file://assert-extract-reference.mjs
