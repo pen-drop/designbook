@@ -25,7 +25,7 @@ Order the resolution steps so each one has what it needs:
    `_debo reference prelude --path <file>`.
 2. Assemble a draft capture block — role, source, optional `prelude` pair, and
    the selected scope with candidate locators and a session on every cell.
-3. Resolve its directory with `_debo workflow capture-location --capture
+3. Resolve its directory with `_debo reference capture-location --capture
    <capture.json> --workflow-id <id>`. The revision digest covers the scope and
    the prelude; changing either requires resolving the directory again.
 4. Read the source catalogue from `_debo reference save --reference

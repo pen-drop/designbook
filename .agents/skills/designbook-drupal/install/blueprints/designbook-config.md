@@ -74,8 +74,8 @@ The `backend_cmd` block is **data only** — its values are consumed as
 by sync and data-mapping tasks. Core runs the resulting command strings opaquely: no drush or
 Drupal knowledge lives in core.
 
-sync-to task params declare `resolve: backend_cmd` so `workflow create` loads this block from
-config automatically — drivers do not re-pass `backend_cmd` in `--params` unless overriding.
+sync-to task params declare `resolve: backend_cmd` so intake freezes this block from
+config into the plan automatically — drivers do not re-pass `backend_cmd` in params unless overriding.
 
 `schema_cmd` calls `designbook:config-schema <config_name>` → JSON Schema on stdout,
 exit 0. `validate_cmd` calls `designbook:config-validate <config_name> <yaml_path>` →

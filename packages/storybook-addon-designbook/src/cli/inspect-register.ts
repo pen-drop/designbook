@@ -69,6 +69,19 @@ export function register(program: Command): void {
       }
     });
   reference
+    .command('capture-location')
+    .description(
+      'Resolve the revision directory for a fixed capture. The revision digest covers the selected scope and prelude, so the whole capture block is required — not just the source.',
+    )
+    .requiredOption('--capture <path>', 'JSON capture block: role, source, optional prelude, and the fixed scope')
+    .requiredOption('--workflow-id <id>', 'Unique fixed capture workflow ID; refresh uses a new ID')
+    .action((opts: { capture: string; workflowId: string }) => {
+      const capture = JSON.parse(readFileSync(opts.capture, 'utf8')) as CaptureDefinition;
+      if (!capture?.source?.kind || !capture.source.identity || !Array.isArray(capture.scope) || !capture.scope.length)
+        throw new Error('--capture: expected a capture block with source.kind, source.identity and a non-empty scope');
+      console.log(JSON.stringify(captureLocation(loadConfig().data, capture, opts.workflowId)));
+    });
+  reference
     .command('publish')
     .description('Validate the observations and write the self-contained publication binding for a capture revision.')
     .requiredOption('--capture <json>', 'JSON capture block: role, source, optional prelude, and the fixed scope')
