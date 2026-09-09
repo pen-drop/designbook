@@ -1,5 +1,8 @@
 dist: ./designbook
 backend: drupal
+extensions:
+  - id: website
+  - id: storybook
 frameworks:
   component: sdc
   css: tailwind

@@ -43,24 +43,16 @@ params:
   reference_dir:
     type: string
 stages:
-  setup-compare:
-    steps:
-      - setup-compare
-  reference:
-    steps:
-      - ensure-baseline-live
-  capture:
-    steps:
-      - capture-backend
   compare:
-    steps:
-      - compare
+    steps: [compare-observations]
   triage:
-    steps:
-      - triage-config
+    steps: [triage-config]
   outtake:
-    steps:
-      - outtake
+    steps: [outtake]
 ---
 
-Template for the planning agent. Use the ordered steps as building blocks. Enumerate repeated targets during intake and write each concrete task explicitly; these stages do not execute or expand at runtime.
+The intake completes immutable Storybook reference and backend actual captures
+before creating this comparison definition. Each comparison binds one explicit
+subject/view/state pair. Backend-specific subject and fix-surface rules remain
+applicable to intake and issue triage. This workflow consumes both completed
+revisions without capture or metadata writes.

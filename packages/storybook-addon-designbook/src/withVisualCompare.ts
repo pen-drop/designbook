@@ -13,14 +13,15 @@ interface VisualCompareState {
 interface ElementDef {
   name: string;
   selector: string;
-  state: string;
+  path: string;
 }
 
 interface StoryJSON {
   referenceDir?: string | null;
   reference?: string | null;
   elements?: Array<{ id: string; selector: string }>;
-  referenceElements?: Array<{ id: string; selector: string; breakpoints: string[]; states: Array<{ name: string }> }>;
+  referenceElements?: Array<{ id: string; views: Array<{ id: string }>; states: Array<{ name: string }> }>;
+  referenceCaptures?: Array<{ subject: string; view: string; state: string; path: string }>;
 }
 
 // Cache the full story fetch to avoid multiple requests per breakpoint
@@ -48,13 +49,14 @@ function regionsFor(story: StoryJSON, breakpoint: string): ElementDef[] {
     storyElements[el.id] = el.selector;
   }
 
-  return refElements
-    .filter((el) => el.breakpoints.includes(breakpoint))
-    .map((el) => ({
-      name: el.id,
-      selector: storyElements[el.id] ?? '',
-      state: el.states.find((state) => state.name === 'rest')?.name ?? el.states[0]?.name ?? 'rest',
-    }));
+  return refElements.flatMap((element) => {
+    if (!element.views.some((view) => view.id === breakpoint)) return [];
+    const state = element.states.find((state) => state.name === 'rest')?.name ?? element.states[0]?.name;
+    const capture = story.referenceCaptures?.find(
+      (capture) => capture.subject === element.id && capture.view === breakpoint && capture.state === state,
+    );
+    return capture ? [{ name: element.id, selector: storyElements[element.id] ?? '', path: capture.path }] : [];
+  });
 }
 
 function applyOverlays(
@@ -74,7 +76,7 @@ function applyOverlays(
   const canvasRect = canvasElement.getBoundingClientRect();
 
   for (const region of filtered) {
-    const src = referenceImagePath(referenceDir, state.breakpoint!, region);
+    const src = referenceImagePath(referenceDir, region.path);
 
     if (!region.selector) {
       // "full" region (empty selector) — full-page overlay

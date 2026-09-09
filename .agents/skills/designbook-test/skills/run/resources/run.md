@@ -12,10 +12,25 @@ workflow directly in the provisioned workspace. It uses only [Case evidence and
 scoring](#case-evidence-and-scoring) below. The setup and runner steps belong to the
 calling tester; invoking them inside a driver would rebuild its active fixtures.
 
+Workers run `_debo` / `npx storybook-addon-designbook` for catalogue, extract,
+capture, Storybook and workflow commands. Source dumps are `_debo reference save`.
+Screenshots are `_debo reference capture-image` or `_debo capture matrix`. Asset
+files are `_debo reference capture-file`. Skill descriptions are not the command
+spec. Audit JSONL for those commands; a playwright-cli one-liner or addon-source
+read in place of them fails the log gate.
+
 ## Inputs
 
 Parse `run <suite> [<case>] [--workspace <path>] [--validate <workflow>]`.
-Accept `--provider codex|claude` and `--model <id>` and forward them to the runner.
+Accept `--provider codex|claude|grok` and `--model <id>` and forward them to the runner.
+Design tests always use separate planner and executor calls. Both provider/model
+roles are configurable in `promptfoo/configs/base.yaml` under `modelRoles`.
+`--provider` and `--model` override planning and verification. Forward executor overrides with
+`--executor-provider codex|claude|grok` together with `--executor-model <id>`.
+The same model may be selected for both roles; never merge their calls. The separate-step runner currently
+requires a nonrepeated design case without a case evidence manifest. Intake,
+planning and verification use the primary model; each step uses a fresh executor
+call containing only that step's resolved work order.
 For requested parallel model comparisons, use two independent Promptfoo runs as in
 [the Promptfoo guide](../../../../../../promptfoo/README.md#automated-testing-promptfoo).
 Resolve paths from the ticket's repository/worktree root. The default workspace
@@ -40,6 +55,20 @@ failure. Keep quality thresholds fixed across baseline and candidates.
   --workspace "$WORKSPACE" --output "$RUN_DIR/main.json"
 ```
 
+For design intakes, Promptfoo first evaluates an intake-only part. It prepares the
+reference, presents the selector table and saves the effective discovery catalogue.
+Deterministic checks require concrete source locators, matching published reference
+metadata and every declared capture file. Intake may complete reference-capture
+workflows only; design workflows must not exist yet. A passing intake
+writes a compact external handoff; a failed intake prevents main execution.
+The planning call preserves that workspace, reuses the catalogue and reference
+evidence and authors the complete definition. Fresh executor calls then carry out
+one complete step each, receiving only the resolved work order for that step. Capture/asset/catalogue
+bytes remain fixed, including meta.yml and extract.json. Completed capture
+workflow documents also remain unchanged throughout planning and execution. The main gate checks the native intake
+presentation before workflow creation and checks the declared selector scope.
+
+Only the first part provisions fixtures. For other workflows this is main.
 The provider rebuilds the workspace with `setup-workspace.sh`, layers fixtures
 with `setup-test.sh`, then invokes the selected CLI using the configured model and
 one-hour timeout. For `sync-*` cases it provisions Drupal and imports the committed
@@ -66,11 +95,27 @@ For design-shell, design-entity and design-screen, the Promptfoo runner executes
 assertions. Other rendered-design fixtures declare `verify: <case>` to use the
 same pipeline. A case with explicit `validate: none` uses its concrete main-run
 build/browser acceptance criteria without reference comparison; an explicit `verify`
-case still requests that separate phase. Only the verifier case's prompt is reused; its fixtures are never
-layered over the main output. Both CSV rows share a `run_id`; the verification row
+case still requests that separate phase. Automatic verification resolves the original
+reference binding, story/scene IDs, exact selectors, views and states exclusively
+from the saved main definition. The standalone verifier case's prompt and fixtures
+are not reused. Preserve any saved comparison threshold; when absent, use the
+configured `verificationThresholdPercent` fallback. Both CSV rows share a `run_id`; the verification row
 has `workflow_id=design-verify` and its own CLI tokens and measured score.
 
-Read both `main.json` and `verify.json` plus the generated `pipeline.json`.
+In separate-step mode, also read `plan.json`, `step-pipeline.json` and every
+attempted step's report/prompt under `steps/`. Inspect each `.context.json` for
+resolved UTF-8 byte counts and the configured `stepPromptMaxBytes` limit. An
+oversized prompt blocks the worker before launch; retain the failed measurement
+and correct scope in a fresh plan instead of truncating required work orders. Check that planning left all tasks
+pending, each call completed only its assigned batch and no missing decisions
+were guessed. Include every planning/step usage row in totals. An early step
+failure can leave `main.json` absent; preserve that as incomplete.
+
+Read the intake report/handoff when present, `main.json`, `verify.json` and the
+generated `pipeline.json`; their exact paths are in the generated configurations.
+A failed intake records main as skipped rather than fabricating a main report.
+Sum native usage and duration across intake, main and verify, including failed
+parts; all phase rows share `run_id` in the versioned CSV.
 The runner returns success only when both evaluations pass. Verification requires
 a validated score-report, passing comparison thresholds and unchanged main
 artifacts. The evidence audit below remains required. Missing references or

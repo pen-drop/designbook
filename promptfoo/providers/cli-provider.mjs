@@ -1,3 +1,6 @@
+import { nativeEntries } from "./native-presentation.mjs";
+import { workflowMarkdown } from "../extensions/workflow-markdown.mjs";
+import { writeContextLog } from "./context-log.mjs";
 /**
  * Shared workspace, artifact and evidence handling for CLI providers.
  * This uses the user's CLI subscription (OAuth auth) instead of an API key.
@@ -35,6 +38,10 @@ import { createHash } from "node:crypto";
 import { dirname, join, relative, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { createRequire } from "node:module";
+import {
+  auditDefinitionSnapshots,
+  snapshotExistingDefinitions,
+} from "../scripts/definition-snapshots.mjs";
 
 import {
   collectCaseArtifacts,
@@ -170,12 +177,26 @@ class CliProvider {
     );
     await mkdir(evidenceRoot, { recursive: true });
     const evidenceDir = await mkdtemp(join(evidenceRoot, "run-"));
-    let cwd, resolvedPrompt;
+    let cwd, resolvedPrompt, intakeHandoff;
     try {
       ({ cwd, prompt: resolvedPrompt } = this.setupWorkspace(
         context?.vars,
         prompt,
       ));
+      if (this.config.intakeHandoffInput) {
+        intakeHandoff = JSON.parse(
+          await readFile(this.config.intakeHandoffInput, "utf8"),
+        );
+        if (intakeHandoff.pass !== true || intakeHandoff.workspace !== cwd)
+          throw new Error(
+            "Execution requires a passing intake for this workspace",
+          );
+      }
+      if (this.config.definitionSnapshotDir)
+        snapshotExistingDefinitions(
+          savedWorkflows(await this.resolveDesignbookDir(cwd)),
+          this.config.definitionSnapshotDir,
+        );
     } catch (err) {
       await writeFile(
         join(evidenceDir, "setup-error.txt"),
@@ -185,9 +206,16 @@ class CliProvider {
     }
     await writeFile(join(evidenceDir, "prompt.txt"), resolvedPrompt);
     const started = Date.now();
-    const args = this.runtime.args(cwd, resolvedPrompt, this.model);
+    const args = this.runtime.args(
+      cwd,
+      resolvedPrompt,
+      this.model,
+      this.config,
+    );
     const label = this.runtime.label;
     const logName = `${this.runtime.name}.jsonl`;
+    let measured;
+    let contextLog;
 
     try {
       const raw = await new Promise((resolve, reject) => {
@@ -201,7 +229,17 @@ class CliProvider {
             cwd,
             timeout: this.timeout,
             maxBuffer: 50 * 1024 * 1024,
-            env: { ...process.env, DESIGNBOOK_HOME: cwd, DESIGNBOOK_PROMPTFOO_DRIVER: "1" },
+            env: {
+              ...process.env,
+              DESIGNBOOK_HOME: cwd,
+              DESIGNBOOK_PROMPTFOO_DRIVER: "1",
+              ...(this.config.definitionSnapshotDir
+                ? {
+                    DESIGNBOOK_DEFINITION_SNAPSHOTS:
+                      this.config.definitionSnapshotDir,
+                  }
+                : {}),
+            },
           },
           async (err, stdout, stderr) => {
             try {
@@ -209,6 +247,11 @@ class CliProvider {
                 writeFile(join(evidenceDir, logName), stdout),
                 writeFile(join(evidenceDir, "stderr.log"), stderr),
               ]);
+              contextLog = await writeContextLog(
+                this.runtime.name,
+                stdout,
+                evidenceDir,
+              );
             } catch (logError) {
               reject(logError);
               return;
@@ -228,9 +271,33 @@ class CliProvider {
             }
           },
         );
-        // The prompt is passed as an argv value. Close stdin so the CLI does not
-        // wait for an additional prompt after completing that request.
-        child.stdin?.end();
+        if (this.config.requireDesignIntake) {
+          let pending = "";
+          child.stdout?.setEncoding("utf8");
+          child.stdout?.on("data", (chunk) => {
+            pending += chunk.toString();
+            const lines = pending.split(/\r?\n/);
+            pending = lines.pop();
+            for (const line of lines) {
+              let event;
+              try {
+                event = JSON.parse(line);
+              } catch {
+                continue;
+              }
+              for (const entry of nativeEntries([event]))
+                if (entry.text) console.log(entry.text);
+            }
+          });
+        }
+        // Large work orders must not become argv entries (OS per-argument limit).
+        // A rejected/early-exiting CLI can close its pipe before consuming input.
+        child.stdin?.on("error", (error) => {
+          if (error.code !== "EPIPE") reject(error);
+        });
+        child.stdin?.end(
+          this.runtime.promptViaStdin ? resolvedPrompt : undefined,
+        );
       });
 
       const events = String(raw)
@@ -256,8 +323,57 @@ class CliProvider {
         );
       }
 
+      measured = {
+        usage,
+        modelUsage,
+        usageScope,
+        subagentCount,
+        usageBreakdown,
+      };
+
       // Collect all workspace artifacts after the run
       const artifacts = await this.collectArtifacts(cwd);
+      const documents = {
+        ...artifacts.completedWorkflows,
+        ...artifacts.pendingWorkflows,
+      };
+      artifacts.workflowMarkdown = {};
+      for (const [index, [id, document]] of Object.entries(
+        documents,
+      ).entries()) {
+        const path = join(evidenceDir, `workflow-${index + 1}.md`);
+        await writeFile(path, await workflowMarkdown(document));
+        artifacts.workflowMarkdown[id] = path;
+      }
+
+      if (this.config.intakeOnly && this.config.intakeHandoffOutput) {
+        // Transport the model's presentation verbatim. Skills and the CLI own
+        // reference selection, publication and domain validation.
+        const catalogue = JSON.parse(
+          await readFile(this.config.intakeCatalogue, "utf8"),
+        );
+        if (!catalogue.config?.data)
+          throw new Error("Missing intake catalogue data directory");
+        await writeFile(
+          this.config.intakeHandoffOutput,
+          JSON.stringify(
+            {
+              pass: true,
+              workspace: cwd,
+              text:
+                nativeEntries(events)
+                  .filter((entry) => entry.text)
+                  .map((entry) => entry.text)
+                  .join("\n\n") || text,
+              native_log: join(evidenceDir, logName),
+              catalogue: this.config.intakeCatalogue,
+            },
+            null,
+            2,
+          ),
+          { flag: "wx" },
+        );
+      }
 
       const tokenUsage = {
         prompt: usage.input_tokens,
@@ -280,6 +396,7 @@ class CliProvider {
         workspace: cwd,
         usage,
         durationMs: Date.now() - started,
+        contextLog,
         evidenceDir,
       };
       await writeFile(
@@ -309,23 +426,63 @@ class CliProvider {
         ...(tokenUsage ? { tokenUsage } : {}),
       };
     } catch (err) {
+      // A process/collection failure must not erase valid native terminal usage.
+      // Incomplete or invalid logs stay unknown; never infer missing counters.
+      if (!measured) {
+        try {
+          const events = (await readFile(join(evidenceDir, logName), "utf8"))
+            .split(/\r?\n/)
+            .filter(Boolean)
+            .map(JSON.parse);
+          const parsed = await this.runtime.parse(events, {
+            evidenceDir,
+            allowFailure: true,
+          });
+          const usage = parsed.usage;
+          if (
+            ["input_tokens", "cached_input_tokens", "output_tokens"].every(
+              (key) => Number.isSafeInteger(usage?.[key]) && usage[key] >= 0,
+            ) &&
+            usage.cached_input_tokens <= usage.input_tokens
+          ) {
+            const { text: _text, ...measurement } = parsed;
+            measured = measurement;
+          }
+        } catch {
+          // The original error and raw logs remain the failure evidence.
+        }
+      }
       await writeFile(join(evidenceDir, "error.txt"), err.message);
+      const run = {
+        model: this.model,
+        cli: this.runtime.name,
+        workspace: cwd,
+        durationMs: Date.now() - started,
+        usage: null,
+        contextLog,
+        ...measured,
+        evidenceDir,
+        error: err.message,
+      };
       await writeFile(
         join(evidenceDir, "run.json"),
-        JSON.stringify(
-          {
-            model: this.model,
-            workspace: cwd,
-            durationMs: Date.now() - started,
-            usage: null,
-            evidenceDir,
-            error: err.message,
-          },
-          null,
-          2,
-        ),
+        JSON.stringify(run, null, 2),
       );
-      return { error: err.message, metadata: { evidenceDir } };
+      return {
+        error: err.message,
+        metadata: { evidenceDir, run },
+        ...(measured
+          ? {
+              tokenUsage: {
+                prompt: measured.usage.input_tokens,
+                completion: measured.usage.output_tokens,
+                cached: measured.usage.cached_input_tokens,
+                total:
+                  measured.usage.input_tokens + measured.usage.output_tokens,
+              },
+            }
+          : {}),
+      };
     }
   }
 
@@ -336,6 +493,7 @@ class CliProvider {
   async collectArtifacts(workspaceDir) {
     const designbookDir = await this.resolveDesignbookDir(workspaceDir);
     const workflowPaths = [];
+    let workflowDocuments = [];
     const result = {
       newFiles: [],
       completedWorkflows: {},
@@ -425,7 +583,8 @@ class CliProvider {
       }
 
       // Completion follows saved state. Run IDs remain exact; retries are evidence.
-      for (const { path, document: parsed, error } of savedWorkflows(designbookDir)) {
+      workflowDocuments = savedWorkflows(designbookDir);
+      for (const { path, document: parsed, error } of workflowDocuments) {
         const file = relative(workspaceDir, path);
         try {
           if (error) throw new Error(error);
@@ -465,6 +624,13 @@ class CliProvider {
       result.workflowErrors.push({ error: err.message });
     }
 
+    if (this.config.definitionSnapshotDir)
+      result.definitionErrors.push(
+        ...auditDefinitionSnapshots(
+          workflowDocuments,
+          this.config.definitionSnapshotDir,
+        ),
+      );
     result.definitionUnchanged =
       result.definitionErrors.length === 0 &&
       result.workflowErrors.length === 0 &&

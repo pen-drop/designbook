@@ -79,7 +79,7 @@ const CTX: RenderContext = {
   ruleIndex: { 'markup-derivation': [{ stage: 'intake', task: 'intake' }] },
   blueprintIndex: { 'static-assets': [{ stage: 'intake', task: 'intake' }] },
   ruleTriggerSteps: new Map([['/x/rules/markup-derivation.md', ['write-component', 'write-scene']]]),
-  blueprintTriggerSteps: new Map([['/x/blueprints/static-assets.md', ['write-scene', 'design-shell:intake']]]),
+  blueprintTriggerSteps: new Map([['/x/blueprints/static-assets.md', ['write-scene', 'write-component']]]),
   schemaDefinitions: {
     Component: { type: 'object', required: ['name'], properties: { name: { type: 'string' } } },
     DesignHint: { type: 'object', properties: { variant: { type: 'string' } } },

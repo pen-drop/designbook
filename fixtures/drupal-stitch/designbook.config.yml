@@ -5,6 +5,8 @@ frameworks:
   component: sdc
   css: tailwind
 extensions:
+  - id: website
+  - id: storybook
   - id: canvas
     url: https://www.drupal.org/project/canvas
   - id: stitch

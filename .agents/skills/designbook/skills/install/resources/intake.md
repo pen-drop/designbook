@@ -9,7 +9,7 @@ When no project config exists, record the chosen effective configuration in a te
 
 Inspect the project root, package manager, framework/backend, target directories and existing Storybook setup. Resolve installation scope, config paths, dependencies and verification commands. Determine every setup target before planning writes; use the discovered effective integration guidance.
 
-Use the request and existing project artifacts as input. Load the effective planning catalogue using the [shared builder](../../../resources/workflow-building.md) before deciding framework/backend-specific constraints. Ask only questions not answered by those inputs.
+Use the request, existing project artifacts, and the saved discover catalogue as input. Ask only questions not answered by those inputs.
 
 Completion: every target, structural parameter, dependency and applicable rule is determined. Record the complete decisions as definition inputs and concrete task parameters; intake itself creates no run task or progress entry.
 

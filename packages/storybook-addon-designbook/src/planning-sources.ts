@@ -213,13 +213,9 @@ function matchConditionKey(
 
   const actual = lookup(key, context, config);
   if (actual === undefined) return 'defer';
-  if (Array.isArray(value)) {
-    return value.map(String).includes(String(actual ?? '')) ? 'match' : 'nomatch';
-  }
-  if (Array.isArray(actual)) {
-    return actual.map(String).includes(String(value)) ? 'match' : 'nomatch';
-  }
-  return String(actual ?? '') === String(value) ? 'match' : 'nomatch';
+  const expected = Array.isArray(value) ? value.map(String) : [String(value)];
+  const candidates = Array.isArray(actual) ? actual.map(String) : [String(actual ?? '')];
+  return expected.some((candidate) => candidates.includes(candidate)) ? 'match' : 'nomatch';
 }
 
 /**

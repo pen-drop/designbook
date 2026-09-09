@@ -37,6 +37,14 @@ export interface DesignbookConfig {
   workspace?: string;
   /** Feature flags. `features.<name>: false` disables a feature; default is on. */
   features?: Record<string, boolean>;
+  /**
+   * Named observation sessions. `sessions.<name>` is a path to a Playwright
+   * storage-state JSON that establishes that session's cookies and local
+   * storage. Capture commands take `--session <name>`, never a path, so a saved
+   * workflow records who was observed without embedding machine-local paths or
+   * credentials. `anonymous` is reserved and needs no entry.
+   */
+  sessions?: Record<string, string>;
   /** Any additional keys from the config file. */
   [key: string]: unknown;
 }
@@ -258,6 +266,13 @@ export function loadConfig(startDir?: string): DesignbookConfig {
     // 6. Resolve skills lookup root (~ expansion, relative to configDir)
     if (typeof config['skills'] === 'string') {
       config['skills'] = resolve(configDir, expandTilde(config['skills'] as string));
+    }
+
+    // 7. Resolve sessions.* storage-state files relative to configDir
+    for (const key of Object.keys(config)) {
+      if (key.startsWith('sessions.') && typeof config[key] === 'string') {
+        config[key] = resolve(configDir, expandTilde(config[key] as string));
+      }
     }
 
     return config;

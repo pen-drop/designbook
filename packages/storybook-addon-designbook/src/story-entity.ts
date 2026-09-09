@@ -42,11 +42,11 @@ export interface StoryMetaJSON {
   storyId: string;
   section: string;
   storyDir: string;
-  /** Hash of the reference URL, or null when no reference is set. */
+  /** Published reference id/revision binding, or null when no reference is set. */
   reference: string | null;
   /**
    * Reference-screenshot folder relative to the designbook dir
-   * (`references/{hash}`), or null when no reference is set.
+   * (`references/{id}/{revision}`), or null when no reference is set.
    */
   referenceDir: string | null;
   /** Story elements bound to this reference. */
@@ -64,7 +64,7 @@ interface MetaElement {
 }
 
 export interface StoryMetaData {
-  /** Hash string of the associated reference, or undefined. */
+  /** Published id/revision binding of the associated reference, or undefined. */
   reference?: string;
   elements?: MetaElement[];
 }

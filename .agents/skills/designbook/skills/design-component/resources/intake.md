@@ -9,7 +9,7 @@ Select the exact component ID and artifact paths from the request and current in
 
 Inspect usages in components, scenes and entity/form mappings. Distinguish consumers requiring edits from those requiring verification only. Declare every affected story path, prop/slot rename consumer, prerequisite component and asset as a concrete target/output. Preserve sufficient existing components. For consumer scene writes, select the actual scene identity and `scene_scope`; carry its screen or shell constraints into that task even though this intake is design-component.
 
-Use the request and existing artifacts with the effective catalogue from the [shared builder](../../../resources/workflow-building.md). For reference handling, preserved inputs, fixed dependencies and build/browser evidence, follow the [write planning contract](../../../design/resources/write-planning.md).
+Use the request, existing artifacts, and the saved discover catalogue as input. For reference handling, preserved inputs, fixed dependencies and build/browser evidence, follow the [write planning contract](../../../design/resources/write-planning.md).
 
 Completion: all identities, requested deltas, preserved content, acceptance criteria, consumer targets, outputs, dependencies and applicable rules are fixed in definition inputs and task parameters. Clarify unresolved identity or scope before saving a runnable definition.
 

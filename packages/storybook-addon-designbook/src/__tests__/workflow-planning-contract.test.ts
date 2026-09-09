@@ -34,7 +34,18 @@ describe('static CLI surface', () => {
     program.configureOutput({ writeErr: () => {} });
     register(program);
     await expect(
-      program.parseAsync(['node', 'cli', 'workflow', 'create', 'definition.yml', '--output', 'run.yml', flag]),
+      program.parseAsync([
+        'node',
+        'cli',
+        'workflow',
+        'create',
+        'definition.yml',
+        '--catalogue',
+        'catalogue.json',
+        '--output',
+        'run.yml',
+        flag,
+      ]),
     ).rejects.toThrow('unknown option');
   });
   it('offers saved-path commands without task generators or lifecycle hooks', () => {
@@ -105,6 +116,7 @@ it.each(['design-component', 'design-screen', 'design-shell', 'design-entity', '
       {},
       agents,
     );
+    expect(catalogue.step_resolved).not.toHaveProperty('extract-reference');
     expect(catalogue.step_resolved).not.toHaveProperty('create-component');
     expect(catalogue.step_resolved).not.toHaveProperty('create-scene');
     const refresh = catalogue.step_resolved['refresh-components'];

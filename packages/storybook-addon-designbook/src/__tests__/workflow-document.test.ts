@@ -6,8 +6,10 @@ import { dump, load } from 'js-yaml';
 import { createHash } from 'node:crypto';
 import {
   createDocument,
+  definitionSchemaFor,
   validateDefinition,
   validateDocument,
+  workflowDefinitionSchema,
   type WorkflowDefinition,
   type WorkflowDocument,
 } from '../workflow-document.js';
@@ -22,10 +24,14 @@ function definition(): WorkflowDefinition {
     config: {},
     inputs: { audience: 'Owners' },
     inputs_schema: { type: 'object', required: ['audience'] },
-    context: { rules: { source: 'rules.md', content: 'Use the agreed audience.' } },
+    context: {
+      instruction: { source: 'task.md', content: 'Write vision.' },
+      rules: { source: 'rules.md', content: 'Use the agreed audience.' },
+    },
     schemas: {},
     tasks: [
       {
+        step: 'write',
         id: 'write',
         title: 'Write vision',
         target: 'vision',
@@ -34,7 +40,7 @@ function definition(): WorkflowDefinition {
         params: {},
         params_schema: { type: 'object' },
         inputs: {},
-        instructions: { source: 'task.md', content: 'Write vision.' },
+        instructions: 'instruction',
         context: ['rules'],
         outputs: {
           vision: { required: true, schema: { type: 'string', minLength: 3 }, submission: 'data', validators: [] },
@@ -56,6 +62,43 @@ async function setup(def = definition()) {
 }
 
 describe('static definition contract', () => {
+  it('requires PNG outputs to use direct submission, an empty schema and image validation', () => {
+    const def = definition();
+    const output = def.tasks[0]!.outputs.vision!;
+    Object.assign(output, { path: '/tmp/capture.png', submission: 'direct', schema: {}, validators: ['image'] });
+    expect(() => validateDefinition(def)).not.toThrow();
+    output.schema = { type: 'string' };
+    expect(() => validateDefinition(def)).toThrow('PNG output');
+    output.schema = {};
+    output.submission = 'data';
+    expect(() => validateDefinition(def)).toThrow('PNG output');
+    output.submission = 'direct';
+    output.validators = [];
+    expect(() => validateDefinition(def)).toThrow('PNG output');
+  });
+
+  it('stores PNG file identity without embedding binary contents into workflow state', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'workflow-png-'));
+    dirs.push(dir);
+    const file = join(dir, 'capture.png');
+    const bytes = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=',
+      'base64',
+    );
+    await writeFile(file, bytes);
+    const def = definition();
+    def.tasks[0]!.outputs = {
+      image: { required: true, path: file, submission: 'direct', schema: {}, validators: ['image'] },
+    };
+    const path = await setup(def);
+    await startTask(path, 'write');
+    const doc = await completeTask(path, 'write', {});
+    expect(doc.state.tasks.write!.results.image!.valid).toBe(true);
+    expect(doc.state.tasks.write!.results.image!.value).toBeNull();
+    expect(doc.state.tasks.write!.results.image!.sha256).toBe(createHash('sha256').update(bytes).digest('hex'));
+    expect(await readFile(path, 'utf8')).not.toContain('PNG');
+  });
+
   it('rejects incomplete structure before creating any tasks', () => {
     const def = definition();
     delete (def.tasks[0] as Partial<(typeof def.tasks)[0]>)!.target;
@@ -95,12 +138,29 @@ describe('static definition contract', () => {
     def.tasks[0]!.outputs.vision!.path = '/tmp/designbook/vision.yml';
     expect(() => validateDefinition(def)).not.toThrow();
   });
+  it('requires a capture block when tasks include capture steps', () => {
+    const def = definition();
+    def.tasks[0]!.step = 'publish-capture';
+    expect(() => validateDefinition(def)).toThrow('Capture workflow requires a capture block');
+    def.tasks[0]!.step = 'observe-website';
+    expect(() => validateDefinition(def)).toThrow('Capture workflow requires a capture block');
+    def.tasks[0]!.step = 'capture-file';
+    expect(() => validateDefinition(def)).toThrow('Capture workflow requires a capture block');
+  });
+  it('keeps capture optional on non-capture workflows', () => {
+    expect(() => validateDefinition(definition())).not.toThrow();
+  });
+  it('marks capture required in the discover schema only for capture steps', () => {
+    expect(definitionSchemaFor(['create-tokens']).required).toEqual(workflowDefinitionSchema.required);
+    expect(definitionSchemaFor(['publish-capture']).required).toContain('capture');
+    expect(definitionSchemaFor(['observe-website', 'capture-image']).required).toContain('capture');
+  });
 });
 
 describe('fixed task lifecycle', () => {
   it('loads embedded instructions without reading provenance paths', async () => {
     const path = await setup();
-    expect((await taskContext(path, 'write')).context[0]!.content).toBe('Use the agreed audience.');
+    expect((await taskContext(path, 'write')).context.rules!.content).toBe('Use the agreed audience.');
   });
   it('preserves literal source baselines in embedded context while keeping structural inputs concrete', async () => {
     const def = definition();
@@ -109,7 +169,9 @@ describe('fixed task lifecycle', () => {
     def.tasks[0]!.context.push('baseline');
     def.tasks[0]!.params = { component_id: 'theme:avatar', source_path: '/tmp/components/avatar/avatar.twig' };
     const path = await setup(def);
-    expect((await taskContext(path, 'write')).context.find((entry) => entry?.content === twig)).toBeDefined();
+    expect(
+      Object.values((await taskContext(path, 'write')).context).find((entry) => entry?.content === twig),
+    ).toBeDefined();
     expect((await readDocument(path)).definition).toEqual(def);
     def.inputs.source = twig;
     expect(() => validateDefinition(def)).toThrow('unresolved');
@@ -156,6 +218,7 @@ describe('fixed task lifecycle', () => {
     def.tasks.push({
       ...structuredClone(def.tasks[0]!),
       id: 'third',
+      step: 'third',
       depends_on: ['write', 'second'],
       inputs: { previous: { task: 'write', result: 'vision' } },
     });
@@ -211,6 +274,7 @@ describe('completion and reference boundaries', () => {
     def.tasks.push({
       ...structuredClone(def.tasks[0]!),
       id: 'read',
+      step: 'read',
       depends_on: ['write'],
       inputs: { source: { task: 'write', result: 'missing' } },
     });
@@ -335,7 +399,7 @@ describe('artifact and verification contracts', () => {
 
   it('keeps an uncorrectable task blocked and its consumer pending', async () => {
     const def = definition();
-    def.tasks.push({ ...structuredClone(def.tasks[0]!), id: 'consumer', depends_on: ['write'] });
+    def.tasks.push({ ...structuredClone(def.tasks[0]!), id: 'consumer', step: 'consumer', depends_on: ['write'] });
     const path = await setup(def);
     await startTask(path, 'write');
     await expect(completeTask(path, 'write', { vision: '' })).rejects.toThrow();
@@ -353,9 +417,9 @@ it('accepts ordered shared writers regardless of array order, but rejects siblin
   const def = definition();
   def.tasks[0]!.outputs.vision!.path = '/tmp/shared-output.yml';
   const parent = structuredClone(def.tasks[0]!);
-  def.tasks = [{ ...structuredClone(parent), id: 'child-a', depends_on: ['write'] }, parent];
+  def.tasks = [{ ...structuredClone(parent), id: 'child-a', step: 'child-a', depends_on: ['write'] }, parent];
   expect(() => validateDefinition(def)).not.toThrow();
-  def.tasks.push({ ...structuredClone(parent), id: 'child-b', depends_on: ['write'] });
+  def.tasks.push({ ...structuredClone(parent), id: 'child-b', step: 'child-b', depends_on: ['write'] });
   expect(() => validateDefinition(def)).toThrow('Unordered writers');
 });
 
@@ -376,4 +440,62 @@ it('allows an absent optional direct output and discards prior optional submissi
   const done = await completeTask(path, 'write', { vision: 'Owners' });
   expect(done.state.status).toBe('completed');
   expect(Object.keys(done.state.tasks.write!.results)).toEqual(['vision']);
+});
+
+describe('reference extract consumption boundary', () => {
+  function referenceDefinition(): WorkflowDefinition {
+    const def = definition();
+    const producer = def.tasks[0]!;
+    producer.outputs.reference_extract = {
+      required: true,
+      submission: 'data',
+      validators: [],
+      schema: { type: 'object', required: ['subjects'], properties: { subjects: { type: 'array', minItems: 1 } } },
+    };
+    def.tasks.push({
+      ...structuredClone(producer),
+      id: 'consume',
+      step: 'consume',
+      depends_on: ['write'],
+      inputs: { selected: { task: 'write', result: 'vision' } },
+      outputs: { value: { required: true, submission: 'data', validators: [], schema: { type: 'string' } } },
+    });
+    return def;
+  }
+  it.each(['extract', 'renamed_input'])(
+    'rejects a full extract binding under input name %s, even with a scoped request',
+    (name) => {
+      const def = referenceDefinition();
+      const consumer = def.tasks[1]!;
+      consumer.inputs[name] = { task: 'write', result: 'reference_extract' };
+      expect(() => validateDefinition(def)).toThrow('scoped task.reference query');
+      consumer.reference = {
+        query: {
+          reference: '/tmp/reference',
+          package: 'component',
+          subjects: ['header'],
+          states: ['rest'],
+          breakpoints: ['sm'],
+          fingerprint: 'a'.repeat(64),
+        },
+        reference_schema: {},
+        extract_schema: {},
+      };
+      expect(() => validateDefinition(def)).toThrow('scoped task.reference query');
+    },
+  );
+  it('validates the producer full extract while ordinary downstream inputs remain scoped', async () => {
+    const path = await setup(referenceDefinition());
+    await startTask(path, 'write');
+    await expect(
+      completeTask(path, 'write', { vision: 'Owners', reference_extract: { subjects: [] } }),
+    ).rejects.toThrow('validation failed');
+    await startTask(path, 'write', 'Completed the prepared reference subjects');
+    const full = { subjects: [{ id: 'header' }], analysis: 'FULL_EXTRACT_ONLY_FOR_PRODUCER' };
+    await completeTask(path, 'write', { vision: 'Owners', reference_extract: full });
+    expect((await readDocument(path)).state.tasks.write!.results.reference_extract!.value).toEqual(full);
+    const consumer = await taskContext(path, 'consume');
+    expect(consumer.inputs.selected!.state!.value).toBe('Owners');
+    expect(JSON.stringify(consumer)).not.toContain('FULL_EXTRACT_ONLY_FOR_PRODUCER');
+  });
 });

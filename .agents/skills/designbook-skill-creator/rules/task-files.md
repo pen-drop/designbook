@@ -164,21 +164,21 @@ Implementation details that vary between integrations belong in **blueprints** (
 ### Workflow-qualified tasks
 
 **Scope.** This subsection applies **only** to task files whose filename contains `--`
-(e.g. `intake--design-verify.md`). Non-qualified task files ignore this subsection.
+(e.g. `outtake--design-verify.md`). Non-qualified task files ignore this subsection.
 
-Task files scoped to a specific workflow use `<step>--<workflow>.md` naming (e.g. `intake--design-verify.md`). Their `trigger.steps:` **MUST** use the fully qualified step name including the workflow prefix:
+Task files scoped to a specific workflow use `<step>--<workflow>.md` naming (e.g. `outtake--design-verify.md`). Their `trigger.steps:` **MUST** use the fully qualified step name including the workflow prefix:
 
 ```yaml
-# ✅ CORRECT — matches workflow step "design-verify:intake"
+# ✅ CORRECT — matches workflow step "design-verify:outtake"
 trigger:
-  steps: [design-verify:intake]
+  steps: [design-verify:outtake]
 
 # ❌ WRONG — bare step name will NOT match, task gets skipped
 trigger:
-  steps: [intake]
+  steps: [outtake]
 ```
 
-The CLI matches `trigger.steps:` values literally against the step name from the workflow definition. A workflow that declares `steps: [design-verify:intake]` will only find task files whose `trigger.steps:` contains the exact string `design-verify:intake`.
+The CLI matches `trigger.steps:` values literally against the step name from the workflow definition. A workflow that declares `steps: [design-verify:outtake]` will only find task files whose `trigger.steps:` contains the exact string `design-verify:outtake`.
 
 ## Param + Body Consistency
 
@@ -203,7 +203,7 @@ These five map to `TASK-10` through `TASK-14` in the Checks table.
 | ID | Severity | What to verify | Where |
 |---|---|---|---|
 | TASK-01 | error | Required frontmatter fields present: `when`/`trigger`; if the task declares outputs, `result:` must be present | frontmatter |
-| TASK-02 | error | Applies only when filename contains `--`: `trigger.steps:` uses the fully qualified step name `<step>:<workflow>` matching the workflow's `stages.*.steps` entry | filename |
+| TASK-02 | error | Applies only when filename contains `--`: `trigger.steps:` uses the fully qualified step name `<workflow>:<step>` matching the workflow's `stages.*.steps` entry | filename |
 | TASK-03 | error | `stage:` field absent in frontmatter (redundant — filename is the stage) | frontmatter |
 | TASK-04 | error | No inline schema in `result:` properties when a matching type exists in the concern's `schemas.yml` — must use `$ref` instead | frontmatter |
 | TASK-05 | warning | Body does not repeat a self-explanatory `result:` schema (a `## Result: <key>` section for a result whose schema type alone is self-explanatory) | body |

@@ -1,9 +1,6 @@
 /**
- * Shared browser primitives for the capture commands (`capture matrix`,
- * `capture screenshot`). One home for the settle protocol, state-step execution,
- * and the isolate-and-capture pattern mandated by
- * `.agents/skills/designbook/design/rules/playwright-capture.md`, so both commands
- * stay in lock-step with the rule instead of each re-deriving it.
+ * Shared browser primitives for `capture matrix` and `reference capture-image`.
+ * One home for the settle protocol, state-step execution, and isolate-and-capture.
  */
 
 import type { Page } from 'playwright';

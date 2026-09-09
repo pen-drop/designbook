@@ -4,18 +4,20 @@ import { collectCodexUsage } from "./codex-usage.mjs";
 export const codexRuntime = {
   name: "codex",
   label: "Codex",
+  promptViaStdin: true,
   defaultModel: "gpt-5.6-luna",
-  args: (cwd, prompt, model) => [
+  args: (cwd, prompt, model, config = {}) => [
     "exec",
     "--json",
-    "--ephemeral",
     "--dangerously-bypass-approvals-and-sandbox",
     "--skip-git-repo-check",
     "--model",
     model,
+    "-c",
+    `model_reasoning_effort=${JSON.stringify(config.reasoningEffort || "medium")}`,
     "-C",
     cwd,
-    prompt,
+    "-",
   ],
   async parse(events, options) {
     if (
@@ -44,7 +46,9 @@ export const codexRuntime = {
       text: messages.filter(Boolean).at(-1) || "",
       ...(await collectCodexUsage(
         events,
-        events.findLast((event) => event.type === "turn.completed" && event.usage)?.usage,
+        events.findLast(
+          (event) => event.type === "turn.completed" && event.usage,
+        )?.usage,
         options,
       )),
     };

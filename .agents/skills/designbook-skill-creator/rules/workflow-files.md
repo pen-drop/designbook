@@ -8,7 +8,7 @@ applies-to: ["**/workflows/*.md"]
 
 Load with [common rules](common-rules.md). The [shared builder](../../designbook/resources/workflow-building.md) owns the definition-building procedure; `workflow schema` owns its machine contract.
 
-A domain skill is an intake outside the run. Its resource owns questions, reference analysis, structural inputs and handoff. It resolves the entire target inventory before invoking the shared builder, then automatically invokes `execute-workflow <path>`.
+A domain skill is an intake outside the run. Its resource owns questions, reference analysis, structural inputs and handoff. First command: `workflow discover <id>`. That catalogue is the palette of tasks, rules and blueprints. Resolve the entire target inventory, instantiate the definition with the [shared builder](../../designbook/resources/workflow-building.md), then automatically invoke `execute-workflow <path>`.
 
 Templates contain executable building blocks, grouped by `stages: { name: { steps: [...] } }`. Task names are plain names; task discovery can qualify them with the template ID. Repetition is a prose hint to the planning agent, which writes each concrete task. Template stages never create runtime tasks.
 

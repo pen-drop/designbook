@@ -12,13 +12,17 @@ All browser interaction uses `playwright-cli`.
 
 ## Declared comparison inputs
 
-Use the saved story screenshot, frozen baseline in `reference_dir`, and the task's
-`screenshot` identity, threshold and declared diff path. Pair files by the complete
-`(breakpoint, element, state)` triple. Capture is a predecessor task; comparison
-must not recapture or select additional targets.
+Resolve the saved `reference_query` with `reference query --request <query-file>`.
+Use the one returned capture's exact path; a native view or a selected frame need
+not follow a breakpoint-based filename convention. Use `actual_path` from the
+predecessor capture task's declared output. The saved source query and the task's
+`screenshot` identity explicitly establish the correspondence between the sides.
+Capture is a predecessor task; comparison consumes its exact result and cannot
+recapture or select additional targets.
 
-If either image is missing or unreadable, correct the access problem or block this
-task. A missing comparison cannot pass.
+If either image is missing or unreadable, or the frozen query fails, block this
+task. A missing comparison cannot pass. Published source metadata and evidence
+remain unchanged.
 
 ## Measurement
 

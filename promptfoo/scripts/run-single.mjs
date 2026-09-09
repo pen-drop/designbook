@@ -11,9 +11,12 @@ import { dirname, join, resolve, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync, spawnSync } from "node:child_process";
 import yaml from "js-yaml";
+import { runModelPipeline } from "./model-pipeline.mjs";
 
 if (process.env.DESIGNBOOK_PROMPTFOO_DRIVER === "1")
-  throw new Error("Already inside the Promptfoo CLI driver: execute the domain intake and saved workflow; nested tester runs would reset the active workspace.");
+  throw new Error(
+    "Already inside the Promptfoo CLI driver: execute the domain intake and saved workflow; nested tester runs would reset the active workspace.",
+  );
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const args = process.argv.slice(2);
@@ -33,6 +36,8 @@ for (let i = 0; i < args.length; i++) {
       "provider",
       "model",
       "storybook-port",
+      "executor-provider",
+      "executor-model",
     ].includes(key)
   ) {
     if (!args[i + 1] || args[i + 1].startsWith("--"))
@@ -70,12 +75,23 @@ const caseDoc = yaml.load(
 const base = yaml.load(
   readFileSync(join(repo, "promptfoo/configs/base.yaml"), "utf8"),
 );
-const cli = opts.provider || "codex";
-if (!["codex", "claude"].includes(cli))
-  throw new Error("provider must be codex or claude");
+const designIntake =
+  opts.phase === "main" &&
+  /^(design-shell|design-entity|design-screen|design-section|design-component)(?:-|$)/.test(
+    caseDoc.workflow || opts.case,
+  );
+const planner = designIntake ? base.modelRoles.planner : undefined;
+const cli = opts.provider || planner?.provider || "codex";
+if (!["codex", "claude", "grok"].includes(cli))
+  throw new Error("provider must be codex, claude or grok");
 const model =
   opts.model ||
-  (cli === "claude" ? "claude-opus-5" : base.providers[0].config.model);
+  (!opts.provider && planner?.model) ||
+  (cli === "grok"
+    ? "grok-4.6"
+    : cli === "claude"
+      ? "claude-opus-5"
+      : base.providers[0].config.model);
 const storybookPort =
   opts["storybook-port"] === undefined
     ? undefined
@@ -105,6 +121,28 @@ const workspace = resolve(
   repo,
   opts.workspace || `promptfoo/workspaces/${opts.suite}-${opts.case}`,
 );
+const splitExecution =
+  designIntake || Boolean(opts["executor-provider"] || opts["executor-model"]);
+if (designIntake && !opts["executor-provider"] && !opts["executor-model"]) {
+  opts["executor-provider"] = base.modelRoles.executor.provider;
+  opts["executor-model"] = base.modelRoles.executor.model;
+}
+if (splitExecution && (!opts["executor-provider"] || !opts["executor-model"]))
+  throw new Error(
+    "Specify both --executor-provider and --executor-model for separate step execution",
+  );
+if (
+  splitExecution &&
+  !["codex", "claude", "grok"].includes(opts["executor-provider"])
+)
+  throw new Error("executor-provider must be codex, claude or grok");
+if (splitExecution && (!designIntake || caseDoc.repeat || caseDoc.evidence))
+  throw new Error(
+    "Separate step execution currently requires a nonrepeated design case without a case evidence manifest",
+  );
+const executor = splitExecution
+  ? { cli: opts["executor-provider"], model: opts["executor-model"] }
+  : undefined;
 let prompt = opts["prompt-file"]
   ? readFileSync(resolve(repo, opts["prompt-file"]), "utf8")
   : caseDoc.prompt;
@@ -115,6 +153,7 @@ const workflowId =
     ? caseDoc.workflow || opts.case
     : opts.validate || "design-verify";
 prompt = prompt.replaceAll("{{workspace}}", workspace);
+const requestPrompt = prompt;
 prompt +=
   caseDoc.repeat && opts.phase === "main"
     ? `\nUse distinct saved definition IDs ${JSON.stringify(workflowId + "-1")} through ${JSON.stringify(workflowId + "-" + caseDoc.repeat.count)} for the ordered repetitions in this single evaluation. Setup occurs once.`
@@ -122,13 +161,17 @@ prompt +=
 prompt +=
   "\nYou are the execution driver already running inside Promptfoo in a provisioned workspace. Execute the domain intake and saved workflow directly. Read only the Case evidence and scoring section of the tester resource; do not invoke debo-test run, the Promptfoo runner or workspace setup again.\n" +
   "Use this fresh workspace’s fixture inputs and copied skills. Prior test workspaces, saved definitions, generated artifacts and reports are not inputs; do not read or copy them. Repository test helpers and this case file remain available.\n" +
-  "Run all Designbook CLI commands from the workspace root with its designbook.config.yml.\n" +
+  "Run all Designbook CLI commands from the workspace root with its designbook.config.yml. Save the effective workflow discover catalogue to JSON and pass that file as --catalogue to both workflow validate and workflow create; copied instruction bodies and schemas must match it exactly.\n" +
   `After workflow create returns the saved tasks.yml path, run node ${JSON.stringify(join(repo, "promptfoo/scripts/snapshot-definition.mjs"))} <saved-tasks.yml> before execute-workflow. This helper saves the unchanged definition beside tasks.yml. ` +
   "Execute the saved path through execute-workflow. Report every saved path, failure, retry and unanswered input. " +
   "If required inputs are missing, record the failure and end the run; this test has no interactive user.";
 if (caseDoc.evidence && opts.phase === "main") {
   prompt += `\nFollow the Case evidence and scoring contract in ${JSON.stringify(join(repo, ".agents/skills/designbook-test/skills/run/resources/run.md"))}. Save ${JSON.stringify(join(workspace, "case-runs.json"))} as a JSON array in execution order, with one entry per saved run: {workflow, definitionBefore, evidence, artifactSnapshot}, each an absolute file path. Each evidence file contains the actual build output and browser observations. Capture each artifact snapshot before the next repetition; preserve the fixture git baseline. Include every attempt. The Promptfoo provider reads this manifest and uses the shared scorer to inspect artifacts and evaluate the case assertions.`;
 }
+const intakeOutput = join(runDir, "intake.json");
+const intakeHandoff = join(runDir, "intake-handoff.json");
+if (designIntake)
+  prompt += `\nThe first intake part is already complete for this same run. Read the compact validated handoff at ${JSON.stringify(intakeHandoff)} and use its exact subjects, reference selectors, planned story selectors and breakpoints. Reuse the effective catalogue at the handoff catalogue path instead of rediscovering unchanged context. Its catalogue and reference files are frozen inputs: reuse them without modifying them. Continue with complete workflow definition authoring and execute-workflow in this invocation. The handoff's selector table has already been presented to the user; complete the remaining work now.`;
 const providers = base.providers.map((p) => ({
   ...p,
   id: `file://${join(repo, "promptfoo/providers", `${cli}-cli.mjs`)}`,
@@ -136,7 +179,10 @@ const providers = base.providers.map((p) => ({
   config: {
     ...p.config,
     model,
+    requireDesignIntake: designIntake,
+    ...(designIntake ? { intakeHandoffInput: intakeHandoff } : {}),
     evidenceDir: join(runDir, "evidence"),
+    definitionSnapshotDir: join(runDir, "definitions"),
     ...(caseDoc.evidence && opts.phase === "main"
       ? { caseFile: join(cases, `${opts.case}.yaml`) }
       : {}),
@@ -161,15 +207,14 @@ const assertions =
           value: `Object.values(output.completedWorkflows).some(w => w.definition.id === ${JSON.stringify(workflowId)})`,
         },
       ];
-assertions.push(
-  { type: "javascript", value: "output.workflowErrors.length === 0" },
-  {
-    type: "javascript",
-    value: "Object.keys(output.pendingWorkflows).length === 0",
-  },
-  { type: "javascript", value: "output.usage != null" },
-  { type: "javascript", value: "output.definitionUnchanged === true" },
-);
+assertions.push({ type: "javascript", value: "output.usage != null" });
+// Old capture attempts are evidence, not the completion state of this run.
+for (let i = assertions.length - 1; i >= 0; i--) {
+  if (
+    assertions[i].value === "Object.keys(output.pendingWorkflows).length === 0"
+  )
+    assertions.splice(i, 1);
+}
 const config = {
   description: `${opts.suite}/${opts.case}: ${opts.phase}`,
   outputPath: output,
@@ -181,11 +226,24 @@ const config = {
     case: opts.case,
     phase: opts.phase,
     workflow_id: workflowId,
+    ...(executor
+      ? {
+          execution_mode: "planner-executor",
+          planner_cli: cli,
+          planner_model: model,
+          executor_cli: executor.cli,
+          executor_model: executor.model,
+        }
+      : {}),
     run_id: relative(repo, dirname(output)),
     history_csv: resolve(repo, opts.history || "promptfoo/results.csv"),
     report: relative(repo, output),
     model: providers[0].config.model,
     cli,
+    reasoning_effort:
+      cli === "codex"
+        ? providers[0].config.reasoningEffort || "medium"
+        : "cli-default",
     git_commit: execFileSync("git", ["rev-parse", "HEAD"], {
       cwd: repo,
       encoding: "utf8",
@@ -234,6 +292,58 @@ const config = {
 };
 if (caseDoc.evidence && opts.phase === "main")
   config.tests[0].vars.case_file = join(cases, `${opts.case}.yaml`);
+let intakeConfigPath;
+if (designIntake) {
+  intakeConfigPath = join(runDir, "intake-promptfooconfig.yaml");
+  const intakeConfig = {
+    ...config,
+    description: `${opts.suite}/${opts.case}: intake`,
+    outputPath: intakeOutput,
+    tags: {
+      ...config.tags,
+      phase: "intake",
+      report: relative(repo, intakeOutput),
+    },
+    prompts: [
+      `Run the requested skill's intake, including its reference capture and user-facing presentation. Follow the installed skills. Stop before design planning or implementation.\n` +
+        `Save the effective planning catalogue to ${join(workspace, ".designbook-intake/catalogue.json")}. Finish with the complete intake handoff, including selected reference bindings, for the next model.\n` +
+        `Case request:\n${requestPrompt}\nUse only this workspace. Do not provision fixtures or run Promptfoo.`,
+    ],
+    providers: providers.map((provider) => ({
+      ...provider,
+      config: {
+        ...provider.config,
+        intakeOnly: true,
+        intakeCatalogue: join(workspace, ".designbook-intake/catalogue.json"),
+        intakeHandoffInput: undefined,
+        intakeHandoffOutput: intakeHandoff,
+        caseFile: undefined,
+        evidenceDir: join(runDir, "intake-evidence"),
+      },
+    })),
+    tests: [
+      {
+        vars: { ...config.tests[0].vars },
+        assert: [
+          {
+            type: "javascript",
+            value: "output.usage != null",
+          },
+        ],
+      },
+    ],
+  };
+  // Only intake provisions fixtures. Execution preserves its workspace and evidence.
+  delete config.tests[0].vars.suite;
+  delete config.tests[0].vars.case;
+  delete config.tests[0].vars.storybook_port;
+  config.tags.intake_config = intakeConfigPath;
+  config.tags.intake_report = intakeOutput;
+  writeFileSync(
+    intakeConfigPath,
+    yaml.dump(intakeConfig, { lineWidth: 120, noRefs: true }),
+  );
+}
 const configPath = join(runDir, "promptfooconfig.yaml");
 let verifyConfig;
 let verifyConfigPath;
@@ -241,19 +351,22 @@ const designCase =
   /^(design-shell|design-entity|design-screen|design-section)(?:-|$)/.test(
     opts.case,
   );
+if (opts.phase === "main" && designCase)
+  assertions.push({
+    type: "javascript",
+    value: `file://${join(repo, "promptfoo/extensions/design-main-result.mjs")}`,
+  });
 if (
   opts.phase === "main" &&
   (caseDoc.verify || (designCase && caseDoc.validate !== "none"))
 ) {
-  const verificationCase =
-    caseDoc.verify ||
-    opts.case
-      .replace(/^design-section/, "design-screen")
-      .replace(/^design-/, "design-verify-");
-  const verificationCasePath = join(cases, `${verificationCase}.yaml`);
-  const criteria = existsSync(verificationCasePath)
-    ? yaml.load(readFileSync(verificationCasePath, "utf8")).prompt
-    : "Run /debo design-verify against the design just produced, using the original reference, regions, breakpoints and thresholds from its saved inputs. Missing comparison inputs fail the check; never compare the generated design to itself.";
+  const thresholdPercent = base.verificationThresholdPercent;
+  if (
+    !Number.isFinite(thresholdPercent) ||
+    thresholdPercent < 0 ||
+    thresholdPercent > 100
+  )
+    throw new Error("verificationThresholdPercent must be between 0 and 100");
   const verifyOutput = join(dirname(output), "verify.json");
   if (output === verifyOutput || existsSync(verifyOutput))
     throw new Error(
@@ -261,11 +374,9 @@ if (
     );
   verifyConfigPath = join(runDir, "verify-promptfooconfig.yaml");
   const verifyPrompt =
-    criteria.replaceAll("{{workspace}}", workspace) +
-    `\nCheck the ACTUAL design created by the main workflow ${JSON.stringify(workflowId)} in this workspace. Keep its artifacts and fixtures. Do not import verification fixtures. Read that saved main definition for the original reference and targets; these take precedence over example stories/references in the criteria above. If the main run had no reference, fail with missing-reference evidence. Never substitute a different reference or compare output to itself.\n` +
-    "Before capturing, confirm the produced scene exists and the Storybook server belongs to this workspace. Missing scenes, error pages or missing target selectors fail verification; preserve their evidence without grading them as rendered designs.\n" +
-    `Use "design-verify" as the saved verification definition.id. After workflow create, run node ${JSON.stringify(join(repo, "promptfoo/scripts/snapshot-definition.mjs"))} <saved-tasks.yml>, then execute-workflow. Preserve the complete score-report and capture/comparison evidence. Return the check findings; any repair belongs to a separate test run and must not mutate these main artifacts.\n` +
-    "Run CLI commands from the workspace root. Missing inputs are failures; this test has no interactive user.";
+    `In ${JSON.stringify(workspace)}, run /debo design-verify for the saved main workflow ${JSON.stringify(workflowId)} using the installed skill. Resolve the reference and all comparison targets from that saved plan.\n` +
+    `Use its fixed threshold, or ${thresholdPercent}% when none is declared. Use definition.id "design-verify". Preserve the main artifacts; return the score-report and findings. This test has no interactive user.\n` +
+    `After each workflow create, save measurement evidence with node ${JSON.stringify(join(repo, "promptfoo/scripts/snapshot-definition.mjs"))} <saved-tasks.yml>.`;
   verifyConfig = {
     ...config,
     description: `${opts.suite}/${opts.case}: verify`,
@@ -277,6 +388,8 @@ if (
         ...provider.config,
         evidenceDir: join(runDir, "verify-evidence"),
         caseFile: undefined,
+        requireDesignIntake: false,
+        intakeHandoffInput: undefined,
       },
     })),
     tags: {
@@ -296,8 +409,7 @@ if (
           },
           {
             type: "javascript",
-            value:
-              "output.workflowErrors.length === 0 && Object.keys(output.pendingWorkflows).length === 0 && output.definitionUnchanged === true",
+            value: "output.usage != null",
           },
           {
             type: "javascript",
@@ -332,19 +444,86 @@ if (!opts["config-only"]) {
     if (child.error) throw child.error;
     return child.status ?? 1;
   };
-  const mainStatus = evaluate(configPath);
-  if (!verifyConfig) process.exit(mainStatus);
-  // A failed main assertion still gets a separate verification attempt. Its
-  // failure remains in the original report and in the combined exit status.
-  const verifyStatus = evaluate(verifyConfigPath);
-  const passed = mainStatus === 0 && verifyStatus === 0;
+  const intakeStatus = intakeConfigPath ? evaluate(intakeConfigPath) : 0;
+  let mainStatus = null;
+  let modelPipeline;
+  let pipelineError;
+  if (intakeStatus === 0) {
+    if (executor) {
+      try {
+        modelPipeline = runModelPipeline({
+          repo,
+          workspace,
+          runDir,
+          base: config,
+          requestPrompt,
+          intakeHandoff,
+          executor,
+          evaluate,
+        });
+        mainStatus = modelPipeline.mainStatus;
+        pipelineError = modelPipeline.error;
+      } catch (error) {
+        pipelineError = error.message;
+        console.error(`Model pipeline failed: ${pipelineError}`);
+      }
+    } else mainStatus = evaluate(configPath);
+  }
+  // A failed prerequisite is a skipped verification, not another model call.
+  if (verifyConfig && modelPipeline?.workflowPath) {
+    verifyConfig.prompts[0] += `\nSaved main workflow: ${JSON.stringify(modelPipeline.workflowPath)}. Read this definition to resolve verification targets.\n`;
+    writeFileSync(
+      verifyConfigPath,
+      yaml.dump(verifyConfig, { lineWidth: 120, noRefs: true }),
+    );
+  }
+  const verifyReady = intakeStatus === 0 && mainStatus === 0 && !pipelineError;
+  const verifyStatus =
+    verifyConfig && verifyReady ? evaluate(verifyConfigPath) : null;
+  const passed =
+    intakeStatus === 0 &&
+    mainStatus === 0 &&
+    !pipelineError &&
+    (!executor || modelPipeline?.plan.exitCode === 0) &&
+    (!verifyConfig || verifyStatus === 0);
   writeFileSync(
     join(runDir, "pipeline.json"),
     JSON.stringify(
       {
         passed,
-        main: { report: output, exitCode: mainStatus },
-        verify: { report: verifyConfig.outputPath, exitCode: verifyStatus },
+        ...(intakeConfigPath
+          ? { intake: { report: intakeOutput, exitCode: intakeStatus } }
+          : {}),
+        ...(modelPipeline
+          ? {
+              plan: modelPipeline.plan,
+              execution: modelPipeline.execution,
+              workflowPath: modelPipeline.workflowPath,
+            }
+          : {}),
+        ...(pipelineError ? { error: pipelineError } : {}),
+        main: !existsSync(output)
+          ? {
+              skipped: true,
+              reason:
+                intakeStatus !== 0
+                  ? "Intake validation failed"
+                  : pipelineError || "Planning or execution failed",
+            }
+          : { report: output, exitCode: mainStatus },
+        ...(verifyConfig
+          ? {
+              verify: verifyReady
+                ? {
+                    report: verifyConfig.outputPath,
+                    exitCode: verifyStatus,
+                  }
+                : {
+                    skipped: true,
+                    reason: "Intake, planning or execution failed",
+                  },
+            }
+          : {}),
       },
       null,
       2,

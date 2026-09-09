@@ -23,24 +23,17 @@ interface RegionInfo {
 interface BreakpointInfo {
   name: string;
   width: number;
+  height: number;
   hasReference: boolean;
   threshold: number | null;
   regions: RegionInfo[];
 }
 
-const KNOWN_BREAKPOINTS: Record<string, number> = {
-  sm: 640,
-  md: 768,
-  lg: 1024,
-  xl: 1280,
-  '2xl': 1536,
-};
-
 interface StoryJSON {
   referenceDir?: string | null;
   reference?: string | null;
   elements?: Array<{ id: string; selector: string }>;
-  referenceElements?: Array<{ id: string; selector: string; breakpoints: string[]; states: Array<{ name: string }> }>;
+  referenceElements?: Array<{ id: string; views: Array<{ id: string; width: number; height: number }> }>;
 }
 
 async function discoverBreakpoints(storyId: string): Promise<BreakpointInfo[]> {
@@ -58,15 +51,16 @@ async function discoverBreakpoints(storyId: string): Promise<BreakpointInfo[]> {
     }
 
     // Collect all unique breakpoints across all reference elements
-    const bpMap = new Map<string, RegionInfo[]>();
+    const bpMap = new Map<string, { width: number; height: number; regions: RegionInfo[] }>();
     for (const element of refElements) {
-      for (const bp of element.breakpoints) {
+      for (const view of element.views) {
+        const bp = view.id;
         if (!bpMap.has(bp)) {
-          bpMap.set(bp, []);
+          bpMap.set(bp, { width: view.width, height: view.height, regions: [] });
         }
         // Compare results (diff/pass/issues) are runtime-only and not persisted —
         // the dropdown lists the configured elements; status badges show "—".
-        bpMap.get(bp)!.push({
+        bpMap.get(bp)!.regions.push({
           name: element.id,
           selector: storyElements[element.id] ?? '',
           diffPercent: null,
@@ -78,9 +72,8 @@ async function discoverBreakpoints(storyId: string): Promise<BreakpointInfo[]> {
     }
 
     const breakpoints: BreakpointInfo[] = [];
-    for (const [name, regions] of bpMap.entries()) {
-      const width = KNOWN_BREAKPOINTS[name] ?? 0;
-      breakpoints.push({ name, width, hasReference: true, threshold: null, regions });
+    for (const [name, { width, height, regions }] of bpMap.entries()) {
+      breakpoints.push({ name, width, height, hasReference: true, threshold: null, regions });
     }
 
     return breakpoints.sort((a, b) => a.width - b.width);
@@ -118,7 +111,7 @@ const DropdownContent = memo(function DropdownContent({
 }: {
   storyId: string;
   state: VisualCompareState;
-  onSelect: (bp: string | null, region: string | null) => void;
+  onSelect: (bp: string | null, region: string | null, size?: { width: number; height: number }) => void;
   onOpacityChange: (opacity: number) => void;
 }) {
   const theme = useTheme();
@@ -153,7 +146,7 @@ const DropdownContent = memo(function DropdownContent({
                 if (isBpActive && !state.region) {
                   onSelect(null, null); // Deactivate
                 } else {
-                  onSelect(bp.name, null); // Select breakpoint (all regions)
+                  onSelect(bp.name, null, bp); // Select breakpoint (all regions)
                 }
               }}
               style={{
@@ -201,9 +194,9 @@ const DropdownContent = memo(function DropdownContent({
                   key={region.name}
                   onClick={() => {
                     if (isRegionActive) {
-                      onSelect(bp.name, null); // Back to all regions
+                      onSelect(bp.name, null, bp); // Back to all regions
                     } else {
-                      onSelect(bp.name, region.name); // Select single region
+                      onSelect(bp.name, region.name, bp); // Select single region
                     }
                   }}
                   style={{
@@ -292,10 +285,10 @@ export const VisualCompareTool = memo(function VisualCompareTool() {
   const storyId = api.getCurrentStoryData()?.id;
 
   const handleSelect = useCallback(
-    (bp: string | null, region: string | null) => {
+    (bp: string | null, region: string | null, size?: { width: number; height: number }) => {
       const url = new URL(window.location.href);
-      if (bp && KNOWN_BREAKPOINTS[bp]) {
-        const dims = `${KNOWN_BREAKPOINTS[bp]}-896`;
+      if (bp && size) {
+        const dims = `${size.width}-${size.height}`;
         let globals = `viewport.value:${dims};${VISUAL_COMPARE_KEY}.breakpoint:${bp};${VISUAL_COMPARE_KEY}.opacity:${state.opacity}`;
         if (region) {
           globals += `;${VISUAL_COMPARE_KEY}.region:${region}`;

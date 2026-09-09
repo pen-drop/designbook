@@ -67,10 +67,22 @@ assert:                      # assertions evaluated by promptfoo
 npx promptfoo view
 ```
 
-Select a CLI with `--provider codex|claude` and optionally `--model <id>`.
+Select a CLI with `--provider codex|claude|grok` and optionally `--model <id>`.
 Defaults are `gpt-5.6-luna` and `claude-opus-5`; both use the one-hour limit in
 `configs/base.yaml`. The automatic verify phase uses the same provider/model.
 `--storybook-port <port>` provisions this workspace's server before measurement.
+
+Grok uses `grok-4.6` with `streaming-messages-json`. Its adapter checks that
+the terminal usage equals the sum of the complete assistant-message counters;
+cache reads and writes are added to ordinary input once. Grok subagents are
+disabled until their native accounting is verified. Codex reasoning is pinned
+to `medium` (overridable through provider `reasoningEffort`), independently of
+the invoking user's CLI default.
+
+Failed processes and artifact collection retain valid terminal usage in response
+metadata and CSV history. Incomplete or invalid native logs leave usage unknown.
+CSV records usage source/scope, measured subagent contribution, reasoning setting
+and raw evidence directory. Unknown historical fields remain empty.
 
 Run two independent `run-single.sh` invocations with distinct workspaces and
 report directories to compare models. Prepare fresh workspaces sequentially
@@ -102,9 +114,13 @@ is rejected so earlier results remain intact.
 `--config-only` validates/generates configuration without starting a model or rebuilding
 a workspace. Main phases rebuild fixtures; verify phases require the existing
 workspace and a prompt file. CLI JSONL/stderr and available dbo.log files are kept
-for auditing; usage is reported per phase. Design-shell, design-entity and design-screen always start a separate design-verify evaluation after the main
-phase. Fixtures may declare `verify: <case>` to select its criteria; only that
-case's prompt is used. Both reports share a run directory and `run_id`. The runner
+for auditing; usage is reported per phase. Design-shell, design-entity and design-screen start a separate design-verify evaluation after successful main
+execution. Fixtures may declare `verify: <case>` to request the follow-up. Automatic
+verification takes its reference binding, stories, exact selectors, views and
+states exclusively from the saved main plan; it never copies the standalone
+verification case's prompt or imports its fixtures. The saved comparison threshold
+is used when present; otherwise `verificationThresholdPercent` in `configs/base.yaml`
+applies (3% by default). Both reports share a run directory and `run_id`. The runner
 fails if either phase fails, comparisons do not pass, or verification changes
 main artifacts. The shared skill still audits the real capture/comparison logs.
 Calling `promptfoo eval` directly on an individual generated config runs only
@@ -170,3 +186,109 @@ cd promptfoo/workspaces/drupal-petshop-design-screen/web/themes/custom/test_inte
 git diff --name-only        # see what changed
 # copy changed files to fixtures/drupal-petshop/<fixture-name>/
 ```
+
+
+### Design pipeline responsibilities
+
+Promptfoo provisions the workspace, selects the planner and executor models,
+starts one executor agent for the complete saved workflow, and records native logs, tokens and
+results. Installed skills own intake presentation, reference selection/capture,
+planning instructions and design verification. The Designbook CLI owns domain
+schemas, publication and workflow validation.
+
+The intake handoff carries the assistant presentation verbatim, the saved catalogue
+path and the native log path. Promptfoo does not parse selector tables, recognize
+column labels, match reference metadata or reject historical capture attempts.
+There is currently no independent static check of selector-presentation completeness
+in Promptfoo; that requirement remains in the installed intake skill.
+
+Planning must leave the target plan pending and application artifacts untouched.
+The executor follows the installed execute-workflow skill, completing all tasks
+of one step together before continuing to the next. Unrelated workflow attempts remain in the evidence but are not a
+run-wide completion gate. Final case/build checks and validated comparison scores
+remain the outcome checks; verification may not change the main artifacts.
+
+Failed intake, planning or execution skips automatic verification with an explicit
+reason in `pipeline.json`. No verifier model is launched and no score or token row
+is invented. Successful main execution starts a separate design-verify call using
+the planner model. The generated configs identify every attempted phase and log.
+All actual calls, including failures, remain in the CSV history. This changed test
+harness requires a fresh baseline before efficiency comparisons.
+
+### Context logs
+
+Every CLI phase writes `context.jsonl` and `context-summary.json` beside its raw
+CLI log, and links the summary from `run.json` as `contextLog`. Request rows use
+native per-request input tokens, including cached input, rather than cumulative
+phase usage. Summaries report peak/last input tokens, observed context-window
+limits and compaction events. These are root-thread observations; subagent
+context is not included. Unavailable values are `null`, never estimated from
+phase totals. On failed or timed-out runs the log covers only available events.
+
+Codex sessions are persisted and their native session log is copied to
+`codex-session.jsonl` so request usage and compaction remain inspectable. Earlier
+`--ephemeral` runs cannot be reconstructed from terminal totals. Claude/Grok use
+native assistant-message usage, deduplicated by message ID; context limits are
+recorded only when the CLI reports them. No missing context limits are inferred.
+
+### Workflow reading views and step batches
+
+Saved workflows carry an explicit `step` ID on every task. The executor reads
+`workflow steps <path>` for routing, then
+`workflow instructions <path> --step <id> --format md` for the current batch.
+This contains all tasks in that step, their shared context once, reachable
+schemas and predecessor results. Tasks in a step are independent; dependencies
+cross steps. `start`, `done` and `block` accept `--step` and return compact
+status, without the full definition. Batch `done` takes a JSON object keyed by
+all task IDs and marks them done together only when every result passes.
+
+For human inspection, `workflow read <path> --format md` exports the complete
+saved plan. Promptfoo also writes `workflow-<number>.md` beside each phase's
+CLI evidence and exposes its path in `output.workflowMarkdown`. The export contains
+only the immutable plan, with each shared instruction/context body once and stable
+internal links. Runtime state/results remain in JSON inspection and reports.
+
+
+### Separate planner and executor
+
+Every design intake test uses separately configured planner and executor roles.
+Set defaults in `configs/base.yaml` under `modelRoles.planner` and
+`modelRoles.executor` (each with `provider` and `model`). The checked-in defaults
+are Opus and Luna; any supported provider/model combination is configurable,
+including the same model for both roles. Override either role explicitly:
+
+```bash
+./promptfoo/scripts/run-single.sh design-shell --suite drupal-web \
+  --provider claude --model claude-opus-5 \
+  --executor-provider codex --executor-model gpt-5.6-luna \
+  --workspace promptfoo/workspaces/shell-split \
+  --output promptfoo/reports/shell-split/main.json
+```
+
+For example, choose Codex for both roles with
+`--provider codex --model gpt-6-astra --executor-provider codex --executor-model gpt-5.6-luna`,
+or Claude with `--provider claude --model opus --executor-provider claude --executor-model sonnet`.
+Model IDs/aliases are forwarded to the selected native CLI; configuration tests
+verify routing, not account availability or model quality.
+
+The pipeline is `intake → plan → execute-workflow → verify`. Intake and planning
+use the planner model. Planning writes the complete `tasks.yml`, with every task
+assigned to a step. Promptfoo then invokes the configured executor model exactly
+once with the saved path and the installed `execute-workflow` skill.
+
+The executor owns the step loop: obtain ready steps from the Designbook CLI,
+read instructions for the current step, produce all tasks in that step, submit
+them together and continue until complete or blocked. Promptfoo does not read or
+embed step work orders, choose ready steps, or launch a model for each component.
+The worker startup prompt contains the saved path, not the full plan or extract.
+
+Both model roles remain independently configurable, including choosing the same
+model for both. Automatic verification uses the planner model and runs only after
+successful execution. `plan.json`, `main.json`, `model-pipeline.json`, native logs
+and `pipeline.json` preserve results and failures. Each actual model call has one
+CSV row; per-step CLI activity is recorded inside the executor's native log.
+
+The one-hour timeout applies to the entire executor invocation. A model context
+may accumulate during execution; a single agent does not imply a fresh context
+per step. There is no Promptfoo per-step prompt-size gate because the work orders
+are now retrieved by the agent through CLI tool calls.

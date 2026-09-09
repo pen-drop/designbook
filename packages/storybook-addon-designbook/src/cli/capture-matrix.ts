@@ -19,11 +19,20 @@ import { resolve } from 'node:path';
 import type { BreakpointWidth } from '../inspect/breakpoint-widths.js';
 import type { DesignbookConfig } from '../config.js';
 import { CAPTURE_HEIGHT, isolateAndCapture, runStateSteps, settlePage, type CaptureStep } from './capture-browser.js';
+import {
+  ANONYMOUS_SESSION,
+  loadPrelude,
+  resolveSessionStorage,
+  runPrelude,
+  sessionContextOptions,
+} from './capture-session.js';
 
 export interface MatrixCell {
   element: string;
   selector: string;
   state: string;
+  /** Session the state is observed as; cells are grouped into one context per session. */
+  session: string;
   steps: CaptureStep[];
   breakpoint: string;
 }
@@ -37,6 +46,7 @@ export interface CaptureJob extends MatrixCell {
 
 interface MetaState {
   name?: string;
+  session?: string;
   steps?: CaptureStep[];
 }
 interface MetaElement {
@@ -69,9 +79,10 @@ export function matrixCellsFromMeta(meta: MetaShape): MatrixCell[] {
     const breakpoints = el.breakpoints ?? [];
     for (const st of states) {
       const state = st.name ?? 'rest';
+      const session = st.session ?? ANONYMOUS_SESSION;
       const steps = st.steps ?? [];
       for (const breakpoint of breakpoints) {
-        cells.push({ element, selector, state, steps, breakpoint });
+        cells.push({ element, selector, state, session, steps, breakpoint });
       }
     }
   }
@@ -114,8 +125,8 @@ export function planCaptureMatrix(
 export interface RunMatrixOptions {
   /** Base URL to capture (each cell re-navigates to reset state before its steps). */
   url: string;
-  /** Optional selector clicked once per navigation to dismiss a consent banner before capturing. */
-  consentSelector?: string;
+  /** Prelude module run after every navigation; replaces the old consent-selector special case. */
+  prelude?: string;
 }
 
 export interface RunMatrixResult {
@@ -136,33 +147,47 @@ export async function runCaptureMatrix(
   opts: RunMatrixOptions,
   config: DesignbookConfig,
 ): Promise<RunMatrixResult> {
-  void config;
   const warnings: string[] = [];
   const todo = jobs.filter((j) => !j.frozen);
   if (todo.length === 0) return { jobs, warnings };
 
+  // A storage state belongs to a browser context, so cells are grouped per
+  // session and each group gets its own context rather than one shared session.
+  const bySession = new Map<string, CaptureJob[]>();
+  for (const job of todo) bySession.set(job.session, [...(bySession.get(job.session) ?? []), job]);
+  const prelude = opts.prelude ? await loadPrelude(opts.prelude) : undefined;
+
   const { chromium } = await import('playwright');
   const browser = await chromium.launch({ headless: true });
   try {
-    const context = await browser.newContext({ viewport: { width: todo[0]!.width, height: CAPTURE_HEIGHT } });
-    const page = await context.newPage();
-    for (const job of todo) {
-      await page.setViewportSize({ width: job.width, height: CAPTURE_HEIGHT });
-      await page.goto(opts.url);
-      if (opts.consentSelector) {
-        await page.click(opts.consentSelector, { timeout: 3000 }).catch(() => {});
-      }
-      await settlePage(page, job.selector || undefined);
-      await runStateSteps(page, job.steps);
-      await mkdir(resolve(job.outPath, '..'), { recursive: true });
-      const { warning } = await isolateAndCapture(page, {
-        selector: job.selector,
-        width: job.width,
-        outPath: job.outPath,
+    for (const [session, group] of bySession) {
+      const storageState = resolveSessionStorage(config, session);
+      const context = await browser.newContext({
+        viewport: { width: group[0]!.width, height: CAPTURE_HEIGHT },
+        ...sessionContextOptions(storageState),
       });
-      if (warning) warnings.push(`${job.breakpoint}--${job.element}--${job.state}: ${warning}`);
+      const page = await context.newPage();
+      for (const job of group) {
+        await page.setViewportSize({ width: job.width, height: CAPTURE_HEIGHT });
+        await page.goto(opts.url);
+        await runPrelude(page, prelude, {
+          session,
+          url: opts.url,
+          state: job.state,
+          view: job.breakpoint,
+        });
+        await settlePage(page, job.selector || undefined);
+        await runStateSteps(page, job.steps);
+        await mkdir(resolve(job.outPath, '..'), { recursive: true });
+        const { warning } = await isolateAndCapture(page, {
+          selector: job.selector,
+          width: job.width,
+          outPath: job.outPath,
+        });
+        if (warning) warnings.push(`${job.breakpoint}--${job.element}--${job.state}: ${warning}`);
+      }
+      await context.close().catch(() => {});
     }
-    await context.close().catch(() => {});
   } finally {
     await browser.close().catch(() => {});
   }

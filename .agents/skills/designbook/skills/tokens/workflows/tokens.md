@@ -8,9 +8,6 @@ params:
   reference_folder:
     type: string
 stages:
-  extract:
-    steps:
-      - extract-reference
   create-tokens:
     steps:
       - create-tokens

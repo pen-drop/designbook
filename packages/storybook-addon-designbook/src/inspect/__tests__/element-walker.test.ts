@@ -106,6 +106,8 @@ describe('element walker', () => {
       'findHeadingContext',
       'getRole',
       'getKind',
+      'ownText',
+      'pseudoText',
       'getLabel',
       'buildStyle',
       'walkDocument',
@@ -133,6 +135,51 @@ describe('element walker', () => {
       expect(captured.nodes.length).toBeGreaterThan(5);
     } finally {
       delete g.__designbookWalkDocument;
+    }
+  });
+
+  it('labels a control from its own text beside an icon, and from its title', () => {
+    const dom = new JSDOM(
+      `<!doctype html><html><body>
+         <button id="mixed"><svg></svg>Suche</button>
+         <button id="titled" title="Schließen"><svg></svg></button>
+       </body></html>`,
+      { pretendToBeVisual: true },
+    );
+    const captured = walkDocument(dom.window.document, { sourceRef: 'file://own-text' });
+    const label = (locator: string) => captured.nodes.find((n) => n.source.locator.endsWith(locator))?.label;
+    // Leaf-only textContent lost this: the icon child made the button a non-leaf.
+    expect(label('button:nth-of-type(1)')).toBe('Suche');
+    expect(label('button:nth-of-type(2)')).toBe('Schließen');
+  });
+
+  it('falls back to rendered ::before/::after text for an icon-only control', () => {
+    // jsdom does not implement getComputedStyle with pseudo-elements, so the
+    // pseudo lookup is stubbed; everything else runs through the real walker.
+    const dom = new JSDOM('<!doctype html><html><body><button><svg></svg></button></body></html>', {
+      pretendToBeVisual: true,
+    });
+    const real = dom.window.getComputedStyle.bind(dom.window);
+    dom.window.getComputedStyle = ((el: Element, pseudo?: string | null) =>
+      pseudo === '::before'
+        ? ({ content: '"Menü"' } as CSSStyleDeclaration)
+        : pseudo
+          ? ({ content: 'none' } as CSSStyleDeclaration)
+          : real(el)) as typeof dom.window.getComputedStyle;
+    const captured = walkDocument(dom.window.document, { sourceRef: 'file://pseudo' });
+    expect(captured.nodes.find((n) => n.kind === 'button')?.label).toBe('Menü');
+  });
+
+  it('ignores pseudo content that is not a readable label', () => {
+    const dom = new JSDOM('<!doctype html><html><body><button><svg></svg></button></body></html>', {
+      pretendToBeVisual: true,
+    });
+    const real = dom.window.getComputedStyle.bind(dom.window);
+    for (const content of ['none', 'normal', 'counter(step)', 'url(icon.svg)', '""']) {
+      dom.window.getComputedStyle = ((el: Element, pseudo?: string | null) =>
+        pseudo ? ({ content } as CSSStyleDeclaration) : real(el)) as typeof dom.window.getComputedStyle;
+      const captured = walkDocument(dom.window.document, { sourceRef: 'file://pseudo' });
+      expect(captured.nodes.find((n) => n.kind === 'button')?.label).toBe('button');
     }
   });
 });

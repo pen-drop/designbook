@@ -21,9 +21,15 @@ async function fixture(t) {
     await mkdir(path, { recursive: true });
     await writeFile(
       join(path, "tasks.yml"),
-      yaml.dump({ definition: { id }, state: { status, tasks } }),
+      yaml.dump({
+        definition: { id, tasks: [], context: {} },
+        state: { status, tasks, created_at: "2026-09-07T12:00:00Z" },
+      }),
     );
-    await writeFile(join(path, "definition-before.yml"), yaml.dump({ id }));
+    await writeFile(
+      join(path, "definition-before.yml"),
+      yaml.dump({ id, tasks: [], context: {} }),
+    );
   };
   const stub = async (body, command = "codex") => {
     const bin = join(root, "bin");
@@ -77,52 +83,29 @@ const claudeCompleted = [
   },
 ];
 
-test("text-only design cases retain semantic evidence through the Promptfoo runner", async (t) => {
+test("unsupported evidence and repeated design cases fail instead of using a combined call", async (t) => {
   const { root, workspace } = await fixture(t);
   for (const name of ["component", "screen", "shell", "entity"]) {
     for (const suffix of ["", "-update"]) {
-      const caseName = `design-${name}${suffix}`;
-      const path = execFileSync(
-        "node",
-        [
-          "promptfoo/scripts/run-single.mjs",
-          caseName,
-          "--suite",
-          "drupal-petshop",
-          "--workspace",
-          workspace,
-          "--output",
-          join(root, `${caseName}.json`),
-          "--config-only",
-        ],
-        { encoding: "utf8" },
-      ).trim();
-      const config = yaml.load(await readFile(path, "utf8"));
-      assert.equal(config.tags.verify_config, undefined);
-      assert.match(
-        config.providers[0].config.caseFile,
-        new RegExp(`${caseName}\\.yaml$`),
+      assert.throws(
+        () =>
+          execFileSync(
+            "node",
+            [
+              "promptfoo/scripts/run-single.mjs",
+              `design-${name}${suffix}`,
+              "--suite",
+              "drupal-petshop",
+              "--workspace",
+              workspace,
+              "--output",
+              join(root, `${name}${suffix}.json`),
+              "--config-only",
+            ],
+            { stdio: "pipe" },
+          ),
+        /requires a nonrepeated design case without a case evidence manifest/,
       );
-      assert.match(config.prompts[0], /case-runs\.json/);
-      assert.match(config.prompts[0], /already running inside Promptfoo/);
-      assert.match(config.prompts[0], /Prior test workspaces, saved definitions, generated artifacts and reports are not inputs/);
-      assert.equal(
-        config.tests[0].vars.case_file,
-        config.providers[0].config.caseFile,
-      );
-      assert.ok(
-        config.tests[0].assert.some((assertion) =>
-          assertion.value.endsWith("/case-result.mjs"),
-        ),
-      );
-      if (caseName === "design-screen-update") {
-        assert.match(config.prompts[0], /distinct saved definition IDs/);
-        assert.match(config.prompts[0], /design-screen-update-2/);
-        assert.doesNotMatch(
-          config.prompts[0],
-          /as the primary saved workflow definition.id/,
-        );
-      }
     }
   }
 });
@@ -362,6 +345,97 @@ test("zero exit without completed turn is a failure", async (t) => {
   assert.match(result.error, /did not complete/);
 });
 
+test("native terminal usage survives a nonzero exit and artifact collection failure", async (t) => {
+  const { provider, workspace, stub } = await fixture(t);
+  await stub(emit(completed) + "\nprocess.exitCode = 1;");
+  const failed = await provider.callApi("Fail after usage", {
+    vars: { workspace },
+  });
+  assert.match(failed.error, /CLI error/);
+  assert.equal(failed.tokenUsage.total, 110);
+  assert.equal(failed.metadata.run.usage.input_tokens, 100);
+  assert.equal(
+    JSON.parse(
+      await readFile(join(failed.metadata.evidenceDir, "run.json"), "utf8"),
+    ).usage.output_tokens,
+    10,
+  );
+
+  await stub(emit(completed));
+  provider.collectArtifacts = async () => {
+    throw new Error("Missing manifest");
+  };
+  const collection = await provider.callApi("Artifact failure", {
+    vars: { workspace },
+  });
+  assert.match(collection.error, /Missing manifest/);
+  assert.equal(collection.tokenUsage.total, 110);
+});
+
+test("Grok aggregates multiple model turns once and rejects incomplete or inconsistent usage", async () => {
+  const { grokRuntime } = await import("../providers/grok-cli.mjs");
+  const events = [
+    {
+      type: "assistant",
+      parent_tool_use_id: null,
+      message: {
+        id: "msg_0",
+        usage: {
+          input_tokens: 30,
+          output_tokens: 6,
+          cache_read_input_tokens: 1,
+          cache_creation_input_tokens: 0,
+        },
+      },
+    },
+    {
+      type: "assistant",
+      parent_tool_use_id: null,
+      message: {
+        id: "msg_1",
+        usage: {
+          input_tokens: 2,
+          output_tokens: 4,
+          cache_read_input_tokens: 31,
+          cache_creation_input_tokens: 0,
+        },
+      },
+    },
+    {
+      type: "result",
+      subtype: "success",
+      is_error: false,
+      result: "Done",
+      usage: {
+        input_tokens: 32,
+        output_tokens: 10,
+        cache_read_input_tokens: 32,
+        cache_creation_input_tokens: 0,
+      },
+    },
+  ];
+  const parsed = grokRuntime.parse(events);
+  assert.equal(parsed.usage.input_tokens, 64);
+  assert.equal(parsed.usage.cached_input_tokens, 32);
+  assert.equal(parsed.usage.output_tokens, 10);
+  assert.equal(parsed.usageScope, "session-no-subagents");
+  assert.equal(parsed.subagentCount, 0);
+  assert.throws(() => grokRuntime.parse(events.slice(0, -1)), /missing result/);
+  const mismatch = structuredClone(events);
+  mismatch[2].usage.input_tokens++;
+  assert.throws(() => grokRuntime.parse(mismatch), /usage mismatch/);
+  assert.throws(() => grokRuntime.parse([events[0], ...events]), /duplicate/);
+  const child = structuredClone(events);
+  child[0].parent_tool_use_id = "subagent";
+  assert.throws(() => grokRuntime.parse(child), /subagent/);
+  const missing = structuredClone(events);
+  delete missing[0].message.usage.output_tokens;
+  assert.throws(() => grokRuntime.parse(missing), /usage mismatch/);
+  const failure = structuredClone(events);
+  failure[2].is_error = true;
+  assert.throws(() => grokRuntime.parse(failure), /did not complete/);
+});
+
 test("generated main/verify configs isolate setup and preserve paths", async (t) => {
   const { root, workspace } = await fixture(t);
   const promptFile = join(root, "verify.txt");
@@ -386,9 +460,13 @@ test("generated main/verify configs isolate setup and preserve paths", async (t)
     return yaml.load(await readFile(path, "utf8"));
   };
   const main = await generate([]);
-  assert.equal(main.tests[0].vars.case, "design-shell");
+  const mainIntake = yaml.load(await readFile(main.tags.intake_config, "utf8"));
+  assert.equal(mainIntake.tests[0].vars.case, "design-shell");
+  assert.equal(main.tests[0].vars.case, undefined);
   assert.equal(main.providers[0].config.timeout, 3600000);
-  assert.equal(main.providers[0].config.model, "gpt-5.6-luna");
+  assert.equal(main.providers[0].config.model, "claude-opus-5");
+  assert.equal(main.tags.executor_model, "gpt-5.6-luna");
+  assert.equal(main.tags.execution_mode, "planner-executor");
   const claude = await generate([
     "--provider",
     "claude",
@@ -397,7 +475,11 @@ test("generated main/verify configs isolate setup and preserve paths", async (t)
   ]);
   assert.equal(claude.providers[0].config.model, "claude-opus-5");
   assert.match(claude.providers[0].id, /claude-cli\.mjs$/);
-  assert.equal(claude.tests[0].vars.storybook_port, 41201);
+  const claudeIntake = yaml.load(
+    await readFile(claude.tags.intake_config, "utf8"),
+  );
+  assert.equal(claudeIntake.tests[0].vars.storybook_port, 41201);
+  assert.equal(claude.tests[0].vars.storybook_port, undefined);
   const automaticVerify = yaml.load(
     await readFile(claude.tags.verify_config, "utf8"),
   );
@@ -432,10 +514,26 @@ test("generated main/verify configs isolate setup and preserve paths", async (t)
   );
 });
 
-for (const cli of ["codex", "claude"])
+for (const cli of ["codex", "claude", "grok"])
   test(`real Promptfoo loads ${cli} and verifies without resetting the workspace`, async (t) => {
     const { root, workspace, workflow, stub } = await fixture(t);
-    await stub(`if (process.env.DESIGNBOOK_PROMPTFOO_DRIVER !== "1") process.exit(2);\n${emit(cli === "codex" ? completed : claudeCompleted)}`, cli);
+    const events =
+      cli === "codex"
+        ? completed
+        : cli === "claude"
+          ? claudeCompleted
+          : [
+              {
+                type: "assistant",
+                parent_tool_use_id: null,
+                message: { id: "msg_0", usage: claudeCompleted[0].usage },
+              },
+              ...claudeCompleted,
+            ];
+    await stub(
+      `if (process.env.DESIGNBOOK_PROMPTFOO_DRIVER !== "1") process.exit(2);\n${emit(events)}`,
+      cli,
+    );
     await workflow("archive", "verification", "design-verify", "completed", {
       outtake: measuredTask(0, true),
     });
@@ -517,6 +615,39 @@ test("Claude usage requires a successful terminal result and complete native cou
   );
 });
 
+for (const cli of ["claude", "grok"])
+  test(`${cli} terminal errors keep measured usage without becoming successful responses`, async (t) => {
+    const { root, workspace, stub } = await fixture(t);
+    const { default: Cli } = await import(`../providers/${cli}-cli.mjs`);
+    const terminal = {
+      ...structuredClone(claudeCompleted[0]),
+      subtype: "error_max_turns",
+      is_error: true,
+    };
+    const events =
+      cli === "grok"
+        ? [
+            {
+              type: "assistant",
+              parent_tool_use_id: null,
+              message: { id: "msg_0", usage: terminal.usage },
+            },
+            terminal,
+          ]
+        : [terminal];
+    await stub(emit(events), cli);
+    const provider = new Cli({
+      config: { evidenceDir: join(root, "error-evidence") },
+    });
+    const result = await provider.callApi("Fail with measured usage", {
+      vars: { workspace },
+    });
+    assert.match(result.error, /did not complete/);
+    assert.equal(result.output, undefined);
+    assert.equal(result.tokenUsage.total, 110);
+    assert.equal(result.metadata.run.usage.input_tokens, 100);
+  });
+
 test("missing or changed definition snapshots fail the integrity gate", async (t) => {
   const { provider, workspace, workflow } = await fixture(t);
   await workflow("archive", "main", "vision", "completed");
@@ -583,6 +714,44 @@ test("CSV history appends concurrent runs and keeps missing measurements empty",
   assert.match(rows.join("\n"), /"a,""suite"/);
   const failed = rows.find((row) => row.includes('"failed"'));
   assert.match(failed, /"fail","0","0","","","","","",""/);
+});
+
+test("CSV retains measured usage and evidence for failed provider responses", async (t) => {
+  const { root } = await fixture(t);
+  const { afterAll } = await import("../extensions/result-history.mjs");
+  const csv = join(root, "failure.csv");
+  await afterAll({
+    config: {
+      tags: { history_csv: csv, cli: "codex", reasoning_effort: "medium" },
+    },
+    results: [
+      {
+        success: false,
+        response: {
+          error: "collection failed",
+          metadata: {
+            run: {
+              usage: completed[1].usage,
+              usageScope: "thread-tree",
+              subagentCount: 0,
+              evidenceDir: "raw-evidence",
+            },
+          },
+        },
+      },
+    ],
+  });
+  const [header, row] = (await readFile(csv, "utf8")).trim().split("\n");
+  const fields = Object.fromEntries(
+    header.split(",").map((name, i) => [name, row.split(",")[i].slice(1, -1)]),
+  );
+  assert.equal(fields.status, "fail");
+  assert.equal(fields.total_tokens, "110");
+  assert.equal(fields.usage_source, "codex-native");
+  assert.equal(fields.usage_scope, "thread-tree");
+  assert.equal(fields.subagent_input_tokens, "0");
+  assert.equal(fields.reasoning_effort, "medium");
+  assert.equal(fields.evidence_dir, "raw-evidence");
 });
 
 test("snapshot helper preserves multiline instruction content and refuses overwrites", async (t) => {
@@ -815,7 +984,7 @@ test("verification assertion rejects visual failures and changes to main artifac
   assert.equal(verifyResult(output, context).pass, false);
 });
 
-test("shell, entity and screen pipelines always invoke verification and fails if either phase fails", async (t) => {
+test("shell, entity and screen skip verification when intake fails or omits its handoff", async (t) => {
   const { root, workspace } = await fixture(t);
   const bin = join(root, "bin");
   await mkdir(bin);
@@ -828,20 +997,21 @@ const yaml = require(${JSON.stringify(resolve("node_modules/js-yaml"))});
 const config = yaml.load(fs.readFileSync(process.argv[process.argv.indexOf('-c') + 1], 'utf8'));
 fs.appendFileSync(${JSON.stringify(calls)}, JSON.stringify(config) + '\\n');
 fs.writeFileSync(config.outputPath, '{}');
-process.exitCode = Number(config.tags.phase === 'main' ? process.env.TEST_MAIN_EXIT : process.env.TEST_VERIFY_EXIT);
+process.exitCode = Number(config.tags.phase === 'intake' ? process.env.TEST_INTAKE_EXIT : config.tags.phase === 'main' ? process.env.TEST_MAIN_EXIT : process.env.TEST_VERIFY_EXIT);
 `,
     { mode: 0o755 },
   );
-  for (const [caseName, mainExit, verifyExit] of [
-    ["design-shell", 0, 0],
-    ["design-shell", 100, 0],
-    ["design-shell", 0, 100],
-    ["design-entity", 0, 0],
-    ["design-screen", 0, 0],
+  for (const [caseName, intakeExit, mainExit, verifyExit] of [
+    ["design-shell", 0, 0, 0],
+    ["design-shell", 0, 100, 0],
+    ["design-shell", 0, 0, 100],
+    ["design-entity", 0, 0, 0],
+    ["design-screen", 0, 0, 0],
+    ["design-shell", 100, 0, 0],
   ]) {
     const report = join(
       root,
-      `${caseName}-${mainExit}-${verifyExit}`,
+      `${caseName}-${intakeExit}-${mainExit}-${verifyExit}`,
       "main.json",
     );
     const child = spawnSync(
@@ -861,12 +1031,21 @@ process.exitCode = Number(config.tags.phase === 'main' ? process.env.TEST_MAIN_E
         env: {
           ...process.env,
           PATH: `${bin}:${process.env.PATH}`,
+          TEST_INTAKE_EXIT: String(intakeExit),
           TEST_MAIN_EXIT: String(mainExit),
           TEST_VERIFY_EXIT: String(verifyExit),
         },
       },
     );
-    assert.equal(child.status, mainExit || verifyExit ? 1 : 0, child.stderr);
+    assert.equal(child.status, 1, child.stderr);
+    const directory = (await import("node:path")).dirname(
+      child.stdout.trim().split("\n")[0],
+    );
+    const pipeline = JSON.parse(
+      await readFile(join(directory, "pipeline.json"), "utf8"),
+    );
+    assert.equal(pipeline.verify.skipped, true);
+    assert.equal(pipeline.verify.exitCode, undefined);
   }
   const configs = (await readFile(calls, "utf8"))
     .trim()
@@ -874,59 +1053,130 @@ process.exitCode = Number(config.tags.phase === 'main' ? process.env.TEST_MAIN_E
     .map((line) => JSON.parse(line));
   assert.deepEqual(
     configs.map((c) => c.tags.phase),
-    [
-      "main",
-      "verify",
-      "main",
-      "verify",
-      "main",
-      "verify",
-      "main",
-      "verify",
-      "main",
-      "verify",
-    ],
+    Array(6).fill("intake"),
   );
-  for (let index = 0; index < configs.length; index += 2) {
-    const main = configs[index],
-      verify = configs[index + 1];
-    assert.equal(main.tags.run_id, verify.tags.run_id);
-    assert.equal(verify.tags.workflow_id, "design-verify");
-    assert.equal(verify.tests[0].vars.workspace, workspace);
-    assert.equal(verify.tests[0].vars.suite, undefined);
-    assert.equal(verify.tests[0].vars.case, undefined);
-    assert.equal(verify.tests[0].vars.main_report, main.outputPath);
-    if (main.tags.case === "design-shell")
-      assert.match(verify.prompts[0], /threshold 3%/);
-    assert.match(verify.prompts[0], /original reference/);
-  }
 });
 
-
 test("pending documents at noncanonical paths cannot disappear from workflow gates", async (t) => {
-  const {provider, workspace, workflow} = await fixture(t);
+  const { provider, workspace, workflow } = await fixture(t);
   await workflow("changes", "completed", "main", "completed");
   const root = join(workspace, "designbook/workflows");
-  await writeFile(join(root, "changes/initial-attempt"), yaml.dump({definition: {id: "main"}, state: {status: "pending", tasks: {}}}));
+  await writeFile(
+    join(root, "changes/initial-attempt"),
+    yaml.dump({
+      definition: { id: "main" },
+      state: { status: "pending", tasks: {} },
+    }),
+  );
   await mkdir(join(root, "attempts"));
-  await writeFile(join(root, "attempts/blocked.yml"), yaml.dump({definition: {id: "blocked"}, state: {status: "blocked", tasks: {}}}));
+  await writeFile(
+    join(root, "attempts/blocked.yml"),
+    yaml.dump({
+      definition: { id: "blocked" },
+      state: { status: "blocked", tasks: {} },
+    }),
+  );
   await writeFile(join(root, "notes.md"), "Not a workflow");
   const result = await provider.collectArtifacts(workspace);
   assert.equal(result.definitionUnchanged, false);
   assert.equal(result.pendingWorkflows.blocked.state.status, "blocked");
-  assert.ok(result.workflowErrors.some(error => error.error.includes("Duplicate workflow id: main")));
+  assert.ok(
+    result.workflowErrors.some((error) =>
+      error.error.includes("Duplicate workflow id: main"),
+    ),
+  );
 });
 
-
 test("nested runner refuses before provisioning or writing reports", async (t) => {
-  const {root, workspace} = await fixture(t);
+  const { root, workspace } = await fixture(t);
   const marker = join(workspace, "preserve.txt");
   await writeFile(marker, "active fixture");
-  const result = spawnSync(process.execPath, ["promptfoo/scripts/run-single.mjs", "design-shell", "--workspace", workspace, "--output", join(root, "nested.json")], {
-    encoding: "utf8", env: {...process.env, DESIGNBOOK_PROMPTFOO_DRIVER: "1"},
-  });
+  const result = spawnSync(
+    process.execPath,
+    [
+      "promptfoo/scripts/run-single.mjs",
+      "design-shell",
+      "--workspace",
+      workspace,
+      "--output",
+      join(root, "nested.json"),
+    ],
+    {
+      encoding: "utf8",
+      env: { ...process.env, DESIGNBOOK_PROMPTFOO_DRIVER: "1" },
+    },
+  );
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /Already inside the Promptfoo CLI driver/);
   assert.equal(await readFile(marker, "utf8"), "active fixture");
-  await assert.rejects(readFile(join(root, "nested.json")), {code: "ENOENT"});
+  await assert.rejects(readFile(join(root, "nested.json")), { code: "ENOENT" });
 });
+
+test("intake transports arbitrary presentation and retains blocked attempts without domain parsing", async (t) => {
+  const { root, workspace, provider, stub, workflow } = await fixture(t);
+  await workflow("changes", "old-attempt", "old-attempt", "blocked");
+  const handoff = join(root, "handoff.json");
+  const catalogue = join(root, "catalogue.json");
+  await writeFile(
+    catalogue,
+    JSON.stringify({ config: { data: join(workspace, "designbook") } }),
+  );
+  Object.assign(provider.config, {
+    intakeOnly: true,
+    intakeCatalogue: catalogue,
+    intakeHandoffOutput: handoff,
+  });
+  const presentation =
+    "Referenz: revision-2. Header: .kopf → .shell-header. Ansicht: mobil. Evidenz: header.png";
+  await stub(
+    emit([
+      {
+        type: "item.completed",
+        item: { type: "agent_message", text: presentation },
+      },
+      ...completed,
+    ]),
+  );
+  const response = await provider.callApi("Intake", { vars: { workspace } });
+  assert.equal(response.error, undefined);
+  assert.equal(response.tokenUsage.total, 110);
+  assert.equal(
+    response.output.pendingWorkflows["old-attempt"].state.status,
+    "blocked",
+  );
+  const saved = JSON.parse(await readFile(handoff, "utf8"));
+  assert.ok(saved.text.includes(presentation));
+  assert.equal(saved.catalogue, catalogue);
+  assert.equal(saved.workspace, workspace);
+  assert.equal(saved.references, undefined);
+  assert.equal(response.output.designIntake, undefined);
+});
+
+for (const cli of ["codex", "claude"]) {
+  test(`${cli} receives large prompts losslessly through stdin instead of argv`, async (t) => {
+    const f = await fixture(t);
+    const prompt = "ä precise work order\n".repeat(15000);
+    const received = join(f.root, "received.txt");
+    await f.stub(
+      `const fs = require('node:fs');
+const input = fs.readFileSync(0, 'utf8');
+fs.writeFileSync(${JSON.stringify(received)}, input);
+if (process.argv.some(arg => arg.length > 10000)) process.exit(9);
+${emit(cli === "codex" ? completed : claudeCompleted)}`,
+      cli,
+    );
+    const Class =
+      cli === "codex"
+        ? Provider
+        : (await import("../providers/claude-cli.mjs")).default;
+    const provider = new Class({
+      config: { evidenceDir: join(f.root, "transport"), timeout: 5000 },
+    });
+    const result = await provider.callApi(prompt, {
+      vars: { workspace: f.workspace },
+    });
+    assert.equal(result.error, undefined);
+    assert.equal(await readFile(received, "utf8"), prompt);
+    assert.equal(result.output.usage.input_tokens, 100);
+  });
+}

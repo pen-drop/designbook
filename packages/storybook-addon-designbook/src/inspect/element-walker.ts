@@ -71,6 +71,15 @@ export interface CapturedSource {
   adapter_version: string;
   /** Smallest captured breakpoint — the mobile-first base for `nodes[].style`. Absent for single-viewport captures. */
   base_breakpoint?: string;
+  /**
+   * The `@font-face` families the observed document declares, restricted to the
+   * ones it actually renders. This separates a font the source *ships* from a
+   * family a `font-family` stack merely names as an OS fallback: a computed
+   * stack lists `"Segoe UI"` and `Arial` on every node, and neither has a binary
+   * the source could ever hand over. Absent when the style environment could not
+   * be read.
+   */
+  font_faces?: Array<{ family: string; weight?: string; style?: string; urls: string[] }>;
   nodes: PropertyNode[];
 }
 
@@ -256,16 +265,49 @@ function getKind(el: Element): string {
   return KIND_TAG_MAP[el.tagName] || 'container';
 }
 
-function getLabel(el: Element): string {
+/**
+ * The element's OWN text — its direct text-node children only. Leaf-only
+ * `textContent` lost the label of any control that wraps an icon beside its
+ * text, e.g. `<button><svg/>Menü</button>`.
+ */
+function ownText(el: Element): string | undefined {
+  let out = '';
+  for (const child of Array.from(el.childNodes)) if (child.nodeType === 3) out += child.nodeValue || '';
+  const trimmed = out.trim();
+  return trimmed ? trimmed.slice(0, 200) : undefined;
+}
+
+/**
+ * Text a stylesheet renders through `::before`/`::after`. Icon-only controls
+ * routinely carry their only identifying label there, where it is invisible to
+ * `textContent` — leaving the dump with a node labelled `button` and the intake
+ * with no way to tell which button does what without opening a browser.
+ */
+function pseudoText(el: Element, view: Window): string | undefined {
+  for (const pseudo of ['::before', '::after']) {
+    const raw = view.getComputedStyle(el, pseudo).content;
+    if (!raw || raw === 'none' || raw === 'normal') continue;
+    const quoted = /^"([\s\S]*)"$|^'([\s\S]*)'$/.exec(raw.trim());
+    if (!quoted) continue; // counters, url() and attr() are not readable labels
+    const value = (quoted[1] !== undefined ? quoted[1] : quoted[2] || '').trim();
+    if (value) return value.slice(0, 200);
+  }
+  return undefined;
+}
+
+function getLabel(el: Element, view: Window): string {
   if (HEADING_TAGS.has(el.tagName) && el.textContent) {
     return el.textContent.trim().slice(0, 200);
   }
   const aria = el.getAttribute('aria-label');
   if (aria) return aria.trim().slice(0, 200);
+  const title = el.getAttribute('title');
+  if (title) return title.trim().slice(0, 200);
   if (el.tagName === 'IMG') return el.getAttribute('alt') || el.tagName.toLowerCase();
-  if (el.textContent && el.children.length === 0) {
-    return el.textContent.trim().slice(0, 200);
-  }
+  const own = ownText(el);
+  if (own) return own;
+  const pseudo = pseudoText(el, view);
+  if (pseudo) return pseudo;
   return el.tagName.toLowerCase();
 }
 
@@ -309,12 +351,12 @@ export function walkDocument(doc: Document, options: WalkDocumentOptions = {}): 
       id,
       ...(parentId ? { parent_id: parentId } : {}),
       child_ids: [],
-      label: getLabel(el),
+      label: getLabel(el, view),
       kind: getKind(el),
       role: getRole(el),
       heading_context: findHeadingContext(el),
       bbox: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
-      text: el.children.length === 0 && el.textContent ? el.textContent.trim().slice(0, 200) || undefined : undefined,
+      text: ownText(el),
       href: el.getAttribute('href') || undefined,
       src: el.getAttribute('src') || undefined,
       alt: el.getAttribute('alt') || undefined,
@@ -362,6 +404,8 @@ export const PAGE_SCRIPT = [
   findHeadingContext.toString(),
   getRole.toString(),
   getKind.toString(),
+  ownText.toString(),
+  pseudoText.toString(),
   getLabel.toString(),
   buildStyle.toString(),
   walkDocument.toString(),

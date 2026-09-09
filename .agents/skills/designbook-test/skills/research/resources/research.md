@@ -72,7 +72,9 @@ or transcripts into its context. Its bounded assignment:
 > Propose one small change in one allowed instruction file. State the hypothesis,
 > the observed friction it addresses, and return a diff without applying it.
 > Prefer changes that generalize beyond the train case. Preserve required work,
-> checks, output contracts and comparison thresholds.
+> checks, output contracts and comparison thresholds. Keep `_debo reference save` and
+> `_debo reference capture-image` as the extract/capture commands; do not add
+> playwright-cli or addon-source workarounds.
 
 This subagent proposes skill edits; it does not execute test cases. Run every
 candidate evaluation through Promptfoo. Record optimizer usage separately from

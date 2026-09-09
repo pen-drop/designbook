@@ -1,20 +1,15 @@
 /**
- * `_debo extract <url>` — one headless browser pass that dumps a reference page's
- * structure into an `extract.json` skeleton the `extract-reference` task then
- * fills the judgment gaps on. The mechanics (landmarks, interactive elements,
- * forms, images/assets, fonts, colors) live here in code; the completeness
- * judgment stays model work in the task.
- *
- * Built on the existing `inspect/` capture + style-env primitives so there is one
- * browser-automation path in the addon, not per-run improvised playwright
- * one-liners.
+ * Browser pass that writes one source dump (`extract--<state>.json`) and returns
+ * the catalogue skeleton for `reference save` stdout. One dump records one state
+ * observed in one session.
  */
 
-import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { mkdir } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import type { CapturedSource, PropertyNode } from '../inspect/element-walker.js';
 import type { StyleEnv } from '../inspect/style-env.js';
 import type { DesignbookConfig } from '../config.js';
+import type { CaptureStep } from './capture-browser.js';
 
 export interface ExtractLandmark {
   label: string;
@@ -46,10 +41,47 @@ export interface ExtractSkeleton {
   forms: ExtractForm[];
   images: ExtractImage[];
   fonts: string[];
+  /**
+   * `@font-face` binaries per family, restricted to the families the walked
+   * document actually uses. Capture rules require a local copy of every
+   * non-system font, and a computed `font-family` names a family, never a file.
+   */
+  font_faces: Array<{ family: string; weight?: string; style?: string; urls: string[] }>;
   colors: string[];
 }
 
 const INTERACTIVE_KINDS = new Set(['button', 'link', 'input']);
+
+/**
+ * Split a computed CSS `font-family` stack into family identities.
+ * `"Sarabun Light", sans-serif` → `Sarabun Light`, `sans-serif`.
+ */
+export function cssFontFamilies(value: string): string[] {
+  const families: string[] = [];
+  let current = '';
+  let quote: '"' | "'" | null = null;
+  for (const ch of value) {
+    if (quote) {
+      if (ch === quote) quote = null;
+      else current += ch;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      continue;
+    }
+    if (ch === ',') {
+      const family = current.trim();
+      if (family) families.push(family);
+      current = '';
+      continue;
+    }
+    current += ch;
+  }
+  const family = current.trim();
+  if (family) families.push(family);
+  return families;
+}
 
 /** Collect the ids of every descendant of `rootId` from the flat node list. */
 function descendantIds(nodes: PropertyNode[], rootId: string): Set<string> {
@@ -70,7 +102,7 @@ function descendantIds(nodes: PropertyNode[], rootId: string): Set<string> {
 }
 
 /**
- * Assemble the extract.json skeleton from a captured DOM tree and (optional)
+ * Assemble the catalogue skeleton from a captured DOM tree and (optional)
  * document style env. Pure: same inputs → same output, no browser or IO.
  */
 export function buildExtractSkeleton(
@@ -114,12 +146,22 @@ export function buildExtractSkeleton(
       images.push({ src: n.src, ...(n.alt ? { alt: n.alt } : {}), locator: n.source.locator });
     }
 
-    if (n.style?.font_family) fonts.add(n.style.font_family);
+    if (n.style?.font_family) for (const family of cssFontFamilies(n.style.font_family)) fonts.add(family);
     if (n.style?.background) colors.add(n.style.background);
     if (n.style?.foreground) colors.add(n.style.foreground);
   }
 
-  for (const f of styleEnv?.fonts ?? []) if (f.family) fonts.add(f.family);
+  for (const f of styleEnv?.fonts ?? []) {
+    if (!f.family) continue;
+    for (const family of cssFontFamilies(f.family)) fonts.add(family);
+  }
+
+  // Only the faces of families the document actually renders: a stylesheet
+  // routinely declares a dozen weights the observed page never uses, and the
+  // capture would otherwise be told to download all of them.
+  const usedFaces = (styleEnv?.font_faces ?? []).filter((face) =>
+    cssFontFamilies(face.family).some((family) => fonts.has(family)),
+  );
 
   return {
     url: meta.url,
@@ -129,6 +171,7 @@ export function buildExtractSkeleton(
     forms,
     images,
     fonts: [...fonts].sort(),
+    font_faces: usedFaces,
     colors: [...colors].sort(),
   };
 }
@@ -143,27 +186,47 @@ export function parseBreakpointNames(raw: string | undefined): string[] {
 }
 
 /**
- * Capture the DOM tree (one pass) and the document style env (a second short pass,
- * best-effort) and write the extract skeleton to `<out>/extract.json`. Also writes
- * the raw captured tree so the task can query it with jq without pasting it into
- * the conversation.
+ * Capture the DOM tree into `<out>/extract.json` and return the catalogue skeleton.
  */
 export async function runExtractPage(
   url: string,
   outDir: string,
-  opts: { breakpoints: string[]; fonts: string[] },
+  opts: {
+    breakpoints: string[];
+    fonts: string[];
+    /** Observed state this dump records; names the dump file. */
+    state: string;
+    /** Named session to observe as; resolved through `config.sessions`. */
+    session: string;
+    /** Steps that reach the recorded state before the walk. */
+    steps?: CaptureStep[];
+    /** Prelude module run after navigation. */
+    prelude?: string;
+  },
   config: DesignbookConfig,
-): Promise<string> {
+): Promise<{ dumpPath: string; catalogue: ExtractSkeleton }> {
   const { capture } = await import('../inspect/capture.js');
   const { resolveBreakpointWidths } = await import('../inspect/breakpoint-widths.js');
+  const { sourceDumpName } = await import('../reference-project.js');
+  const { prepareCapturePass } = await import('./capture-session.js');
 
   await mkdir(outDir, { recursive: true });
-  const capturedPath = resolve(outDir, 'captured.json');
+  const dumpPath = resolve(outDir, sourceDumpName(opts.state));
   const widths = resolveBreakpointWidths(config, opts.breakpoints);
-  await capture(url, capturedPath, widths);
+  const { storageState, prelude } = await prepareCapturePass(config, {
+    session: opts.session,
+    ...(opts.prelude ? { prelude: opts.prelude } : {}),
+  });
+  await capture(url, dumpPath, widths, {
+    session: opts.session,
+    state: opts.state,
+    ...(storageState ? { storageState } : {}),
+    ...(prelude ? { prelude } : {}),
+    ...(opts.steps ? { steps: opts.steps } : {}),
+  });
 
   const { readFile } = await import('node:fs/promises');
-  const captured = JSON.parse(await readFile(capturedPath, 'utf-8')) as CapturedSource;
+  const captured = JSON.parse(await readFile(dumpPath, 'utf-8')) as CapturedSource;
 
   let styleEnv: StyleEnv | undefined;
   try {
@@ -173,12 +236,17 @@ export async function runExtractPage(
     styleEnv = undefined; // degrade — the captured tree still yields fonts/colors
   }
 
-  const skeleton = buildExtractSkeleton(captured, styleEnv, {
+  const catalogue = buildExtractSkeleton(captured, styleEnv, {
     url,
     breakpoints: widths.map((w) => w.name).filter(Boolean),
   });
-  const outPath = resolve(outDir, 'extract.json');
-  await mkdir(dirname(outPath), { recursive: true });
-  await writeFile(outPath, JSON.stringify(skeleton, null, 2));
-  return outPath;
+
+  // The walk records computed `font-family` stacks, which name OS fallbacks the
+  // source does not ship. Persisting the used `@font-face` families alongside
+  // the nodes is what later lets the projection tell "self-hosted, download it"
+  // from "named as a fallback, nothing to download".
+  const { writeFile } = await import('node:fs/promises');
+  await writeFile(dumpPath, JSON.stringify({ ...captured, font_faces: catalogue.font_faces }, null, 2), 'utf-8');
+
+  return { dumpPath, catalogue };
 }

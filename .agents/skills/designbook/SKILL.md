@@ -6,10 +6,20 @@ description: >
   when creating, modifying, or deleting components, screens, scenes, design
   tokens, CSS, or any design system artifact. Each workflow is its own sub-skill
   under `skills/<workflow>/`; this index points to them and documents the global
-  flags. Never create component files without a designbook skill.
+  flags. Never create component files without a designbook skill. Each intake's
+  first command is `workflow discover <workflow>`. `_debo` /
+  `npx storybook-addon-designbook` is the only command surface — run it, read
+  stdout. Skill descriptions fire the skill; they are not the command spec. A
+  nonzero CLI exit ends the work with that exact message.
 ---
 
-Choose the matching domain sub-skill below. Each intake resolves its complete scope, follows the [shared builder](resources/workflow-building.md), and invokes [execute-workflow](skills/execute-workflow/SKILL.md) with the saved path.
+Choose the matching domain sub-skill below. Every intake starts with
+`workflow discover <workflow>`. Then the sub-skill resolves its complete
+scope from that catalogue, follows the
+[shared builder](resources/workflow-building.md), and invokes
+[execute-workflow](skills/execute-workflow/SKILL.md) with the saved path. Run
+`_debo` / `npx storybook-addon-designbook` from the
+[CLI reference](resources/cli-reference.md).
 
 `--optimize` asks for optimization suggestions after completion; apply only separately requested changes.
 
@@ -25,6 +35,7 @@ Choose the matching domain sub-skill below. Each intake resolves its complete sc
 | `shape-section` | [skills/shape-section/](skills/shape-section/SKILL.md) | Specify one section — flows, UI requirements, scope |
 | `sample-data` | [skills/sample-data/](skills/sample-data/SKILL.md) | Generate per-bundle sample data |
 | `css-generate` | [skills/css-generate/](skills/css-generate/SKILL.md) | Generate CSS token files from design tokens |
+| `extract-reference` | [skills/extract-reference/](skills/extract-reference/SKILL.md) | Capture selected source or actual observations into an immutable revision |
 | `design-component` | [skills/design-component/](skills/design-component/SKILL.md) | Create or change a UI component (explicit invocation only) |
 | `design-screen` | [skills/design-screen/](skills/design-screen/SKILL.md) | Create or change a named section screen |
 | `design-entity` | [skills/design-entity/](skills/design-entity/SKILL.md) | Create or change one view/form mode + preview |

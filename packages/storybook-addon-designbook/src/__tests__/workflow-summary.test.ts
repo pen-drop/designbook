@@ -11,10 +11,11 @@ function document() {
     config: {},
     inputs: {},
     inputs_schema: {},
-    context: {},
+    context: { instruction: { source: 'compare.md', content: 'Compare.' } },
     schemas: {},
     tasks: [
       {
+        step: 'write',
         id: 'compare',
         title: 'Compare',
         type: 'compare',
@@ -23,7 +24,7 @@ function document() {
         params: {},
         params_schema: {},
         inputs: {},
-        instructions: { source: 'compare.md', content: 'Compare.' },
+        instructions: 'instruction',
         context: [],
         outputs: {
           workflow_output: { required: true, schema: { type: 'object' }, submission: 'data', validators: [] },

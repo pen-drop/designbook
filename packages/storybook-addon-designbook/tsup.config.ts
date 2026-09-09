@@ -152,7 +152,7 @@ export default defineConfig(async () => {
   // CLI entry point
   configs.push({
     ...commonConfig,
-    entry: ['src/cli.ts'],
+    entry: ['src/cli.ts', 'src/workflow-markdown.ts'],
     platform: 'node',
     target: NODE_TARGET,
     banner: { js: '#!/usr/bin/env node' },

@@ -1,8 +1,4 @@
-export interface VisualCompareRegion {
-  name: string;
-  state: string;
-}
-
-export function referenceImagePath(referenceDir: string, breakpoint: string, region: VisualCompareRegion): string {
-  return `/__designbook/load?path=${referenceDir}/${encodeURIComponent(breakpoint)}--${encodeURIComponent(region.name)}--${encodeURIComponent(region.state)}.png`;
+/** Load the exact published capture association instead of guessing a filename. */
+export function referenceImagePath(referenceDir: string, capturePath: string): string {
+  return `/__designbook/load?path=${encodeURIComponent(`${referenceDir}/${capturePath}`)}`;
 }

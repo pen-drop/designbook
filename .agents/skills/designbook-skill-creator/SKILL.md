@@ -10,6 +10,19 @@ metadata:
 
 Authoritative reference for authoring and maintaining Designbook skills. Load this skill before modifying any file under `.agents/skills/`.
 
+## Required Writing Skill
+
+Before creating, editing, or reviewing agent-facing skill instructions, load and
+apply `writing-for-agents` (installed as `matt-skills-curated:writing-for-agents`)
+from the available skill catalog. This is a mandatory prerequisite: its writing
+principles govern the prose; the file-type rules below govern Designbook structure.
+If the skill cannot be found, report the missing dependency before authoring.
+
+Load [rules/writing-files.md](rules/writing-files.md) alongside it for the
+Designbook-specific writing checks (`WRITE-01` .. `WRITE-04`). Before completing
+the work, review every changed instruction against both and resolve findings or
+report those that remain; for a review-only request, report findings without edits.
+
 ## Three-Part Project Architecture
 
 ```
@@ -73,11 +86,6 @@ Load the matching rule file **before** creating or editing any file of that type
 Each rule file contains narrative + correct/wrong examples (authoring guidance) and a
 `## Checks` table (validation source of truth). The same files are loaded by the
 validator runner — see [resources/validate.md](resources/validate.md).
-
-On top of the structural rules above, [rules/writing-files.md](rules/writing-files.md) governs the
-**writing layer** — context pointers, the two loads, information hierarchy, completion criteria,
-and pruning — for every agent-read document, including `SKILL.md` descriptions and the always-loaded
-`CLAUDE.md`. Load it before writing any such prose (`WRITE-01` .. `WRITE-04`).
 
 ## Schema Reference
 

@@ -286,7 +286,7 @@ provides:
       `---
 provides: reference.url
 trigger:
-  steps: [design-verify:intake]
+  steps: [compare-observations]
 ---
 # Rule content`,
     );

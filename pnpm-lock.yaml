@@ -43,6 +43,9 @@ importers:
       promptfoo:
         specifier: ^0.120.24
         version: 0.120.24(@swc/helpers@0.5.21)(@types/json-schema@7.0.15)(@types/node@20.19.33)(pg@8.18.0)(playwright-core@1.58.2)(socks@2.8.7)
+      shell-quote:
+        specifier: 1.8.3
+        version: 1.8.3
 
   packages/integrations/test-integration-drupal:
     dependencies:
