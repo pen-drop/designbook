@@ -91,19 +91,21 @@ function planWithObligation(tasks: string[]): Plan {
 }
 
 describe('plan done', () => {
-  it('ticks the checkbox and records results on valid input', async () => {
+  it('only ticks the checkbox — it does not write the result into the plan', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'plan-done-'));
     const planPath = join(dir, 'plan.md');
     const dataPath = join(dir, 'r.json');
     writeFileSync(planPath, serializePlan(freshPlan()));
-    writeFileSync(dataPath, JSON.stringify({ component: { id: 'pet-card' } }));
+    writeFileSync(dataPath, JSON.stringify({ component: { id: 'zzz-secret-result-value' } }));
     try {
       process.exitCode = undefined;
       await run(['plan', 'done', planPath, '--task', 'create-component', '--data-file', dataPath]);
       expect(process.exitCode ?? 0).toBe(0);
-      const after = parsePlan(readFileSync(planPath, 'utf8'));
-      expect(after.steps[0]!.tasks[0]!.done).toBe(true);
-      expect(after.steps[0]!.tasks[0]!.results).toEqual({ component: { id: 'pet-card' } });
+      const raw = readFileSync(planPath, 'utf8');
+      const after = parsePlan(raw);
+      expect(after.steps[0]!.tasks[0]!.done).toBe(true); // checked off
+      expect(after.steps[0]!.tasks[0]!.results).toBeNull(); // result NOT stored in the plan
+      expect(raw).not.toContain('zzz-secret-result-value'); // the result value never lands in the plan
     } finally {
       process.exitCode = undefined;
       rmSync(dir, { recursive: true, force: true });

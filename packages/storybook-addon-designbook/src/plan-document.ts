@@ -285,14 +285,10 @@ export function serializePlan(plan: Plan): string {
       out.push(indent(yaml({ outputs: task.contract.outputs }), '  '));
       out.push('  ```');
       out.push('');
+      // Run-state is the checkbox; the result content lives in the output files,
+      // never in the plan — this block is just a done/pending marker.
       out.push('  #### Results');
-      if (task.results) {
-        out.push('  ```yaml');
-        out.push(indent(yaml(task.results), '  '));
-        out.push('  ```');
-      } else {
-        out.push('  <!-- pending -->');
-      }
+      out.push(task.done ? '  <!-- done -->' : '  <!-- pending -->');
       out.push('');
     }
   }

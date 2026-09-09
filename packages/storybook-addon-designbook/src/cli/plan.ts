@@ -107,8 +107,9 @@ export function register(program: Command): void {
           writeFileSync(output.path, body);
         }
       }
+      // Only check the task off. The result content lives in the output files
+      // (data outputs are written above); it is deliberately NOT stored in the plan.
       task.done = true;
-      task.results = result;
       writePlan(path, serializePlan(parsed));
       print({ ok: true, task: task.name });
     });
