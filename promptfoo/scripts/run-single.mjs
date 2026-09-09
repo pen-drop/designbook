@@ -182,7 +182,6 @@ const providers = base.providers.map((p) => ({
     requireDesignIntake: designIntake,
     ...(designIntake ? { intakeHandoffInput: intakeHandoff } : {}),
     evidenceDir: join(runDir, "evidence"),
-    definitionSnapshotDir: join(runDir, "definitions"),
     ...(caseDoc.evidence && opts.phase === "main"
       ? { caseFile: join(cases, `${opts.case}.yaml`) }
       : {}),
