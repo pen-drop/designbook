@@ -31,8 +31,9 @@ export function executorConfig(base, { repo, runDir, workflowPath, executor }) {
   }));
   config.tests[0].vars = { workspace: base.tests[0].vars.workspace };
   config.prompts = [
-    `You are the execution agent. In ${JSON.stringify(base.tests[0].vars.workspace)}, use the installed execute-workflow skill to execute the saved workflow at ${JSON.stringify(workflowPath)} until complete or blocked.\n` +
-      `Read the work through the Designbook CLI one step at a time and complete every task in each step. The skill owns the execution loop. Preserve the saved plan. Use only this workspace and its inputs; do not read earlier test runs or provision fixtures. Report the final workflow summary.`,
+    `You are the execution agent. In ${JSON.stringify(base.tests[0].vars.workspace)}, set up the CLI once: \`_debo() { npx storybook-addon-designbook "$@"; }\` then \`eval "$(_debo config)"\`.\n` +
+      `A sealed MD plan already exists at ${JSON.stringify(workflowPath)}. Use the installed execute-workflow skill to execute it until every task is done or one is genuinely blocked. Do NOT re-plan, run intake, or edit the plan's definition.\n` +
+      `Loop through the Designbook CLI one step at a time: \`plan steps <plan>\` to see steps and checkbox state, \`plan instructions <plan> --step <id>\` for a step's context and contracts, produce each task's declared outputs, then \`plan done <plan> --task <name> --data-file <result.json>\` (add \`--title\` when a step repeats a task name). The skill owns the loop. Preserve the saved plan. Use only this workspace and its inputs; do not read earlier test runs or provision fixtures. Finish by reporting \`plan summary <plan>\`.`,
   ];
   return config;
 }
@@ -53,12 +54,11 @@ export function runModelPipeline({
     throw new Error("Missing validated intake handoff");
   const catalogue = JSON.parse(readFileSync(handoff.catalogue, "utf8"));
   const workflowId = base.tags.workflow_id;
+  // The MD-plan engine writes one sealed plan per workflow at this canonical path.
   const workflowPath = join(
     catalogue.config.data,
-    "workflows",
-    "changes",
-    `${workflowId}-planned`,
-    "tasks.yml",
+    "plans",
+    `${workflowId}.plan.md`,
   );
   const plan = copy(base);
   const planOutput = join(runDir, "plan.json");
@@ -79,12 +79,13 @@ export function runModelPipeline({
     },
   }));
   plan.prompts = [
-    `You are the planning model, already inside Promptfoo. Produce a complete, precise saved plan for a separate simple executor. Do not execute its tasks in this invocation.\n` +
+    `You are the planning model, already inside Promptfoo. Produce a complete, sealed MD plan for a separate simple executor. Do NOT execute its tasks in this invocation.\n` +
       `Goal for the executor:\n${requestPrompt}\n\n` +
-      `Read the intake handoff at ${JSON.stringify(intakeHandoff)} and follow the installed planning skill using its catalogue ${JSON.stringify(handoff.catalogue)}. Resolve all decisions needed by the worker in the saved plan.\n` +
-      `One executor agent will execute the entire workflow, reading one step at a time through the CLI. Group independent tasks into steps as the planning skill directs.\n` +
-      `Use definition.id ${JSON.stringify(workflowId)}. Run workflow validate and workflow create with --catalogue ${JSON.stringify(handoff.catalogue)}. Save the workflow at exactly ${JSON.stringify(workflowPath)}, then run node ${JSON.stringify(join(repo, "promptfoo/scripts/snapshot-definition.mjs"))} ${JSON.stringify(workflowPath)}.\n` +
-      `End after saving the complete pending workflow. Do not start/done/block workflow tasks, write component/scene output files, invoke execute-workflow, or provision fixtures. The following executor invocation executes it.`,
+      `Set up the CLI once: \`_debo() { npx storybook-addon-designbook "$@"; }\` then \`eval "$(_debo config)"\`.\n` +
+      `Read the intake handoff at ${JSON.stringify(intakeHandoff)} — it records the workspace and the published reference from the completed capture phase. Reuse those exact reference bindings, subjects and selectors; do not recapture. Its reference files are frozen inputs.\n` +
+      `Follow the installed planning skill (the ${JSON.stringify(workflowId)} domain intake and \`.agents/skills/designbook/resources/workflow-building.md\`): run \`_debo intake ${workflowId} --palette\`, read the applicable intake rules, and author the COMPLETE \`tasks.json\` — one entry per concrete task covering every step, each \`params\` satisfying that task's \`params_schema\`, and every open selector resolved.\n` +
+      `Then run \`_debo plan build ${workflowId} --tasks <tasks.json>\`. It validates each task's params, embeds every body once, freezes the contracts and definitions, computes the digest (auto-sealed), and writes the plan to exactly ${JSON.stringify(workflowPath)}. Fix any reported unmet param or missing step in \`tasks.json\` and re-run until it returns ok.\n` +
+      `End after \`plan build\` returns ok and the sealed plan exists at ${JSON.stringify(workflowPath)}. Do NOT run \`plan done\`, write component/scene output files, invoke execute-workflow, or provision fixtures. The following executor invocation executes it.`,
   ];
   const intakeArtifacts = JSON.parse(
     readFileSync(base.tags.intake_report, "utf8"),

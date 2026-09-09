@@ -216,32 +216,75 @@ export function componentPrerequisites(document) {
   return { passed: failures.length === 0, failures };
 }
 
-// workflow create accepts an explicit file path. Inspect the whole reserved
-// workflow directory so a misplaced or archived attempt cannot evade the gates.
+// Adapt one MD plan into the workflow-document shape the harness scores against.
+// The digest-excluded run-state — a task's `- [x]`/`- [ ]` checkbox — is the
+// authoritative done-state, so the scorer reads the checkboxes directly rather
+// than the addon parser (no cwd/CLI dependency in the skill layer). Per-task
+// build/browser results no longer live in the plan (the executor writes declared
+// output files and design-verify writes its score to a file), so `results` is
+// empty here; completion is "every task checked off".
+export function planToDocument(text, fallbackId) {
+  const workflow = text.match(/^# Plan:\s*(\S+)/m)?.[1] ?? fallbackId;
+  const tasks = {};
+  let step = null;
+  let index = 0;
+  for (const line of text.split("\n")) {
+    const stepMatch = line.match(/^###\s+Step:\s+(\S+)/);
+    if (stepMatch) {
+      step = stepMatch[1];
+      continue;
+    }
+    const taskMatch = line.match(/^\s*-\s+\[([ xX])\]\s+(\S+)(?:\s+—\s+(.*))?$/);
+    if (!taskMatch) continue;
+    const done = taskMatch[1].toLowerCase() === "x";
+    const id = `${step ?? "step"}:${taskMatch[2]}:${index++}`;
+    tasks[id] = {
+      id,
+      name: taskMatch[2],
+      title: (taskMatch[3] ?? "").trim(),
+      step,
+      status: done ? "done" : "pending",
+      attempts: done ? 1 : 0,
+      results: {},
+    };
+  }
+  const values = Object.values(tasks);
+  const status =
+    values.length > 0 && values.every((task) => task.status === "done")
+      ? "completed"
+      : "pending";
+  return {
+    definition: {
+      id: workflow,
+      tasks: values.map((task) => ({ id: task.id, name: task.name, outputs: {} })),
+    },
+    state: { status, tasks },
+  };
+}
+
+// The saved plans of a run. The MD-plan engine writes one sealed plan per
+// workflow at `<DESIGNBOOK_DATA>/plans/<workflow>.plan.md`; the scorer inspects
+// the whole plans directory so a misplaced attempt cannot evade the gates.
 export function savedWorkflows(dataDir) {
   const found = [];
-  const visit = (directory) => {
-    if (!existsSync(directory)) return;
-    for (const entry of readdirSync(directory, { withFileTypes: true })) {
-      const path = resolve(directory, entry.name);
-      if (entry.isDirectory()) {
-        visit(path);
-        continue;
-      }
-      if (!entry.isFile()) continue;
+  const plans = resolve(dataDir, "plans");
+  if (existsSync(plans)) {
+    for (const entry of readdirSync(plans, { withFileTypes: true })) {
+      if (!entry.isFile() || !entry.name.endsWith(".plan.md")) continue;
+      const path = resolve(plans, entry.name);
       try {
-        const document = parseYaml(readFileSync(path, "utf8"));
-        if (document?.definition && document?.state)
-          found.push({ path, document });
-        else if (entry.name === "tasks.yml")
-          found.push({ path, error: "Invalid workflow document" });
+        found.push({
+          path,
+          document: planToDocument(
+            readFileSync(path, "utf8"),
+            entry.name.replace(/\.plan\.md$/, ""),
+          ),
+        });
       } catch (error) {
-        if (entry.name === "tasks.yml")
-          found.push({ path, error: error.message });
+        found.push({ path, error: error.message });
       }
     }
-  };
-  visit(resolve(dataDir, "workflows"));
+  }
   return found;
 }
 

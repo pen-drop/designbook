@@ -1,5 +1,4 @@
 import { nativeEntries } from "./native-presentation.mjs";
-import { workflowMarkdown } from "../extensions/workflow-markdown.mjs";
 import { writeContextLog } from "./context-log.mjs";
 /**
  * Shared workspace, artifact and evidence handling for CLI providers.
@@ -333,18 +332,6 @@ class CliProvider {
 
       // Collect all workspace artifacts after the run
       const artifacts = await this.collectArtifacts(cwd);
-      const documents = {
-        ...artifacts.completedWorkflows,
-        ...artifacts.pendingWorkflows,
-      };
-      artifacts.workflowMarkdown = {};
-      for (const [index, [id, document]] of Object.entries(
-        documents,
-      ).entries()) {
-        const path = join(evidenceDir, `workflow-${index + 1}.md`);
-        await writeFile(path, await workflowMarkdown(document));
-        artifacts.workflowMarkdown[id] = path;
-      }
 
       if (this.config.intakeOnly && this.config.intakeHandoffOutput) {
         // Transport the model's presentation verbatim. Skills and the CLI own
