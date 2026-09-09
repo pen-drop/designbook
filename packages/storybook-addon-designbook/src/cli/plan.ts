@@ -100,9 +100,15 @@ export function register(program: Command): void {
       // so completing the task writes the workspace artifact (vision.yml, …).
       for (const [key, output] of Object.entries(task.contract.outputs)) {
         if (output.submission === 'data' && output.path && key in result) {
-          const body = /\.ya?ml$/.test(output.path)
-            ? dumpYaml(result[key])
-            : JSON.stringify(result[key], null, 2) + '\n';
+          const value = result[key];
+          // A string result is written raw (twig, js, css, or yaml-as-text); an
+          // object is dumped as YAML for a .yml target, otherwise JSON.
+          const body =
+            typeof value === 'string'
+              ? value
+              : /\.ya?ml$/.test(output.path)
+                ? dumpYaml(value)
+                : JSON.stringify(value, null, 2) + '\n';
           mkdirSync(dirname(output.path), { recursive: true });
           writeFileSync(output.path, body);
         }

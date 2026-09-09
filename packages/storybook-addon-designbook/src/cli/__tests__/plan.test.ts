@@ -203,6 +203,53 @@ describe('plan done data output', () => {
   });
 });
 
+describe('plan done writes text data outputs raw', () => {
+  it('writes a string result to a .twig path verbatim (not JSON-quoted)', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'plan-twig-'));
+    const planPath = join(dir, 'plan.md');
+    const dataPath = join(dir, 'r.json');
+    const twigPath = join(dir, 'header.twig');
+    const plan: Plan = {
+      workflow: 'design-shell',
+      digest: '',
+      definitions: {},
+      context: {},
+      steps: [
+        {
+          name: 'write-component',
+          context: [],
+          tasks: [
+            {
+              name: 'write-component',
+              title: 'header',
+              done: false,
+              params: {},
+              contract: {
+                outputs: {
+                  'component-twig': { required: true, submission: 'data', schema: { type: 'string' }, path: twigPath },
+                },
+              },
+              results: null,
+            },
+          ],
+        },
+      ],
+    };
+    plan.digest = planDigest(plan);
+    writeFileSync(planPath, serializePlan(plan));
+    writeFileSync(dataPath, JSON.stringify({ 'component-twig': '<header>{{ title }}</header>' }));
+    try {
+      process.exitCode = undefined;
+      await run(['plan', 'done', planPath, '--task', 'write-component', '--title', 'header', '--data-file', dataPath]);
+      expect(process.exitCode ?? 0).toBe(0);
+      expect(readFileSync(twigPath, 'utf8')).toBe('<header>{{ title }}</header>'); // raw, no quotes/escapes
+    } finally {
+      process.exitCode = undefined;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('plan seal', () => {
   it('computes and writes the digest so execution accepts the plan', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'plan-seal-'));
