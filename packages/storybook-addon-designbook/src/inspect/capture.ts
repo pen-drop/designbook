@@ -3,10 +3,31 @@ import { dirname } from 'node:path';
 import { PAGE_SCRIPT } from './element-walker.js';
 import { mergeBreakpointTrees, type BreakpointCapture } from './merge-breakpoints.js';
 import type { CapturedSource } from './element-walker.js';
+import { runStateSteps, type CaptureStep } from '../cli/capture-browser.js';
+import { ANONYMOUS_SESSION, runPrelude, sessionContextOptions, type PreludeFn } from '../cli/capture-session.js';
 
 export interface CaptureBreakpoint {
   name: string;
   width: number;
+}
+
+/**
+ * The observed pass a dump belongs to. A dump is one page load in one session at
+ * one state, so a revision holds one dump per declared state — the projection
+ * would otherwise attach a single session's DOM to every state and silently
+ * claim structure that was never observed.
+ */
+export interface CapturePass {
+  /** Session name; the storage state itself is resolved by the caller. */
+  session?: string;
+  /** Observed state this dump records. */
+  state?: string;
+  /** Resolved Playwright storage-state file, when the session has one. */
+  storageState?: string;
+  /** Prelude that makes the page observable before the walk. */
+  prelude?: PreludeFn;
+  /** Steps that reach the non-rest state this dump records. */
+  steps?: CaptureStep[];
 }
 
 const DEFAULT_WALKER_TIMEOUT_MS = 60_000;
@@ -47,7 +68,12 @@ async function waitForReady(page: import('playwright').Page, totalBudgetMs: numb
  * mobile-first merged CapturedSource to `outPath`. With no breakpoints, captures
  * once at the default viewport (legacy single-shot behavior).
  */
-export async function capture(url: string, outPath: string, breakpoints: CaptureBreakpoint[] = []): Promise<void> {
+export async function capture(
+  url: string,
+  outPath: string,
+  breakpoints: CaptureBreakpoint[] = [],
+  pass: CapturePass = {},
+): Promise<void> {
   const totalTimeoutMs = parseTimeoutMs();
   await mkdir(dirname(outPath), { recursive: true });
 
@@ -64,11 +90,22 @@ export async function capture(url: string, outPath: string, breakpoints: Capture
       }, totalTimeoutMs);
 
       (async () => {
-        const context = await browser.newContext({ viewport: { width: widths[0]!.width, height: 1600 } });
+        const context = await browser.newContext({
+          viewport: { width: widths[0]!.width, height: 1600 },
+          ...sessionContextOptions(pass.storageState),
+        });
         const page = await context.newPage();
         try {
           await page.goto(url);
+          await runPrelude(page, pass.prelude, {
+            session: pass.session ?? ANONYMOUS_SESSION,
+            url,
+            ...(pass.state ? { state: pass.state } : {}),
+          });
           await waitForReady(page, totalTimeoutMs);
+          // Reach the recorded state before walking, so the dump describes the
+          // state it is named after rather than the page's resting shape.
+          await runStateSteps(page, pass.steps ?? []);
           const out: BreakpointCapture[] = [];
           for (const bp of widths) {
             await page.setViewportSize({ width: bp.width, height: 1600 });

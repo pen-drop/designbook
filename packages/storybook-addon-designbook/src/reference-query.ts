@@ -10,7 +10,7 @@ import {
   type ObservationExtract,
   type ObservationSample,
 } from './reference-capture.js';
-import { projectPublishedObservations } from './reference-project.js';
+import { projectPublishedObservations, sourceDumpName } from './reference-project.js';
 
 export type ReferencePackageKind = 'component' | 'composition' | 'tokens' | 'assets';
 export interface ReferenceQueryRequest {
@@ -272,8 +272,13 @@ function evaluate(request: ReferenceQueryRequest, suppliedContract: ReferenceQue
       }),
     ),
   );
-  const selectedFiles = new Set(['meta.yml', 'extract.json']);
-  for (const capture of captures) selectedFiles.add(relative(request.reference, capture.path));
+  // A query selects states, so it carries the dumps of those states only — a
+  // narrow request must not drag in the DOM of states it never asked for.
+  const selectedFiles = new Set(['meta.yml']);
+  for (const capture of captures) {
+    selectedFiles.add(relative(request.reference, capture.path));
+    selectedFiles.add(sourceDumpName(capture.state));
+  }
   for (const asset of selectedImages.values()) selectedFiles.add(asset.reference_path);
   for (const font of selectedFonts.values()) for (const file of font.files ?? []) selectedFiles.add(file.local_path);
   const files = Object.fromEntries([...selectedFiles].map((file) => [file, binding.files[file]!]));

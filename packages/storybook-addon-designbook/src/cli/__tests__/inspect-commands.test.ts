@@ -133,12 +133,27 @@ describe('capture-matrix: planning', () => {
 
   it('expands elements × states × breakpoints into cells carrying selector + steps', () => {
     expect(matrixCellsFromMeta(meta)).toEqual([
-      { element: 'scene-header', selector: 'app-site-header', state: 'rest', steps: [], breakpoint: 'sm' },
-      { element: 'scene-header', selector: 'app-site-header', state: 'rest', steps: [], breakpoint: 'xl' },
-      { element: 'nav', selector: 'app-nav', state: 'rest', steps: [], breakpoint: 'sm' },
+      {
+        element: 'scene-header',
+        selector: 'app-site-header',
+        session: 'anonymous',
+        state: 'rest',
+        steps: [],
+        breakpoint: 'sm',
+      },
+      {
+        element: 'scene-header',
+        selector: 'app-site-header',
+        session: 'anonymous',
+        state: 'rest',
+        steps: [],
+        breakpoint: 'xl',
+      },
+      { element: 'nav', selector: 'app-nav', session: 'anonymous', state: 'rest', steps: [], breakpoint: 'sm' },
       {
         element: 'nav',
         selector: 'app-nav',
+        session: 'anonymous',
         state: 'open',
         steps: [{ action: 'click', selector: '.toggle', timeout: 300 }],
         breakpoint: 'sm',
@@ -151,7 +166,9 @@ describe('capture-matrix: planning', () => {
       source: {},
       elements: [{ id: 'x', selector: 'x-el', breakpoints: ['sm'] }],
     });
-    expect(cells).toEqual([{ element: 'x', selector: 'x-el', state: 'rest', steps: [], breakpoint: 'sm' }]);
+    expect(cells).toEqual([
+      { element: 'x', selector: 'x-el', session: 'anonymous', state: 'rest', steps: [], breakpoint: 'sm' },
+    ]);
   });
 
   it('yields zero cells for the OLD fabricated shape (proving the no-op is now visible)', () => {
@@ -178,7 +195,9 @@ describe('capture-matrix: planning', () => {
   });
 
   it('drops cells whose breakpoint has no known width', () => {
-    const cells: MatrixCell[] = [{ element: 'x', selector: 'x', state: 'rest', steps: [], breakpoint: 'unknown' }];
+    const cells: MatrixCell[] = [
+      { element: 'x', selector: 'x', state: 'rest', session: 'anonymous', steps: [], breakpoint: 'unknown' },
+    ];
     expect(planCaptureMatrix(cells, [{ name: 'sm', width: 640 }], '/out', () => false)).toHaveLength(0);
   });
 

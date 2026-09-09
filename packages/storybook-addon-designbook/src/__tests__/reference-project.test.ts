@@ -60,18 +60,17 @@ it('projects dump nodes, fonts and PNG dimensions without a second observations 
   const meta: ObservationMeta = {
     source: { kind: 'website', identity: 'https://example.test/header', revision: 'version-1' },
     role: 'reference',
-    extract: 'extract.json',
     assets_dir: 'assets',
     elements: [
       {
         id: 'header',
         locator: { kind: 'css', value: 'header' },
-        states: [{ name: 'rest' }],
+        states: [{ name: 'rest', session: 'anonymous' }],
         views: [{ id: 'mobile', width: 390, height: 844, breakpoint: 'sm' }],
       },
     ],
   };
-  const extract = projectObservations(dump, meta, directory);
+  const extract = projectObservations(new Map([['rest', dump]]), meta, directory);
   expect(extract.subjects[0]!.samples[0]!.observations.layout).toEqual({
     display: 'flex',
     gap: '8px',

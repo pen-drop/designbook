@@ -282,7 +282,7 @@ it('resolves one frozen observed packet per step from its capture contract and r
   const root = await mkdtemp(join(tmpdir(), 'step-reference-'));
   directories.push(root);
   const fixture = captureFixture(root);
-  const dumpPath = join(fixture.folder, 'extract.json');
+  const dumpPath = join(fixture.folder, 'extract--rest.json');
   const dump = JSON.parse(await readFile(dumpPath, 'utf8')) as { nodes: Array<{ text?: string }> };
   dump.nodes[0]!.text = 'EXACT_HEADER_OBSERVATION';
   await writeFile(dumpPath, JSON.stringify(dump));
@@ -310,7 +310,7 @@ it('resolves one frozen observed packet per step from its capture contract and r
   expect(text.split('EXACT_HEADER_OBSERVATION').length - 1).toBe(1);
   expect(text).not.toContain('reference_schema');
   expect(stepContext(doc, 'scene').references).toEqual({});
-  const file = join(folder, 'extract.json');
+  const file = join(folder, 'extract--rest.json');
   await writeFile(file, (await readFile(file, 'utf8')) + '\n');
   expect(() => stepContext(doc, 'components')).toThrow('fingerprint');
   expect(() => createDocument(def)).toThrow('fingerprint');

@@ -151,7 +151,7 @@ Reference:
   title: Captured observation metadata
   additionalProperties: false
   description: One source-neutral snapshot shared by reference and actual Storybook capture. Publication identity is supplied by the CLI binding manifest.
-  required: [source, role, elements, extract, assets_dir]
+  required: [source, role, elements, assets_dir]
   properties:
     source: { $ref: "#/ObservationSource" }
     role: { type: string, enum: [reference, actual] }
@@ -160,7 +160,13 @@ Reference:
       minItems: 1
       description: Selected subjects with their observed state and view coverage.
       items: { $ref: "#/ObservationElement" }
-    extract: { type: string, const: extract.json, description: Source dump written by `reference save`. Query projects observations from this file plus meta.yml and PNGs. }
+    prelude_digest:
+      type: string
+      pattern: "^[a-f0-9]{64}$"
+      description: >
+        SHA-256 of the prelude module that prepared every pass of this revision.
+        Absent when the capture used no prelude. Fixing it here means a later
+        prelude edit cannot silently redefine what was observed.
     assets_dir: { type: string, const: assets, description: Revision-relative asset directory. }
 
 SourceDump:
@@ -1007,13 +1013,27 @@ ObservationElement:
     states:
       type: array
       minItems: 1
-      description: Explicit observed states; source-specific replay details belong in the source workflow.
+      description: >
+        Explicit observed states; source-specific replay details belong in the
+        source workflow. Each state has its own dump `extract--<name>.json`, so a
+        state name identifies one page load in one session across the whole
+        revision and cannot carry different observers on different subjects.
       items:
         type: object
         additionalProperties: false
-        required: [name]
+        required: [name, session]
         properties:
           name: { type: string, minLength: 1, description: Exact state identity. }
+          session:
+            type: string
+            minLength: 1
+            description: >
+              Who observed this state. `anonymous` is the reserved name for a
+              capture taken without a stored session; any other name must be a
+              key of `sessions:` in designbook.config.yml, which resolves it to a
+              Playwright storage state. Required so a published revision states
+              its observer instead of defaulting to anonymous in silence.
+            examples: [anonymous, member, admin]
     views:
       type: array
       minItems: 1

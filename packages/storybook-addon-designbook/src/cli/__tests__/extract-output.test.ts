@@ -22,10 +22,10 @@ it('writes one source dump and returns the catalogue without a second observatio
   const result = await runExtractPage(
     'https://example.test',
     folder,
-    { breakpoints: ['sm'], fonts: [] },
+    { breakpoints: ['sm'], fonts: [], state: 'rest', session: 'anonymous' },
     {} as DesignbookConfig,
   );
-  expect(result.dumpPath).toBe(resolve(folder, 'extract.json'));
+  expect(result.dumpPath).toBe(resolve(folder, 'extract--rest.json'));
   expect(result.catalogue.url).toBe('https://example.test');
   expect(JSON.parse(readFileSync(result.dumpPath, 'utf8')).nodes).toEqual([]);
   expect(existsSync(resolve(folder, 'observations.json'))).toBe(false);

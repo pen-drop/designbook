@@ -28,12 +28,31 @@ const GENERIC_FAMILIES = new Set([
   'blinkmacsystemfont',
 ]);
 
-export const SOURCE_DUMP = 'extract.json';
+/**
+ * A dump is one page load in one session at one state, so a revision holds one
+ * dump per declared state. Sharing a single dump across states would attach the
+ * DOM of whichever state happened to be walked to every other state's sample —
+ * an artifact that claims structure it never observed.
+ */
+export function sourceDumpName(state: string): string {
+  if (!state) throw new Error('source dump: expected a state name');
+  return `extract--${state}.json`;
+}
 
-export function loadSourceDump(directory: string): CapturedSource {
-  const dump = JSON.parse(readFileSync(join(directory, SOURCE_DUMP), 'utf8')) as CapturedSource;
-  if (!dump || !Array.isArray(dump.nodes)) throw new Error(`${SOURCE_DUMP}: expected a source dump with nodes[]`);
+export function loadSourceDump(directory: string, state: string): CapturedSource {
+  const name = sourceDumpName(state);
+  const dump = JSON.parse(readFileSync(join(directory, name), 'utf8')) as CapturedSource;
+  if (!dump || !Array.isArray(dump.nodes)) throw new Error(`${name}: expected a source dump with nodes[]`);
   return dump;
+}
+
+/** Every distinct state declared across a revision's elements, in stable order. */
+export function declaredStates(meta: ObservationMeta): string[] {
+  return [...new Set(meta.elements.flatMap((element) => element.states.map((state) => state.name)))].sort();
+}
+
+export function loadSourceDumps(directory: string, states: string[]): Map<string, CapturedSource> {
+  return new Map(states.map((state) => [state, loadSourceDump(directory, state)]));
 }
 
 export function pngSize(bytes: Buffer): { width: number; height: number } {
@@ -120,7 +139,7 @@ function captureName(view: string, subject: string, state: string): string {
 }
 
 export function projectObservations(
-  dump: CapturedSource,
+  dumps: Map<string, CapturedSource>,
   meta: ObservationMeta,
   directory: string,
 ): ObservationExtract {
@@ -174,14 +193,23 @@ export function projectObservations(
 
   const captures: ObservationExtract['captures'] = [];
   const subjects: ObservationExtract['subjects'] = meta.elements.map((element) => {
-    const node = matchNode(dump, element.locator.value);
-    const tree = node ? descendants(dump, node) : [];
-    for (const item of tree) {
-      if (item.style.font_family) for (const family of cssFontFamilies(item.style.font_family)) rememberFont(family);
-      if (item.src) rememberImage(item.src, item.alt);
-    }
+    // Resolve the subject once per state: each state has its own dump, so its
+    // node, subtree, fonts and images are the ones actually observed there.
+    const perState = new Map(
+      element.states.map((state) => {
+        const dump = dumps.get(state.name);
+        const node = dump ? matchNode(dump, element.locator.value) : undefined;
+        return [state.name, { dump, node, tree: dump && node ? descendants(dump, node) : [] }] as const;
+      }),
+    );
+    for (const { tree } of perState.values())
+      for (const item of tree) {
+        if (item.style.font_family) for (const family of cssFontFamilies(item.style.font_family)) rememberFont(family);
+        if (item.src) rememberImage(item.src, item.alt);
+      }
     const samples: ObservationSample[] = element.views.flatMap((view) =>
       element.states.map((state) => {
+        const { dump, node, tree } = perState.get(state.name)!;
         const path = captureName(view.id, element.id, state.name);
         const file = join(directory, path);
         const bytes = readFileSync(file);
@@ -206,19 +234,20 @@ export function projectObservations(
           view: view.id,
           state: state.name,
           ...(view.breakpoint ? { breakpoint: view.breakpoint } : {}),
-          structure: node
-            ? structureOf(dump, node, element.locator.kind)
-            : {
-                roots: [element.id],
-                nodes: [
-                  {
-                    id: element.id,
-                    kind: 'missing',
-                    locator: element.locator,
-                    children: [],
-                  },
-                ],
-              },
+          structure:
+            dump && node
+              ? structureOf(dump, node, element.locator.kind)
+              : {
+                  roots: [element.id],
+                  nodes: [
+                    {
+                      id: element.id,
+                      kind: 'missing',
+                      locator: element.locator,
+                      children: [],
+                    },
+                  ],
+                },
           observations: node
             ? {
                 layout: layoutFromStyle(node.style),
@@ -235,15 +264,26 @@ export function projectObservations(
               }
             : { layout: {}, interactions: [{ state: state.name }] },
           dependencies: { parent_ids: [], asset_ids: assetIds, font_families: families },
-          unavailable: node
-            ? []
-            : [
+          // Declaring (subject, state) asserts the subject is observable there.
+          // Both gaps are therefore required failures: the earlier "only rest
+          // counts" heuristic let a non-rest state publish an empty structure.
+          unavailable: !dump
+            ? [
                 {
                   property: 'structure',
-                  reason: `Locator ${element.locator.value} is absent from the saved extract dump`,
-                  required: state.name === 'rest',
+                  reason: `State ${state.name} has no source dump ${sourceDumpName(state.name)}`,
+                  required: true,
                 },
-              ],
+              ]
+            : node
+              ? []
+              : [
+                  {
+                    property: 'structure',
+                    reason: `Locator ${element.locator.value} is absent from ${sourceDumpName(state.name)}`,
+                    required: true,
+                  },
+                ],
         };
         return sample;
       }),
@@ -260,6 +300,6 @@ export function projectPublishedObservations(directory: string): {
 } {
   if (!isAbsolute(directory)) throw new Error('reference: expected absolute revision directory');
   const meta = load(readFileSync(join(directory, 'meta.yml'), 'utf8')) as ObservationMeta;
-  const dump = loadSourceDump(directory);
-  return { meta, extract: projectObservations(dump, meta, directory) };
+  const dumps = loadSourceDumps(directory, declaredStates(meta));
+  return { meta, extract: projectObservations(dumps, meta, directory) };
 }

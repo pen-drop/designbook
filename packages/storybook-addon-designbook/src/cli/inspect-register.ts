@@ -9,7 +9,7 @@ import { isAbsolute, join } from 'node:path';
 import { load as parseYaml } from 'js-yaml';
 import { loadConfig } from '../config.js';
 import { assertUnpublishedTarget } from '../reference-capture.js';
-import { pngSize, SOURCE_DUMP } from '../reference-project.js';
+import { pngSize, sourceDumpName } from '../reference-project.js';
 
 export function register(program: Command): void {
   const reference = program
@@ -86,26 +86,49 @@ export function register(program: Command): void {
     .description('Browser pass: write the source dump to the revision and print the catalogue JSON.')
     .requiredOption('--reference <folder>', 'Absolute capture revision directory')
     .requiredOption('--url <url>', 'Source URL to observe')
+    .requiredOption('--state <name>', 'Observed state this dump records; writes extract--<state>.json')
+    .option('--session <name>', 'Named session to observe as (see config sessions:)', 'anonymous')
+    .option('--steps <json>', 'JSON array of capture steps that reach the recorded state')
+    .option('--prelude <file>', 'Prelude module run after navigation on every pass')
     .option('--breakpoints <list>', 'Comma-separated breakpoint names (e.g. sm,xl)')
     .option('--fonts <list>', 'Comma-separated font families to check')
-    .action(async (opts: { reference: string; url: string; breakpoints?: string; fonts?: string }) => {
-      const config = loadConfig();
-      const { runExtractPage, parseBreakpointNames } = await import('./extract-page.js');
-      try {
-        if (!isAbsolute(opts.reference)) throw new Error('reference: expected absolute revision directory');
-        assertUnpublishedTarget(join(opts.reference, SOURCE_DUMP));
-        const result = await runExtractPage(
-          opts.url,
-          opts.reference,
-          { breakpoints: parseBreakpointNames(opts.breakpoints), fonts: parseBreakpointNames(opts.fonts) },
-          config,
-        );
-        console.log(JSON.stringify(result.catalogue));
-      } catch (err) {
-        console.error(`Error: ${(err as Error).message}`);
-        process.exitCode = 1;
-      }
-    });
+    .action(
+      async (opts: {
+        reference: string;
+        url: string;
+        state: string;
+        session: string;
+        steps?: string;
+        prelude?: string;
+        breakpoints?: string;
+        fonts?: string;
+      }) => {
+        const config = loadConfig();
+        const { runExtractPage, parseBreakpointNames } = await import('./extract-page.js');
+        const { parseStepsArg } = await import('./capture-screenshot.js');
+        try {
+          if (!isAbsolute(opts.reference)) throw new Error('reference: expected absolute revision directory');
+          assertUnpublishedTarget(join(opts.reference, sourceDumpName(opts.state)));
+          const result = await runExtractPage(
+            opts.url,
+            opts.reference,
+            {
+              breakpoints: parseBreakpointNames(opts.breakpoints),
+              fonts: parseBreakpointNames(opts.fonts),
+              state: opts.state,
+              session: opts.session,
+              steps: parseStepsArg(opts.steps),
+              ...(opts.prelude ? { prelude: opts.prelude } : {}),
+            },
+            config,
+          );
+          console.log(JSON.stringify(result.catalogue));
+        } catch (err) {
+          console.error(`Error: ${(err as Error).message}`);
+          process.exitCode = 1;
+        }
+      },
+    );
   reference
     .command('capture-image')
     .description('Capture one PNG into the revision directory.')
@@ -115,7 +138,10 @@ export function register(program: Command): void {
     .requiredOption('--width <px>', 'Viewport width in pixels', (v) => Number.parseInt(v, 10))
     .option('--selector <sel>', 'Element selector to isolate ("" ⇒ full page / story root)', '')
     .option('--steps <json>', 'JSON array of capture steps to reach a non-rest state')
-    .option('--consent-selector <sel>', 'Selector clicked once to dismiss a consent banner')
+    .option('--session <name>', 'Named session to observe as (see config sessions:)', 'anonymous')
+    .option('--state <name>', 'Observed state this shot records; passed to the prelude')
+    .option('--view <id>', 'View identity this shot records; passed to the prelude')
+    .option('--prelude <file>', 'Prelude module run after navigation on every pass')
     .option('--transparent', 'Capture with a transparent background (default for element captures)')
     .option('--full-page', 'Full-page capture when no selector is given')
     .action(
@@ -126,7 +152,10 @@ export function register(program: Command): void {
         width: number;
         selector: string;
         steps?: string;
-        consentSelector?: string;
+        session: string;
+        state?: string;
+        view?: string;
+        prelude?: string;
         transparent?: boolean;
         fullPage?: boolean;
       }) => {
@@ -144,9 +173,12 @@ export function register(program: Command): void {
               width: opts.width,
               outPath,
               steps: parseStepsArg(opts.steps),
+              session: opts.session,
+              ...(opts.state ? { state: opts.state } : {}),
+              ...(opts.view ? { view: opts.view } : {}),
+              ...(opts.prelude ? { prelude: opts.prelude } : {}),
               ...(opts.transparent !== undefined ? { transparent: opts.transparent } : {}),
               ...(opts.fullPage !== undefined ? { fullPage: opts.fullPage } : {}),
-              ...(opts.consentSelector ? { consentSelector: opts.consentSelector } : {}),
             },
             config,
           );
@@ -184,8 +216,8 @@ export function register(program: Command): void {
     )
     .requiredOption('--out <dir>', 'Output directory for PNGs')
     .requiredOption('--url <url>', 'Base URL to capture')
-    .option('--consent-selector <sel>', 'Selector clicked once to dismiss a consent banner')
-    .action(async (metaPath: string, opts: { out: string; url: string; consentSelector?: string }) => {
+    .option('--prelude <file>', 'Prelude module run after navigation on every pass')
+    .action(async (metaPath: string, opts: { out: string; url: string; prelude?: string }) => {
       const config = loadConfig();
       const { matrixCellsFromMeta, planCaptureMatrix, runCaptureMatrix, ensureCellsPlanned } =
         await import('./capture-matrix.js');
@@ -198,7 +230,7 @@ export function register(program: Command): void {
         const jobs = planCaptureMatrix(cells, widths, opts.out);
         const { jobs: done, warnings } = await runCaptureMatrix(
           jobs,
-          { url: opts.url, ...(opts.consentSelector ? { consentSelector: opts.consentSelector } : {}) },
+          { url: opts.url, ...(opts.prelude ? { prelude: opts.prelude } : {}) },
           config,
         );
         const captured = done.filter((j) => !j.frozen).length;

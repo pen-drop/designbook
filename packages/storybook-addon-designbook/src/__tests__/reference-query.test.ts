@@ -34,7 +34,7 @@ async function fixture(kind = 'website') {
 describe('published observation queries', () => {
   it('projects selected observed facts and deduplicates dependencies without target decisions or writes', async () => {
     const f = await fixture();
-    const before = readFileSync(join(f.folder, 'extract.json'));
+    const before = readFileSync(join(f.folder, 'extract--rest.json'));
     const frozen = prepareReferenceQuery(f.request, f.contract);
     const result = queryReference(frozen, f.contract);
     expect(result.subjects[0]!.samples).toHaveLength(1);
@@ -43,7 +43,7 @@ describe('published observation queries', () => {
     expect(result.dependencies.fonts).toHaveLength(1);
     expect(result.captures[0]!.view).toBe('mobile');
     expect(result.provenance.binding.id).toBe(f.location.id);
-    expect(readFileSync(join(f.folder, 'extract.json'))).toEqual(before);
+    expect(readFileSync(join(f.folder, 'extract--rest.json'))).toEqual(before);
     expect(queryReference(frozen, f.contract)).toEqual(result);
   });
   it('maps explicit breakpoints while preserving native Figma node and view identities', async () => {
@@ -66,7 +66,7 @@ describe('published observation queries', () => {
     const f = await fixture();
     const result = queryReference(prepareReferenceQuery(f.request, f.contract), f.contract);
     expect(JSON.stringify(result).length).toBeLessThan(10000);
-    expect(JSON.parse(readFileSync(join(f.folder, 'extract.json'), 'utf8')).nodes).toBeDefined();
+    expect(JSON.parse(readFileSync(join(f.folder, 'extract--rest.json'), 'utf8')).nodes).toBeDefined();
   });
   it.each(['subject', 'state', 'view', 'mapping', 'ambiguous'] as const)(
     'rejects invalid %s selection',
@@ -95,7 +95,7 @@ describe('published observation queries', () => {
       queryReference(frozen, { ...f.contract, extractSchema: { ...f.contract.extractSchema, title: 'changed' } }),
     ).toThrow('fingerprint');
   });
-  it.each(['extract.json', 'assets/logo.svg', 'mobile--header--rest.png'])(
+  it.each(['extract--rest.json', 'assets/logo.svg', 'mobile--header--rest.png'])(
     'rejects changed published bytes: %s',
     async (file) => {
       const f = await fixture();
@@ -173,7 +173,7 @@ describe('published observation queries', () => {
     expect(Object.keys(result.provenance.files).sort()).toEqual([
       'assets/inter.woff2',
       'assets/logo.svg',
-      'extract.json',
+      'extract--rest.json',
       'meta.yml',
       'mobile--header--rest.png',
     ]);

@@ -3,6 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { load } from 'js-yaml';
 import { captureLocation, type ObservationMeta, type ObservationExtract } from '../reference-capture.js';
+import { sourceDumpName } from '../reference-project.js';
 import type { CapturedSource } from '../inspect/element-walker.js';
 import { saveDefinition, startTask, completeTask } from '../workflow-store.js';
 import type { WorkflowDefinition, TaskDefinition } from '../workflow-document.js';
@@ -24,39 +25,75 @@ export function observationContract() {
     definitions,
   };
 }
+/**
+ * Native identities a caller can fix up front. The revision digest covers the
+ * selected scope, so a fixture's identities must be final before its location is
+ * resolved — renaming a subject, state or view afterwards would move the
+ * revision out from under the files already written.
+ */
+export interface FixtureIdentity {
+  subject?: string;
+  locator?: { kind: string; value: string };
+  /** Rename map applied to the default `rest`/`open` states. */
+  states?: Record<string, string>;
+  /** Rename map applied to the default `mobile`/`desktop` views. */
+  views?: Record<string, string>;
+}
+
 export function captureFixture(
   root: string,
   kind = 'website',
   workflowId = 'capture-one',
   role: 'reference' | 'actual' = 'reference',
+  identity: FixtureIdentity = {},
 ) {
   const source = {
     kind,
     identity: kind === 'figma' ? 'file-key/selected-header-frames' : 'https://example.test/header',
     revision: 'version-1',
   };
-  const location = captureLocation(root, source, workflowId);
-  mkdirSync(join(location.directory, 'assets'), { recursive: true });
-  const locator = { kind: kind === 'figma' ? 'node' : 'css', value: kind === 'figma' ? '12:34' : 'header' };
+  const subjectId = identity.subject ?? 'header';
+  const locator = identity.locator ?? {
+    kind: kind === 'figma' ? 'node' : 'css',
+    value: kind === 'figma' ? '12:34' : 'header',
+  };
+  const viewName = (id: string) => identity.views?.[id] ?? id;
+  const stateName = (name: string) => identity.states?.[name] ?? name;
   const views = [
-    { id: 'mobile', width: 390, height: 844, breakpoint: 'sm' },
-    { id: 'desktop', width: 1280, height: 900, breakpoint: 'xl' },
+    { id: viewName('mobile'), width: 390, height: 844, breakpoint: 'sm' },
+    { id: viewName('desktop'), width: 1280, height: 900, breakpoint: 'xl' },
   ];
-  const states = ['rest', 'open'];
+  // `open` is observed as a named session, so the fixture exercises the
+  // one-dump-per-state rule and the per-state observer, not just the rest case.
+  const states = [
+    { name: stateName('rest'), session: 'anonymous' },
+    { name: stateName('open'), session: 'member' },
+  ];
+  const scope = views.flatMap((view) =>
+    states.map((state) => ({
+      subject: subjectId,
+      locator,
+      view: view.id,
+      state: state.name,
+      session: state.session,
+      breakpoint: view.breakpoint,
+    })),
+  );
+  const location = captureLocation(root, { source, scope }, workflowId);
+  mkdirSync(join(location.directory, 'assets'), { recursive: true });
   const meta: ObservationMeta = {
     source,
     role,
-    elements: [{ id: 'header', locator, states: states.map((name) => ({ name })), views }],
-    extract: 'extract.json',
+    elements: [{ id: subjectId, locator, states, views }],
     assets_dir: 'assets',
   };
   const extract: ObservationExtract = {
     subjects: [
       {
-        id: 'header',
+        id: subjectId,
         locator,
         samples: views.flatMap((view) =>
-          states.map((state) => ({
+          states.map(({ name: state }) => ({
             view: view.id,
             state,
             breakpoint: view.breakpoint,
@@ -89,11 +126,11 @@ export function captureFixture(
     images: [{ url: 'logo', role: 'logo', reference_path: 'assets/logo.svg', local_path: '/logo.svg' }],
     fonts: [{ family: 'Inter', source: 'self-hosted', files: [{ local_path: 'assets/inter.woff2' }] }],
     captures: views.flatMap((view) =>
-      states.map((state) => ({
-        subject: 'header',
+      states.map(({ name: state }) => ({
+        subject: subjectId,
         view: view.id,
         state,
-        path: `${view.id}--header--${state}.png`,
+        path: `${view.id}--${subjectId}--${state}.png`,
         width: 1,
         height: 1,
       })),
@@ -139,7 +176,9 @@ export function captureFixture(
       },
     ],
   };
-  writeFileSync(join(location.directory, 'extract.json'), JSON.stringify(dump));
+  // One dump per state — the projection resolves each state against its own.
+  const dumpFiles = states.map((state) => sourceDumpName(state.name));
+  for (const file of dumpFiles) writeFileSync(join(location.directory, file), JSON.stringify(dump));
   writeFileSync(join(location.directory, 'assets/logo.svg'), '<svg/>');
   writeFileSync(join(location.directory, 'assets/inter.woff2'), 'font bytes');
   for (const capture of extract.captures) writeFileSync(join(location.directory, capture.path), png);
@@ -149,7 +188,7 @@ export function captureFixture(
     step: id,
     title: id,
     type: 'reference',
-    target: 'header',
+    target: subjectId,
     depends_on,
     params: {},
     params_schema: { type: 'object' },
@@ -159,7 +198,7 @@ export function captureFixture(
     outputs: {},
   });
   const files = task('files');
-  for (const name of ['extract.json', ...extract.captures.map((c) => c.path), 'assets/logo.svg', 'assets/inter.woff2'])
+  for (const name of [...dumpFiles, ...extract.captures.map((c) => c.path), 'assets/logo.svg', 'assets/inter.woff2'])
     files.outputs[name] = {
       required: true,
       schema: {},
@@ -188,19 +227,7 @@ export function captureFixture(
     context: { capture: { source: 'capture.md', content: 'Observe selected subject and view.' } },
     schemas: contract.definitions,
     tasks: [files, publish],
-    capture: {
-      role,
-      source,
-      scope: extract.subjects.flatMap((subject) =>
-        subject.samples.map((s) => ({
-          subject: subject.id,
-          locator: subject.locator,
-          view: s.view,
-          state: s.state,
-          breakpoint: s.breakpoint,
-        })),
-      ),
-    },
+    capture: { role, source, scope },
   };
   const workflow = join(root, `${workflowId}.yml`);
   const prepare = async () => {

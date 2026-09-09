@@ -1,6 +1,7 @@
 /**
- * Browser pass that writes one source dump (`extract.json`) and returns the
- * catalogue skeleton for `reference save` stdout.
+ * Browser pass that writes one source dump (`extract--<state>.json`) and returns
+ * the catalogue skeleton for `reference save` stdout. One dump records one state
+ * observed in one session.
  */
 
 import { mkdir } from 'node:fs/promises';
@@ -8,6 +9,7 @@ import { resolve } from 'node:path';
 import type { CapturedSource, PropertyNode } from '../inspect/element-walker.js';
 import type { StyleEnv } from '../inspect/style-env.js';
 import type { DesignbookConfig } from '../config.js';
+import type { CaptureStep } from './capture-browser.js';
 
 export interface ExtractLandmark {
   label: string;
@@ -175,16 +177,39 @@ export function parseBreakpointNames(raw: string | undefined): string[] {
 export async function runExtractPage(
   url: string,
   outDir: string,
-  opts: { breakpoints: string[]; fonts: string[] },
+  opts: {
+    breakpoints: string[];
+    fonts: string[];
+    /** Observed state this dump records; names the dump file. */
+    state: string;
+    /** Named session to observe as; resolved through `config.sessions`. */
+    session: string;
+    /** Steps that reach the recorded state before the walk. */
+    steps?: CaptureStep[];
+    /** Prelude module run after navigation. */
+    prelude?: string;
+  },
   config: DesignbookConfig,
 ): Promise<{ dumpPath: string; catalogue: ExtractSkeleton }> {
   const { capture } = await import('../inspect/capture.js');
   const { resolveBreakpointWidths } = await import('../inspect/breakpoint-widths.js');
+  const { sourceDumpName } = await import('../reference-project.js');
+  const { prepareCapturePass } = await import('./capture-session.js');
 
   await mkdir(outDir, { recursive: true });
-  const dumpPath = resolve(outDir, 'extract.json');
+  const dumpPath = resolve(outDir, sourceDumpName(opts.state));
   const widths = resolveBreakpointWidths(config, opts.breakpoints);
-  await capture(url, dumpPath, widths);
+  const { storageState, prelude } = await prepareCapturePass(config, {
+    session: opts.session,
+    ...(opts.prelude ? { prelude: opts.prelude } : {}),
+  });
+  await capture(url, dumpPath, widths, {
+    session: opts.session,
+    state: opts.state,
+    ...(storageState ? { storageState } : {}),
+    ...(prelude ? { prelude } : {}),
+    ...(opts.steps ? { steps: opts.steps } : {}),
+  });
 
   const { readFile } = await import('node:fs/promises');
   const captured = JSON.parse(await readFile(dumpPath, 'utf-8')) as CapturedSource;

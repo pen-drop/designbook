@@ -5,7 +5,7 @@ import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { load } from 'js-yaml';
 import type { WorkflowDefinition, WorkflowDocument } from './workflow-document.js';
 import { validateImage } from './validators/image.js';
-import { loadSourceDump, projectObservations, SOURCE_DUMP } from './reference-project.js';
+import { declaredStates, loadSourceDumps, projectObservations, sourceDumpName } from './reference-project.js';
 
 export interface SourceLocator {
   kind: string;
@@ -20,12 +20,24 @@ export interface CaptureScope {
   subject: string;
   view: string;
   state: string;
+  /** Session the state is observed as; `anonymous` when no session is loaded. */
+  session: string;
   locator: SourceLocator;
   breakpoint?: string;
+}
+/**
+ * The prelude that made every pass of this revision observable. Its path stays
+ * in the repo so one script serves every revision of a source; its digest is
+ * fixed here so a later edit cannot silently redefine what was observed.
+ */
+export interface CapturePrelude {
+  path: string;
+  digest: string;
 }
 export interface CaptureDefinition {
   role: 'reference' | 'actual';
   source: CaptureSource;
+  prelude?: CapturePrelude;
   scope: CaptureScope[];
 }
 export interface CaptureBinding {
@@ -62,12 +74,14 @@ export interface ObservationSample {
 export interface ObservationMeta {
   source: CaptureSource;
   role: 'reference' | 'actual';
-  extract: string;
+  /** Digest of the prelude that prepared every pass, when the capture used one. */
+  prelude_digest?: string;
   assets_dir: string;
   elements: Array<{
     id: string;
     locator: SourceLocator;
-    states: Array<{ name: string }>;
+    /** Each state names its own dump (`extract--<name>.json`) and its observer. */
+    states: Array<{ name: string; session: string }>;
     views: Array<{ id: string; width: number; height: number; breakpoint?: string }>;
   }>;
 }
@@ -107,28 +121,50 @@ export const captureDefinitionSchema = {
       required: ['kind', 'identity', 'revision'],
       properties: { kind: text, identity: text, revision: { anyOf: [text, { type: 'null' }] } },
     },
+    prelude: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['path', 'digest'],
+      properties: { path: text, digest: { type: 'string', pattern: '^[a-f0-9]{64}$' } },
+    },
     scope: {
       type: 'array',
       minItems: 1,
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['subject', 'view', 'state', 'locator'],
-        properties: { subject: text, view: text, state: text, locator, breakpoint: text },
+        required: ['subject', 'view', 'state', 'session', 'locator'],
+        properties: { subject: text, view: text, state: text, session: text, locator, breakpoint: text },
       },
     },
   },
 };
 export const digestBytes = (bytes: string | Buffer): string => createHash('sha256').update(bytes).digest('hex');
-export function captureLocation(data: string, source: Pick<CaptureSource, 'kind' | 'identity'>, workflowId: string) {
+export type CaptureIdentity = Pick<CaptureDefinition, 'source' | 'scope' | 'prelude'>;
+/**
+ * `id` addresses the source; `revision` addresses one fixed observation of it.
+ *
+ * The revision digest covers the selected scope and the prelude, not just the
+ * workflow ID: otherwise editing the prelude or the scope silently overwrites a
+ * revision that was captured under different conditions. The workflow ID stays
+ * in the digest so `reserveCapture` keeps its one-owner-per-directory rule —
+ * two workflows with identical scope get separate revisions instead of
+ * colliding on a shared one.
+ */
+export function captureLocation(data: string, capture: CaptureIdentity, workflowId: string) {
   if (!isAbsolute(data)) throw new Error('Capture data root must be absolute');
-  const id = digestBytes(JSON.stringify([source.kind, source.identity])).slice(0, 16);
-  const revision = digestBytes(workflowId).slice(0, 16);
+  const id = digestBytes(JSON.stringify([capture.source.kind, capture.source.identity])).slice(0, 16);
+  const scope = [...capture.scope]
+    .map((cell) => [cell.subject, cell.view, cell.state, cell.session, cell.locator, cell.breakpoint ?? null])
+    .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
+  const revision = digestBytes(
+    JSON.stringify([capture.source.kind, capture.source.identity, scope, capture.prelude?.digest ?? null, workflowId]),
+  ).slice(0, 16);
   return { id, revision, directory: join(data, 'references', id, revision) };
 }
 export function captureDefinitionLocation(def: WorkflowDefinition) {
   if (!def.capture) throw new Error('Not a capture workflow');
-  return captureLocation(String(def.config.data), def.capture.source, def.id);
+  return captureLocation(String(def.config.data), def.capture, def.id);
 }
 /** Reserve a revision for one fixed workflow before any result file may be written. */
 export function reserveCapture(def: WorkflowDefinition, workflow: string): (() => void) | undefined {
@@ -171,14 +207,26 @@ export function validateCaptureDefinition(def: WorkflowDefinition): void {
     !metaOut[0]![1].required
   )
     throw new Error(`Capture requires one required data output reference at ${join(directory, 'meta.yml')}`);
-  const dumpOut = outputs.filter(([, output]) => output.path === join(directory, SOURCE_DUMP));
-  if (dumpOut.length !== 1 || dumpOut[0]![1].submission !== 'direct' || !dumpOut[0]![1].required)
-    throw new Error(`Capture requires one required dump at ${join(directory, SOURCE_DUMP)}`);
+  // One dump per declared state — a state without its own dump cannot be
+  // observed, only guessed at from another state's DOM.
+  for (const state of [...new Set(def.capture.scope.map((cell) => cell.state))].sort()) {
+    const path = join(directory, sourceDumpName(state));
+    const dumpOut = outputs.filter(([, output]) => output.path === path);
+    if (dumpOut.length !== 1 || dumpOut[0]![1].submission !== 'direct' || !dumpOut[0]![1].required)
+      throw new Error(`Capture requires one required dump at ${path}`);
+  }
   const seen = new Set<string>();
+  // A state names one dump for the whole revision, so its session cannot differ
+  // between subjects — that would need two dumps under one name.
+  const sessions = new Map<string, string>();
   for (const cell of def.capture.scope) {
     const key = JSON.stringify([cell.subject, cell.view, cell.state]);
     if (seen.has(key)) throw new Error(`Duplicate capture scope ${key}`);
     seen.add(key);
+    const known = sessions.get(cell.state);
+    if (known !== undefined && known !== cell.session)
+      throw new Error(`State ${cell.state} is observed as both "${known}" and "${cell.session}"`);
+    sessions.set(cell.state, cell.session);
   }
   for (const [, output] of outputs)
     if (output.path) {
@@ -236,8 +284,9 @@ export function validateCaptureObservations(
     meta.role !== capture.role
   )
     throw new Error('Capture source identity/revision or role differs from fixed definition');
-  if (meta.extract !== 'extract.json' || meta.assets_dir !== 'assets')
-    throw new Error('Capture uses canonical extract.json and assets paths');
+  if (meta.assets_dir !== 'assets') throw new Error('Capture uses the canonical assets directory');
+  if ((meta.prelude_digest ?? null) !== (capture.prelude?.digest ?? null))
+    throw new Error('Capture prelude digest differs from the fixed definition');
   const elements = unique(meta.elements, (e) => e.id, 'metadata elements');
   const subjects = unique(extract.subjects, (e) => e.id, 'extract subjects');
   const captures = unique(extract.captures, (e) => JSON.stringify([e.subject, e.view, e.state]), 'captures');
@@ -246,7 +295,7 @@ export function validateCaptureObservations(
   const fonts = unique(extract.fonts, (e) => e.family, 'fonts');
   const expected = new Set(capture.scope.map((e) => JSON.stringify([e.subject, e.view, e.state])));
   const actual = new Set<string>();
-  const files = new Set(['meta.yml', 'extract.json']);
+  const files = new Set(['meta.yml', ...declaredStates(meta).map(sourceDumpName)]);
   const dependency = (deps: Pick<ObservationDependencies, 'asset_ids' | 'font_families'>) => {
     for (const id of deps.asset_ids) {
       const asset = assets.get(id);
@@ -280,6 +329,11 @@ export function validateCaptureObservations(
       )
     )
       throw new Error(`Subject ${subject.id}: metadata views/states differ from selected capture scope`);
+    for (const state of element.states) {
+      const cell = scopeCells.find((item) => item.state === state.name);
+      if (!cell || cell.session !== state.session)
+        throw new Error(`Subject ${subject.id}: state ${state.name} observer differs from the selected capture scope`);
+    }
     for (const sample of subject.samples) {
       const key = JSON.stringify([subject.id, sample.view, sample.state]);
       if (actual.has(key) || !expected.has(key)) throw new Error(`Unexpected or duplicate observation ${key}`);
@@ -334,7 +388,8 @@ export function validateCaptureObservations(
 export function publishCapture(doc: WorkflowDocument, workflow: string): CaptureBinding {
   const location = captureDefinitionLocation(doc.definition);
   const meta = load(readCaptureFile(location.directory, 'meta.yml').toString('utf8')) as ObservationMeta;
-  const extract = projectObservations(loadSourceDump(location.directory), meta, location.directory);
+  const dumps = loadSourceDumps(location.directory, declaredStates(meta));
+  const extract = projectObservations(dumps, meta, location.directory);
   const files = validateCaptureObservations(location.directory, doc.definition.capture!, meta, extract);
   const declared = new Map<string, string>();
   for (const task of doc.definition.tasks)

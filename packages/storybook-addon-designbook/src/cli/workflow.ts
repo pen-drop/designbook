@@ -27,7 +27,7 @@ import {
   completeStep,
   blockStep,
 } from '../workflow-store.js';
-import { captureLocation } from '../reference-capture.js';
+import { captureLocation, type CaptureIdentity } from '../reference-capture.js';
 import { definitionContracts } from '../planning-contracts.js';
 
 function selectedTask(opts: { task?: string; step?: string }): string {
@@ -122,14 +122,17 @@ export function register(program: Command): void {
     );
   workflow
     .command('capture-location')
-    .requiredOption('--source-kind <kind>', 'Source identity namespace supplied by its skill')
-    .requiredOption('--source-identity <identity>', 'Stable identity of the selected design target')
+    .description(
+      'Resolve the revision directory for a fixed capture. The revision digest covers the selected scope and prelude, so the whole capture block is required — not just the source.',
+    )
+    .requiredOption('--capture <path>', 'JSON capture block: role, source, optional prelude, and the fixed scope')
     .requiredOption('--workflow-id <id>', 'Unique fixed capture workflow ID; refresh uses a new ID')
-    .action((opts: { sourceKind: string; sourceIdentity: string; workflowId: string }) =>
-      print(
-        captureLocation(loadConfig().data, { kind: opts.sourceKind, identity: opts.sourceIdentity }, opts.workflowId),
-      ),
-    );
+    .action((opts: { capture: string; workflowId: string }) => {
+      const capture = JSON.parse(readFileSync(opts.capture, 'utf8')) as CaptureIdentity;
+      if (!capture?.source?.kind || !capture.source.identity || !Array.isArray(capture.scope) || !capture.scope.length)
+        throw new Error('--capture: expected a capture block with source.kind, source.identity and a non-empty scope');
+      print(captureLocation(loadConfig().data, capture, opts.workflowId));
+    });
   workflow.command('schema').action(() => print(workflowDefinitionSchema));
   workflow
     .command('validate <definition>')

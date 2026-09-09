@@ -47,7 +47,7 @@ describe('Reference', () => {
     const f = fixture();
     await f.prepare();
     await f.finish();
-    writeFileSync(join(f.folder, 'extract.json'), '{}');
+    writeFileSync(join(f.folder, 'extract--rest.json'), '{}');
     expect(() => Reference.load({ data: f.root, technology: 'html' }, f.binding)).toThrow('fingerprint changed');
   });
 });
