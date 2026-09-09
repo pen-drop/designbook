@@ -2,7 +2,7 @@
 type: blueprint
 name: static-assets
 trigger:
-  steps: [write-scene, write-component]
+  steps: [write-scene, write-component, design-shell:intake, design-screen:intake]
 ---
 
 # Blueprint: Static Assets

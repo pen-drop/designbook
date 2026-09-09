@@ -1,5 +1,6 @@
 ---
 trigger:
+  domain: design.intake
   steps: [create-vision]
 filter:
   extensions: stitch

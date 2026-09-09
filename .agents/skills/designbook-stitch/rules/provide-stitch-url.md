@@ -1,6 +1,7 @@
 ---
 provides: reference.url
 trigger:
+  domain: design.intake
   steps: [compare-observations, observe-website]
 filter:
   extensions: stitch
