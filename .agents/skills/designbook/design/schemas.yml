@@ -173,9 +173,11 @@ SourceDump:
   type: object
   title: Stored source extract
   description: >
-    One browser dump for a capture revision (`extract.json`). Agents consume it
-    through `reference save` stdout and `reference query`, never by opening the file.
-    Walker-specific extra keys on the dump object are allowed.
+    One browser dump for one state of a capture revision
+    (`extract--<state>.json`): one page load, in one session, at that state.
+    Agents consume it through `reference save` stdout, `reference inspect` and
+    `reference query`, never by opening the file. Walker-specific extra keys on
+    the dump object are allowed.
   additionalProperties: true
   required: [source_kind, source_ref, nodes]
   properties:
@@ -204,9 +206,9 @@ SourceDump:
 ReferenceFolder:
   type: string
   description: >
-    Path to a scene's verification material — contains `extract.json`
-    (source dump), `meta.yml`, and screenshots per breakpoint/element/state.
-    Format: `<breakpoint>--<element>--<state>.png`.
+    Path to a scene's verification material — contains one source dump per
+    declared state (`extract--<state>.json`), `meta.yml`, and screenshots per
+    breakpoint/element/state. Format: `<breakpoint>--<element>--<state>.png`.
   examples: ["$DESIGNBOOK_DATA/references/hero", "/tmp/refs/article"]
 
 CompareArtifact:
@@ -739,8 +741,8 @@ RegionProperties:
     Authoritative element properties for the region the current task covers.
     Produced by the region-properties code resolver from the rendered DOM.
     When `matched_via !== "none"`, `style` values are ground truth — markup
-    and CSS MUST use them where present. Falls back to extract.json + design
-    hints only for properties not in the bag.
+    and CSS MUST use them where present. Falls back to the state's source dump
+    plus design hints only for properties not in the bag.
   required: [matched_via, nodes]
   properties:
     matched_via:

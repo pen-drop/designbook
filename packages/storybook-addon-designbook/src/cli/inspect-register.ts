@@ -191,6 +191,22 @@ export function register(program: Command): void {
       },
     );
   reference
+    .command('prelude')
+    .description(
+      'Validate a prelude module and print the { path, digest } pair for a capture block. Run before workflow capture-location: the revision digest covers the prelude.',
+    )
+    .requiredOption('--path <file>', 'Prelude module exporting default async (page, ctx) => {}')
+    .action(async (opts: { path: string }) => {
+      const { loadPrelude, preludeDigest } = await import('./capture-session.js');
+      try {
+        await loadPrelude(opts.path); // reject a non-conforming module before it is fixed into a revision
+        console.log(JSON.stringify({ path: opts.path, digest: preludeDigest(opts.path) }));
+      } catch (err) {
+        console.error(`Error: ${(err as Error).message}`);
+        process.exitCode = 1;
+      }
+    });
+  reference
     .command('inspect')
     .description(
       'Read an unpublished revision during intake: does a locator resolve, what hangs under it, which images and fonts its subtree carries.',

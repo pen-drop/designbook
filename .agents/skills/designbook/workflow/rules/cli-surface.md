@@ -53,11 +53,13 @@ schemas, instructions, status. Skill descriptions only fire the skill; they
 are not the command surface.
 
 Every intake's first command is `workflow discover <id>`. Source dumps use
-`_debo reference save --reference <dir> --url <url>`. Screenshots use
-`_debo reference capture-image --reference <dir> --path <png> --url <url>
---selector <sel> --width <px>` (optional `--steps`, `--consent-selector`).
-A full matrix uses `_debo capture matrix`. Story identity uses
-`_debo storybook check`.
+`_debo reference save --reference <dir> --url <url> --state <name> --session
+<name>`. Screenshots use `_debo reference capture-image --reference <dir> --path
+<png> --url <url> --selector <sel> --width <px> --session <name>` (optional
+`--steps`, `--prelude`). Unpublished revisions are read with
+`_debo reference inspect`; a prelude is fingerprinted with
+`_debo reference prelude`. A full matrix uses `_debo capture matrix`. Story
+identity uses `_debo storybook check`.
 `workflow instructions` supplies the saved step. A nonzero CLI exit ends this
 work with that exact message. Recover with `--help`, the catalogue, or the
 saved step instructions.
