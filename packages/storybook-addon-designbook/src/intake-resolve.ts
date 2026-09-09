@@ -32,7 +32,7 @@ export interface ContextEntry extends EmbeddedContent {
 export interface OutputContract {
   required: boolean;
   schema: unknown;
-  submission: string;
+  submission: 'data' | 'direct';
   validators: string[];
   path?: string;
 }
@@ -40,6 +40,8 @@ export interface TaskContract {
   name: string;
   step: string;
   outputs: Record<string, OutputContract>;
+  /** JSON Schema the task's params must satisfy — the CLI validates the agent's params against it. */
+  params_schema: Record<string, unknown>;
   source: string;
 }
 export interface IntakeStep {
@@ -224,12 +226,18 @@ export async function resolveIntakeContext(
         outputs[key] = {
           required: requiredList.includes(key),
           schema: schemaOf(entry),
-          submission: (entry.submission as string | undefined) ?? 'data',
+          submission: ((entry.submission as string | undefined) ?? 'data') === 'direct' ? 'direct' : 'data',
           validators: (entry.validators as string[] | undefined) ?? [],
           ...(entry.path ? { path: entry.path as string } : {}),
         };
       }
-      contracts.push({ name: basename(taskFile).replace(/\.md$/, ''), step, outputs, source: taskFile });
+      const paramsFm = fm?.params as { required?: string[] } | undefined;
+      const params_schema: Record<string, unknown> = {
+        type: 'object',
+        ...(Array.isArray(paramsFm?.required) ? { required: paramsFm.required } : {}),
+        properties: Object.fromEntries(Object.entries(block.params).map(([key, entry]) => [key, schemaOf(entry)])),
+      };
+      contracts.push({ name: basename(taskFile).replace(/\.md$/, ''), step, outputs, params_schema, source: taskFile });
     }
     return contracts;
   };

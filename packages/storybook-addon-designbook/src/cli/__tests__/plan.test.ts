@@ -155,7 +155,9 @@ describe('plan done data output', () => {
     const plan: Plan = {
       workflow: 'vision',
       digest: '',
-      definitions: { Vision: { type: 'object', required: ['product_name'], properties: { product_name: { type: 'string' } } } },
+      definitions: {
+        Vision: { type: 'object', required: ['product_name'], properties: { product_name: { type: 'string' } } },
+      },
       context: {},
       steps: [
         {
@@ -168,7 +170,14 @@ describe('plan done data output', () => {
               done: false,
               params: {},
               contract: {
-                outputs: { vision: { required: true, submission: 'data', schema: { $ref: '#/definitions/Vision' }, path: outPath } },
+                outputs: {
+                  vision: {
+                    required: true,
+                    submission: 'data',
+                    schema: { $ref: '#/definitions/Vision' },
+                    path: outPath,
+                  },
+                },
               },
               results: null,
             },

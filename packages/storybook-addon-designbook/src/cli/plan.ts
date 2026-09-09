@@ -11,6 +11,7 @@ import {
   type Plan,
   type PlanTask,
 } from '../plan-document.js';
+import { buildPlan, type TaskList } from '../plan-build.js';
 
 function print(value: unknown): void {
   process.stdout.write(JSON.stringify(value, null, 2));
@@ -23,6 +24,7 @@ function fail(message: string): void {
 
 /** Write the plan back atomically so a crash never leaves a half-written definition. */
 function writePlan(path: string, md: string): void {
+  mkdirSync(dirname(path), { recursive: true });
   const tmp = `${path}.tmp`;
   writeFileSync(tmp, md);
   renameSync(tmp, path);
@@ -38,7 +40,39 @@ function findTask(steps: { tasks: PlanTask[] }[], name: string): PlanTask | unde
  * in-plan contract and refuses when the stored digest no longer matches (AC-6).
  */
 export function register(program: Command): void {
-  const plan = program.command('plan').description('Execute a saved MD workflow plan');
+  const plan = program.command('plan').description('Build and execute a saved MD workflow plan');
+
+  plan
+    .command('build <workflow>')
+    .description('Assemble, validate and seal the MD plan from an agent-authored task list')
+    .requiredOption(
+      '--tasks <path>',
+      'JSON task list: { workflow, selectors?, tasks: [{ step, task, title?, params }] }',
+    )
+    .option('--output <path>', 'Write the plan here instead of the canonical plan_path')
+    .option('--config-dir <path>', 'Workspace dir to resolve skills root and sources from')
+    .option('--config <path>', 'Draft configuration JSON (skips designbook.config.yml lookup)')
+    .action(async (workflow: string, opts: { tasks: string; output?: string; configDir?: string; config?: string }) => {
+      const taskList = JSON.parse(readFileSync(opts.tasks, 'utf8')) as TaskList;
+      taskList.workflow = workflow;
+      const draft = opts.config ? JSON.parse(readFileSync(opts.config, 'utf8')) : undefined;
+      const {
+        plan: built,
+        plan_path,
+        errors,
+      } = await buildPlan(taskList, {
+        configDir: opts.configDir,
+        config: draft,
+      });
+      if (!built) {
+        console.error(errors.join('\n'));
+        process.exitCode = 1;
+        return;
+      }
+      const target = opts.output ?? plan_path;
+      writePlan(target, serializePlan(built));
+      print({ ok: true, plan: target, steps: built.steps.length, tasks: built.steps.flatMap((s) => s.tasks).length });
+    });
 
   plan
     .command('done <path>')
@@ -108,7 +142,10 @@ export function register(program: Command): void {
       print({
         step: step.name,
         context: step.context.map((key) => parsed.context[key]).filter(Boolean),
-        tasks: step.tasks,
+        tasks: step.tasks.map((t) => ({
+          ...t,
+          instruction_body: t.instruction ? (parsed.context[t.instruction]?.content ?? null) : null,
+        })),
       });
     });
 

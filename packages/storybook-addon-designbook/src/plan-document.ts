@@ -20,7 +20,7 @@ export interface EmbeddedContent {
 }
 export interface ContextEntry extends EmbeddedContent {
   key: string;
-  kind: 'rule' | 'blueprint';
+  kind: 'rule' | 'blueprint' | 'task';
 }
 export interface OutputContract {
   required: boolean;
@@ -33,6 +33,8 @@ export interface PlanTask {
   name: string;
   title: string;
   done: boolean;
+  /** Key into the shared registry for this task's instruction body (embedded once, referenced here). */
+  instruction?: string;
   params: Record<string, unknown>;
   contract: { outputs: Record<string, OutputContract> };
   results: Record<string, unknown> | null;
@@ -169,6 +171,12 @@ export function parsePlan(md: string): Plan {
         i++;
         // Sub-sections until next task or heading
         while (i < lines.length && !TASK_LINE.test(lines[i]!) && !/^###\s|^##\s/.test(lines[i]!)) {
+          const instrLine = lines[i]!.match(/^\s*Instruction:\s*(\S+)\s*$/);
+          if (instrLine) {
+            task.instruction = instrLine[1];
+            i++;
+            continue;
+          }
           const sub = lines[i]!.match(/^\s*####\s+(Params|Contract|Results)\s*$/);
           if (!sub) {
             i++;
@@ -239,8 +247,14 @@ export function serializePlan(plan: Plan): string {
     for (const task of step.tasks) {
       out.push(`- [${task.done ? 'x' : ' '}] ${task.name}${task.title ? ` — ${task.title}` : ''}`);
       out.push('');
+      if (task.instruction) {
+        out.push(`  Instruction: ${task.instruction}`);
+        out.push('');
+      }
       out.push('  #### Params');
+      out.push('  ```yaml');
       if (Object.keys(task.params).length) out.push(indent(yaml(task.params), '  '));
+      out.push('  ```');
       out.push('');
       out.push('  #### Contract');
       out.push('  ```yaml');
@@ -248,7 +262,13 @@ export function serializePlan(plan: Plan): string {
       out.push('  ```');
       out.push('');
       out.push('  #### Results');
-      out.push(task.results ? indent(yaml(task.results), '  ') : '  <!-- pending -->');
+      if (task.results) {
+        out.push('  ```yaml');
+        out.push(indent(yaml(task.results), '  '));
+        out.push('  ```');
+      } else {
+        out.push('  <!-- pending -->');
+      }
       out.push('');
     }
   }
