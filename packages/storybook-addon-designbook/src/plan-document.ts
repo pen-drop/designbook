@@ -52,16 +52,29 @@ export interface Plan {
   steps: PlanStep[];
 }
 
-const FENCE = /^(\s*)(```|~~~)\s*\w*\s*$/;
+const FENCE = /^(\s*)(`{3,}|~{3,})\s*\w*\s*$/;
 
-/** Collect the body of a fenced block starting at `lines[start]` (the opening fence). */
+/** A fence of backticks long enough to wrap `content` even when it embeds ``` runs. */
+function fenceFor(content: string): string {
+  let longest = 0;
+  for (const run of content.match(/`+/g) ?? []) longest = Math.max(longest, run.length);
+  return '`'.repeat(Math.max(3, longest + 1));
+}
+
+/**
+ * Collect the body of a fenced block starting at `lines[start]` (the opening fence).
+ * The closing fence must use the same character and be at least as long, so an
+ * embedded body containing its own ``` runs still round-trips.
+ */
 function readFence(lines: string[], start: number): { body: string; next: number } {
   const open = lines[start]!.match(FENCE)!;
   const indent = open[1]!.length;
+  const marker = open[2]!;
+  const close = new RegExp(`^\\s*${marker[0] === '`' ? '`' : '~'}{${marker.length},}\\s*$`);
   const body: string[] = [];
   let i = start + 1;
   for (; i < lines.length; i++) {
-    if (FENCE.test(lines[i]!)) {
+    if (close.test(lines[i]!)) {
       i++;
       break;
     }
@@ -81,7 +94,7 @@ function readPlainBlock(lines: string[], start: number, stopRe: RegExp): { body:
   return { body: body.join('\n').trim(), next: i };
 }
 
-const CTX_HEADER = /^###\s+(\S+)\s+\((?:(rule|blueprint),\s*)?source:\s*(.+)\)\s*$/;
+const CTX_HEADER = /^###\s+(\S+)\s+\((?:(rule|blueprint|task),\s*)?source:\s*(.+)\)\s*$/;
 const TASK_LINE = /^\s*-\s+\[([ xX])\]\s+(\S+)(?:\s+—\s+(.*))?$/;
 
 export function parsePlan(md: string): Plan {
@@ -121,12 +134,20 @@ export function parsePlan(md: string): Plan {
         }
         const key = header[1]!;
         const source = header[3]!.trim();
-        const kind: 'rule' | 'blueprint' = header[2]
-          ? (header[2] as 'rule' | 'blueprint')
+        const kind: ContextEntry['kind'] = header[2]
+          ? (header[2] as ContextEntry['kind'])
           : source.includes('/blueprints/')
             ? 'blueprint'
-            : 'rule';
-        const { body, next } = readPlainBlock(lines, i + 1, /^###\s|^##\s/);
+            : source.includes('/tasks/')
+              ? 'task'
+              : 'rule';
+        // Body is fenced (robust to embedded ##/``` in real rule/task bodies);
+        // fall back to a plain block for legacy hand-written plans.
+        let bi = i + 1;
+        while (bi < lines.length && lines[bi]!.trim() === '') bi++;
+        const { body, next } = FENCE.test(lines[bi] ?? '')
+          ? readFence(lines, bi)
+          : readPlainBlock(lines, i + 1, /^###\s|^##\s/);
         plan.context[key] = { key, kind, source, content: body };
         i = next;
       }
@@ -235,7 +256,10 @@ export function serializePlan(plan: Plan): string {
   out.push('## Context');
   for (const entry of Object.values(plan.context)) {
     out.push(`### ${entry.key} (${entry.kind}, source: ${entry.source})`);
+    const fence = fenceFor(entry.content);
+    out.push(fence);
     out.push(entry.content);
+    out.push(fence);
     out.push('');
   }
   out.push('## Steps');

@@ -104,6 +104,22 @@ describe('plan-document', () => {
     expect(planDigest(plan)).not.toBe(d1); // definitions included
   });
 
+  it('round-trips a context body that itself contains markdown headings and fences', () => {
+    const plan = parsePlan(MD);
+    // A real rule/task body has ## headings and ``` fences — these must not break parsing.
+    plan.context['ctx:tricky'] = {
+      key: 'ctx:tricky',
+      kind: 'rule',
+      source: '/abs/rules/tricky.md',
+      content: '# Rule\n\n## Section\n\n### Sub\n\n```twig\n{{ content }}\n```\n\n- item',
+    };
+    plan.steps[0]!.context.push('ctx:tricky');
+    const back = parsePlan(serializePlan(plan));
+    expect(back.context['ctx:tricky']!.content).toBe(plan.context['ctx:tricky']!.content);
+    expect(Object.keys(back.context).sort()).toEqual(Object.keys(plan.context).sort());
+    expect(planDigest(back)).toBe(planDigest(plan));
+  });
+
   it('digest ignores the run-state so marking a task done does not drift it', () => {
     const plan = parsePlan(MD);
     const d1 = planDigest(plan);
