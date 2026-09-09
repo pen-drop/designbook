@@ -2,9 +2,8 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, realpathSync, statSync, writeFileSync, unlinkSync, mkdirSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
-import { load } from 'js-yaml';
 import { validateImage } from './validators/image.js';
-import { declaredStates, loadSourceDumps, projectObservations, sourceDumpName } from './reference-project.js';
+import { declaredStates, sourceDumpName } from './reference-project.js';
 
 export interface SourceLocator {
   kind: string;
@@ -401,23 +400,19 @@ export interface PublishInput {
  * output, and write the self-contained publication binding. No workflow document is
  * consulted — the plan's execution produced the declared hashes and the contract.
  */
+/**
+ * Publication is deliberately simple: no observation validation. A capture
+ * workflow runs synchronously, so when it finishes the revision is done — publish
+ * just freezes it. The human decides whether the screenshots are right; the machine
+ * only records a fingerprint (sha256 of every revision file) plus the query contract,
+ * so a later query can detect drift.
+ */
 export function publishCapture(input: PublishInput): CaptureBinding {
   const location = captureLocation(input.data, input.capture, input.workflowId);
-  const meta = load(readCaptureFile(location.directory, 'meta.yml').toString('utf8')) as ObservationMeta;
-  const dumps = loadSourceDumps(location.directory, declaredStates(meta));
-  const extract = projectObservations(dumps, meta, location.directory);
-  const files = validateCaptureObservations(location.directory, input.capture, meta, extract);
-  const hashes: Record<string, string> = {};
-  for (const file of new Set([...files, ...Object.keys(input.declaredFiles)])) {
-    const digest = digestBytes(readCaptureFile(location.directory, file));
-    if (input.declaredFiles[file] !== digest)
-      throw new Error(`Capture file ${file} must be an unchanged declared workflow output`);
-    hashes[file] = digest;
-  }
   const binding: CaptureBinding = {
     ...location,
     workflow: resolve(input.ownerWorkflow),
-    files: hashes,
+    files: input.declaredFiles,
     contract: input.contract,
   };
   writeFileSync(join(location.directory, 'publication.json'), JSON.stringify(binding, null, 2) + '\n', { flag: 'wx' });

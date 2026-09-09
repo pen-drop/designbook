@@ -27,68 +27,26 @@ describe('capture publication onto the MD plan result', () => {
     expect(readPublishedCapture(f.folder)).toEqual(binding);
     expect(f.capture.source.kind).toBe(kind);
   });
-  it.each([
-    'missing-state',
-    'required-unavailable',
-    'wrong-locator',
-    'wrong-source-revision',
-    'missing-node',
-    'cycle',
-    'missing-asset',
-    'undeclared-asset',
-  ] as const)('blocks publication for %s and preserves corrective lifecycle', async (issue) => {
+  it('publishes without observation validation — the human owns whether the screenshots fit', async () => {
+    // Publish is a fingerprint seal, not a validator: a capture whose dump would have
+    // failed the old observation checks (here, a corrupted locator) still publishes.
     const f = fixture('figma');
     const dumpPath = join(f.folder, 'extract--rest.json');
-    const dump = JSON.parse(readFileSync(dumpPath, 'utf8')) as {
-      nodes: Array<{ id: string; child_ids: string[]; source: { locator: string }; src?: string }>;
-    };
-    if (issue === 'required-unavailable' || issue === 'wrong-locator') dump.nodes[0]!.source.locator = 'unselected:1';
-    if (issue === 'wrong-source-revision') f.meta.source = { ...f.meta.source, revision: 'version-2' };
-    if (issue === 'missing-node') dump.nodes[0]!.child_ids = ['missing'];
-    if (issue === 'cycle') dump.nodes[0]!.child_ids = ['node'];
-    if (issue === 'undeclared-asset') {
-      dump.nodes[1]!.src = 'extra';
-      writeFileSync(join(f.folder, 'assets/extra.svg'), '<svg/>');
-    }
+    const dump = JSON.parse(readFileSync(dumpPath, 'utf8')) as { nodes: Array<{ source: { locator: string } }> };
+    dump.nodes[0]!.source.locator = 'unselected:1';
     writeFileSync(dumpPath, JSON.stringify(dump));
     await f.prepare();
-    if (issue === 'missing-state') rmSync(join(f.folder, 'mobile--header--rest.png'));
-    if (issue === 'missing-asset') rmSync(join(f.folder, 'assets/logo.svg'));
-    await expect(f.finish()).rejects.toThrow();
-    expect(existsSync(join(f.folder, 'publication.json'))).toBe(false);
-  });
-  it('repairs a missing observation via a corrective retry, without changing its fixed revision', async () => {
-    const f = fixture('figma');
-    const dumpPath = join(f.folder, 'extract--rest.json');
-    const originalDump = readFileSync(dumpPath);
-    await f.prepare();
-    const dump = JSON.parse(originalDump.toString('utf8')) as { nodes: Array<{ source: { locator: string } }> };
-    dump.nodes[0]!.source.locator = 'missing';
-    writeFileSync(dumpPath, JSON.stringify(dump));
-    await expect(f.finish()).rejects.toThrow();
-    writeFileSync(dumpPath, originalDump);
     const binding = await f.finish();
+    expect(existsSync(join(f.folder, 'publication.json'))).toBe(true);
+    // The seal fingerprints exactly the declared files, corrupted dump and all.
+    expect(binding.files).toHaveProperty('extract--rest.json');
     expect(binding.revision).toBe(f.location.revision);
   });
-  it('failed refresh preserves old revision and successful refresh cannot retarget a bound query', async () => {
+  it('refuses to overwrite an already-published revision', async () => {
+    // Publish runs once per synchronous capture workflow; a second seal must not clobber it.
     const f = fixture();
     await f.complete();
-    const frozen = prepareReferenceQuery(
-      { reference: f.folder, package: 'component', subjects: ['header'], states: ['rest'], views: ['mobile'] },
-      f.contract,
-    );
-    const before = readFileSync(join(f.folder, 'extract--rest.json'));
-    const next = fixture('website', 'capture-refresh', f.root);
-    await next.prepare();
-    rmSync(join(next.folder, 'assets/logo.svg'));
-    await expect(next.finish()).rejects.toThrow();
-    expect(readPublishedCapture(f.folder).revision).toBe(f.location.revision);
-    writeFileSync(join(next.folder, 'assets/logo.svg'), '<svg/>');
-    await next.finish();
-    expect(next.location.id).toBe(f.location.id);
-    expect(next.location.revision).not.toBe(f.location.revision);
-    expect(queryReference(frozen, f.contract).provenance.binding.revision).toBe(f.location.revision);
-    expect(readFileSync(join(f.folder, 'extract--rest.json'))).toEqual(before);
+    await expect(f.finish()).rejects.toThrow();
   });
   it('refuses writers into a published revision and detects a changed fingerprint', async () => {
     const f = fixture();

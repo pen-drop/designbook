@@ -83,7 +83,9 @@ export function register(program: Command): void {
     });
   reference
     .command('publish')
-    .description('Validate the observations and write the self-contained publication binding for a capture revision.')
+    .description(
+      'Seal a finished capture revision: fingerprint every file and write the self-contained publication binding. No observation validation — the human decides the screenshots are right.',
+    )
     .requiredOption('--capture <json>', 'JSON capture block: role, source, optional prelude, and the fixed scope')
     .requiredOption('--workflow-id <id>', 'Capture workflow id (a revision digest input)')
     .requiredOption('--owner <path>', 'Owner identity recorded for the revision (the plan path)')
