@@ -10,6 +10,7 @@
  */
 
 import { createHash } from 'node:crypto';
+import Ajv from 'ajv';
 import { load as parseYaml, dump as dumpYaml } from 'js-yaml';
 
 export interface EmbeddedContent {
@@ -246,6 +247,36 @@ export function serializePlan(plan: Plan): string {
     }
   }
   return out.join('\n') + '\n';
+}
+
+export interface TaskValidation {
+  ok: boolean;
+  errors: string[];
+}
+
+/**
+ * Validate a result against the task's frozen output contract only. `$ref`s resolve
+ * against the plan-wide `definitions` registry (registered once in AJV) — never by
+ * re-reading a skill file. Structural validation only; file-level (`direct`)
+ * validators run in the execution CLI, which has the workspace config.
+ */
+export function validateTaskResult(
+  task: PlanTask,
+  result: Record<string, unknown>,
+  definitions: Record<string, unknown>,
+): TaskValidation {
+  const ajv = new Ajv({ allErrors: true, strict: false });
+  for (const [name, schema] of Object.entries(definitions)) ajv.addSchema(schema as object, `#/definitions/${name}`);
+  const errors: string[] = [];
+  for (const [key, output] of Object.entries(task.contract.outputs)) {
+    if (!(key in result)) {
+      if (output.required) errors.push(`missing required output "${key}"`);
+      continue;
+    }
+    const validate = ajv.compile(output.schema as object);
+    if (!validate(result[key])) errors.push(`output "${key}": ${ajv.errorsText(validate.errors)}`);
+  }
+  return { ok: errors.length === 0, errors };
 }
 
 /** SHA-256 over workflow + definitions + context + steps, with all results nulled. */

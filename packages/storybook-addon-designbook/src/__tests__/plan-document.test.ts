@@ -4,7 +4,7 @@
  * digest that freezes the definition. Parse/serialize must round-trip losslessly.
  */
 import { describe, it, expect } from 'vitest';
-import { parsePlan, serializePlan, planDigest } from '../plan-document.js';
+import { parsePlan, serializePlan, planDigest, validateTaskResult, type PlanTask } from '../plan-document.js';
 
 const MD = `# Plan: design-component
 <!-- digest: PLACEHOLDER -->
@@ -62,5 +62,23 @@ describe('plan-document', () => {
     expect(planDigest(plan)).toBe(d1); // results excluded
     plan.definitions.ComponentResult = { type: 'object' };
     expect(planDigest(plan)).not.toBe(d1); // definitions included
+  });
+
+  it('validateTaskResult resolves $ref against plan.definitions and rejects violations', () => {
+    const definitions = {
+      ComponentResult: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } },
+    };
+    const task: PlanTask = {
+      name: 'create-component',
+      title: 't',
+      done: false,
+      params: {},
+      contract: {
+        outputs: { component: { required: true, submission: 'data', schema: { $ref: '#/definitions/ComponentResult' } } },
+      },
+      results: null,
+    };
+    expect(validateTaskResult(task, { component: {} }, definitions).ok).toBe(false);
+    expect(validateTaskResult(task, { component: { id: 'pet-card' } }, definitions).ok).toBe(true);
   });
 });
