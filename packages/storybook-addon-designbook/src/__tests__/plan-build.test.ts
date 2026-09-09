@@ -39,14 +39,41 @@ describe('buildPlan', () => {
     expect(plan_path).toBe(`${config.data}/plans/vision.plan.md`);
   });
 
-  it('rejects an unknown task and a missing required step', async () => {
+  it('rejects a truly unknown task but imposes no fixed-set completeness', async () => {
     const { plan, errors } = await buildPlan(
       { workflow: 'vision', tasks: [{ step: 'create-vision', task: 'not-a-task', params: {} }] },
       opts,
     );
     expect(plan).toBeNull();
     expect(errors.some((e) => /unknown task "not-a-task"/.test(e))).toBe(true);
-    expect(errors.some((e) => /missing task.*create-vision/.test(e))).toBe(true);
+    // The agent decides which tasks come along — no "missing required step" error.
+    expect(errors.some((e) => /missing/.test(e))).toBe(false);
+  });
+
+  it('builds a gated open-selector task (extract-reference observe-website)', async () => {
+    const { plan, errors } = await buildPlan(
+      {
+        workflow: 'extract-reference',
+        selectors: { source: 'website' },
+        tasks: [
+          {
+            step: 'observe-website',
+            task: 'observe-website',
+            title: 'leando',
+            params: { source: {}, reference_folder: '/tmp/ref', state: 'rest', session: 'anonymous' },
+          },
+        ],
+      },
+      opts,
+    );
+    // The gated task must be resolvable — no "unknown task observe-website".
+    expect(errors.some((e) => /unknown task "observe-website"/.test(e))).toBe(false);
+    if (plan) {
+      const step = plan.steps.find((s) => s.name === 'observe-website');
+      expect(step).toBeDefined();
+      expect(step!.tasks[0]!.name).toBe('observe-website');
+      expect(step!.context.length).toBeGreaterThan(0); // gated context embedded
+    }
   });
 
   it('embeds a repeated task body once (dedup) and validates params', async () => {

@@ -53,8 +53,20 @@ export async function buildPlan(taskList: TaskList, opts: ResolveIntakeOptions =
   for (const [name, schema] of Object.entries(intake.definitions))
     ajv.addSchema(schema as object, `#/definitions/${name}`);
 
+  // The palette is every task the intake advertises — the step tasks AND the gated
+  // (open-selector) tasks. The agent decides which come along; the build imposes no
+  // fixed set. Gated tasks also carry the context to embed for their step.
   const palette = new Map<string, TaskContract>();
   for (const s of intake.steps) for (const t of s.tasks) palette.set(`${t.step}::${t.name}`, t);
+  const gatedContextByStep = new Map<string, ContextEntry[]>();
+  for (const g of intake.gated) {
+    for (const t of g.tasks) {
+      palette.set(`${t.step}::${t.name}`, t);
+      const arr = gatedContextByStep.get(t.step) ?? [];
+      arr.push(...g.context);
+      gatedContextByStep.set(t.step, arr);
+    }
+  }
 
   // Shared registry: rule/blueprint bodies (from intake.context) + task bodies, each once.
   const registry: Record<string, ContextEntry> = {};
@@ -105,22 +117,37 @@ export async function buildPlan(taskList: TaskList, opts: ResolveIntakeOptions =
     byStep.get(d.step)!.push(planTask);
   }
 
-  // Completeness: every execution step that has a palette task must be covered.
-  const intakeStep = `${taskList.workflow}:intake`;
-  for (const s of intake.steps) {
-    if (s.name === intakeStep || s.tasks.length === 0) continue;
-    if (!byStep.has(s.name)) errors.push(`missing task(s) for required step "${s.name}"`);
-  }
-
+  // No fixed-set completeness gate — the agent decides which tasks come along.
+  // Hard requirements are enforced by `plan validate` (obligation rules), not here.
   if (errors.length > 0) return { plan: null, plan_path: intake.plan_path, errors };
 
-  // Assemble steps in intake order; keep only the context entries the plan references.
+  // Assemble steps in the order the agent listed them (first-seen). Each step embeds
+  // its intake-step context keys, or its gated context entries for a selector step.
+  const intakeStepMap = new Map(intake.steps.map((s) => [s.name, s]));
+  const stepOrder: string[] = [];
+  const seenStep = new Set<string>();
+  for (const d of taskList.tasks) {
+    if (!seenStep.has(d.step)) {
+      seenStep.add(d.step);
+      stepOrder.push(d.step);
+    }
+  }
   const steps: PlanStep[] = [];
-  for (const s of intake.steps) {
-    const tasks = byStep.get(s.name);
+  for (const stepName of stepOrder) {
+    const tasks = byStep.get(stepName);
     if (!tasks || tasks.length === 0) continue;
-    for (const key of s.context) if (intake.context[key]) registry[key] = intake.context[key]!;
-    steps.push({ name: s.name, context: [...s.context], tasks });
+    const contextKeys = new Set<string>();
+    for (const key of intakeStepMap.get(stepName)?.context ?? []) {
+      if (intake.context[key]) {
+        registry[key] = intake.context[key]!;
+        contextKeys.add(key);
+      }
+    }
+    for (const entry of gatedContextByStep.get(stepName) ?? []) {
+      registry[entry.key] = entry;
+      contextKeys.add(entry.key);
+    }
+    steps.push({ name: stepName, context: [...contextKeys], tasks });
   }
 
   const draft: Plan = {
