@@ -65,6 +65,8 @@ export interface GatedGroup {
 }
 export interface IntakeContext {
   workflow: string;
+  /** Canonical path the intake must save the MD plan to: `<DESIGNBOOK_DATA>/plans/<workflow>.plan.md`. */
+  plan_path: string;
   config: Record<string, unknown>;
   /** Frozen `#/definitions/<Name>` pulled transitively from schemas.yml. */
   definitions: Record<string, unknown>;
@@ -295,6 +297,7 @@ export async function resolveIntakeContext(
 
   return {
     workflow: workflowId,
+    plan_path: `${String(config.data)}/plans/${workflowId}.plan.md`,
     config: config as Record<string, unknown>,
     definitions,
     context: registry.toRecord(),

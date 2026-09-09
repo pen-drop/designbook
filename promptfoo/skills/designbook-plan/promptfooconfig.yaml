@@ -1,0 +1,59 @@
+description: "designbook data-vision — intake → MD plan → plan done through the loose runner"
+
+outputPath: file://reports/designbook-data-vision.json
+
+prompts:
+  - id: data-vision
+    label: data-vision
+    raw: |
+      You are working in the directory {{workspace}}. That directory contains
+      `designbook.config.yml` and a `.agents/skills/designbook` skill tree.
+
+      Set up the CLI once:
+        _debo() { npx storybook-addon-designbook "$@"; }
+        eval "$(_debo config)"
+
+      Read `.agents/skills/designbook/SKILL.md` and its resources
+      `resources/cli-workflow.md`, `resources/workflow-building.md`,
+      `resources/workflow-execution.md`. Follow them exactly. The engine surface is:
+      `_debo intake <workflow>` → author an MD plan → `_debo plan validate <plan>`
+      → `_debo plan seal <plan>` → `_debo plan done <plan> --task <name> --data-file <r.json>`.
+
+      Do this for TWO workflows, in order:
+
+      1. `vision`: run `_debo intake vision`. Author the MD plan at the intake
+         context's `plan_path` (the CLI mints it) per the builder: embed the `Vision`
+         definition in `## Schemas`, the `create-vision` task with its frozen
+         `#### Contract` outputs, and concrete `#### Params`. Choose a product
+         vision and fill every required field of the Vision schema. Validate, seal,
+         then run `plan done` for `create-vision` with a `--data-file` holding the
+         `vision` object.
+      2. `data-model`: run `_debo intake data-model`. Author the plan at its
+         `plan_path` the same way for the `create-data-model` task, validate,
+         seal, and run `plan done` for `create-data-model`.
+
+      Report each plan path and confirm `vision.yml` and `data-model.yml` now exist
+      under `$DESIGNBOOK_DATA`. Do not run any other workflow.
+
+providers:
+  - id: file://../../providers/codex-cli.mjs
+    label: gpt-5.6-luna
+    config:
+      model: gpt-5.6-luna
+      timeout: 3600000
+
+defaultTest:
+  options:
+    provider:
+      id: file://../../providers/codex-cli.mjs
+      config:
+        model: gpt-5.6-luna
+        timeout: 3600000
+
+tests:
+  - description: "data-vision: intake → MD plan → plan done writes vision.yml + data-model.yml"
+    vars:
+      workspace: workspaces/data-vision
+    assert:
+      - type: javascript
+        value: file://assert-data-vision.mjs

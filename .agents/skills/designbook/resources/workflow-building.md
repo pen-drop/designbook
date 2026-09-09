@@ -18,7 +18,9 @@ descriptions fire the skill; this context is the command contract.
    selector unresolved. A nonzero `intake` exit stops planning with that exact
    message. Completion: all target objects, required inputs, and selector choices
    are known.
-2. Write the MD plan. It carries two plan-wide registries the steps draw from by
+2. Write the MD plan to the intake context's `plan_path`
+   (`<DESIGNBOOK_DATA>/plans/<workflow>.plan.md`) — the CLI mints this path; do not
+   choose your own. It carries two plan-wide registries the steps draw from by
    reference, plus the steps themselves:
    - `## Schemas` — a `definitions:` block holding every type the task contracts
      reference, copied from the intake context. Task contracts reference it by

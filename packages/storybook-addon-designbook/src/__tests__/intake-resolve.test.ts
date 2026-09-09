@@ -42,6 +42,11 @@ describe('resolveIntakeContext', () => {
     expect(sources.some((s) => s.endsWith('entity-reference-rendering.md'))).toBe(false);
   });
 
+  it('emits the canonical plan_path under DESIGNBOOK_DATA/plans', async () => {
+    const ctx = await resolveIntakeContext('design-shell', { agentsDir: agents, config });
+    expect(ctx.plan_path).toBe(`${config.data}/plans/design-shell.plan.md`);
+  });
+
   it('marks source open and gates source-specific rules for extract-reference', async () => {
     const ctx = await resolveIntakeContext('extract-reference', { agentsDir: agents, config });
     expect(ctx.open_selectors.map((s) => s.name)).toContain('source');
