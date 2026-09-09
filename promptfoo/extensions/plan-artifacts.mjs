@@ -30,17 +30,23 @@ export function planArtifactContract(workspace, config, fileHashes) {
   const files = [config["css.app"]]
     .filter(Boolean)
     .map((path) => virtual(resolve(workspace, path)));
-  const contract = { prefixes, files };
+  // Writing the sealed plan IS the plan phase's job, so the plan engine's own
+  // output dir (`<data>/plans/`) is excluded from the application-artifact watch
+  // set — the old engine excluded its `workflows/` dir for the same reason.
+  const exclude = [`${virtual(resolve(workspace, config.data))}/plans/`];
+  const contract = { prefixes, files, exclude };
   return { ...contract, hashes: select(fileHashes, contract) };
 }
 
 function select(hashes, contract) {
+  const exclude = contract.exclude || [];
   return Object.fromEntries(
     Object.entries(hashes)
       .filter(
         ([path]) =>
-          contract.files.includes(path) ||
-          contract.prefixes.some((prefix) => path.startsWith(prefix)),
+          (contract.files.includes(path) ||
+            contract.prefixes.some((prefix) => path.startsWith(prefix))) &&
+          !exclude.some((prefix) => path.startsWith(prefix)),
       )
       .sort(([a], [b]) => a.localeCompare(b)),
   );
