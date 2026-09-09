@@ -191,6 +191,35 @@ export function register(program: Command): void {
       },
     );
   reference
+    .command('inspect')
+    .description(
+      'Read an unpublished revision during intake: does a locator resolve, what hangs under it, which images and fonts its subtree carries.',
+    )
+    .requiredOption('--reference <folder>', 'Absolute capture revision directory')
+    .option('--state <name>', 'Which state dump to read', 'rest')
+    .option('--locator <css>', 'Native locator to resolve; omit for dump totals only')
+    .option('--depth <n>', 'Subtree depth to report', (v) => Number.parseInt(v, 10))
+    .option('--limit <n>', 'Maximum subtree nodes to report', (v) => Number.parseInt(v, 10))
+    .action(async (opts: { reference: string; state: string; locator?: string; depth?: number; limit?: number }) => {
+      const { inspectReference } = await import('./reference-inspect.js');
+      try {
+        console.log(
+          JSON.stringify(
+            inspectReference({
+              reference: opts.reference,
+              state: opts.state,
+              ...(opts.locator ? { locator: opts.locator } : {}),
+              ...(opts.depth !== undefined ? { depth: opts.depth } : {}),
+              ...(opts.limit !== undefined ? { limit: opts.limit } : {}),
+            }),
+          ),
+        );
+      } catch (err) {
+        console.error(`Error: ${(err as Error).message}`);
+        process.exitCode = 1;
+      }
+    });
+  reference
     .command('image')
     .description('Read PNG dimensions from a revision-relative path. No pixel payload.')
     .requiredOption('--reference <folder>', 'Absolute capture revision or screenshot directory')

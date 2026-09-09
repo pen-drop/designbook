@@ -41,6 +41,12 @@ export interface ExtractSkeleton {
   forms: ExtractForm[];
   images: ExtractImage[];
   fonts: string[];
+  /**
+   * `@font-face` binaries per family, restricted to the families the walked
+   * document actually uses. Capture rules require a local copy of every
+   * non-system font, and a computed `font-family` names a family, never a file.
+   */
+  font_faces: Array<{ family: string; weight?: string; style?: string; urls: string[] }>;
   colors: string[];
 }
 
@@ -150,6 +156,13 @@ export function buildExtractSkeleton(
     for (const family of cssFontFamilies(f.family)) fonts.add(family);
   }
 
+  // Only the faces of families the document actually renders: a stylesheet
+  // routinely declares a dozen weights the observed page never uses, and the
+  // capture would otherwise be told to download all of them.
+  const usedFaces = (styleEnv?.font_faces ?? []).filter((face) =>
+    cssFontFamilies(face.family).some((family) => fonts.has(family)),
+  );
+
   return {
     url: meta.url,
     breakpoints: meta.breakpoints,
@@ -158,6 +171,7 @@ export function buildExtractSkeleton(
     forms,
     images,
     fonts: [...fonts].sort(),
+    font_faces: usedFaces,
     colors: [...colors].sort(),
   };
 }

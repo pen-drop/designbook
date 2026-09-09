@@ -45,7 +45,7 @@ describe('extract-page: buildExtractSkeleton', () => {
     ];
     const skel = buildExtractSkeleton(
       captured(nodes),
-      { root_vars: {}, fonts: [{ family: 'Roboto', loaded: true }] },
+      { root_vars: {}, fonts: [{ family: 'Roboto', loaded: true }], font_faces: [] },
       {
         url: 'http://ref',
         breakpoints: ['sm', 'xl'],
@@ -100,10 +100,20 @@ describe('extract-page: buildExtractSkeleton', () => {
           },
         }),
       ]),
-      { root_vars: {}, fonts: [{ family: 'Reef, sans-serif', loaded: true }] },
+      {
+        root_vars: {},
+        fonts: [{ family: 'Reef, sans-serif', loaded: true }],
+        font_faces: [
+          { family: 'Reef', weight: '700', urls: ['https://x.test/Reef-Bold.woff2'] },
+          { family: 'Unused Face', weight: '400', urls: ['https://x.test/unused.woff2'] },
+        ],
+      },
       { url: 'u', breakpoints: [] },
     );
     expect(skel.fonts).toEqual(['Reef', 'Sarabun Light', 'sans-serif']);
+    // Only faces of families the walked document renders — a stylesheet's
+    // unused weights are not capture scope.
+    expect(skel.font_faces).toEqual([{ family: 'Reef', weight: '700', urls: ['https://x.test/Reef-Bold.woff2'] }]);
   });
 });
 

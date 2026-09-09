@@ -8,6 +8,7 @@ const env: StyleEnv = {
     { family: 'Inter', loaded: true },
     { family: 'Material Symbols Outlined', loaded: false },
   ],
+  font_faces: [],
 };
 
 describe('collectMissing', () => {
