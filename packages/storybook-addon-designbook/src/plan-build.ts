@@ -14,6 +14,7 @@ import { readFileSync } from 'node:fs';
 import { basename } from 'node:path';
 import Ajv from 'ajv';
 import { resolveIntakeContext, type ResolveIntakeOptions, type TaskContract } from './intake-resolve.js';
+import { interpolate } from './template/interpolate.js';
 import {
   parsePlan,
   serializePlan,
@@ -85,13 +86,19 @@ export async function buildPlan(taskList: TaskList, opts: ResolveIntakeOptions =
     const validate = ajv.compile({ ...contract.params_schema, definitions: intake.definitions });
     if (!validate(params))
       errors.push(`task "${d.task}" (${d.title ?? ''}) params: ${ajv.errorsText(validate.errors)}`);
+    // Resolve `{{ param }}` templates in each output path against this task's params,
+    // so the frozen contract carries the concrete file path — not an unrendered template.
+    const outputs: Record<string, PlanTask['contract']['outputs'][string]> = {};
+    for (const [key, out] of Object.entries(contract.outputs)) {
+      outputs[key] = out.path ? { ...out, path: await interpolate(out.path, params, { lenient: true }) } : out;
+    }
     const planTask: PlanTask = {
       name: d.task,
       title: d.title ?? '',
       done: false,
       instruction: embedTask(contract.source),
       params,
-      contract: { outputs: contract.outputs },
+      contract: { outputs },
       results: null,
     };
     if (!byStep.has(d.step)) byStep.set(d.step, []);

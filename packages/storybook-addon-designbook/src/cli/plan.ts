@@ -30,8 +30,16 @@ function writePlan(path: string, md: string): void {
   renameSync(tmp, path);
 }
 
-function findTask(steps: { tasks: PlanTask[] }[], name: string): PlanTask | undefined {
-  return steps.flatMap((s) => s.tasks).find((t) => t.name === name);
+/**
+ * Address a task by name, disambiguated by `title` when a name repeats (e.g.
+ * write-component for header and footer). Returns `'ambiguous'` when the name
+ * matches several tasks and no title singles one out.
+ */
+function findTask(steps: { tasks: PlanTask[] }[], name: string, title?: string): PlanTask | 'ambiguous' | undefined {
+  const byName = steps.flatMap((s) => s.tasks).filter((t) => t.name === name);
+  const matches = title !== undefined ? byName.filter((t) => t.title === title) : byName;
+  if (matches.length > 1) return 'ambiguous';
+  return matches[0];
 }
 
 /**
@@ -77,12 +85,14 @@ export function register(program: Command): void {
   plan
     .command('done <path>')
     .requiredOption('--task <name>', 'Task name to complete')
+    .option('--title <title>', 'Disambiguate when several tasks share the name')
     .requiredOption('--data-file <path>', 'JSON result object')
-    .action((path: string, opts: { task: string; dataFile: string }) => {
+    .action((path: string, opts: { task: string; title?: string; dataFile: string }) => {
       const parsed = parsePlan(readFileSync(path, 'utf8'));
       if (planDigest(parsed) !== parsed.digest) return fail('plan digest mismatch');
-      const task = findTask(parsed.steps, opts.task);
-      if (!task) return fail(`unknown task "${opts.task}"`);
+      const task = findTask(parsed.steps, opts.task, opts.title);
+      if (task === 'ambiguous') return fail(`task "${opts.task}" is ambiguous — pass --title to select one instance`);
+      if (!task) return fail(`unknown task "${opts.task}"${opts.title ? ` with title "${opts.title}"` : ''}`);
       const result = JSON.parse(readFileSync(opts.dataFile, 'utf8')) as Record<string, unknown>;
       const validation = validateTaskResult(task, result, parsed.definitions);
       if (!validation.ok) return fail(validation.errors.join('; '));

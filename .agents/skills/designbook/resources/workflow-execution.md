@@ -16,7 +16,9 @@ executor reads only the plan — no discovery, no rule selection, no added tasks
 3. Produce every unfinished task's outputs. Parallel work is limited to the tasks
    of this step. Completion: each task's outputs are ready for validation.
 4. For each task, write one JSON result object matching its contract and run
-   `plan done <path> --task <name> --data-file <result.json>`. Direct file
+   `plan done <path> --task <name> --data-file <result.json>`. When several tasks
+   of a step share a name (e.g. `write-component` for header and footer), add
+   `--title <title>` to select one; the CLI refuses an ambiguous name. Direct file
    outputs use their declared paths. The CLI validates the result against the
    task's frozen in-plan contract and, on success, ticks the checkbox and records
    the results. Completion: every task of the step is `done`.

@@ -334,7 +334,11 @@ export function validatePlanCompleteness(plan: Plan): CompletenessReport {
   return { ok: missing.length === 0, missing };
 }
 
-/** SHA-256 over workflow + definitions + context + steps, with all results nulled. */
+/**
+ * SHA-256 over the frozen definition: workflow + definitions + context + steps,
+ * with the run-state (`done` and `results`) excluded so recording a task's result
+ * never drifts the digest.
+ */
 export function planDigest(plan: Omit<Plan, 'digest'>): string {
   const canonical = {
     workflow: plan.workflow,
@@ -342,7 +346,7 @@ export function planDigest(plan: Omit<Plan, 'digest'>): string {
     context: plan.context,
     steps: plan.steps.map((step) => ({
       ...step,
-      tasks: step.tasks.map((task) => ({ ...task, results: null })),
+      tasks: step.tasks.map((task) => ({ ...task, done: false, results: null })),
     })),
   };
   return createHash('sha256')

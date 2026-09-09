@@ -222,6 +222,81 @@ describe('plan seal', () => {
   });
 });
 
+describe('plan done --title (repeated task names)', () => {
+  function twoComponents(): Plan {
+    const p: Plan = {
+      workflow: 'design-shell',
+      digest: '',
+      definitions: { R: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } } },
+      context: {},
+      steps: [
+        {
+          name: 'write-component',
+          context: [],
+          tasks: ['header', 'footer'].map((title) => ({
+            name: 'write-component',
+            title,
+            done: false,
+            params: {},
+            contract: {
+              outputs: { component: { required: true, submission: 'data', schema: { $ref: '#/definitions/R' } } },
+            },
+            results: null,
+          })),
+        },
+      ],
+    };
+    p.digest = planDigest(p);
+    return p;
+  }
+
+  it('refuses an ambiguous name and targets the right instance with --title', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'plan-title-'));
+    const planPath = join(dir, 'plan.md');
+    const dataPath = join(dir, 'r.json');
+    writeFileSync(planPath, serializePlan(twoComponents()));
+    writeFileSync(dataPath, JSON.stringify({ component: { id: 'footer' } }));
+    try {
+      process.exitCode = undefined;
+      await run(['plan', 'done', planPath, '--task', 'write-component', '--data-file', dataPath]);
+      expect(process.exitCode).toBe(1); // ambiguous without --title
+
+      process.exitCode = undefined;
+      await run(['plan', 'done', planPath, '--task', 'write-component', '--title', 'footer', '--data-file', dataPath]);
+      expect(process.exitCode ?? 0).toBe(0);
+      const after = parsePlan(readFileSync(planPath, 'utf8'));
+      const footer = after.steps[0]!.tasks.find((t) => t.title === 'footer')!;
+      const header = after.steps[0]!.tasks.find((t) => t.title === 'header')!;
+      expect(footer.done).toBe(true); // the right instance
+      expect(header.done).toBe(false); // not the first one
+    } finally {
+      process.exitCode = undefined;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('does not drift the digest across successive done calls (run-state excluded)', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'plan-drift-'));
+    const planPath = join(dir, 'plan.md');
+    const dataPath = join(dir, 'r.json');
+    writeFileSync(planPath, serializePlan(twoComponents()));
+    writeFileSync(dataPath, JSON.stringify({ component: { id: 'x' } }));
+    try {
+      process.exitCode = undefined;
+      await run(['plan', 'done', planPath, '--task', 'write-component', '--title', 'header', '--data-file', dataPath]);
+      expect(process.exitCode ?? 0).toBe(0);
+      // second done on the already-partly-done plan must still pass the digest check
+      await run(['plan', 'done', planPath, '--task', 'write-component', '--title', 'footer', '--data-file', dataPath]);
+      expect(process.exitCode ?? 0).toBe(0);
+      const after = parsePlan(readFileSync(planPath, 'utf8'));
+      expect(after.steps[0]!.tasks.every((t) => t.done)).toBe(true);
+    } finally {
+      process.exitCode = undefined;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('plan validate', () => {
   it('reports a missing obligation with source and exits nonzero', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'plan-validate-'));

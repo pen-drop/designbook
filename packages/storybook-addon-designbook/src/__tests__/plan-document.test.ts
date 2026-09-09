@@ -104,6 +104,14 @@ describe('plan-document', () => {
     expect(planDigest(plan)).not.toBe(d1); // definitions included
   });
 
+  it('digest ignores the run-state so marking a task done does not drift it', () => {
+    const plan = parsePlan(MD);
+    const d1 = planDigest(plan);
+    plan.steps[0]!.tasks[0]!.done = true; // recording completion is run-state, not definition
+    plan.steps[0]!.tasks[0]!.results = { component: { id: 'pet-card' } };
+    expect(planDigest(plan)).toBe(d1);
+  });
+
   it('validateTaskResult resolves $ref against plan.definitions and rejects violations', () => {
     const definitions = {
       ComponentResult: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } },
