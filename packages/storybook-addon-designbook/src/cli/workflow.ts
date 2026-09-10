@@ -26,13 +26,12 @@ import {
   parseFrontmatter,
   buildEnvMap,
   expandResultDeclarations,
-  resolveSchemaRef,
   rewriteRefsInSchema,
-  collectLocalRefsFromSchema,
   type ResolvedStep,
   type ResultDeclaration,
   type ExpectedParam,
 } from '../workflow-resolve.js';
+import { resolveSchemaRef, collectLocalRefsFromSchema } from '../schema-ref.js';
 import { computeMergedSchema } from '../workflow-schema-merge.js';
 import { resolveParams } from '../resolvers/registry.js';
 import type { ResolverContext } from '../resolvers/types.js';

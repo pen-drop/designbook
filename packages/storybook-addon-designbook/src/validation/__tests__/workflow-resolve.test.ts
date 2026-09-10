@@ -25,7 +25,6 @@ import {
   deduplicateByNameAs,
   preferProjectRoot,
   collectAndResolveSchemas,
-  resolveSchemaRef,
   resolveParamsRef,
   resolveStageTaskParams,
   matchDomain,
@@ -35,6 +34,7 @@ import {
   type ResolvedTask,
   type ResolvedStep,
 } from '../../workflow-resolve.js';
+import { resolveSchemaRef } from '../../schema-ref.js';
 import type { StageDefinition } from '../../workflow-types.js';
 import type { DesignbookConfig } from '../../config.js';
 
