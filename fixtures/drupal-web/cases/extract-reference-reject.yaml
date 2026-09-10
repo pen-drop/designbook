@@ -13,9 +13,10 @@ prompt: |
   Font and image assets from the live source are capture outputs, not missing user inputs.
   Execute the saved workflow to a published capture revision.
   After publish, present the captured screenshots and write approval.yml with
-  `_debo reference approval-write --reference <revisionDir> --status approved --scope <json>`
+  `_debo reference approval-write --reference <revisionDir> --status rejected --scope <json>`
   covering the captured homepage subjects, states and views. This test has no
-  interactive user — record approved. Do not start a design workflow.
+  interactive user — record rejected. Do not start a design workflow or seal a
+  design-* plan.
   Execute the workflow now.
 
 assert:
@@ -27,46 +28,13 @@ assert:
            );
       return w?.state?.status === 'completed';
   - type: javascript
-    value: |
-      const w = output.completedWorkflows['extract-reference']
-        || Object.values(output.completedWorkflows).find((wf) =>
-             String(wf?.definition?.template?.source || '').endsWith('/extract-reference.md'),
-           );
-      const tasks = w?.state?.tasks || {};
-      return Object.keys(tasks).length > 0 && Object.values(tasks).every((t) => t.status === 'done');
-  - type: javascript
-    value: |
-      const w = output.completedWorkflows['extract-reference']
-        || Object.values(output.completedWorkflows).find((wf) =>
-             String(wf?.definition?.template?.source || '').endsWith('/extract-reference.md'),
-           );
-      return Boolean(w?.state?.capture?.directory);
-  - type: javascript
-    value: output.newFiles.some((f) => f.includes('designbook/references/') && f.endsWith('/meta.yml'))
-  - type: javascript
-    value: output.newFiles.some((f) => f.includes('designbook/references/') && /extract--[^/]+\.json$/.test(f))
-  - type: javascript
-    value: output.newFiles.some((f) => f.includes('designbook/references/') && f.endsWith('/publication.json'))
-  - type: javascript
-    value: output.newFiles.filter((f) => f.includes('designbook/references/') && f.endsWith('.png')).length >= 1
-  - type: javascript
-    value: |
-      const meta = Object.entries(output.fileContents).find(([p]) =>
-        p.includes('designbook/references/') && p.endsWith('/meta.yml'),
-      )?.[1];
-      return (
-        meta?.source?.kind === 'website' &&
-        String(meta?.source?.identity || '').includes('leando.de') &&
-        meta?.role === 'reference'
-      );
-  - type: javascript
     value: output.newFiles.some((f) => f.includes('designbook/references/') && f.endsWith('/approval.yml'))
   - type: javascript
     value: |
       const approval = Object.entries(output.fileContents).find(([p]) =>
         p.includes('designbook/references/') && p.endsWith('/approval.yml'),
       )?.[1];
-      return approval?.status === 'approved';
+      return approval?.status === 'rejected';
   - type: javascript
     value: |
       const ids = Object.keys(output.completedWorkflows).concat(Object.keys(output.pendingWorkflows));

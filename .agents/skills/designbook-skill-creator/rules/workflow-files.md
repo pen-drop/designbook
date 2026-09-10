@@ -8,7 +8,7 @@ applies-to: ["**/workflows/*.md"]
 
 Load with [common rules](common-rules.md). The [shared builder](../../designbook/resources/workflow-building.md) owns the definition-building procedure; `workflow schema` owns its machine contract.
 
-A domain skill is an intake outside the run. Its resource owns questions, reference analysis, structural inputs and handoff. First command: `workflow discover <id>`. That catalogue is the palette of tasks, rules and blueprints. Resolve the entire target inventory, instantiate the definition with the [shared builder](../../designbook/resources/workflow-building.md), then automatically invoke `execute-workflow <path>`.
+A domain skill is an intake outside the run. Its resource owns questions, reference analysis, structural inputs and handoff. First command: `workflow discover <id>`. That catalogue is the palette of tasks, rules and blueprints. Resolve the entire target inventory, instantiate the definition with the [shared builder](../../designbook/resources/workflow-building.md), then follow the builder's chosen mode (`ephemeral` | `persist` | `ask`) for whether to invoke `execute-workflow` on the sealed path.
 
 Templates contain executable building blocks, grouped by `stages: { name: { steps: [...] } }`. Task names are plain names; task discovery can qualify them with the template ID. Repetition is a prose hint to the planning agent, which writes each concrete task. Template stages never create runtime tasks.
 
@@ -32,4 +32,4 @@ Completion: the template describes only artifact work; structural decisions live
 |---|---|---|---|
 | WORKFLOW-01 | error | Step names are plain names | frontmatter |
 | WORKFLOW-02 | error | No intake/interactive stages, each, before or after declarations | frontmatter |
-| WORKFLOW-03 | error | Domain intake invokes the shared builder and saved-path executor | intake resource |
+| WORKFLOW-03 | error | Domain intake invokes the shared builder; execute follows the chosen mode | intake resource |

@@ -12,6 +12,8 @@ import {
   collectRuns,
   componentPrerequisites,
   artifactIntegrity,
+  savedWorkflows,
+  planToDocument,
 } from "./eval-score.mjs";
 
 test("bounded baseline evidence includes unchanged files and detects damage/deletion", () => {
@@ -334,6 +336,41 @@ import { componentInventory } from "./eval-score.mjs";
 import { mkdirSync, readFileSync, readdirSync } from "node:fs";
 import { load as parseYaml } from "js-yaml";
 
+test("savedWorkflows loads durable and ephemeral sealed plans via planToDocument", () => {
+  const dir = mkdtempSync(join(tmpdir(), "eval-plans-"));
+  try {
+    const plans = join(dir, "plans");
+    const ephemeral = join(plans, ".ephemeral");
+    mkdirSync(ephemeral, { recursive: true });
+    writeFileSync(
+      join(plans, "tokens.plan.md"),
+      "# Plan: tokens\n\n### Step: create-tokens\n- [ ] create-tokens — palette\n",
+    );
+    writeFileSync(
+      join(ephemeral, "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.plan.md"),
+      "# Plan: vision\n\n### Step: create-vision\n- [x] create-vision — PetMatch\n",
+    );
+    writeFileSync(join(plans, "notes.md"), "not a plan\n");
+    mkdirSync(join(plans, "other"));
+    const found = savedWorkflows(dir);
+    assert.equal(found.length, 2);
+    const byId = Object.fromEntries(
+      found.map((entry) => [entry.document.definition.id, entry]),
+    );
+    assert.equal(byId.tokens.document.state.status, "pending");
+    assert.equal(byId.vision.document.state.status, "completed");
+    assert.match(byId.vision.path, /\.ephemeral/);
+    assert.equal(
+      byId.vision.document.definition.id,
+      planToDocument(readFileSync(byId.vision.path, "utf8"), "ignored")
+        .definition.id,
+    );
+    assert.equal(savedWorkflows(join(dir, "missing")).length, 0);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("component inventory detects deletion of a tracked component", () => {
   const dir = mkdtempSync(join(tmpdir(), "eval-inventory-"));
   try {
@@ -477,6 +514,144 @@ test("actual schema-free direct artifact results carry null while data results r
   assert.equal(executionComplete(direct), false);
   delete direct.state.tasks.write.results.artifact.value;
   assert.equal(executionComplete(direct), false);
+});
+
+test("vision ephemeral, persist, and reference-approval case assertions fail closed", () => {
+  const petshop = new URL(
+    "../../../../fixtures/drupal-petshop/",
+    import.meta.url,
+  );
+  const web = new URL("../../../../fixtures/drupal-web/", import.meta.url);
+  const vision = parseYaml(
+    readFileSync(new URL("cases/vision.yaml", petshop), "utf8"),
+  );
+  const persist = parseYaml(
+    readFileSync(new URL("cases/vision-persist.yaml", petshop), "utf8"),
+  );
+  const approve = parseYaml(
+    readFileSync(new URL("cases/extract-reference.yaml", web), "utf8"),
+  );
+  const reject = parseYaml(
+    readFileSync(new URL("cases/extract-reference-reject.yaml", web), "utf8"),
+  );
+  const durable = vision.assert.find((a) =>
+    String(a.value).includes("plans/vision.plan.md"),
+  );
+  const persistPlan = persist.assert.find((a) =>
+    String(a.value).includes("plans/vision.plan.md"),
+  );
+  const persistVision = persist.assert.find((a) =>
+    String(a.value).includes("vision.yml"),
+  );
+  const approved = approve.assert.find((a) =>
+    String(a.value).includes("status === 'approved'"),
+  );
+  const rejected = reject.assert.find((a) =>
+    String(a.value).includes("status === 'rejected'"),
+  );
+  const noDesign = reject.assert.find((a) =>
+    String(a.value).includes("startsWith('design-')"),
+  );
+  const persistEphemeral = persist.assert.find((a) =>
+    String(a.value).includes("plans/.ephemeral"),
+  );
+  const approveNoPlan = approve.assert.find((a) =>
+    String(a.value).includes("plans\\/design-"),
+  );
+  const rejectNoPlan = reject.assert.find((a) =>
+    String(a.value).includes("plans\\/design-"),
+  );
+  assert.ok(
+    durable &&
+      persistPlan &&
+      persistVision &&
+      persistEphemeral &&
+      approved &&
+      rejected &&
+      noDesign &&
+      approveNoPlan &&
+      rejectNoPlan,
+  );
+  const green = {
+    newFiles: [
+      "designbook/vision.yml",
+      "designbook/plans/.ephemeral/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.plan.md",
+    ],
+    completedWorkflows: {
+      vision: {
+        state: { status: "completed", tasks: { t: { status: "done" } } },
+      },
+    },
+    pendingWorkflows: {},
+    fileContents: { "designbook/vision.yml": { product_name: "PetMatch" } },
+    definitionUnchanged: true,
+  };
+  assert.equal(evalAssertions([durable], green).passed, 1);
+  assert.equal(
+    evalAssertions(
+      [durable],
+      {
+        ...green,
+        newFiles: [...green.newFiles, "designbook/plans/vision.plan.md"],
+      },
+    ).passed,
+    0,
+  );
+  const sealed = {
+    newFiles: ["designbook/plans/vision.plan.md"],
+    completedWorkflows: {},
+    pendingWorkflows: { vision: { state: { status: "pending" } } },
+  };
+  assert.equal(
+    evalAssertions([persistPlan, persistVision, persistEphemeral], sealed)
+      .passed,
+    3,
+  );
+  assert.equal(
+    evalAssertions(
+      [persistVision],
+      { ...sealed, newFiles: [...sealed.newFiles, "designbook/vision.yml"] },
+    ).passed,
+    0,
+  );
+  assert.equal(
+    evalAssertions(
+      [persistEphemeral],
+      {
+        ...sealed,
+        newFiles: [
+          ...sealed.newFiles,
+          "designbook/plans/.ephemeral/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.plan.md",
+        ],
+      },
+    ).passed,
+    0,
+  );
+  const captured = {
+    newFiles: ["designbook/references/rev/approval.yml"],
+    fileContents: {
+      "designbook/references/rev/approval.yml": { status: "approved" },
+    },
+    completedWorkflows: {
+      "extract-reference": { state: { status: "completed" } },
+    },
+    pendingWorkflows: {},
+  };
+  assert.equal(evalAssertions([approved, approveNoPlan], captured).passed, 2);
+  captured.fileContents["designbook/references/rev/approval.yml"].status =
+    "rejected";
+  assert.equal(evalAssertions([approved], captured).passed, 0);
+  assert.equal(
+    evalAssertions([rejected, noDesign, rejectNoPlan], captured).passed,
+    3,
+  );
+  captured.pendingWorkflows["design-screen"] = { state: { status: "pending" } };
+  assert.equal(evalAssertions([noDesign], captured).passed, 0);
+  captured.newFiles = [
+    ...captured.newFiles,
+    "designbook/plans/design-screen.plan.md",
+  ];
+  assert.equal(evalAssertions([approveNoPlan, rejectNoPlan], captured).passed, 0);
 });
 
 test("screen preservation and repeat assertions detect lost sibling metadata and duplicate append", () => {

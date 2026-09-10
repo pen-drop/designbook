@@ -17,9 +17,13 @@ domain knowledge. Designbook is the source of that knowledge (Designbook intake 
 | `debo-designbook-design` | `design-to-designbook` | `diagnose`, `spec`, `coding`, `review` | `debo design-verify` | `@designbook-gaia/debo-designbook-design` |
 | `debo-config-sync` | `designbook-to-config` | `diagnose`, `spec`, `coding`, `review` | `debo sync-verify` | `@designbook-gaia/debo-config-sync` |
 
-Both use scope specification in GAIA spec and the matching Designbook intake in coding.
-The intake authors a complete workflow document and automatically invokes its executor.
-Validation uses the matching verification intake after artifact production.
+Both use scope specification in GAIA spec and Designbook build/execute in coding.
+`debo-designbook-design` may record intended mode (`ephemeral` | `persist` | `ask`) and any
+`ReferenceNeed` in spec without invoking intake; coding prefers `@designbook/execute-workflow`
+on a pre-persisted durable plan when present, otherwise a mode-aware intake. Intakes follow
+shared builder modes — they do **not** unconditionally auto-invoke the executor.
+`extract-reference` stays a separate start from design execute. Validation uses the matching
+verification intake after artifact production.
 
 ## Contract
 
@@ -59,6 +63,7 @@ and (optionally) overrides their inputs inline. Copyable block:
     provision: ddev init --provider recipe-test
 ```
 
-The `spec` input defaults to a written domain scope. The `build` input invokes the matching
-Designbook intake with that scope; `validate` invokes `debo design-verify` or `debo sync-verify`.
+The `spec` input defaults to a written domain scope (mode + ReferenceNeed allowed for design).
+The `build` input for design prefers execute-from-plan when a durable handoff exists; otherwise
+a mode-aware Designbook intake. `validate` invokes `debo design-verify` or `debo sync-verify`.
 Override an input only when the project requires a different implementation or verification task.

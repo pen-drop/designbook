@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync, renameSync, mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { dump as dumpYaml } from 'js-yaml';
 import type { Command } from 'commander';
 import {
@@ -58,29 +59,43 @@ export function register(program: Command): void {
       'JSON task list: { workflow, selectors?, tasks: [{ step, task, title?, params }] }',
     )
     .option('--output <path>', 'Write the plan here instead of the canonical plan_path')
+    .option('--ephemeral', 'Seal under plans/.ephemeral/ instead of the durable plan_path')
     .option('--config-dir <path>', 'Workspace dir to resolve skills root and sources from')
     .option('--config <path>', 'Draft configuration JSON (skips designbook.config.yml lookup)')
-    .action(async (workflow: string, opts: { tasks: string; output?: string; configDir?: string; config?: string }) => {
-      const taskList = JSON.parse(readFileSync(opts.tasks, 'utf8')) as TaskList;
-      taskList.workflow = workflow;
-      const draft = opts.config ? JSON.parse(readFileSync(opts.config, 'utf8')) : undefined;
-      const {
-        plan: built,
-        plan_path,
-        errors,
-      } = await buildPlan(taskList, {
-        configDir: opts.configDir,
-        config: draft,
-      });
-      if (!built) {
-        console.error(errors.join('\n'));
-        process.exitCode = 1;
-        return;
-      }
-      const target = opts.output ?? plan_path;
-      writePlan(target, serializePlan(built));
-      print({ ok: true, plan: target, steps: built.steps.length, tasks: built.steps.flatMap((s) => s.tasks).length });
-    });
+    .action(
+      async (
+        workflow: string,
+        opts: { tasks: string; output?: string; ephemeral?: boolean; configDir?: string; config?: string },
+      ) => {
+        const taskList = JSON.parse(readFileSync(opts.tasks, 'utf8')) as TaskList;
+        taskList.workflow = workflow;
+        const draft = opts.config ? JSON.parse(readFileSync(opts.config, 'utf8')) : undefined;
+        const {
+          plan: built,
+          plan_path,
+          errors,
+        } = await buildPlan(taskList, {
+          configDir: opts.configDir,
+          config: draft,
+        });
+        if (!built) {
+          console.error(errors.join('\n'));
+          process.exitCode = 1;
+          return;
+        }
+        const target = opts.ephemeral
+          ? join(dirname(plan_path), '.ephemeral', `${randomUUID()}.plan.md`)
+          : (opts.output ?? plan_path);
+        writePlan(target, serializePlan(built));
+        print({
+          ok: true,
+          plan: target,
+          ...(opts.ephemeral ? { ephemeral: true } : {}),
+          steps: built.steps.length,
+          tasks: built.steps.flatMap((s) => s.tasks).length,
+        });
+      },
+    );
 
   plan
     .command('done <path>')

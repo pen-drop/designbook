@@ -1,7 +1,9 @@
 # Execute a saved workflow plan
 
-Input: a path to a complete MD plan. This is the sole owner of the task loop. The
-executor reads only the plan — no discovery, no rule selection, no added tasks.
+Input: a path to a complete MD plan (durable `plan_path` or an ephemeral path from
+`plan build --ephemeral`). This is the sole owner of the task loop. The executor
+reads only the plan — no discovery, no rule selection, no added tasks, no widened
+scope.
 
 1. Run `npx storybook-addon-designbook plan steps <path>`. It validates the
    plan's digest and returns the steps with each task's checkbox state. Choose a
@@ -25,12 +27,32 @@ executor reads only the plan — no discovery, no rule selection, no added tasks
 5. A validation failure leaves the task open and reports the failing outputs.
    Correct the outputs and resubmit `plan done` for that task. If a concrete
    blockade persists after an attempted correction, stop and report it with the
-   task name, the reason, and the correction you attempted. Completion: the task
-   is valid, or a resumable blockade is reported.
+   task name, the **exact why**, and the correction you attempted. Completion: the
+   task is valid, or a resumable blockade is reported.
 6. Select the next step with unfinished tasks and repeat until every task is done
    or one is blocked. Read `plan summary <path>` and report the outcome.
    Completion: all tasks are done, or execution has stopped at the blockade.
 
-Discovery, context selection, adding tasks, and follow-up planning belong to
-intake, never this loop. A verification intake may receive a completed check's
-results and plan a separate repair after this executor returns.
+## Blockade contract
+
+If intake or execution cannot proceed without inventing scope, expanding targets,
+skipping approval, or adding undeclared tasks: **stop**. Report the exact reason
+(missing approval, would need new component X, palette requires a cascade the
+plan did not declare, digest/param failure, …). Wait for the user (standalone) or
+return that blockade to GAIA (orchestrated). Do not silently widen the plan.
+
+The executor must **not** add tasks, invent missing planning decisions, or expand
+targets beyond the sealed plan. Discovery, context selection, adding tasks, and
+follow-up planning belong to intake, never this loop. A verification intake may
+receive a completed check's results and plan a separate repair after this
+executor returns.
+
+## Ephemeral plans
+
+An ephemeral plan path is a full sealed plan under
+`$DESIGNBOOK_DATA/plans/.ephemeral/`. Execute it with the same loop as a durable
+plan. After successful completion or explicit abandon, delete the ephemeral plan
+file after caller/tester inspection when scoring needs the sealed plan; result
+artifacts (`vision.yml`, scene files, …) remain. Crash leftovers may be removed
+later; they are not a resume handoff — interrupted ephemeral work re-intakes
+(or the user switches to persist first).
