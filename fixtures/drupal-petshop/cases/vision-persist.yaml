@@ -34,3 +34,6 @@ assert:
     value: output.pendingWorkflows['vision'] != null
   - type: javascript
     value: Object.keys(output.completedWorkflows).length === 0
+  - type: javascript
+    value: |
+      return !output.newFiles.some((f) => f.startsWith('designbook/plans/.ephemeral/'));

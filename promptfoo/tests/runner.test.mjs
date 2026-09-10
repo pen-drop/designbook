@@ -295,6 +295,21 @@ test("collectArtifacts discovers ephemeral sealed plans for scoring", async (t) 
   );
 });
 
+test("ephemeral plan.md without definition-before still scores definitionUnchanged", async (t) => {
+  const { provider, workspace } = await fixture(t);
+  const ephemeral = join(workspace, "designbook/plans/.ephemeral");
+  await mkdir(ephemeral, { recursive: true });
+  await writeFile(
+    join(ephemeral, "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.plan.md"),
+    "# Plan: vision\n\n### Step: create-vision\n- [x] create-vision — PetMatch\n",
+  );
+  const result = await provider.collectArtifacts(workspace);
+  assert.deepEqual(result.workflowErrors, []);
+  assert.deepEqual(result.definitionErrors, []);
+  assert.equal(result.completedWorkflows.vision?.state?.status, "completed");
+  assert.equal(result.definitionUnchanged, true);
+});
+
 test("exact workflow IDs preserve failed attempts and archive does not imply completion", async (t) => {
   const { provider, workspace, workflow } = await fixture(t);
   await workflow("changes", "first", "design-shell-first", "blocked");

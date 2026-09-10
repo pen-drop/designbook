@@ -552,8 +552,25 @@ test("vision ephemeral, persist, and reference-approval case assertions fail clo
   const noDesign = reject.assert.find((a) =>
     String(a.value).includes("startsWith('design-')"),
   );
+  const persistEphemeral = persist.assert.find((a) =>
+    String(a.value).includes("plans/.ephemeral"),
+  );
+  const approveNoPlan = approve.assert.find((a) =>
+    String(a.value).includes("plans\\/design-"),
+  );
+  const rejectNoPlan = reject.assert.find((a) =>
+    String(a.value).includes("plans\\/design-"),
+  );
   assert.ok(
-    durable && persistPlan && persistVision && approved && rejected && noDesign,
+    durable &&
+      persistPlan &&
+      persistVision &&
+      persistEphemeral &&
+      approved &&
+      rejected &&
+      noDesign &&
+      approveNoPlan &&
+      rejectNoPlan,
   );
   const green = {
     newFiles: [
@@ -585,11 +602,28 @@ test("vision ephemeral, persist, and reference-approval case assertions fail clo
     completedWorkflows: {},
     pendingWorkflows: { vision: { state: { status: "pending" } } },
   };
-  assert.equal(evalAssertions([persistPlan, persistVision], sealed).passed, 2);
+  assert.equal(
+    evalAssertions([persistPlan, persistVision, persistEphemeral], sealed)
+      .passed,
+    3,
+  );
   assert.equal(
     evalAssertions(
       [persistVision],
       { ...sealed, newFiles: [...sealed.newFiles, "designbook/vision.yml"] },
+    ).passed,
+    0,
+  );
+  assert.equal(
+    evalAssertions(
+      [persistEphemeral],
+      {
+        ...sealed,
+        newFiles: [
+          ...sealed.newFiles,
+          "designbook/plans/.ephemeral/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.plan.md",
+        ],
+      },
     ).passed,
     0,
   );
@@ -603,13 +637,21 @@ test("vision ephemeral, persist, and reference-approval case assertions fail clo
     },
     pendingWorkflows: {},
   };
-  assert.equal(evalAssertions([approved], captured).passed, 1);
+  assert.equal(evalAssertions([approved, approveNoPlan], captured).passed, 2);
   captured.fileContents["designbook/references/rev/approval.yml"].status =
     "rejected";
   assert.equal(evalAssertions([approved], captured).passed, 0);
-  assert.equal(evalAssertions([rejected, noDesign], captured).passed, 2);
+  assert.equal(
+    evalAssertions([rejected, noDesign, rejectNoPlan], captured).passed,
+    3,
+  );
   captured.pendingWorkflows["design-screen"] = { state: { status: "pending" } };
   assert.equal(evalAssertions([noDesign], captured).passed, 0);
+  captured.newFiles = [
+    ...captured.newFiles,
+    "designbook/plans/design-screen.plan.md",
+  ];
+  assert.equal(evalAssertions([approveNoPlan, rejectNoPlan], captured).passed, 0);
 });
 
 test("screen preservation and repeat assertions detect lost sibling metadata and duplicate append", () => {

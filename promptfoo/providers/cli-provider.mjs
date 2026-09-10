@@ -566,6 +566,8 @@ class CliProvider {
           )
             throw new Error(`Duplicate workflow id: ${parsed.definition.id}`);
           target[parsed.definition.id] = parsed;
+          // MD-plan integrity is the sealed plan + checkbox completion.
+          if (path.endsWith(".plan.md")) continue;
           try {
             const before = yaml.load(
               await readFile(
