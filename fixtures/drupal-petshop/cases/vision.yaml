@@ -17,6 +17,10 @@ prompt: |
   - Community forum and resources
   - Vet integration and health tracking
 
+  Default mode is ephemeral. Seal with `_debo plan build vision --tasks <tasks.json> --ephemeral`.
+  Do not write the durable `$DESIGNBOOK_DATA/plans/vision.plan.md`.
+  Execute the ephemeral plan. Leave the ephemeral plan file in place for scoring — do not delete it before this run ends.
+
   Execute the workflow now.
 
 assert:
@@ -32,3 +36,7 @@ assert:
     value: output.fileContents['designbook/vision.yml']?.product_name === 'PetMatch'
   - type: javascript
     value: output.definitionUnchanged === true
+  - type: javascript
+    value: |
+      !output.newFiles.includes('designbook/plans/vision.plan.md') &&
+      !output.newFiles.some((f) => /^designbook\/plans\/[^/]+\.plan\.md$/.test(f))

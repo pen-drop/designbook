@@ -516,6 +516,102 @@ test("actual schema-free direct artifact results carry null while data results r
   assert.equal(executionComplete(direct), false);
 });
 
+test("vision ephemeral, persist, and reference-approval case assertions fail closed", () => {
+  const petshop = new URL(
+    "../../../../fixtures/drupal-petshop/",
+    import.meta.url,
+  );
+  const web = new URL("../../../../fixtures/drupal-web/", import.meta.url);
+  const vision = parseYaml(
+    readFileSync(new URL("cases/vision.yaml", petshop), "utf8"),
+  );
+  const persist = parseYaml(
+    readFileSync(new URL("cases/vision-persist.yaml", petshop), "utf8"),
+  );
+  const approve = parseYaml(
+    readFileSync(new URL("cases/extract-reference.yaml", web), "utf8"),
+  );
+  const reject = parseYaml(
+    readFileSync(new URL("cases/extract-reference-reject.yaml", web), "utf8"),
+  );
+  const durable = vision.assert.find((a) =>
+    String(a.value).includes("plans/vision.plan.md"),
+  );
+  const persistPlan = persist.assert.find((a) =>
+    String(a.value).includes("plans/vision.plan.md"),
+  );
+  const persistVision = persist.assert.find((a) =>
+    String(a.value).includes("vision.yml"),
+  );
+  const approved = approve.assert.find((a) =>
+    String(a.value).includes("status === 'approved'"),
+  );
+  const rejected = reject.assert.find((a) =>
+    String(a.value).includes("status === 'rejected'"),
+  );
+  const noDesign = reject.assert.find((a) =>
+    String(a.value).includes("startsWith('design-')"),
+  );
+  assert.ok(
+    durable && persistPlan && persistVision && approved && rejected && noDesign,
+  );
+  const green = {
+    newFiles: [
+      "designbook/vision.yml",
+      "designbook/plans/.ephemeral/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.plan.md",
+    ],
+    completedWorkflows: {
+      vision: {
+        state: { status: "completed", tasks: { t: { status: "done" } } },
+      },
+    },
+    pendingWorkflows: {},
+    fileContents: { "designbook/vision.yml": { product_name: "PetMatch" } },
+    definitionUnchanged: true,
+  };
+  assert.equal(evalAssertions([durable], green).passed, 1);
+  assert.equal(
+    evalAssertions(
+      [durable],
+      {
+        ...green,
+        newFiles: [...green.newFiles, "designbook/plans/vision.plan.md"],
+      },
+    ).passed,
+    0,
+  );
+  const sealed = {
+    newFiles: ["designbook/plans/vision.plan.md"],
+    completedWorkflows: {},
+    pendingWorkflows: { vision: { state: { status: "pending" } } },
+  };
+  assert.equal(evalAssertions([persistPlan, persistVision], sealed).passed, 2);
+  assert.equal(
+    evalAssertions(
+      [persistVision],
+      { ...sealed, newFiles: [...sealed.newFiles, "designbook/vision.yml"] },
+    ).passed,
+    0,
+  );
+  const captured = {
+    newFiles: ["designbook/references/rev/approval.yml"],
+    fileContents: {
+      "designbook/references/rev/approval.yml": { status: "approved" },
+    },
+    completedWorkflows: {
+      "extract-reference": { state: { status: "completed" } },
+    },
+    pendingWorkflows: {},
+  };
+  assert.equal(evalAssertions([approved], captured).passed, 1);
+  captured.fileContents["designbook/references/rev/approval.yml"].status =
+    "rejected";
+  assert.equal(evalAssertions([approved], captured).passed, 0);
+  assert.equal(evalAssertions([rejected, noDesign], captured).passed, 2);
+  captured.pendingWorkflows["design-screen"] = { state: { status: "pending" } };
+  assert.equal(evalAssertions([noDesign], captured).passed, 0);
+});
+
 test("screen preservation and repeat assertions detect lost sibling metadata and duplicate append", () => {
   const caseDoc = parseYaml(
     readFileSync(new URL("cases/design-screen-update.yaml", suite), "utf8"),

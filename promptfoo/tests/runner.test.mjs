@@ -548,6 +548,33 @@ test("generated main/verify configs isolate setup and preserve paths", async (t)
   );
 });
 
+test("run-single Plan boilerplate covers vision ephemeral and persist cases", async (t) => {
+  const { root, workspace } = await fixture(t);
+  for (const name of ["vision", "vision-persist"]) {
+    const path = execFileSync(
+      "node",
+      [
+        "promptfoo/scripts/run-single.mjs",
+        name,
+        "--suite",
+        "drupal-petshop",
+        "--workspace",
+        join(workspace, name),
+        "--output",
+        join(root, `${name}.json`),
+        "--config-only",
+      ],
+      { encoding: "utf8" },
+    ).trim();
+    const config = yaml.load(await readFile(path, "utf8"));
+    assert.match(config.prompts[0], /`ephemeral` \| `persist` \| `ask`/);
+    assert.match(config.prompts[0], /--ephemeral/);
+    if (name === "vision")
+      assert.match(config.prompts[0], /Default mode is ephemeral/);
+    else assert.match(config.prompts[0], /Mode: persist/);
+  }
+});
+
 for (const cli of ["codex", "claude", "grok"])
   test(`real Promptfoo loads ${cli} and verifies without resetting the workspace`, async (t) => {
     const { root, workspace, workflow, stub } = await fixture(t);
