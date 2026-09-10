@@ -14,7 +14,12 @@ inputs:
     default: describe intended artifacts, targets, references and acceptance checks
   build:
     description: how to build the Drupal config autonomously from the spec plan
-    default: invoke the matching Designbook intake with the specified domain task
+    default: >
+      Prefer @designbook/execute-workflow on a durable plan_path from a persist
+      handoff when present. Otherwise, when no durable plan exists yet and the
+      mode allows, invoke the matching Designbook intake with the specified
+      domain task — intakes honor ephemeral|persist|ask (not unconditional
+      auto-execute).
   validate:
     description: command that validates the synced Drupal config against the Designbook reference
     default: "@designbook/sync-verify"
@@ -33,9 +38,10 @@ inputs:
 # Syncing Designbook to config (work:designbook-to-config)
 
 Work only the ticket's current step, then stop. In spec, describe intended artifacts,
-references, targets and acceptance checks without invoking a Designbook intake. In coding,
-invoke the matching intake with that specified domain task; it writes a complete workflow and
-hands its saved path to execute-workflow. Validate with the configured verification skill.
+references, targets, acceptance checks, and intended execution mode
+(`ephemeral` | `persist` | `ask`) without invoking a Designbook intake. In coding, prefer
+`@designbook/execute-workflow` on a durable plan from a persist handoff; otherwise use the
+matching intake under shared builder modes. Validate with the configured verification skill.
 Project overrides replace the corresponding input defaults.
 
 **Shared start.** Invoke `@gaia/read-ticket` (all comments + latest handoff). For `spec`,
@@ -49,7 +55,9 @@ the same way **without** `@gaia/ensure-qualification`.
 1. Shared start.
 2. Describe the intended domain work: artifact types, exact target scope, references,
    dependencies and acceptance checks. Record the matching Designbook intake for coding,
-   but do not invoke it during spec because an intake proceeds automatically to execution.
+   the intended execution mode (`ephemeral` | `persist` | `ask`), and whether coding should
+   consume a pre-persisted durable plan. Do **not** invoke a Designbook intake during
+   spec — intakes honor modes, but spec still only records intent; coding owns build/execute.
 3. Publish the gaia `spec` + `test` handoff (design decision, alternatives, risks, `Task-Art`, the
    written plan path, and the AC↔evidence matrix mapping each acceptance criterion to the
    `@designbook/sync-verify` evidence). Commit the plan.
@@ -83,11 +91,16 @@ the same way **without** `@gaia/ensure-qualification`.
 
 1. Shared start (GREEN target gate). The guard protects `coding` even when entered through a manual
    state change or an import.
-2. Invoke `@gaia/implement-ticket` with `build`: load the selected Designbook intake and
-   supply the specified domain task and reference inputs. The intake resolves any remaining
-   structural choices, builds the complete document and invokes its executor automatically.
-   Reuse decisions already answered by the spec. The implementation subagent returns artifacts
-   and evidence; this parent owns confirmation, transitions and notifications.
+2. Invoke `@gaia/implement-ticket` with `build`:
+   - If a durable `plan_path` exists from a persist handoff / spec artifact → run
+     `@designbook/execute-workflow` on that path only; do **not** re-intake into a path that
+     would rebuild and auto-start execute.
+   - When no durable plan yet and the mode allows, may invoke the matching Designbook intake
+     with the specified domain task and reference inputs — the intake follows shared builder
+     modes (`ephemeral` | `persist` | `ask`), not unconditional auto-execute. Reuse decisions
+     already answered by the spec.
+   The implementation subagent returns artifacts and evidence; this parent owns confirmation,
+   transitions and notifications.
 3. Drive the acceptance criteria to GREEN. For a feature or chore author the QA artifacts now
    (`@gaia/acceptance` → `@gaia/scenario` → the concrete check) if `spec` did not; a bug reuses the
    `diagnose` artifacts. Then invoke `@gaia/verify` with `validate` (`@designbook/sync-verify`) and
