@@ -3,12 +3,15 @@
  * re-read, no discovery — and refuses when the stored digest no longer matches (AC-6).
  */
 import { describe, it, expect } from 'vitest';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { mkdtempSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { Command } from 'commander';
 import { register as registerPlan } from '../plan.js';
 import { serializePlan, parsePlan, planDigest, type Plan } from '../../plan-document.js';
+
+/** Worktree root — resolves the real `.agents`/`.claude` skills tree. */
+const workspaceRoot = resolve(process.cwd(), '../../');
 
 function freshPlan(): Plan {
   const plan: Plan = {
@@ -393,6 +396,61 @@ describe('plan steps', () => {
       expect(overview.workflow).toBe('extract-reference');
       expect(overview.steps[0].tasks[0]).toEqual({ name: 'publish-capture', title: '', done: true });
     } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('plan build --ephemeral', () => {
+  it('seals under plans/.ephemeral and does not write the canonical plan_path', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'plan-ephemeral-'));
+    const dataDir = join(dir, 'data');
+    const configPath = join(dir, 'config.json');
+    const tasksPath = join(dir, 'tasks.json');
+    const canonicalPlanPath = join(dataDir, 'plans', 'vision.plan.md');
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        data: dataDir,
+        technology: 'html',
+        backend: 'drupal',
+        'frameworks.component': 'sdc',
+        'frameworks.css': 'tailwind',
+        extensions: [],
+      }),
+    );
+    writeFileSync(
+      tasksPath,
+      JSON.stringify({
+        workflow: 'vision',
+        tasks: [{ step: 'create-vision', task: 'create-vision', title: 'v', params: {} }],
+      }),
+    );
+    try {
+      process.exitCode = undefined;
+      const out = await run([
+        'plan',
+        'build',
+        'vision',
+        '--tasks',
+        tasksPath,
+        '--ephemeral',
+        '--config-dir',
+        workspaceRoot,
+        '--config',
+        configPath,
+      ]);
+      expect(process.exitCode ?? 0).toBe(0);
+      const result = JSON.parse(out);
+      expect(result.ok).toBe(true);
+      expect(result.ephemeral).toBe(true);
+      expect(result.plan).toContain('.ephemeral');
+      expect(existsSync(result.plan)).toBe(true);
+      expect(existsSync(canonicalPlanPath)).toBe(false);
+      expect(result.steps).toBeGreaterThan(0);
+      expect(result.tasks).toBeGreaterThan(0);
+    } finally {
+      process.exitCode = undefined;
       rmSync(dir, { recursive: true, force: true });
     }
   });
