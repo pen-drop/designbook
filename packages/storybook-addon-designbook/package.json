@@ -122,6 +122,12 @@
   "peerDependenciesMeta": {
     "playwright": {
       "optional": true
+    },
+    "storybook": {
+      "optional": true
+    },
+    "vite": {
+      "optional": true
     }
   },
   "publishConfig": {
