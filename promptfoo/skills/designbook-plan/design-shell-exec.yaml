@@ -1,0 +1,54 @@
+description: "design-shell executor (luna) — execute the opus-sealed MD plan"
+
+outputPath: promptfoo/reports/design-shell-exec.json
+
+prompts:
+  - id: design-shell-exec
+    label: exec
+    raw: |
+      You are working in the directory {{workspace}} (contains `designbook.config.yml`
+      and a `.agents/skills/designbook` skill tree).
+
+      Set up the CLI once:
+        _debo() { npx storybook-addon-designbook "$@"; }
+        eval "$(_debo config)"
+
+      Read `.agents/skills/designbook/resources/workflow-execution.md` and
+      `.agents/skills/designbook/skills/execute-workflow/SKILL.md`. Follow them exactly.
+
+      A sealed MD plan already exists at `$DESIGNBOOK_DATA/plans/design-shell.plan.md`.
+      Execute it — do NOT re-plan, do NOT run intake, do NOT edit the plan's
+      definition. Loop:
+        - `_debo plan steps <plan>` to see the steps and checkbox state
+        - `_debo plan instructions <plan> --step <id>` for a step's context + contracts
+        - produce every task's outputs (write the component/scene files to their
+          declared paths; for `refresh-components` and `validate` build Storybook —
+          run `pnpm build-storybook` in the theme dir; start Storybook with
+          `_debo storybook start` if a browser check needs a running server)
+        - `_debo plan done <plan> --task <name> --data-file <result.json>` per task,
+          with a result matching that task's frozen contract
+      Continue until every task is done or one is genuinely blocked. Report
+      `_debo plan summary <plan>`.
+
+providers:
+  - id: file://../../providers/codex-cli.mjs
+    label: gpt-5.6-luna
+    config:
+      model: gpt-5.6-luna
+      timeout: 3600000
+
+defaultTest:
+  options:
+    provider:
+      id: file://../../providers/codex-cli.mjs
+      config:
+        model: gpt-5.6-luna
+        timeout: 3600000
+
+tests:
+  - description: "design-shell: luna executes the sealed plan into shell components + scene"
+    vars:
+      workspace: workspaces/design-shell
+    assert:
+      - type: javascript
+        value: file://assert-design-shell.mjs

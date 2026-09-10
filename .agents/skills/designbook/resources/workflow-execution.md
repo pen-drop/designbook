@@ -1,12 +1,36 @@
-# Execute a saved workflow
+# Execute a saved workflow plan
 
-Input: a path to a complete workflow document. This is the sole owner of the step loop. A step contains independent tasks which are produced as one batch; task dependencies cross step boundaries.
+Input: a path to a complete MD plan. This is the sole owner of the task loop. The
+executor reads only the plan — no discovery, no rule selection, no added tasks.
 
-1. Read `npx storybook-addon-designbook workflow steps <path>`. The CLI validates the fixed definition and returns only step/task identities, dependencies, readiness and status. Choose a ready unfinished step. Completion: the next step is identified without loading the whole plan. `workflow read` is a human inspection/export command, not part of execution.
-2. Load `workflow instructions <path> --step <id> --format md` once for all tasks in that step. It contains their saved instructions, parameters, outputs, referenced context, reachable schemas, config and predecessor results. The CLI validates each frozen reference request and supplies its scoped packet once in `references`; tasks identify their packet by ID. Full reference validation schemas remain outside execution context. Instructions and shared context appear once in the step registry; task links identify their applicable blocks. Treat source paths as provenance. Read the specified project code and input artifacts as needed; use the embedded instructions and fixed planning decisions. A missing structural or visual decision is a planning blockade, not permission to invent a target or rediscover the catalogue. A nonzero CLI exit is the diagnosis: stop with that exact message. Completion: all prescribed context for the current batch is loaded; later step instructions remain unloaded.
-3. Run `workflow start <path> --step <id>`. Produce every task's outputs before submitting the batch. For example, create all component files/stories in a component step together. Parallel work is limited to tasks in this selected step. Completion: every declared task in the step has its outputs ready for validation.
-4. Write one JSON results object keyed by exact task ID: `{ "header": { "component-yml": ... }, "footer": { "component-yml": ... } }`. Each value is that task's output object. Direct file outputs use their declared paths and an empty object when the task has no data outputs. Run `workflow done <path> --step <id> --data-file <results.json>`. The CLI requires exactly all task IDs and validates all required outputs, schemas and file validators. Completion: all tasks are marked done together only after every task passes. The reply is a compact status overview.
-5. A validation failure leaves the whole step open and preserves its per-task findings in the saved state. Load that same step's instructions/state, correct the reported outputs, record the action with `workflow start <path> --step <id> --correction <action>`, then resubmit every task's results. If a concrete blockade persists after an attempted correction, run `workflow block <path> --step <id> --reason <reason> --correction <attempted-action>` and report it. Completion: the batch is valid or a resumable blockade is recorded; repeated attempts require a new concrete corrective action.
-6. Use the returned overview or `workflow steps <path>` to select the next ready step. Repeat until all steps are done or one is blocked. Read `workflow summary <path>` and report the outcome. Completion: all fixed tasks are done, or execution has stopped at the recorded blockade.
+1. Run `npx storybook-addon-designbook plan steps <path>`. It validates the
+   plan's digest and returns the steps with each task's checkbox state. Choose a
+   step with unfinished tasks in order. Completion: the next step is identified.
+2. Load `plan instructions <path> --step <id>` once for that step. It returns the
+   step's referenced context (resolved from the plan's registry) and each task's
+   contract and params. Read the specified project code and input artifacts as
+   needed; use the embedded context and fixed planning decisions. A missing
+   structural or visual decision is a planning blockade, not permission to invent
+   a target or rediscover context. A nonzero CLI exit is the diagnosis: stop with
+   that exact message. Completion: the step's context and contracts are loaded.
+3. Produce every unfinished task's outputs. Parallel work is limited to the tasks
+   of this step. Completion: each task's outputs are ready for validation.
+4. For each task, write one JSON result object matching its contract and run
+   `plan done <path> --task <name> --data-file <result.json>`. When several tasks
+   of a step share a name (e.g. `write-component` for header and footer), add
+   `--title <title>` to select one; the CLI refuses an ambiguous name. Direct file
+   outputs use their declared paths. The CLI validates the result against the
+   task's frozen in-plan contract and, on success, ticks the checkbox and records
+   the results. Completion: every task of the step is `done`.
+5. A validation failure leaves the task open and reports the failing outputs.
+   Correct the outputs and resubmit `plan done` for that task. If a concrete
+   blockade persists after an attempted correction, stop and report it with the
+   task name, the reason, and the correction you attempted. Completion: the task
+   is valid, or a resumable blockade is reported.
+6. Select the next step with unfinished tasks and repeat until every task is done
+   or one is blocked. Read `plan summary <path>` and report the outcome.
+   Completion: all tasks are done, or execution has stopped at the blockade.
 
-Discovery, template loading, rule selection, adding tasks and follow-up workflow creation belong to intake, never this loop. A verification intake may receive the completed check's results and plan a separate repair after this executor returns.
+Discovery, context selection, adding tasks, and follow-up planning belong to
+intake, never this loop. A verification intake may receive a completed check's
+results and plan a separate repair after this executor returns.

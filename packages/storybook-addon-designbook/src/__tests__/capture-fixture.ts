@@ -1,12 +1,18 @@
-/** Native capture fixture uses the production writer and authoritative shared schemas. */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+/** Native capture fixture uses the production publisher and authoritative shared schemas. */
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { load } from 'js-yaml';
-import { captureLocation, type ObservationMeta, type ObservationExtract } from '../reference-capture.js';
+import { load, dump as dumpYaml } from 'js-yaml';
+import {
+  captureLocation,
+  reserveCapture,
+  publishCapture,
+  digestBytes,
+  type CaptureDefinition,
+  type ObservationMeta,
+  type ObservationExtract,
+} from '../reference-capture.js';
 import { sourceDumpName } from '../reference-project.js';
 import type { CapturedSource } from '../inspect/element-walker.js';
-import { saveDefinition, startTask, completeTask } from '../workflow-store.js';
-import type { WorkflowDefinition, TaskDefinition } from '../workflow-document.js';
 export const png = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a4l8AAAAASUVORK5CYII=',
   'base64',
@@ -63,8 +69,6 @@ export function captureFixture(
     { id: viewName('mobile'), width: 390, height: 844, breakpoint: 'sm' },
     { id: viewName('desktop'), width: 1280, height: 900, breakpoint: 'xl' },
   ];
-  // `open` is observed as a named session, so the fixture exercises the
-  // one-dump-per-state rule and the per-state observer, not just the rest case.
   const states = [
     { name: stateName('rest'), session: 'anonymous' },
     { name: stateName('open'), session: 'member' },
@@ -79,6 +83,7 @@ export function captureFixture(
       breakpoint: view.breakpoint,
     })),
   );
+  const capture: CaptureDefinition = { role, source, scope };
   const location = captureLocation(root, { source, scope }, workflowId);
   mkdirSync(join(location.directory, 'assets'), { recursive: true });
   const meta: ObservationMeta = {
@@ -183,60 +188,36 @@ export function captureFixture(
   writeFileSync(join(location.directory, 'assets/inter.woff2'), 'font bytes');
   for (const capture of extract.captures) writeFileSync(join(location.directory, capture.path), png);
   const contract = observationContract();
-  const task = (id: string, depends_on: string[] = []): TaskDefinition => ({
-    id,
-    step: id,
-    title: id,
-    type: 'reference',
-    target: subjectId,
-    depends_on,
-    params: {},
-    params_schema: { type: 'object' },
-    inputs: {},
-    instructions: 'capture',
-    context: [],
-    outputs: {},
-  });
-  const files = task('files');
-  for (const name of [...dumpFiles, ...extract.captures.map((c) => c.path), 'assets/logo.svg', 'assets/inter.woff2'])
-    files.outputs[name] = {
-      required: true,
-      schema: {},
-      path: join(location.directory, name),
-      submission: 'direct',
-      validators: name.endsWith('.png') ? ['image'] : [],
-    };
-  const publish = task('publish', ['files']);
-  publish.outputs = {
-    reference: {
-      required: true,
-      schema: contract.referenceSchema,
-      path: join(location.directory, 'meta.yml'),
-      submission: 'data',
-      validators: [],
-    },
+
+  const owner = join(root, `${workflowId}.plan.md`);
+  // The executor's declared output evidence: exactly the files the observe/capture
+  // steps declared (dumps, screenshots, referenced assets/fonts, meta.yml). Tests
+  // that add a new declared output push its relative path here; a file present on
+  // disk but never declared must be rejected at publication.
+  const declared = [
+    ...dumpFiles,
+    ...extract.captures.map((c) => c.path),
+    'assets/logo.svg',
+    'assets/inter.woff2',
+    'meta.yml',
+  ];
+  const declaredFiles = (): Record<string, string> => {
+    const hashes: Record<string, string> = {};
+    for (const rel of new Set(declared)) {
+      const abs = join(location.directory, rel);
+      if (existsSync(abs)) hashes[rel] = digestBytes(readFileSync(abs));
+    }
+    return hashes;
   };
-  const definition: WorkflowDefinition = {
-    id: workflowId,
-    title: 'Capture selected source',
-    workspace_root: root,
-    config: { data: root },
-    template: { source: 'capture.md', content: 'Capture selected observations.' },
-    inputs: {},
-    inputs_schema: { type: 'object' },
-    context: { capture: { source: 'capture.md', content: 'Observe selected subject and view.' } },
-    schemas: contract.definitions,
-    tasks: [files, publish],
-    capture: { role, source, scope },
-  };
-  const workflow = join(root, `${workflowId}.yml`);
+  /** Emulate the publish step writing the `reference` (meta.yml) data output. */
+  const writeMeta = () => writeFileSync(join(location.directory, 'meta.yml'), dumpYaml(meta));
+  const reserve = () => reserveCapture(location.directory, owner);
+  const finish = async () =>
+    publishCapture({ data: root, capture, workflowId, ownerWorkflow: owner, declaredFiles: declaredFiles(), contract });
   const prepare = async () => {
-    await saveDefinition(workflow, definition);
-    await startTask(workflow, 'files');
-    await completeTask(workflow, 'files', {});
-    await startTask(workflow, 'publish');
+    reserve();
+    writeMeta();
   };
-  const finish = () => completeTask(workflow, 'publish', { reference: meta });
   const complete = async () => {
     await prepare();
     return finish();
@@ -245,11 +226,13 @@ export function captureFixture(
     root,
     folder: location.directory,
     location,
-    workflow,
-    definition,
+    workflow: owner,
+    capture,
     meta,
     extract,
     contract,
+    declared,
+    reserve,
     prepare,
     finish,
     complete,

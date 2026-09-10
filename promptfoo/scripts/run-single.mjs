@@ -35,7 +35,6 @@ for (let i = 0; i < args.length; i++) {
       "history",
       "provider",
       "model",
-      "storybook-port",
       "executor-provider",
       "executor-model",
     ].includes(key)
@@ -92,17 +91,6 @@ const model =
     : cli === "claude"
       ? "claude-opus-5"
       : base.providers[0].config.model);
-const storybookPort =
-  opts["storybook-port"] === undefined
-    ? undefined
-    : Number(opts["storybook-port"]);
-if (
-  storybookPort !== undefined &&
-  (!Number.isInteger(storybookPort) ||
-    storybookPort < 1024 ||
-    storybookPort > 65535)
-)
-  throw new Error("storybook-port must be an integer from 1024 to 65535");
 const requestedOutput = resolve(
   repo,
   opts.output ||
@@ -159,11 +147,11 @@ prompt +=
     ? `\nUse distinct saved definition IDs ${JSON.stringify(workflowId + "-1")} through ${JSON.stringify(workflowId + "-" + caseDoc.repeat.count)} for the ordered repetitions in this single evaluation. Setup occurs once.`
     : `\nUse ${JSON.stringify(workflowId)} as the primary saved workflow definition.id for this phase.`;
 prompt +=
-  "\nYou are the execution driver already running inside Promptfoo in a provisioned workspace. Execute the domain intake and saved workflow directly. Read only the Case evidence and scoring section of the tester resource; do not invoke debo-test run, the Promptfoo runner or workspace setup again.\n" +
-  "Use this fresh workspace’s fixture inputs and copied skills. Prior test workspaces, saved definitions, generated artifacts and reports are not inputs; do not read or copy them. Repository test helpers and this case file remain available.\n" +
-  "Run all Designbook CLI commands from the workspace root with its designbook.config.yml. Save the effective workflow discover catalogue to JSON and pass that file as --catalogue to both workflow validate and workflow create; copied instruction bodies and schemas must match it exactly.\n" +
-  `After workflow create returns the saved tasks.yml path, run node ${JSON.stringify(join(repo, "promptfoo/scripts/snapshot-definition.mjs"))} <saved-tasks.yml> before execute-workflow. This helper saves the unchanged definition beside tasks.yml. ` +
-  "Execute the saved path through execute-workflow. Report every saved path, failure, retry and unanswered input. " +
+  "\nYou are the execution driver already running inside Promptfoo in a provisioned workspace. Plan and execute the requested workflow directly through the MD-plan engine. Read only the Case evidence and scoring section of the tester resource; do not invoke debo-test run, the Promptfoo runner or workspace setup again.\n" +
+  "Use this fresh workspace’s fixture inputs and copied skills. Prior test workspaces, saved plans, generated artifacts and reports are not inputs; do not read or copy them. Repository test helpers and this case file remain available.\n" +
+  "Set up the CLI once from the workspace root: `_debo() { npx storybook-addon-designbook \"$@\"; }` then `eval \"$(_debo config)\"`. Follow the installed skills and `.agents/skills/designbook/resources/workflow-building.md`.\n" +
+  "Plan: run `_debo intake <workflow> --palette`, author the complete `tasks.json` (every step; each task's params satisfy its params_schema; resolve every open selector), then `_debo plan build <workflow> --tasks <tasks.json>` — it auto-seals and writes the plan to `$DESIGNBOOK_DATA/plans/<workflow>.plan.md`. Fix any reported unmet param or missing step and re-run until it returns ok.\n" +
+  "Execute: run the execute-workflow skill on that plan — loop `_debo plan steps <plan>`, `_debo plan instructions <plan> --step <id>`, produce each task's declared outputs, `_debo plan done <plan> --task <name> --data-file <result.json>` (add `--title` when a step repeats a task name) — until `_debo plan summary <plan>` reports every task done. Report every saved path, failure, retry and unanswered input. " +
   "If required inputs are missing, record the failure and end the run; this test has no interactive user.";
 if (caseDoc.evidence && opts.phase === "main") {
   prompt += `\nFollow the Case evidence and scoring contract in ${JSON.stringify(join(repo, ".agents/skills/designbook-test/skills/run/resources/run.md"))}. Save ${JSON.stringify(join(workspace, "case-runs.json"))} as a JSON array in execution order, with one entry per saved run: {workflow, definitionBefore, evidence, artifactSnapshot}, each an absolute file path. Each evidence file contains the actual build output and browser observations. Capture each artifact snapshot before the next repetition; preserve the fixture git baseline. Include every attempt. The Promptfoo provider reads this manifest and uses the shared scorer to inspect artifacts and evaluate the case assertions.`;
@@ -171,7 +159,7 @@ if (caseDoc.evidence && opts.phase === "main") {
 const intakeOutput = join(runDir, "intake.json");
 const intakeHandoff = join(runDir, "intake-handoff.json");
 if (designIntake)
-  prompt += `\nThe first intake part is already complete for this same run. Read the compact validated handoff at ${JSON.stringify(intakeHandoff)} and use its exact subjects, reference selectors, planned story selectors and breakpoints. Reuse the effective catalogue at the handoff catalogue path instead of rediscovering unchanged context. Its catalogue and reference files are frozen inputs: reuse them without modifying them. Continue with complete workflow definition authoring and execute-workflow in this invocation. The handoff's selector table has already been presented to the user; complete the remaining work now.`;
+  prompt += `\nThe capture part is already complete for this same run. Read the compact validated handoff at ${JSON.stringify(intakeHandoff)} and use its exact subjects, reference selectors and breakpoints. Reuse the published reference recorded there instead of recapturing; its reference files are frozen inputs. Author the complete tasks.json, run plan build, then execute the sealed plan in this invocation. The handoff's selector table has already been presented to the user; complete the remaining work now.`;
 const providers = base.providers.map((p) => ({
   ...p,
   id: `file://${join(repo, "promptfoo/providers", `${cli}-cli.mjs`)}`,
@@ -182,7 +170,6 @@ const providers = base.providers.map((p) => ({
     requireDesignIntake: designIntake,
     ...(designIntake ? { intakeHandoffInput: intakeHandoff } : {}),
     evidenceDir: join(runDir, "evidence"),
-    definitionSnapshotDir: join(runDir, "definitions"),
     ...(caseDoc.evidence && opts.phase === "main"
       ? { caseFile: join(cases, `${opts.case}.yaml`) }
       : {}),
@@ -281,9 +268,6 @@ const config = {
               suite: opts.suite,
               case: opts.case,
               workspace,
-              ...(storybookPort === undefined
-                ? {}
-                : { storybook_port: storybookPort }),
             }
           : { workspace },
       assert: assertions,
@@ -305,8 +289,11 @@ if (designIntake) {
       report: relative(repo, intakeOutput),
     },
     prompts: [
-      `Run the requested skill's intake, including its reference capture and user-facing presentation. Follow the installed skills. Stop before design planning or implementation.\n` +
-        `Save the effective planning catalogue to ${join(workspace, ".designbook-intake/catalogue.json")}. Finish with the complete intake handoff, including selected reference bindings, for the next model.\n` +
+      `You are the capture model, inside Promptfoo. Capture and publish the design reference for the requested work, then present its bindings and selectors. Do NOT plan or implement the design workflow itself.\n` +
+        `Set up the CLI once from the workspace root: \`_debo() { npx storybook-addon-designbook "$@"; }\` then \`eval "$(_debo config)"\`. Print the data directory with \`echo "$DESIGNBOOK_DATA"\`.\n` +
+        `If the request supplies a reference URL, run the extract-reference workflow through the MD-plan engine to capture it: \`_debo intake extract-reference --palette\` → author a tasks.json (resolve the \`source\` selector to \`website\`; include the observe-website, capture-image and publish-capture tasks for that URL and the requested breakpoints) → \`_debo plan build extract-reference --tasks <tasks.json>\` → execute the sealed plan with the execute-workflow loop (\`plan steps\`/\`plan instructions\`/\`plan done\`), which runs \`reference save\`/\`reference capture-image\`/\`reference publish\` and writes a published reference package under \`$DESIGNBOOK_DATA/references\`. Follow the installed designbook skills.\n` +
+        `Then write ${JSON.stringify(join(workspace, ".designbook-intake/catalogue.json"))} as JSON: \`{ "config": { "data": "<the absolute $DESIGNBOOK_DATA>" }, "reference": { "directory": "<published revision dir>", "subjects": [...], "selectors": [...], "breakpoints": [...] } }\`. The \`config.data\` field is required. If no reference URL is supplied, still write the file with \`config.data\` and an empty \`reference\`.\n` +
+        `Finish by presenting the published reference bindings and selectors for the next model.\n` +
         `Case request:\n${requestPrompt}\nUse only this workspace. Do not provision fixtures or run Promptfoo.`,
     ],
     providers: providers.map((provider) => ({
@@ -336,7 +323,6 @@ if (designIntake) {
   // Only intake provisions fixtures. Execution preserves its workspace and evidence.
   delete config.tests[0].vars.suite;
   delete config.tests[0].vars.case;
-  delete config.tests[0].vars.storybook_port;
   config.tags.intake_config = intakeConfigPath;
   config.tags.intake_report = intakeOutput;
   writeFileSync(
@@ -374,9 +360,8 @@ if (
     );
   verifyConfigPath = join(runDir, "verify-promptfooconfig.yaml");
   const verifyPrompt =
-    `In ${JSON.stringify(workspace)}, run /debo design-verify for the saved main workflow ${JSON.stringify(workflowId)} using the installed skill. Resolve the reference and all comparison targets from that saved plan.\n` +
-    `Use its fixed threshold, or ${thresholdPercent}% when none is declared. Use definition.id "design-verify". Preserve the main artifacts; return the score-report and findings. This test has no interactive user.\n` +
-    `After each workflow create, save measurement evidence with node ${JSON.stringify(join(repo, "promptfoo/scripts/snapshot-definition.mjs"))} <saved-tasks.yml>.`;
+    `In ${JSON.stringify(workspace)}, set up the CLI once: \`_debo() { npx storybook-addon-designbook "$@"; }\` then \`eval "$(_debo config)"\`. Run the design-verify workflow for the completed ${JSON.stringify(workflowId)} plan through the MD-plan engine: \`_debo intake design-verify --palette\` → author tasks.json → \`_debo plan build design-verify --tasks <tasks.json>\` → execute the sealed plan with the execute-workflow loop. Resolve the reference and all comparison targets from the saved main plan at \`$DESIGNBOOK_DATA/plans/${workflowId}.plan.md\`.\n` +
+    `The verify tasks run \`_debo compare-images\` and write the deterministic fidelity score to a file with \`_debo verify score --result <compare>.json --output $DESIGNBOOK_DATA/plans/design-verify.score.json\`. Use the plan's fixed threshold, or ${thresholdPercent}% when none is declared. Preserve the main artifacts; report the score file path and findings. This test has no interactive user.`;
   verifyConfig = {
     ...config,
     description: `${opts.suite}/${opts.case}: verify`,

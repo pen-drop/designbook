@@ -4,12 +4,39 @@
  */
 
 import type { Command } from 'commander';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve } from 'node:path';
 import { load as parseYaml } from 'js-yaml';
 import { loadConfig } from '../config.js';
-import { assertUnpublishedTarget } from '../reference-capture.js';
+import {
+  assertUnpublishedTarget,
+  captureLocation,
+  reserveCapture,
+  publishCapture,
+  digestBytes,
+  type CaptureDefinition,
+  type ReferenceContract,
+} from '../reference-capture.js';
 import { pngSize, sourceDumpName } from '../reference-project.js';
+
+/** Hash every revision file except the reservation/publication markers. */
+function revisionFileHashes(directory: string): Record<string, string> {
+  const hashes: Record<string, string> = {};
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const abs = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(abs);
+        continue;
+      }
+      const rel = relative(directory, abs);
+      if (rel === 'publication.json' || rel === '.capture-owner.json') continue;
+      hashes[rel] = digestBytes(readFileSync(abs));
+    }
+  };
+  walk(directory);
+  return hashes;
+}
 
 export function register(program: Command): void {
   const reference = program
@@ -38,6 +65,56 @@ export function register(program: Command): void {
             findings: error instanceof ReferenceQueryError ? error.findings : [(error as Error).message],
           }),
         );
+        process.exitCode = 1;
+      }
+    });
+  reference
+    .command('capture-location')
+    .description(
+      'Resolve the revision directory for a fixed capture. The revision digest covers the selected scope and prelude, so the whole capture block is required — not just the source.',
+    )
+    .requiredOption('--capture <path>', 'JSON capture block: role, source, optional prelude, and the fixed scope')
+    .requiredOption('--workflow-id <id>', 'Unique fixed capture workflow ID; refresh uses a new ID')
+    .action((opts: { capture: string; workflowId: string }) => {
+      const capture = JSON.parse(readFileSync(opts.capture, 'utf8')) as CaptureDefinition;
+      if (!capture?.source?.kind || !capture.source.identity || !Array.isArray(capture.scope) || !capture.scope.length)
+        throw new Error('--capture: expected a capture block with source.kind, source.identity and a non-empty scope');
+      console.log(JSON.stringify(captureLocation(loadConfig().data, capture, opts.workflowId)));
+    });
+  reference
+    .command('publish')
+    .description(
+      'Seal a finished capture revision: fingerprint every file and write the self-contained publication binding. No observation validation — the human decides the screenshots are right.',
+    )
+    .requiredOption('--capture <json>', 'JSON capture block: role, source, optional prelude, and the fixed scope')
+    .requiredOption('--workflow-id <id>', 'Capture workflow id (a revision digest input)')
+    .requiredOption('--owner <path>', 'Owner identity recorded for the revision (the plan path)')
+    .requiredOption('--contract <json>', 'JSON { referenceSchema, definitions } frozen for later reference queries')
+    .action((opts: { capture: string; workflowId: string; owner: string; contract: string }) => {
+      try {
+        const capture = JSON.parse(readFileSync(opts.capture, 'utf8')) as CaptureDefinition;
+        const contract = JSON.parse(readFileSync(opts.contract, 'utf8')) as ReferenceContract;
+        const data = loadConfig().data;
+        const location = captureLocation(data, capture, opts.workflowId);
+        const owner = resolve(opts.owner);
+        const ownerFile = join(location.directory, '.capture-owner.json');
+        if (!existsSync(ownerFile)) {
+          reserveCapture(location.directory, owner);
+        } else {
+          const existing = JSON.parse(readFileSync(ownerFile, 'utf8')) as { workflow: string };
+          if (existing.workflow !== owner) throw new Error(`Capture revision is owned by a different workflow`);
+        }
+        const binding = publishCapture({
+          data,
+          capture,
+          workflowId: opts.workflowId,
+          ownerWorkflow: owner,
+          declaredFiles: revisionFileHashes(location.directory),
+          contract,
+        });
+        console.log(JSON.stringify(binding));
+      } catch (error) {
+        console.error((error as Error).message);
         process.exitCode = 1;
       }
     });

@@ -70,7 +70,8 @@ npx promptfoo view
 Select a CLI with `--provider codex|claude|grok` and optionally `--model <id>`.
 Defaults are `gpt-5.6-luna` and `claude-opus-5`; both use the one-hour limit in
 `configs/base.yaml`. The automatic verify phase uses the same provider/model.
-`--storybook-port <port>` provisions this workspace's server before measurement.
+Storybook is not pre-provisioned: the executing agent starts it via
+`storybook start`, which picks a free port and records it for `storybook status`.
 
 Grok uses `grok-4.6` with `streaming-messages-json`. Its adapter checks that
 the terminal usage equals the sum of the complete assistant-message counters;

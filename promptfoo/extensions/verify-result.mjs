@@ -1,19 +1,52 @@
-import { readFileSync } from "node:fs";
-import { verificationMetrics } from "./result-history.mjs";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+
+// design-verify writes its deterministic fidelity score to a file
+// (`_debo verify score --output …/plans/design-verify.score.json`): { score,
+// passed, issue_count, checks }. The harness reads that file rather than the plan,
+// since the MD-plan engine no longer stores task results in the plan.
+function findScoreFile(root) {
+  const stack = [root];
+  while (stack.length) {
+    const dir = stack.pop();
+    let entries;
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      if (entry.name === "node_modules" || entry.name === ".git") continue;
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) stack.push(path);
+      else if (entry.name === "design-verify.score.json") return path;
+    }
+  }
+  return null;
+}
 
 export default function verifyResult(output, context) {
-  const measurement = verificationMetrics(output, context.vars.workflow_id);
-  if (measurement.score === undefined)
+  const workspace = context?.vars?.workspace;
+  const scorePath = workspace && findScoreFile(workspace);
+  if (!scorePath)
     return {
       pass: false,
       score: 0,
-      reason: "Missing or invalid validated verification score-report",
+      reason: "Missing design-verify score file",
     };
-  if (measurement.passed !== measurement.total)
+  let report;
+  try {
+    report = JSON.parse(readFileSync(scorePath, "utf8"));
+  } catch (error) {
+    return { pass: false, score: 0, reason: `Unreadable score file: ${error.message}` };
+  }
+  if (typeof report.score !== "number")
+    return { pass: false, score: 0, reason: "Score file missing numeric score" };
+  if (report.passed !== true)
     return {
       pass: false,
-      score: measurement.passed / measurement.total,
-      reason: "Visual comparisons exceeded their fixed thresholds",
+      score: report.score,
+      reason: `Visual fidelity below its fixed threshold (score ${report.score})`,
     };
   if (context.vars.main_report) {
     const main = JSON.parse(readFileSync(context.vars.main_report, "utf8"))
@@ -36,7 +69,7 @@ export default function verifyResult(output, context) {
   }
   return {
     pass: true,
-    score: 1,
-    reason: "Validated comparisons passed; main artifacts unchanged",
+    score: report.score,
+    reason: `Validated comparisons passed (score ${report.score}); main artifacts unchanged`,
   };
 }

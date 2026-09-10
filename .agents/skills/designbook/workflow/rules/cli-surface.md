@@ -48,11 +48,11 @@ trigger:
 # CLI command surface
 
 `_debo` / `npx storybook-addon-designbook` is the command contract for every
-workflow. Run the command. Its stdout and stderr are the spec: catalogue,
+workflow. Run the command. Its stdout and stderr are the spec: intake context,
 schemas, instructions, status. Skill descriptions only fire the skill; they
 are not the command surface.
 
-Every intake's first command is `workflow discover <id>`. Source dumps use
+Every intake's first command is `intake <id>`. Source dumps use
 `_debo reference save --reference <dir> --url <url> --state <name> --session
 <name>`. Screenshots use `_debo reference capture-image --reference <dir> --path
 <png> --url <url> --selector <sel> --width <px> --session <name>` (optional
@@ -61,12 +61,12 @@ Every intake's first command is `workflow discover <id>`. Source dumps use
 Unpublished revisions are read with `_debo reference inspect`; a prelude is
 fingerprinted with `_debo reference prelude`. A full matrix uses
 `_debo capture matrix`. Story identity uses `_debo storybook check`.
-`workflow instructions` supplies the saved step. A nonzero CLI exit ends this
-work with that exact message. Recover with `--help`, the catalogue, or the
+`plan instructions` supplies the saved step. A nonzero CLI exit ends this
+work with that exact message. Recover with `--help`, the intake context, or the
 saved step instructions.
 
 `packages/storybook-addon-designbook` is not a recovery path. When the work needs
-a fact that `--help`, the catalogue and the saved step instructions do not carry,
+a fact that `--help`, the intake context and the saved step instructions do not carry,
 stop and name that missing fact in the report — the skills own it, so the gap is
 the finding. Reconstructing it from the addon source, or from a stored artifact
 opened off disk, publishes a guess in the place of an observation.

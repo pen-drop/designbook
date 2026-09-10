@@ -9,7 +9,7 @@ import type { SceneNodeBuilder } from './renderer/types';
 import { buildSceneModule } from './renderer/scene-module-builder';
 import { buildEntityModule } from './renderer/entity-module-builder';
 import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
-import { scanAllWorkflows } from './workflow-utils';
+import { digestLog } from './log/digest.js';
 import { StoryMeta } from './story-entity';
 import { Reference } from './reference-entity';
 import { USES_WITH_SELECTOR_SOURCE } from './use-sync-with-selector-source';
@@ -299,8 +299,6 @@ export function designbookLoadPlugin(
     },
 
     configureServer(server: ViteDevServer) {
-      const workflowsDir = resolve(designbookDir, 'workflows');
-
       // File type registry — first matching glob wins; no match = no event sent
       const FILE_TYPES: Record<string, string> = {
         task: 'workflows/**/*.yml',
@@ -363,14 +361,14 @@ export function designbookLoadPlugin(
         });
       }
 
-      // HTTP endpoint: serve all workflows (active + recent archived)
+      // HTTP endpoint: serve the digested CLI log (the panel is a logs-only view)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      server.middlewares.use('/__designbook/workflows', (_req: IncomingMessage, res: any) => {
+      server.middlewares.use('/__designbook/log', (_req: IncomingMessage, res: any) => {
         try {
-          const workflows = scanAllWorkflows(workflowsDir, 10);
+          const digest = digestLog(resolve(designbookDir, 'dbo.log'));
           res.setHeader('Content-Type', 'application/json');
           res.statusCode = 200;
-          res.end(JSON.stringify({ designbookDir, workflows }));
+          res.end(JSON.stringify({ designbookDir, ...digest }));
         } catch (err: unknown) {
           res.statusCode = 500;
           res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }));

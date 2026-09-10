@@ -3,9 +3,10 @@ import { Command } from 'commander';
 import { loadConfig, normalizeExtensions, getExtensionIds, getExtensionSkillIds } from './config.js';
 import { validateData } from './validators/data.js';
 import { validateEntityMapping } from './validators/entity-mapping.js';
-import { register as registerWorkflow } from './cli/workflow.js';
+import { register as registerIntake } from './cli/intake.js';
+import { register as registerPlan } from './cli/plan.js';
+import { register as registerVerify } from './cli/verify.js';
 import { register as registerStorybook } from './cli/storybook.js';
-import { register as registerRunbook } from './cli/runbook.js';
 import { register as registerCompareImages } from './cli/compare-images.js';
 import { register as registerInspect } from './cli/inspect-register.js';
 
@@ -58,13 +59,13 @@ program
       console.log(`export ${envName}='${escaped}'`);
     }
 
-    // Explicit: DESIGNBOOK_HOME, DESIGNBOOK_DATA, DESIGNBOOK_URL
+    // Explicit: DESIGNBOOK_HOME, DESIGNBOOK_DATA. There is no static Storybook URL —
+    // the live server is always started via `storybook start` and its port read
+    // back from `storybook status`.
     const home = config['designbook.home'] as string | undefined;
     const data = config['designbook.data'] as string | undefined;
-    const url = config['designbook.url'] as string | undefined;
     if (home) console.log(`export DESIGNBOOK_HOME='${home.replace(/'/g, "'\\''")}'`);
     if (data) console.log(`export DESIGNBOOK_DATA='${data.replace(/'/g, "'\\''")}'`);
-    if (url) console.log(`export DESIGNBOOK_URL='${url.replace(/'/g, "'\\''")}'`);
 
     // DESIGNBOOK_CMD: shell function that runs from DESIGNBOOK_HOME
     const cmd = config['designbook.cmd'] as string | undefined;
@@ -129,9 +130,10 @@ program
   });
 
 // Register submodules
-registerWorkflow(program);
+registerIntake(program);
+registerPlan(program);
+registerVerify(program);
 registerStorybook(program);
-registerRunbook(program);
 registerCompareImages(program);
 registerInspect(program);
 

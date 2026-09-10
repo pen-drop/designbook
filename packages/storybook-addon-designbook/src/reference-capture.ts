@@ -2,10 +2,8 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, realpathSync, statSync, writeFileSync, unlinkSync, mkdirSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
-import { load } from 'js-yaml';
-import type { WorkflowDefinition, WorkflowDocument } from './workflow-document.js';
 import { validateImage } from './validators/image.js';
-import { declaredStates, loadSourceDumps, projectObservations, sourceDumpName } from './reference-project.js';
+import { declaredStates, sourceDumpName } from './reference-project.js';
 
 export interface SourceLocator {
   kind: string;
@@ -40,12 +38,21 @@ export interface CaptureDefinition {
   prelude?: CapturePrelude;
   scope: CaptureScope[];
 }
+/**
+ * The frozen query contract a later reference query needs, stored in the binding so
+ * queries are self-contained — no workflow document is reloaded after publication.
+ */
+export interface ReferenceContract {
+  referenceSchema: unknown;
+  definitions: Record<string, object>;
+}
 export interface CaptureBinding {
   id: string;
   revision: string;
   directory: string;
   workflow: string;
   files: Record<string, string>;
+  contract: ReferenceContract;
 }
 export interface ObservationStructure {
   roots: string[];
@@ -162,18 +169,12 @@ export function captureLocation(data: string, capture: CaptureIdentity, workflow
   ).slice(0, 16);
   return { id, revision, directory: join(data, 'references', id, revision) };
 }
-export function captureDefinitionLocation(def: WorkflowDefinition) {
-  if (!def.capture) throw new Error('Not a capture workflow');
-  return captureLocation(String(def.config.data), def.capture, def.id);
-}
-/** Reserve a revision for one fixed workflow before any result file may be written. */
-export function reserveCapture(def: WorkflowDefinition, workflow: string): (() => void) | undefined {
-  if (!def.capture) return;
-  const { directory } = captureDefinitionLocation(def);
+/** Reserve a revision directory for one fixed owner before any result file may be written. */
+export function reserveCapture(directory: string, ownerWorkflow: string): () => void {
   mkdirSync(directory, { recursive: true });
   const owner = join(directory, '.capture-owner.json');
   try {
-    writeFileSync(owner, JSON.stringify({ workflow: resolve(workflow) }), { flag: 'wx' });
+    writeFileSync(owner, JSON.stringify({ workflow: resolve(ownerWorkflow) }), { flag: 'wx' });
   } catch (error) {
     throw new Error(`Capture revision is already owned; refresh requires a new workflow ID: ${directory}`, {
       cause: error,
@@ -210,35 +211,14 @@ export function isCaptureWorkflow(steps: Iterable<string>): boolean {
   return false;
 }
 
-export function validateCaptureDefinition(def: WorkflowDefinition): void {
-  if (!def.capture) {
-    if (isCaptureWorkflow(def.tasks.map((task) => task.step)))
-      throw new Error('Capture workflow requires a capture block');
-    return;
-  }
-  const { directory } = captureDefinitionLocation(def);
-  const outputs = def.tasks.flatMap((task) => Object.entries(task.outputs));
-  const metaOut = outputs.filter(([name]) => name === 'reference');
-  if (
-    metaOut.length !== 1 ||
-    metaOut[0]![1].path !== join(directory, 'meta.yml') ||
-    metaOut[0]![1].submission !== 'data' ||
-    !metaOut[0]![1].required
-  )
-    throw new Error(`Capture requires one required data output reference at ${join(directory, 'meta.yml')}`);
-  // One dump per declared state — a state without its own dump cannot be
-  // observed, only guessed at from another state's DOM.
-  for (const state of [...new Set(def.capture.scope.map((cell) => cell.state))].sort()) {
-    const path = join(directory, sourceDumpName(state));
-    const dumpOut = outputs.filter(([, output]) => output.path === path);
-    if (dumpOut.length !== 1 || dumpOut[0]![1].submission !== 'direct' || !dumpOut[0]![1].required)
-      throw new Error(`Capture requires one required dump at ${path}`);
-  }
+/**
+ * A capture identity's scope integrity, independent of any task shape: one dump per
+ * declared state, no duplicate scope cells, one observer session per state.
+ */
+export function validateCaptureScope(capture: CaptureDefinition): void {
   const seen = new Set<string>();
-  // A state names one dump for the whole revision, so its session cannot differ
-  // between subjects — that would need two dumps under one name.
   const sessions = new Map<string, string>();
-  for (const cell of def.capture.scope) {
+  for (const cell of capture.scope) {
     const key = JSON.stringify([cell.subject, cell.view, cell.state]);
     if (seen.has(key)) throw new Error(`Duplicate capture scope ${key}`);
     seen.add(key);
@@ -247,13 +227,6 @@ export function validateCaptureDefinition(def: WorkflowDefinition): void {
       throw new Error(`State ${cell.state} is observed as both "${known}" and "${cell.session}"`);
     sessions.set(cell.state, cell.session);
   }
-  for (const [, output] of outputs)
-    if (output.path) {
-      const rel = relative(directory, output.path);
-      if (rel === '..' || rel.startsWith('../') || isAbsolute(rel))
-        throw new Error(`Capture output escapes CLI revision directory: ${output.path}`);
-      if (rel === 'publication.json') throw new Error('Publication is owned by workflow completion');
-    }
 }
 export function readCaptureFile(directory: string, name: string): Buffer {
   if (!name || isAbsolute(name)) throw new Error(`Capture file ${name}: expected relative path`);
@@ -407,31 +380,41 @@ export function validateCaptureObservations(
   for (const file of files) readCaptureFile(directory, file);
   return files;
 }
-export function publishCapture(doc: WorkflowDocument, workflow: string): CaptureBinding {
-  const location = captureDefinitionLocation(doc.definition);
-  const meta = load(readCaptureFile(location.directory, 'meta.yml').toString('utf8')) as ObservationMeta;
-  const dumps = loadSourceDumps(location.directory, declaredStates(meta));
-  const extract = projectObservations(dumps, meta, location.directory);
-  const files = validateCaptureObservations(location.directory, doc.definition.capture!, meta, extract);
-  const declared = new Map<string, string>();
-  for (const task of doc.definition.tasks)
-    for (const [key, output] of Object.entries(task.outputs))
-      if (output.path) {
-        const result = doc.state.tasks[task.id]!.results[key];
-        if (!result?.valid || !result.sha256) {
-          if (output.required) throw new Error(`Capture output ${task.id}.${key} lacks valid file evidence`);
-          continue;
-        }
-        declared.set(relative(location.directory, output.path), result.sha256);
-      }
-  const hashes: Record<string, string> = {};
-  for (const file of new Set([...files, ...declared.keys()])) {
-    const digest = digestBytes(readCaptureFile(location.directory, file));
-    if (declared.get(file) !== digest)
-      throw new Error(`Capture file ${file} must be an unchanged declared workflow output`);
-    hashes[file] = digest;
-  }
-  const binding = { ...location, workflow: resolve(workflow), files: hashes };
+/**
+ * Inputs `plan done` assembles for the publish-capture step: the fixed capture
+ * identity, the revision digest inputs (`data` root + `workflowId`), the owner path,
+ * the declared file hashes recorded by the observe/capture steps, and the frozen
+ * query contract lifted from the plan (the `reference` output schema + definitions).
+ */
+export interface PublishInput {
+  data: string;
+  capture: CaptureDefinition;
+  workflowId: string;
+  ownerWorkflow: string;
+  declaredFiles: Record<string, string>;
+  contract: ReferenceContract;
+}
+
+/**
+ * Validate every selected observation, confirm each file is an unchanged declared
+ * output, and write the self-contained publication binding. No workflow document is
+ * consulted — the plan's execution produced the declared hashes and the contract.
+ */
+/**
+ * Publication is deliberately simple: no observation validation. A capture
+ * workflow runs synchronously, so when it finishes the revision is done — publish
+ * just freezes it. The human decides whether the screenshots are right; the machine
+ * only records a fingerprint (sha256 of every revision file) plus the query contract,
+ * so a later query can detect drift.
+ */
+export function publishCapture(input: PublishInput): CaptureBinding {
+  const location = captureLocation(input.data, input.capture, input.workflowId);
+  const binding: CaptureBinding = {
+    ...location,
+    workflow: resolve(input.ownerWorkflow),
+    files: input.declaredFiles,
+    contract: input.contract,
+  };
   writeFileSync(join(location.directory, 'publication.json'), JSON.stringify(binding, null, 2) + '\n', { flag: 'wx' });
   return binding;
 }
@@ -444,18 +427,6 @@ export function readPublishedCapture(directory: string): CaptureBinding {
     throw new Error('Reference revision is incomplete: finish its capture workflow before planning');
   const binding = JSON.parse(readFileSync(publication, 'utf8')) as CaptureBinding;
   if (binding.directory !== resolve(directory)) throw new Error('Publication directory differs from binding');
-  const doc = load(readFileSync(binding.workflow, 'utf8')) as WorkflowDocument;
-  if (
-    doc.state.definition_digest !== digestBytes(JSON.stringify(doc.definition)) ||
-    !doc.definition.capture ||
-    Object.values(doc.state.tasks).some((task) => task.status !== 'done') ||
-    doc.state.status !== 'completed' ||
-    JSON.stringify(doc.state.capture) !== JSON.stringify(binding)
-  )
-    throw new Error('Capture workflow publication is not complete');
-  const expected = captureDefinitionLocation(doc.definition);
-  if (expected.directory !== binding.directory || expected.id !== binding.id || expected.revision !== binding.revision)
-    throw new Error('Publication identity differs from its fixed capture definition');
   const owner = JSON.parse(readFileSync(join(directory, '.capture-owner.json'), 'utf8')) as { workflow: string };
   if (owner.workflow !== binding.workflow) throw new Error('Capture revision belongs to a different workflow');
   for (const [file, digest] of Object.entries(binding.files))

@@ -290,7 +290,7 @@ function buildEnrichedConfig(config: DesignbookConfig): Record<string, unknown> 
  *
  * Emits:
  * - DESIGNBOOK_WORKSPACE from `workspace`
- * - DESIGNBOOK_HOME / DESIGNBOOK_DATA / DESIGNBOOK_URL / DESIGNBOOK_CMD from `designbook.*` keys
+ * - DESIGNBOOK_HOME / DESIGNBOOK_DATA / DESIGNBOOK_CMD from `designbook.*` keys
  * - DESIGNBOOK_DIRS_* from `dirs.*` keys
  * - All other scalar config values → DESIGNBOOK_<KEY>
  */
@@ -311,11 +311,12 @@ export function buildEnvMap(config: DesignbookConfig): Record<string, string> {
     env[`DESIGNBOOK_${envParts.join('_')}`] = String(value);
   }
 
-  // Explicit: DESIGNBOOK_WORKSPACE, DESIGNBOOK_HOME, DESIGNBOOK_DATA, DESIGNBOOK_URL, DESIGNBOOK_CMD
+  // Explicit: DESIGNBOOK_WORKSPACE, DESIGNBOOK_HOME, DESIGNBOOK_DATA, DESIGNBOOK_CMD.
+  // No DESIGNBOOK_URL — the live Storybook is always started via `storybook start`
+  // and its port read back from `storybook status`, never a static config URL.
   if (config.workspace) env['DESIGNBOOK_WORKSPACE'] = String(config.workspace);
   if (config['designbook.home']) env['DESIGNBOOK_HOME'] = String(config['designbook.home']);
   if (config['designbook.data']) env['DESIGNBOOK_DATA'] = String(config['designbook.data']);
-  if (config['designbook.url']) env['DESIGNBOOK_URL'] = String(config['designbook.url']);
   if (config['designbook.cmd']) env['DESIGNBOOK_CMD'] = String(config['designbook.cmd']);
 
   // Derived: extensions as comma-sep IDs + skill IDs

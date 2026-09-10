@@ -152,13 +152,7 @@ describe('published observation queries', () => {
         local_path: `/unrelated-${index}.svg`,
         role: 'logo',
       });
-      f.definition.tasks[0]!.outputs[path] = {
-        required: true,
-        schema: {},
-        path: join(f.folder, path),
-        submission: 'direct',
-        validators: [],
-      };
+      f.declared.push(path);
     }
     await f.complete();
     const request: ReferenceQueryRequest = {

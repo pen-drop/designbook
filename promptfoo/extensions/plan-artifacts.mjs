@@ -30,17 +30,29 @@ export function planArtifactContract(workspace, config, fileHashes) {
   const files = [config["css.app"]]
     .filter(Boolean)
     .map((path) => virtual(resolve(workspace, path)));
-  const contract = { prefixes, files };
+  // The engine's own runtime files under <data> are not application artifacts and
+  // are excluded from the watch set: the sealed plan the plan phase writes
+  // (`plans/`), and the Storybook daemon state that `storybook start` records when
+  // planning resolves the live index URL (`storybook.json`, `storybook.log`).
+  const dataVirtual = virtual(resolve(workspace, config.data));
+  const exclude = [
+    `${dataVirtual}/plans/`,
+    `${dataVirtual}/storybook.json`,
+    `${dataVirtual}/storybook.log`,
+  ];
+  const contract = { prefixes, files, exclude };
   return { ...contract, hashes: select(fileHashes, contract) };
 }
 
 function select(hashes, contract) {
+  const exclude = contract.exclude || [];
   return Object.fromEntries(
     Object.entries(hashes)
       .filter(
         ([path]) =>
-          contract.files.includes(path) ||
-          contract.prefixes.some((prefix) => path.startsWith(prefix)),
+          (contract.files.includes(path) ||
+            contract.prefixes.some((prefix) => path.startsWith(prefix))) &&
+          !exclude.some((prefix) => path.startsWith(prefix)),
       )
       .sort(([a], [b]) => a.localeCompare(b)),
   );

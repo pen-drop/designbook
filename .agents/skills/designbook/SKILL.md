@@ -7,18 +7,17 @@ description: >
   tokens, CSS, or any design system artifact. Each workflow is its own sub-skill
   under `skills/<workflow>/`; this index points to them and documents the global
   flags. Never create component files without a designbook skill. Each intake's
-  first command is `workflow discover <workflow>`. `_debo` /
+  first command is `intake <workflow>`. `_debo` /
   `npx storybook-addon-designbook` is the only command surface — run it, read
   stdout. Skill descriptions fire the skill; they are not the command spec. A
   nonzero CLI exit ends the work with that exact message.
 ---
 
 Choose the matching domain sub-skill below. Every intake starts with
-`workflow discover <workflow>`. Then the sub-skill resolves its complete
-scope from that catalogue, follows the
-[shared builder](resources/workflow-building.md), and invokes
-[execute-workflow](skills/execute-workflow/SKILL.md) with the saved path. Run
-`_debo` / `npx storybook-addon-designbook` from the
+`intake <workflow>`. Then the sub-skill resolves its complete scope from that
+context, follows the [shared builder](resources/workflow-building.md) to write
+the MD plan, and invokes [execute-workflow](skills/execute-workflow/SKILL.md)
+with the saved plan path. Run `_debo` / `npx storybook-addon-designbook` from the
 [CLI reference](resources/cli-reference.md).
 
 `--optimize` asks for optimization suggestions after completion; apply only separately requested changes.

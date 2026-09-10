@@ -1,9 +1,7 @@
 /** Bounded, read-only observations from one published capture revision. */
 import Ajv from 'ajv';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
 import { isAbsolute, resolve, relative } from 'node:path';
-import { load } from 'js-yaml';
 import {
   readPublishedCapture,
   type CaptureBinding,
@@ -54,7 +52,7 @@ export interface ReferenceQueryResult {
   provenance: {
     reference: string;
     source: unknown;
-    binding: Omit<CaptureBinding, 'files'>;
+    binding: Omit<CaptureBinding, 'files' | 'contract'>;
     fingerprint: string;
     files: Record<string, string>;
   };
@@ -128,12 +126,10 @@ function scopedContract(contract: ReferenceQueryContract): ReferenceQueryContrac
 }
 export function publishedReferenceContract(reference: string): ReferenceQueryContract {
   const binding = readPublishedCapture(reference);
-  const doc = load(readFileSync(binding.workflow, 'utf8')) as import('./workflow-document.js').WorkflowDocument;
-  const outputs = doc.definition.tasks.flatMap((task) => Object.entries(task.outputs));
   return {
-    referenceSchema: outputs.find(([key]) => key === 'reference')![1].schema,
+    referenceSchema: binding.contract.referenceSchema as object,
     extractSchema: { $ref: '#/definitions/DesignReference' },
-    definitions: doc.definition.schemas,
+    definitions: binding.contract.definitions,
   };
 }
 function loadReference(reference: string, suppliedContract: ReferenceQueryContract) {

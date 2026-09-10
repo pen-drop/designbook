@@ -254,7 +254,7 @@ export function loadConfig(startDir?: string): DesignbookConfig {
     config['designbook.data'] = dataDir;
     config.data = dataDir;
 
-    // 4. designbook.url and designbook.cmd are plain strings — no resolution needed
+    // 4. designbook.cmd is a plain string — no resolution needed
 
     // 5. Resolve dirs.* relative to configDir
     for (const key of Object.keys(config)) {

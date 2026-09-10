@@ -1208,7 +1208,7 @@ ReferenceParent:
 
 CaptureFile:
   title: Captured binary artifact
-  description: Declared direct screenshot or asset file; workflow done records its exact file integrity.
+  description: Declared direct screenshot or asset file; plan done records its exact file integrity.
 
 FrozenObservationQuery:
   type: object
