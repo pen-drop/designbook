@@ -1,6 +1,6 @@
 /**
  * CLI registration for `reference` (save, capture-image, capture-file, image,
- * validate, prepare, query) and `capture matrix`.
+ * validate, prepare, query, approval-write, approval-check) and `capture matrix`.
  */
 
 import type { Command } from 'commander';
@@ -17,6 +17,7 @@ import {
   type CaptureDefinition,
   type ReferenceContract,
 } from '../reference-capture.js';
+import { checkApproval, writeApproval } from '../reference-approval.js';
 import { pngSize, sourceDumpName } from '../reference-project.js';
 
 /** Hash every revision file except the reservation/publication markers. */
@@ -349,6 +350,51 @@ export function register(program: Command): void {
         const bytes = readFileSync(join(opts.reference, opts.path));
         const size = pngSize(bytes);
         console.log(JSON.stringify({ path: opts.path, width: size.width, height: size.height }));
+      } catch (err) {
+        console.error(`Error: ${(err as Error).message}`);
+        process.exitCode = 1;
+      }
+    });
+  reference
+    .command('approval-write')
+    .description(
+      'Write or update approval.yml beside a published revision. Fingerprint is sealed from publication.json files.',
+    )
+    .requiredOption('--reference <folder>', 'Absolute published revision directory')
+    .requiredOption('--status <status>', 'pending | approved | rejected')
+    .requiredOption('--scope <json>', 'JSON { subjects, states, views? and/or breakpoints? }')
+    .option('--note <text>', 'Optional decision note')
+    .action((opts: { reference: string; status: string; scope: string; note?: string }) => {
+      try {
+        if (!isAbsolute(opts.reference)) throw new Error('reference: expected absolute revision directory');
+        const status = opts.status as 'pending' | 'approved' | 'rejected';
+        if (status !== 'pending' && status !== 'approved' && status !== 'rejected')
+          throw new Error('--status: expected pending|approved|rejected');
+        const scope = JSON.parse(opts.scope);
+        const record = writeApproval(opts.reference, {
+          status,
+          scope,
+          ...(opts.note !== undefined ? { note: opts.note } : {}),
+        });
+        console.log(JSON.stringify(record));
+      } catch (err) {
+        console.error(`Error: ${(err as Error).message}`);
+        process.exitCode = 1;
+      }
+    });
+  reference
+    .command('approval-check')
+    .description(
+      'Check approval.yml against the publication files seal and whether approval.scope covers the need scope.',
+    )
+    .requiredOption('--reference <folder>', 'Absolute published revision directory')
+    .requiredOption('--need <json>', 'JSON need scope { subjects, states, views? and/or breakpoints? }')
+    .action((opts: { reference: string; need: string }) => {
+      try {
+        if (!isAbsolute(opts.reference)) throw new Error('reference: expected absolute revision directory');
+        const result = checkApproval(opts.reference, JSON.parse(opts.need));
+        console.log(JSON.stringify(result));
+        if (!result.ok) process.exitCode = 1;
       } catch (err) {
         console.error(`Error: ${(err as Error).message}`);
         process.exitCode = 1;
