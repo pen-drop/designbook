@@ -15,10 +15,12 @@ description: >
 
 Choose the matching domain sub-skill below. Every intake starts with
 `intake <workflow>`. Then the sub-skill resolves its complete scope from that
-context, follows the [shared builder](resources/workflow-building.md) to write
-the MD plan, and invokes [execute-workflow](skills/execute-workflow/SKILL.md)
-with the saved plan path. Run `_debo` / `npx storybook-addon-designbook` from the
-[CLI reference](resources/cli-reference.md).
+context and follows the [shared builder](resources/workflow-building.md): seal a
+plan, then either run [execute-workflow](skills/execute-workflow/SKILL.md), stop
+after a durable `plan_path` handoff (**persist**), or ask which — persistence and
+execute start are separate mode decisions (defaults per workflow; caller override
+wins). Ephemeral and durable builds use the same sealed-plan contract. Run `_debo`
+/ `npx storybook-addon-designbook` from the [CLI reference](resources/cli-reference.md).
 
 `--optimize` asks for optimization suggestions after completion; apply only separately requested changes.
 
@@ -50,6 +52,6 @@ Shared content roots (no workflow, beside `skills/` at the parent): [design/](de
 ## Resources
 
 - [Write planning](design/resources/write-planning.md) — creation/change intake invariants
-- [Workflow building](resources/workflow-building.md) — planning and embedded definition contract
-- [Execution](resources/workflow-execution.md) — sole task loop
+- [Workflow building](resources/workflow-building.md) — planning, modes (`ephemeral` \| `persist` \| `ask`), ReferenceNeed gate
+- [Execution](resources/workflow-execution.md) — sole task loop; blockade; ephemeral cleanup
 - [CLI reference](resources/cli-reference.md)
