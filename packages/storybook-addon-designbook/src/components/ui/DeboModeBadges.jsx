@@ -1,8 +1,8 @@
 import React from 'react';
 import { styled } from 'storybook/theming';
 import { DeboLink } from './DeboLink.jsx';
-import { deriveModeBadges } from '../../renderer/mode-badges.ts';
-import { entityStoryGroup, formStoryName } from '../../renderer/story-address.ts';
+import { deriveModeBadges } from '../../scene-model/mode-badges.ts';
+import { entityStoryGroup, formStoryName } from '../../scene-model/story-address.ts';
 
 const Section = styled.div({ marginTop: 12 });
 

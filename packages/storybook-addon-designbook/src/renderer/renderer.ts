@@ -8,7 +8,7 @@
  * Works with Storybook Controls because args.__scene is the data — modifiable at runtime.
  */
 
-import type { ComponentNode, ComponentModule } from './types';
+import type { ComponentNode, ComponentModule } from '../scene-model/types';
 
 /**
  * Render a ComponentNode tree to the framework's native output

@@ -7,7 +7,7 @@
 import React, { useMemo } from 'react';
 import { useTheme } from 'storybook/theming';
 import { DatabaseIcon, ShareIcon, ComponentIcon, MarkupIcon } from '@storybook/icons';
-import type { SceneTreeNode } from '../renderer/types';
+import type { SceneTreeNode } from '../scene-model/types';
 import { DeboTree } from './ui/DeboTree';
 import type { DeboTreeItem } from './ui/DeboTree';
 import { toTreeItems, type KindIcons } from './composition-tree';

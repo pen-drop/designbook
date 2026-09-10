@@ -12,7 +12,7 @@
 import { useEffect, useState, useCallback } from 'storybook/preview-api';
 import { addons } from 'storybook/preview-api';
 import type { StoryContext } from 'storybook/internal/types';
-import type { SceneTreeNode } from '../renderer/types';
+import type { SceneTreeNode } from '../scene-model/types';
 import { EVENTS } from '../constants';
 
 const KIND_COLORS: Record<string, string> = {

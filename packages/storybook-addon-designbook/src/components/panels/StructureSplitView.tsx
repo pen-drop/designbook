@@ -9,7 +9,7 @@
  */
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useTheme } from 'storybook/theming';
-import type { SceneTreeNode } from '../../renderer/types';
+import type { SceneTreeNode } from '../../scene-model/types';
 import { CompositionTree } from '../CompositionTree';
 
 /** Find the node whose canonical path matches `path`, walking children + slots. */

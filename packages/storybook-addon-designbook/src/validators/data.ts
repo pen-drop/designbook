@@ -1,8 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { load as parseYaml } from 'js-yaml';
 import type { ValidationResult } from './types.js';
-import { readBundleFiles } from '../renderer/data-pool.js';
-import type { DataModel } from '../renderer/types.js';
+import { readBundleFiles } from '../scene-model/data-pool.js';
+import type { DataModel } from '../scene-model/types.js';
 
 interface FieldDef {
   type?: string;

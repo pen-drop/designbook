@@ -6,7 +6,7 @@
  * DeboTreeItem.id) can be unit-tested in the node test environment. The React
  * component `CompositionTree` supplies the icon map and delegates here.
  */
-import type { SceneTreeNode } from '../renderer/types';
+import type { SceneTreeNode } from '../scene-model/types';
 import type { DeboTreeItem } from './ui/DeboTree';
 
 /** Icon map keyed by SceneTreeNode.kind. */

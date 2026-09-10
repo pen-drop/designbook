@@ -9,7 +9,7 @@ import { resolve } from 'node:path';
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { load as parseYaml, dump as dumpYaml } from 'js-yaml';
 import { glob } from 'glob';
-import { buildExportName } from './renderer/scene-metadata.js';
+import { buildExportName } from './scene-model/scene-metadata.js';
 import type { DesignbookConfig } from './config.js';
 
 // ---------------------------------------------------------------------------

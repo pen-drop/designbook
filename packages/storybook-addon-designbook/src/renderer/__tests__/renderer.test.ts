@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderComponent } from '../renderer';
-import type { ComponentNode, ComponentModule } from '../types';
+import type { ComponentNode, ComponentModule } from '../../scene-model/types';
 
 function makeModule(render: ComponentModule['render']): ComponentModule {
   return { render };

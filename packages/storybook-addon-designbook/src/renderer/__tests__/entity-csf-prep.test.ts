@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { buildEntityCsfModule } from '../csf-prep';
-import type { ComponentNode, SceneTreeNode } from '../types';
+import { buildEntityCsfModule } from '../../scene-model/csf-prep';
+import type { ComponentNode, SceneTreeNode } from '../../scene-model/types';
 
 const card = (title: string): ComponentNode => ({ component: 'ui:card', props: { title }, path: '0' });
 const cardTree = (title: string): SceneTreeNode => ({

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractGroup, buildExportName, extractScenes, fileBaseName } from '../scene-metadata';
+import { extractGroup, buildExportName, extractScenes, fileBaseName } from '../../scene-model/scene-metadata';
 
 describe('scene-metadata', () => {
   describe('extractGroup', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ExpressionCache } from '../expression-cache';
+import { ExpressionCache } from '../../scene-model/expression-cache';
 
 describe('ExpressionCache', () => {
   it('compiles and caches an expression', async () => {

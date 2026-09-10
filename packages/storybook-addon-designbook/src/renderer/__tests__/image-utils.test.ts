@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseAspectRatio, calcHeight } from '../image-utils';
+import { parseAspectRatio, calcHeight } from '../../scene-model/image-utils';
 
 describe('parseAspectRatio', () => {
   it('parses 16:9', () => {

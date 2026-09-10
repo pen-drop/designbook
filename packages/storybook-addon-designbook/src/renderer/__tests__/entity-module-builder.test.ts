@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { resolve } from 'node:path';
-import { buildEntityModule, titleCaseBundle, entityStoryGroup } from '../entity-module-builder';
-import type { DataModel } from '../types';
+import { buildEntityModule, titleCaseBundle, entityStoryGroup } from '../../scene-model/entity-module-builder';
+import type { DataModel } from '../../scene-model/types';
 
 const FIXTURES = resolve(__dirname, 'fixtures');
 // Anchored on any view-mode mapping; the builder discovers the bundle's siblings

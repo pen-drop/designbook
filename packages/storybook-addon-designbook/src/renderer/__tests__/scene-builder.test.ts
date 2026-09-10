@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { resolve } from 'node:path';
-import { sceneBuilder } from '../builders/scene-builder';
-import { entityBuilder } from '../builders/entity-builder';
-import { componentBuilder } from '../builders/component-builder';
-import { BuilderRegistry } from '../builder-registry';
-import type { SceneTreeNode } from '../types';
+import { sceneBuilder } from '../../scene-model/builders/scene-builder';
+import { entityBuilder } from '../../scene-model/builders/entity-builder';
+import { componentBuilder } from '../../scene-model/builders/component-builder';
+import { BuilderRegistry } from '../../scene-model/builder-registry';
+import type { SceneTreeNode } from '../../scene-model/types';
 
 const FIXTURES_DIR = resolve(__dirname, 'fixtures');
 

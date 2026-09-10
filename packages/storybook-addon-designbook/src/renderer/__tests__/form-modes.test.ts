@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
-import { buildEntityModule } from '../entity-module-builder';
-import { buildEntityCsfModule, type EntityCsfViewMode, type EntityCsfFormMode } from '../csf-prep';
-import { formExportName } from '../scene-metadata';
-import type { ComponentNode, SceneTreeNode } from '../types';
+import { buildEntityModule } from '../../scene-model/entity-module-builder';
+import { buildEntityCsfModule, type EntityCsfViewMode, type EntityCsfFormMode } from '../../scene-model/csf-prep';
+import { formExportName } from '../../scene-model/scene-metadata';
+import type { ComponentNode, SceneTreeNode } from '../../scene-model/types';
 import { indexForm } from '../../preset';
 
 const FIXTURES = resolve(__dirname, 'fixtures');

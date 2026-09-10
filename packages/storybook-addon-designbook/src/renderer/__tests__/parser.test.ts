@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseScene, expandEntries } from '../parser';
+import { parseScene, expandEntries } from '../../scene-model/parser';
 
 describe('parseScene', () => {
   it('parses a valid scene definition with items', () => {

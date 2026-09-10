@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { view } from '../view';
-import type { SceneTreeNode } from '../types';
+import { view } from '../../scene-model/view';
+import type { SceneTreeNode } from '../../scene-model/types';
 
 describe('view()', () => {
   it('projects a component node to ComponentNode', () => {

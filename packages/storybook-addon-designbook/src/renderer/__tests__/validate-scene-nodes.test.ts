@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { validateSceneNodes } from '../validate-scene-nodes';
-import type { ComponentNode } from '../types';
+import { validateSceneNodes } from '../../scene-model/validate-scene-nodes';
+import type { ComponentNode } from '../../scene-model/types';
 
 describe('validateSceneNodes', () => {
   it('passes for a valid single ComponentNode', () => {

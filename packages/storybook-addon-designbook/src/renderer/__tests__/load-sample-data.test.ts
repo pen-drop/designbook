@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { resolve } from 'node:path';
-import { loadSampleData } from '../scene-module-builder';
+import { loadSampleData } from '../../scene-model/scene-module-builder';
 
 const DIR = resolve(__dirname, 'fixtures', 'load-data');
 

@@ -11,7 +11,7 @@ import { resolve, dirname } from 'node:path';
 import { load as parseYaml } from 'js-yaml';
 import type { DesignbookConfig } from '../config.js';
 import type { ValidationFileResult } from '../workflow-types.js';
-import { buildSceneModule } from '../renderer/scene-module-builder.js';
+import { buildSceneModule } from '../scene-model/scene-module-builder.js';
 import { componentsIndexResolver } from '../resolvers/components-index.js';
 
 function nowIso(): string {

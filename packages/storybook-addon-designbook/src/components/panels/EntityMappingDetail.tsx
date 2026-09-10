@@ -6,7 +6,7 @@
  */
 import React, { useMemo } from 'react';
 import { useTheme } from 'storybook/theming';
-import type { SceneTreeNode, FieldMapping } from '../../renderer/types';
+import type { SceneTreeNode, FieldMapping } from '../../scene-model/types';
 
 function useStyles() {
   const theme = useTheme();

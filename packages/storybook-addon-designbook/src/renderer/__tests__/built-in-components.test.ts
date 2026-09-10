@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { builtInComponents } from '../built-in-components';
-import { buildCsfModule } from '../csf-prep';
-import type { ComponentNode } from '../types';
+import { builtInComponents } from '../../scene-model/built-in-components';
+import { buildCsfModule } from '../../scene-model/csf-prep';
+import type { ComponentNode } from '../../scene-model/types';
 
 describe('builtInComponents', () => {
   it('designbook:placeholder renders HTML with message', () => {

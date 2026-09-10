@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { deriveModeBadges } from '../mode-badges';
+import { deriveModeBadges } from '../../scene-model/mode-badges';
 
 describe('deriveModeBadges', () => {
   const files = [

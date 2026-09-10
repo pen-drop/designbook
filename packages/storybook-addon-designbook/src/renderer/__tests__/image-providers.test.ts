@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createProvider } from '../image-providers';
+import { createProvider } from '../../scene-model/image-providers';
 
 describe('createProvider', () => {
   describe('picsum (default)', () => {

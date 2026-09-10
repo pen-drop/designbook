@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { resolve } from 'node:path';
-import { entityBuilder } from '../builders/entity-builder';
-import type { BuildContext, ComponentNode } from '../types';
+import { entityBuilder } from '../../scene-model/builders/entity-builder';
+import type { BuildContext, ComponentNode } from '../../scene-model/types';
 
 const FIXTURES_DIR = resolve(__dirname, 'fixtures');
 

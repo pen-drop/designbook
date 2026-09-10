@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { titleCaseBundle, namespaceFor, entityStoryGroup, formStoryName } from '../story-address';
-import type { DataModel } from '../types';
+import { titleCaseBundle, namespaceFor, entityStoryGroup, formStoryName } from '../../scene-model/story-address';
+import type { DataModel } from '../../scene-model/types';
 import { indexEntity } from '../../preset';
 import { resolve } from 'node:path';
 

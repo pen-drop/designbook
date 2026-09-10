@@ -1,10 +1,16 @@
 import { designbookLoadPlugin } from './vite-plugin';
 import { loadConfig, findConfig } from './config';
-import { buildExportName, extractScenes, extractGroup, fileBaseName, formExportName } from './renderer/scene-metadata';
-import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
-import { entityStoryGroup } from './renderer/entity-module-builder';
-import { formStoryName } from './renderer/story-address';
-import { loadDataModel } from './renderer/scene-module-builder';
+import {
+  buildExportName,
+  extractScenes,
+  extractGroup,
+  fileBaseName,
+  formExportName,
+} from './scene-model/scene-metadata';
+import { matchHandler, defaultHandlers } from './scene-model/scene-handlers';
+import { entityStoryGroup } from './scene-model/entity-module-builder';
+import { formStoryName } from './scene-model/story-address';
+import { loadDataModel } from './scene-model/scene-module-builder';
 
 import { readFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs';
 import { resolve, dirname, relative, basename } from 'node:path';

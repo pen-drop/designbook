@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { buildCsfModule } from '../csf-prep';
-import type { ComponentNode } from '../types';
+import { buildCsfModule } from '../../scene-model/csf-prep';
+import type { ComponentNode } from '../../scene-model/types';
 
 const scene = (name: string, exportName: string, nodes: ComponentNode[]) => ({ name, exportName, nodes });
 

@@ -5,10 +5,10 @@ import { resolve, join, basename, dirname, relative, sep } from 'node:path';
 import { createRequire } from 'node:module';
 import { load as parseYaml } from 'js-yaml';
 
-import type { SceneNodeBuilder } from './renderer/types';
-import { buildSceneModule } from './renderer/scene-module-builder';
-import { buildEntityModule } from './renderer/entity-module-builder';
-import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
+import type { SceneNodeBuilder } from './scene-model/types';
+import { buildSceneModule } from './scene-model/scene-module-builder';
+import { buildEntityModule } from './scene-model/entity-module-builder';
+import { matchHandler, defaultHandlers } from './scene-model/scene-handlers';
 import { scanAllWorkflows } from './workflow-utils';
 import { StoryMeta } from './story-entity';
 import { Reference } from './reference-entity';

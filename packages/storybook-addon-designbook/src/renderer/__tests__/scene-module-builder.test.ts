@@ -8,11 +8,11 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { resolve } from 'node:path';
-import { buildSceneModule } from '../scene-module-builder';
+import { buildSceneModule } from '../../scene-model/scene-module-builder';
 import { renderComponent } from '../renderer';
 import { readFileSync } from 'node:fs';
 import { load as parseYaml } from 'js-yaml';
-import type { ComponentNode } from '../types';
+import type { ComponentNode } from '../../scene-model/types';
 
 const FIXTURES_DIR = resolve(__dirname, 'fixtures');
 

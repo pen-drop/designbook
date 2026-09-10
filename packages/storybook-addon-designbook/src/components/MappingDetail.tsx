@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTheme } from 'storybook/theming';
-import type { SceneTreeNode } from '../renderer/types';
+import type { SceneTreeNode } from '../scene-model/types';
 
 interface MappingDetailProps {
   node: SceneTreeNode;

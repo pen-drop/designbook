@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { BuilderRegistry } from '../builder-registry';
-import type { SceneNode, SceneNodeBuilder, SceneTreeNode } from '../types';
+import { BuilderRegistry } from '../../scene-model/builder-registry';
+import type { SceneNode, SceneNodeBuilder, SceneTreeNode } from '../../scene-model/types';
 
 describe('BuilderRegistry', () => {
   it('dispatches to matching builder and returns SceneTreeNode[]', async () => {

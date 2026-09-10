@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { imageStyleBuilder } from '../builders/image-style-builder';
-import type { BuildContext, ComponentNode, SceneNode } from '../types';
+import { imageStyleBuilder } from '../../scene-model/builders/image-style-builder';
+import type { BuildContext, ComponentNode, SceneNode } from '../../scene-model/types';
 
 function makeCtx(
   imageStyles?: Record<

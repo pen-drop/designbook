@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useTheme } from 'storybook/theming';
 import { useParameter, useChannel, useArgs } from 'storybook/manager-api';
 import { AddonPanel } from 'storybook/internal/components';
-import type { SceneTreeNode } from '../../renderer/types';
+import type { SceneTreeNode } from '../../scene-model/types';
 import { StructureSplitView } from './StructureSplitView';
 import { EntityMappingDetail, hasEntityMapping } from './EntityMappingDetail';
 import { MappingDetail } from '../MappingDetail';
