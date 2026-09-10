@@ -30,10 +30,16 @@ export function planArtifactContract(workspace, config, fileHashes) {
   const files = [config["css.app"]]
     .filter(Boolean)
     .map((path) => virtual(resolve(workspace, path)));
-  // Writing the sealed plan IS the plan phase's job, so the plan engine's own
-  // output dir (`<data>/plans/`) is excluded from the application-artifact watch
-  // set — the old engine excluded its `workflows/` dir for the same reason.
-  const exclude = [`${virtual(resolve(workspace, config.data))}/plans/`];
+  // The engine's own runtime files under <data> are not application artifacts and
+  // are excluded from the watch set: the sealed plan the plan phase writes
+  // (`plans/`), and the Storybook daemon state that `storybook start` records when
+  // planning resolves the live index URL (`storybook.json`, `storybook.log`).
+  const dataVirtual = virtual(resolve(workspace, config.data));
+  const exclude = [
+    `${dataVirtual}/plans/`,
+    `${dataVirtual}/storybook.json`,
+    `${dataVirtual}/storybook.log`,
+  ];
   const contract = { prefixes, files, exclude };
   return { ...contract, hashes: select(fileHashes, contract) };
 }
