@@ -156,7 +156,7 @@ export default defineConfig(async () => {
     platform: 'node',
     target: NODE_TARGET,
     banner: { js: '#!/usr/bin/env node' },
-    onSuccess: 'cp -r src/validators/schemas dist/schemas',
+    onSuccess: 'cp -r src/validation/schemas dist/schemas',
   });
 
   return configs;

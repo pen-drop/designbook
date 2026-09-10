@@ -40,7 +40,7 @@ import jsonata from 'jsonata';
 import { resolvePluginSkillSources } from './skill-resolver.js';
 import { interpolate } from './template/interpolate.js';
 import { resolveEach, type EachDeclaration } from './template/each.js';
-import { getValidatorKeys } from './validation-registry.js';
+import { getValidatorKeys } from './validation/validation-registry.js';
 import { renderSubmitResultsHint } from './cli/submit-results-hint.js';
 
 export type { WorkflowEngine, TransitionContext, TransitionResult } from './engines/index.js';
@@ -1823,7 +1823,7 @@ export async function workflowWriteFile(
   }
 
   // Validate centrally
-  const { validateByKeys } = await import('./validation-registry.js');
+  const { validateByKeys } = await import('./validation/validation-registry.js');
   const validationResult = await validateByKeys(fileEntry.validators, writtenPath, config);
   fileEntry.validation_result = { ...validationResult, file: fileEntry.path };
 
@@ -2126,7 +2126,7 @@ async function validateResultEntry(
 
   // 2. Semantic validators (only for file results)
   if (mode === 'file' && entry.validators && entry.validators.length > 0) {
-    const { validateByKeys } = await import('./validation-registry.js');
+    const { validateByKeys } = await import('./validation/validation-registry.js');
     const result = await validateByKeys(entry.validators, content as string, config);
     if (!result.valid && result.error) {
       errors.push(result.error);

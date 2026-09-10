@@ -5,10 +5,10 @@
 
 import { resolve } from 'node:path';
 import { execSync } from 'node:child_process';
-import type { DesignbookConfig } from './config.js';
-import type { ValidationFileResult } from './workflow-types.js';
-import { validateData } from './validators/data.js';
-import { validateImage } from './validators/image.js';
+import type { DesignbookConfig } from '../config.js';
+import type { ValidationFileResult } from '../workflow-types.js';
+import { validateData } from './data.js';
+import { validateImage } from './image.js';
 
 export type ValidatorFn = (file: string, config: DesignbookConfig) => Promise<ValidationFileResult>;
 
@@ -68,11 +68,11 @@ const validators: Record<string, ValidatorFn> = {
       'data',
     ),
   'entity-mapping': async (file, config) => {
-    const { validateEntityMapping } = await import('./validators/entity-mapping.js');
+    const { validateEntityMapping } = await import('./entity-mapping.js');
     return toFileResult(await validateEntityMapping(file, config), file, 'entity-mapping');
   },
   scene: async (file, config) => {
-    const { validateSceneBuild } = await import('./validators/scene.js');
+    const { validateSceneBuild } = await import('./scene.js');
     const buildResult = await validateSceneBuild(file, config);
     if (!buildResult.valid) return buildResult;
 

@@ -1,14 +1,14 @@
 import { resolve } from 'node:path';
 import { Command } from 'commander';
 import { loadConfig, normalizeExtensions, getExtensionIds, getExtensionSkillIds } from './config.js';
-import { validateData } from './validators/data.js';
-import { validateEntityMapping } from './validators/entity-mapping.js';
+import { validateData } from './validation/data.js';
+import { validateEntityMapping } from './validation/entity-mapping.js';
 import { register as registerWorkflow } from './cli/workflow.js';
 import { register as registerStorybook } from './cli/storybook.js';
 import { register as registerRunbook } from './cli/runbook.js';
 import { register as registerCompareImages } from './cli/compare-images.js';
 import { register as registerInspect } from './cli/inspect-register.js';
-import { registerSceneInventoryChecker } from './validation-registry.js';
+import { registerSceneInventoryChecker } from './validation/validation-registry.js';
 import { validateSceneAgainstInventory } from './tools/scene-inventory.js';
 
 // Wire the daemon-backed scene inventory check into the (daemon-free) validation

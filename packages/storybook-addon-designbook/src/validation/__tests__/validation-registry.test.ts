@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { getValidator, getValidatorKeys, validateByKeys } from '../../validation-registry.js';
+import { getValidator, getValidatorKeys, validateByKeys } from '../validation-registry.js';
 import type { DesignbookConfig } from '../../config.js';
 
 const mockConfig: DesignbookConfig = {
