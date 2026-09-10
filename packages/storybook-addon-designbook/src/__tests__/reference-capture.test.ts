@@ -3,8 +3,8 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync, symlinkSy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { captureFixture, png, type FixtureIdentity } from './capture-fixture.js';
-import { readPublishedCapture, reserveCapture, assertUnpublishedTarget } from '../reference-capture.js';
-import { prepareReferenceQuery, queryReference } from '../reference-query.js';
+import { readPublishedCapture, reserveCapture, assertUnpublishedTarget } from '../tools/reference-capture.js';
+import { prepareReferenceQuery, queryReference } from '../tools/reference-query.js';
 const dirs: string[] = [];
 afterEach(() => dirs.splice(0).forEach((dir) => rmSync(dir, { recursive: true, force: true })));
 function fixture(kind = 'website', id = 'capture-one', root?: string, identity?: FixtureIdentity) {

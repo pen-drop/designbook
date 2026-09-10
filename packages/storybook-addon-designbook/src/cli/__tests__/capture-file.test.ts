@@ -4,7 +4,7 @@ import type { AddressInfo } from 'node:net';
 import { mkdtempSync, readFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { DesignbookConfig } from '../../config.js';
+import type { DesignbookConfig } from '../../shared/config.js';
 import { assertHttpUrl, runCaptureFile } from '../capture-file.js';
 
 const dirs: string[] = [];

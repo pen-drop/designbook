@@ -1,14 +1,21 @@
 import { resolve } from 'node:path';
 import { Command } from 'commander';
-import { loadConfig, normalizeExtensions, getExtensionIds, getExtensionSkillIds } from './config.js';
-import { validateData } from './validators/data.js';
-import { validateEntityMapping } from './validators/entity-mapping.js';
+import { loadConfig, normalizeExtensions, getExtensionIds, getExtensionSkillIds } from './shared/config.js';
+import { validateData } from './validation/data.js';
+import { validateEntityMapping } from './validation/entity-mapping.js';
 import { register as registerIntake } from './cli/intake.js';
 import { register as registerPlan } from './cli/plan.js';
 import { register as registerVerify } from './cli/verify.js';
 import { register as registerStorybook } from './cli/storybook.js';
 import { register as registerCompareImages } from './cli/compare-images.js';
 import { register as registerInspect } from './cli/inspect-register.js';
+import { registerSceneInventoryChecker } from './validation/validation-registry.js';
+import { validateSceneAgainstInventory } from './tools/scene-inventory.js';
+
+// Wire the daemon-backed scene inventory check into the (daemon-free) validation
+// registry from the composition root, so a pure validation run never imports the
+// Storybook daemon (DESIGNBOOK-60 AC-2) while `workflow done` still runs the check.
+registerSceneInventoryChecker(validateSceneAgainstInventory);
 
 function printJson(label: string, valid: boolean, errors?: string[], warnings?: string[]): void {
   const out: Record<string, unknown> = { valid, label };
@@ -118,8 +125,8 @@ program
       .map((s) => s.trim())
       .filter(Boolean);
     try {
-      const { captureStyleEnv } = await import('./inspect/style-env.js');
-      const { collectMissing } = await import('./inspect/css-guard.js');
+      const { captureStyleEnv } = await import('./tools/inspect/style-env.js');
+      const { collectMissing } = await import('./tools/inspect/css-guard.js');
       const env = await captureStyleEnv(pathToFileURL(opts.probe).href, { fonts });
       const result = collectMissing({ vars, fonts }, env);
       console.log(JSON.stringify(result));

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { resolve } from 'node:path';
-import { buildThemesModule } from '../vite-plugin';
+import { buildThemesModule } from '../addon/vite-plugin';
 
 const FIXTURES_DIR = resolve(__dirname, 'fixtures');
 

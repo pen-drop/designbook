@@ -3,8 +3,8 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { inspectReference } from '../reference-inspect.js';
-import { sourceDumpName } from '../../reference-project.js';
-import type { CapturedSource } from '../../inspect/element-walker.js';
+import { sourceDumpName } from '../../tools/reference-project.js';
+import type { CapturedSource } from '../../tools/inspect/element-walker.js';
 
 const dirs: string[] = [];
 afterEach(() => {

@@ -10,7 +10,7 @@
  */
 
 import { statSync } from 'node:fs';
-import type { DesignbookConfig } from '../config.js';
+import type { DesignbookConfig } from '../shared/config.js';
 
 /**
  * True when any component file is newer than the running daemon — the story the
@@ -84,7 +84,7 @@ export async function runCheckStory(
 
     const missingFonts: string[] = [];
     if (opts.fonts.length > 0) {
-      const { captureStyleEnv } = await import('../inspect/style-env.js');
+      const { captureStyleEnv } = await import('../tools/inspect/style-env.js');
       const env = await captureStyleEnv(storyUrl, { fonts: opts.fonts });
       for (const f of env.fonts) if (!f.loaded) missingFonts.push(f.family);
     }

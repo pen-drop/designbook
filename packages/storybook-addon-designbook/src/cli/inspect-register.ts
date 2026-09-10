@@ -7,7 +7,7 @@ import type { Command } from 'commander';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve } from 'node:path';
 import { load as parseYaml } from 'js-yaml';
-import { loadConfig } from '../config.js';
+import { loadConfig } from '../shared/config.js';
 import {
   assertUnpublishedTarget,
   captureLocation,
@@ -16,9 +16,9 @@ import {
   digestBytes,
   type CaptureDefinition,
   type ReferenceContract,
-} from '../reference-capture.js';
-import { checkApproval, writeApproval } from '../reference-approval.js';
-import { pngSize, sourceDumpName } from '../reference-project.js';
+} from '../tools/reference-capture.js';
+import { checkApproval, writeApproval } from '../tools/reference-approval.js';
+import { pngSize, sourceDumpName } from '../tools/reference-project.js';
 
 /** Hash every revision file except the reservation/publication markers. */
 function revisionFileHashes(directory: string): Record<string, string> {
@@ -53,7 +53,7 @@ export function register(program: Command): void {
     .option('--contract <json>', 'Optional effective schema contract; defaults to published capture workflow')
     .action(async (opts: { reference: string; contract?: string }) => {
       const { validateReferenceIntake, publishedReferenceContract, ReferenceQueryError } =
-        await import('../reference-query.js');
+        await import('../tools/reference-query.js');
       try {
         const contract = opts.contract
           ? JSON.parse(readFileSync(opts.contract, 'utf8'))
@@ -137,7 +137,7 @@ export function register(program: Command): void {
       )
       .action(async (opts: { request: string; contract?: string }) => {
         const { prepareReferenceQuery, queryReference, publishedReferenceContract, ReferenceQueryError } =
-          await import('../reference-query.js');
+          await import('../tools/reference-query.js');
         try {
           const request = JSON.parse(readFileSync(opts.request, 'utf8'));
           const contract = opts.contract
@@ -300,7 +300,7 @@ export function register(program: Command): void {
     )
     .requiredOption('--path <file>', 'Prelude module exporting default async (page, ctx) => {}')
     .action(async (opts: { path: string }) => {
-      const { loadPrelude, preludeDigest } = await import('./capture-session.js');
+      const { loadPrelude, preludeDigest } = await import('../tools/capture-session.js');
       try {
         await loadPrelude(opts.path); // reject a non-conforming module before it is fixed into a revision
         console.log(JSON.stringify({ path: opts.path, digest: preludeDigest(opts.path) }));
@@ -414,7 +414,7 @@ export function register(program: Command): void {
       const config = loadConfig();
       const { matrixCellsFromMeta, planCaptureMatrix, runCaptureMatrix, ensureCellsPlanned } =
         await import('./capture-matrix.js');
-      const { resolveBreakpointWidths } = await import('../inspect/breakpoint-widths.js');
+      const { resolveBreakpointWidths } = await import('../tools/inspect/breakpoint-widths.js');
       try {
         const meta = parseYaml(readFileSync(metaPath, 'utf-8')) as Parameters<typeof matrixCellsFromMeta>[0];
         const cells = matrixCellsFromMeta(meta);

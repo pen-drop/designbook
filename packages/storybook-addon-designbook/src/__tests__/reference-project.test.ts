@@ -4,9 +4,13 @@ import { join } from 'node:path';
 import { dump as toYaml } from 'js-yaml';
 import { afterEach, expect, it } from 'vitest';
 import { png } from './capture-fixture.js';
-import { projectObservations } from '../reference-project.js';
-import type { CapturedSource } from '../inspect/element-walker.js';
-import { validateCaptureObservations, type CaptureDefinition, type ObservationMeta } from '../reference-capture.js';
+import { projectObservations } from '../tools/reference-project.js';
+import type { CapturedSource } from '../tools/inspect/element-walker.js';
+import {
+  validateCaptureObservations,
+  type CaptureDefinition,
+  type ObservationMeta,
+} from '../tools/reference-capture.js';
 
 const dirs: string[] = [];
 afterEach(() => dirs.splice(0).forEach((dir) => rmSync(dir, { recursive: true, force: true })));

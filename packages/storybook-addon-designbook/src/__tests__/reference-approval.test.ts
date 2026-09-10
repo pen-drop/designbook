@@ -9,7 +9,7 @@ import {
   publicationFilesFingerprint,
   writeApproval,
   type ReferenceApproval,
-} from '../reference-approval.js';
+} from '../tools/reference-approval.js';
 
 const dirs: string[] = [];
 afterEach(() => dirs.splice(0).forEach((dir) => rmSync(dir, { recursive: true, force: true })));

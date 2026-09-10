@@ -8,7 +8,7 @@ import {
   queryReference,
   validateReferenceIntake,
   type ReferenceQueryRequest,
-} from '../reference-query.js';
+} from '../tools/reference-query.js';
 import { register } from '../cli/inspect-register.js';
 import { captureFixture } from './capture-fixture.js';
 const dirs: string[] = [];

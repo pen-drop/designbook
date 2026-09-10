@@ -11,8 +11,8 @@ import {
   validatePlanCompleteness,
   type Plan,
   type PlanTask,
-} from '../plan-document.js';
-import { buildPlan, type TaskList } from '../plan-build.js';
+} from '../workflow/plan-document.js';
+import { buildPlan, type TaskList } from '../workflow/plan-build.js';
 
 function print(value: unknown): void {
   process.stdout.write(JSON.stringify(value, null, 2));

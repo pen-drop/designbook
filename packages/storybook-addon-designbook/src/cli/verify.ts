@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { Command } from 'commander';
-import { computeFidelityScore, type FidelityIssue } from '../scoring/composite.js';
+import { computeFidelityScore, type FidelityIssue } from '../workflow/scoring/composite.js';
 
 interface CompareResult {
   issues?: FidelityIssue[];

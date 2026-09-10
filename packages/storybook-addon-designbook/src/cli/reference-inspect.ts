@@ -15,9 +15,9 @@
 
 import { existsSync } from 'node:fs';
 import { isAbsolute, join } from 'node:path';
-import type { CapturedSource, PropertyNode } from '../inspect/element-walker.js';
+import type { CapturedSource, PropertyNode } from '../tools/inspect/element-walker.js';
 import { cssFontFamilies } from './extract-page.js';
-import { loadSourceDump, sourceDumpName } from '../reference-project.js';
+import { loadSourceDump, sourceDumpName } from '../tools/reference-project.js';
 
 export interface InspectNode {
   depth: number;

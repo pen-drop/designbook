@@ -2,7 +2,7 @@ import { afterEach, describe, it, expect } from 'vitest';
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { Reference } from '../reference-entity.js';
+import { Reference } from '../tools/reference-entity.js';
 import { captureFixture } from './capture-fixture.js';
 
 const dirs: string[] = [];

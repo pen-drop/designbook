@@ -2,7 +2,7 @@ import { readFileSync, realpathSync } from 'node:fs';
 import { globSync } from 'glob';
 import { basename } from 'node:path';
 import { load as parseYaml } from 'js-yaml';
-import type { SkillSource } from '../skill-sources.js';
+import type { SkillSource } from '../shared/skill-sources.js';
 
 /** Keep only plugin-origin sources — project layout is covered by the agentsDir glob. */
 function pluginSources(sources?: SkillSource[]): SkillSource[] {

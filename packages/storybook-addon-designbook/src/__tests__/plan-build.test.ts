@@ -5,9 +5,9 @@
  */
 import { describe, it, expect } from 'vitest';
 import { resolve } from 'node:path';
-import { buildPlan } from '../plan-build.js';
-import { parsePlan, serializePlan, planDigest, validatePlanCompleteness } from '../plan-document.js';
-import type { DesignbookConfig } from '../config.js';
+import { buildPlan } from '../workflow/plan-build.js';
+import { parsePlan, serializePlan, planDigest, validatePlanCompleteness } from '../workflow/plan-document.js';
+import type { DesignbookConfig } from '../shared/config.js';
 
 const agents = resolve(process.cwd(), '../../.agents');
 const config = {
