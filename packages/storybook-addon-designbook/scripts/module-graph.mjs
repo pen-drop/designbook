@@ -82,7 +82,9 @@ function edges(file) {
 }
 
 function reach(startDir, targetSubstr) {
-  const starts = walkDir(resolve(startDir));
+  // AC-2 is about a pure *validation run* — start only from production files;
+  // test files legitimately import across layers and are not a validation run.
+  const starts = walkDir(resolve(startDir)).filter((f) => !/(^|\/)__tests__(\/|$)/.test(f) && !/\.test\./.test(f));
   const offenders = [];
   for (const start of starts) {
     const seen = new Set([start]);

@@ -8,6 +8,13 @@ import { register as registerStorybook } from './cli/storybook.js';
 import { register as registerRunbook } from './cli/runbook.js';
 import { register as registerCompareImages } from './cli/compare-images.js';
 import { register as registerInspect } from './cli/inspect-register.js';
+import { registerSceneInventoryChecker } from './validation-registry.js';
+import { validateSceneAgainstInventory } from './tools/scene-inventory.js';
+
+// Wire the daemon-backed scene inventory check into the (daemon-free) validation
+// registry from the composition root, so a pure validation run never imports the
+// Storybook daemon (DESIGNBOOK-60 AC-2) while `workflow done` still runs the check.
+registerSceneInventoryChecker(validateSceneAgainstInventory);
 
 function printJson(label: string, valid: boolean, errors?: string[], warnings?: string[]): void {
   const out: Record<string, unknown> = { valid, label };

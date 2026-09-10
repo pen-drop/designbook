@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import * as componentsIndex from '../../resolvers/components-index.js';
-import { validateSceneAgainstInventory } from '../scene.js';
+import { validateSceneAgainstInventory } from '../scene-inventory.js';
 
 afterEach(() => vi.restoreAllMocks());
 

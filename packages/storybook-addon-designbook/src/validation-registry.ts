@@ -12,6 +12,24 @@ import { validateImage } from './validators/image.js';
 
 export type ValidatorFn = (file: string, config: DesignbookConfig) => Promise<ValidationFileResult>;
 
+/**
+ * Live-index scene inventory check, injected by the composition root (`cli.ts`)
+ * rather than imported here. The inventory walk resolves the Storybook daemon,
+ * which the validation module must never reach directly or transitively
+ * (DESIGNBOOK-60 AC-2). When no checker is registered (e.g. unit tests, or any
+ * headless run that never wires a daemon), scene validation is build-only.
+ */
+export type SceneInventoryChecker = (
+  scene: unknown,
+  context: { config: DesignbookConfig },
+) => Promise<{ valid: boolean; errors: string[] }>;
+
+let sceneInventoryChecker: SceneInventoryChecker | undefined;
+
+export function registerSceneInventoryChecker(fn: SceneInventoryChecker): void {
+  sceneInventoryChecker = fn;
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 type ValidatorResult = { valid: boolean; errors: string[]; warnings?: string[] };
@@ -54,14 +72,17 @@ const validators: Record<string, ValidatorFn> = {
     return toFileResult(await validateEntityMapping(file, config), file, 'entity-mapping');
   },
   scene: async (file, config) => {
-    const { validateSceneBuild, validateSceneAgainstInventory } = await import('./validators/scene.js');
+    const { validateSceneBuild } = await import('./validators/scene.js');
     const buildResult = await validateSceneBuild(file, config);
     if (!buildResult.valid) return buildResult;
 
-    // Safety-net: re-check component ids against live inventory. YAML re-parse
-    // failures fall through to buildResult (validateSceneBuild would have caught
-    // them), but inventory resolver crashes MUST surface as a scene failure —
-    // otherwise the safety-net silently defeats itself.
+    // Safety-net: re-check component ids against the live inventory via the
+    // injected checker (wired by cli.ts). Absent a checker — headless/unit
+    // runs — scene validation is build-only. YAML re-parse failures fall
+    // through to buildResult (validateSceneBuild would have caught them), but
+    // inventory resolver crashes MUST surface as a scene failure — otherwise
+    // the safety-net silently defeats itself.
+    if (!sceneInventoryChecker) return buildResult;
     const { load: parseYaml } = await import('js-yaml');
     const { readFileSync, existsSync } = await import('node:fs');
     if (!existsSync(file)) return buildResult;
@@ -73,7 +94,7 @@ const validators: Record<string, ValidatorFn> = {
     }
     const ts = new Date().toISOString();
     try {
-      const inv = await validateSceneAgainstInventory(raw, { config });
+      const inv = await sceneInventoryChecker(raw, { config });
       if (!inv.valid) {
         return { file, type: 'scene', valid: false, error: inv.errors.join('; '), last_validated: ts, last_failed: ts };
       }
