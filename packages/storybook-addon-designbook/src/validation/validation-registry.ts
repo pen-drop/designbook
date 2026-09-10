@@ -5,8 +5,8 @@
 
 import { resolve } from 'node:path';
 import { execSync } from 'node:child_process';
-import type { DesignbookConfig } from '../config.js';
-import type { ValidationFileResult } from '../workflow-types.js';
+import type { DesignbookConfig } from '../shared/config.js';
+import type { ValidationFileResult } from '../shared/workflow-types.js';
 import { validateData } from './data.js';
 import { validateImage } from './image.js';
 

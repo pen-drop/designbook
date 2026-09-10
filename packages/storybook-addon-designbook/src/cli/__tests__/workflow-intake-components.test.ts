@@ -17,7 +17,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync, readFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { dump as dumpYaml, load as parseYaml } from 'js-yaml';
-import { loadConfig } from '../../config.js';
+import { loadConfig } from '../../shared/config.js';
 import { runWorkflowCreate } from '../workflow.js';
 import { workflowDone, type WorkflowFile } from '../../workflow.js';
 

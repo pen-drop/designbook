@@ -15,11 +15,11 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync, readFileSync, existsSync
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { dump as dumpYaml, load as parseYaml } from 'js-yaml';
-import { loadConfig } from '../../config.js';
+import { loadConfig } from '../../shared/config.js';
 import { loadWorkflowDefinition } from '../workflow-discovery.js';
 import { workflowDone, workflowAbandon, workflowArchive, type WorkflowFile } from '../../workflow.js';
 import { runWorkflowCreate, createAfterWorkflows, filterActiveAfterDeclarations } from '../workflow.js';
-import { hashReferenceUrl } from '../../resolvers/reference-folder.js';
+import { hashReferenceUrl } from '../../tools/resolvers/reference-folder.js';
 
 function writeMd(filePath: string, fm: Record<string, unknown>, body = ''): void {
   mkdirSync(resolve(filePath, '..'), { recursive: true });

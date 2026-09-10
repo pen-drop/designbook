@@ -1,4 +1,4 @@
-import type { ResolvedStep } from '../workflow-resolve.js';
+import type { ResolvedStep } from '../../workflow-resolve.js';
 import { slugifyArtifactName } from './anchors.js';
 
 export type ArtifactKind = 'rule' | 'blueprint';

@@ -17,8 +17,8 @@ import { tmpdir } from 'node:os';
 import { randomBytes } from 'node:crypto';
 import { resolveAllStages, type ResolvedStep } from '../../workflow-resolve.js';
 import { expandTasksFromParams } from '../../workflow.js';
-import type { DesignbookConfig } from '../../config.js';
-import type { StageDefinition } from '../../workflow-types.js';
+import type { DesignbookConfig } from '../../shared/config.js';
+import type { StageDefinition } from '../../shared/workflow-types.js';
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 

@@ -1,9 +1,9 @@
 import { dirname } from 'node:path';
 import type { Command } from 'commander';
-import { findConfig, resolveSkillsRoot } from '../config.js';
+import { findConfig, resolveSkillsRoot } from '../shared/config.js';
 import { resolveSkillSources } from '../skill-resolver.js';
-import { buildRenderContext } from '../runbook/resolve.js';
-import { renderPlan } from '../runbook/render.js';
+import { buildRenderContext } from '../tools/runbook/resolve.js';
+import { renderPlan } from '../tools/runbook/render.js';
 import { resolveWorkflowFile } from './workflow-discovery.js';
 
 export function register(program: Command): void {

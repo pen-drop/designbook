@@ -1,6 +1,6 @@
 import type { ParamResolver, ResolverContext, ResolverResult } from './types.js';
 import { StorybookDaemon, fetchJson } from '../storybook.js';
-import { resolveStoryPattern, type StoryPattern } from '../config/story-patterns.js';
+import { resolveStoryPattern, type StoryPattern } from '../../shared/config/story-patterns.js';
 
 export interface ComponentInventoryEntry {
   /** `<namespace>:<component-name>` — stable component identifier. */

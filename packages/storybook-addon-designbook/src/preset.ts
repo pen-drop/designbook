@@ -1,5 +1,5 @@
 import { designbookLoadPlugin } from './vite-plugin';
-import { loadConfig, findConfig } from './config';
+import { loadConfig, findConfig } from './shared/config';
 import {
   buildExportName,
   extractScenes,

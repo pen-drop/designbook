@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { Reference } from '../reference-entity';
-import { hashReferenceUrl } from '../resolvers/reference-folder';
+import { Reference } from '../scene-model/reference-entity';
+import { hashReferenceUrl } from '../tools/resolvers/reference-folder';
 
 function workspace(): string {
   const dir = mkdtempSync(join(tmpdir(), 'db-ref-'));

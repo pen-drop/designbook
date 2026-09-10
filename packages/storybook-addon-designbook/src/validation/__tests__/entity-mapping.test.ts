@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { resolve } from 'node:path';
 import { validateEntityMapping } from '../entity-mapping.js';
-import type { DesignbookConfig } from '../../config.js';
+import type { DesignbookConfig } from '../../shared/config.js';
 
 const fixturesDir = resolve(import.meta.dirname, 'fixtures', 'entity-mapping');
 

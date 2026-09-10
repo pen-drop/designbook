@@ -1,7 +1,7 @@
 import React, { memo, useCallback, useState } from 'react';
 import { useChannel, useParameter } from 'storybook/manager-api';
 import { IconButton } from 'storybook/internal/components';
-import { INSPECT_TOOL_ID, EVENTS } from '../constants';
+import { INSPECT_TOOL_ID, EVENTS } from '../shared/constants';
 import { PointerDefaultIcon } from '@storybook/icons';
 
 export const InspectTool = memo(function InspectTool() {

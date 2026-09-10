@@ -10,8 +10,8 @@
  * belt-and-suspenders check while the validation module stays daemon-free.
  */
 
-import type { DesignbookConfig } from '../config.js';
-import { componentsIndexResolver } from '../resolvers/components-index.js';
+import type { DesignbookConfig } from '../shared/config.js';
+import { componentsIndexResolver } from './resolvers/components-index.js';
 
 export async function validateSceneAgainstInventory(
   scene: unknown,

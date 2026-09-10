@@ -9,8 +9,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { load as parseYaml } from 'js-yaml';
-import type { DesignbookConfig } from '../config.js';
-import type { ValidationFileResult } from '../workflow-types.js';
+import type { DesignbookConfig } from '../shared/config.js';
+import type { ValidationFileResult } from '../shared/workflow-types.js';
 import { buildSceneModule } from '../scene-model/scene-module-builder.js';
 
 function nowIso(): string {

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { ResolverContext } from '../types.js';
-import type { DesignbookConfig } from '../../config.js';
+import type { DesignbookConfig } from '../../../shared/config.js';
 
 // Mock the storybook module to bypass the real daemon + HTTP layer.
 // Pattern mirrors story-url.test.ts: mockStatus drives daemon.status() and the

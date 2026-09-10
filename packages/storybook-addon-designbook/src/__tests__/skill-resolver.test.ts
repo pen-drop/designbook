@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { resolvePluginSkillSources, resolveSkillSources } from '../skill-resolver.js';
-import type { DesignbookConfig } from '../config.js';
+import type { DesignbookConfig } from '../shared/config.js';
 
 /** Minimal config object for resolver context. */
 function cfg(skills?: string): DesignbookConfig {

@@ -9,7 +9,7 @@
  */
 
 import type { API } from 'storybook/manager-api';
-import { PANEL_ID } from './constants.js';
+import { PANEL_ID } from './shared/constants.js';
 
 interface FileEvent {
   fileType: string;

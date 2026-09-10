@@ -1,5 +1,5 @@
 import { dump as dumpYaml } from 'js-yaml';
-import type { ResolvedStep } from '../workflow-resolve.js';
+import type { ResolvedStep } from '../../workflow-resolve.js';
 import type { InputSource } from './sources.js';
 import type { ArtifactIndex } from './reverse-index.js';
 import { slugifyArtifactName } from './anchors.js';

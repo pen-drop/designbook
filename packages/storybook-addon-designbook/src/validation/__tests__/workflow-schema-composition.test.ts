@@ -24,7 +24,7 @@ import {
 import type { ResolvedStep, ResolvedSteps } from '../../workflow-resolve.js';
 import { workflowCreate, workflowDone, readWorkflow, readSchemaMap } from '../../workflow.js';
 import type { WorkflowFile } from '../../workflow.js';
-import type { DesignbookConfig } from '../../config.js';
+import type { DesignbookConfig } from '../../shared/config.js';
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 

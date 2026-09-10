@@ -7,8 +7,8 @@ import type { CapturedSource } from '../inspect/element-walker.js';
 import { capture } from '../inspect/capture.js';
 import { resolveBreakpointWidths } from '../inspect/breakpoint-widths.js';
 import { locateRegion, pickRegionLabel } from '../inspect/region.js';
-import { isFeatureEnabled } from '../config/features.js';
-import type { DesignbookConfig } from '../config.js';
+import { isFeatureEnabled } from '../../shared/config/features.js';
+import type { DesignbookConfig } from '../../shared/config.js';
 
 function hashUrl(url: string): string {
   return createHash('sha256').update(url.toLowerCase().replace(/\/+$/, '')).digest('hex').slice(0, 12);

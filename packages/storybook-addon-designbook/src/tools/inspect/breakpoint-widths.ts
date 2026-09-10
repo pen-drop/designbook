@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { load } from 'js-yaml';
-import type { DesignbookConfig } from '../config.js';
+import type { DesignbookConfig } from '../../shared/config.js';
 
 export interface BreakpointWidth {
   name: string;

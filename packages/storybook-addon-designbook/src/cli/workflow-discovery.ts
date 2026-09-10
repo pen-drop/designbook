@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 import { globSync } from 'glob';
 import { basename } from 'node:path';
 import { load as parseYaml } from 'js-yaml';
-import type { AfterDeclaration } from '../workflow-types.js';
-import type { SkillSource } from '../skill-sources.js';
+import type { AfterDeclaration } from '../shared/workflow-types.js';
+import type { SkillSource } from '../shared/skill-sources.js';
 
 export type { AfterDeclaration };
 

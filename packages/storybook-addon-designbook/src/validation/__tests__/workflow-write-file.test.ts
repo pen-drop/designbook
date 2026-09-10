@@ -16,7 +16,7 @@ import {
   workflowAbandon,
   type WorkflowFile,
 } from '../../workflow.js';
-import type { DesignbookConfig } from '../../config.js';
+import type { DesignbookConfig } from '../../shared/config.js';
 import { getValidatorKeys, getValidator, validateByKeys } from '../validation-registry.js';
 import { expandFileDeclarations, expandResultDeclarations, type TaskFileDeclaration } from '../../workflow-resolve.js';
 

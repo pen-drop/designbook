@@ -8,7 +8,7 @@
  * in fixed order. Stages with no steps are auto-skipped.
  */
 
-import type { StageDefinition, StageParam } from './workflow-types.js';
+import type { StageDefinition, StageParam } from './shared/workflow-types.js';
 
 /** Implicit stages injected between declared stages and at the end of the lifecycle. */
 const IMPLICIT_STAGES: Record<string, string[]> = {

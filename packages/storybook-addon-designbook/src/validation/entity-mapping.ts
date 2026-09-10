@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve, basename } from 'node:path';
 import jsonata from 'jsonata';
 import type { ValidationResult } from './types.js';
-import type { DesignbookConfig } from '../config.js';
+import type { DesignbookConfig } from '../shared/config.js';
 import { readBundleFiles } from '../scene-model/data-pool.js';
 
 interface ComponentNode {

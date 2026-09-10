@@ -1,4 +1,4 @@
-import type { DesignbookConfig } from '../config.js';
+import type { DesignbookConfig } from '../../shared/config.js';
 
 export interface Candidate {
   label: string;

@@ -1,7 +1,7 @@
 import { basename, resolve, dirname } from 'node:path';
 import { readFileSync, existsSync } from 'node:fs';
 import type { Command } from 'commander';
-import { loadConfig, findConfig, resolveSkillsRoot } from '../config.js';
+import { loadConfig, findConfig, resolveSkillsRoot } from '../shared/config.js';
 import { resolveSkillSources } from '../skill-resolver.js';
 import {
   workflowCreate,
@@ -18,7 +18,7 @@ import {
   registerChild,
 } from '../workflow.js';
 import jsonata from 'jsonata';
-import type { StageDefinition, AfterDeclaration } from '../workflow-types.js';
+import type { StageDefinition, AfterDeclaration } from '../shared/workflow-types.js';
 import { load as parseYaml } from 'js-yaml';
 import {
   resolveAllStages,
@@ -31,12 +31,12 @@ import {
   type ResultDeclaration,
   type ExpectedParam,
 } from '../workflow-resolve.js';
-import { resolveSchemaRef, collectLocalRefsFromSchema } from '../schema-ref.js';
+import { resolveSchemaRef, collectLocalRefsFromSchema } from '../shared/schema-ref.js';
 import { computeMergedSchema } from '../workflow-schema-merge.js';
-import { resolveParams } from '../resolvers/registry.js';
-import type { ResolverContext } from '../resolvers/types.js';
+import { resolveParams } from '../tools/resolvers/registry.js';
+import type { ResolverContext } from '../tools/resolvers/types.js';
 import { renderSubmitResultsHint } from './submit-results-hint.js';
-import { initLogger, log } from '../logger.js';
+import { initLogger, log } from '../shared/logger.js';
 import { register as registerSummary } from './workflow-summary.js';
 import { listWorkflowDefinitions, loadWorkflowDefinition, resolveWorkflowFile } from './workflow-discovery.js';
 
@@ -79,7 +79,7 @@ export interface InstructionsResult {
   blueprints: string[];
   config_rules: string[];
   config_instructions: string[];
-  schema?: import('../schema-block.js').SchemaBlock;
+  schema?: import('../shared/schema-block.js').SchemaBlock;
   submit_results?: string;
   isolate?: boolean;
   interactive?: boolean;
@@ -182,7 +182,7 @@ function selectPrimaryResolvedStep(
  */
 export async function runWorkflowCreate(
   opts: RunWorkflowCreateOpts,
-  config: import('../config.js').DesignbookConfig,
+  config: import('../shared/config.js').DesignbookConfig,
 ): Promise<RunWorkflowCreateResult> {
   let initialParams: Record<string, unknown> | undefined = opts.params;
 
@@ -539,7 +539,7 @@ export async function filterActiveAfterDeclarations(
  */
 export async function loadActiveAfterDeclarations(
   workflowName: string,
-  config: import('../config.js').DesignbookConfig,
+  config: import('../shared/config.js').DesignbookConfig,
 ): Promise<AfterDeclaration[]> {
   let allAfter: AfterDeclaration[] = [];
   let parentParams: Record<string, unknown> = {};
@@ -572,7 +572,7 @@ export async function createAfterWorkflows(
   declarations: AfterDeclaration[],
   parentName: string,
   parentParams: Record<string, unknown>,
-  config: import('../config.js').DesignbookConfig,
+  config: import('../shared/config.js').DesignbookConfig,
 ): Promise<Array<{ name: string; workflow: string }>> {
   const { resolve: resolvePath } = await import('node:path');
   const parentFilePath = resolvePath(config.data, 'workflows', 'changes', parentName, 'tasks.yml');

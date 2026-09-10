@@ -4,8 +4,8 @@ import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomBytes } from 'node:crypto';
 import { dump as stringifyYaml } from 'js-yaml';
-import { buildSchemaBlock } from '../../schema-block.js';
-import type { BuildSchemaBlockInput } from '../../schema-block.js';
+import { buildSchemaBlock } from '../../shared/schema-block.js';
+import type { BuildSchemaBlockInput } from '../../shared/schema-block.js';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { load as parseYaml } from 'js-yaml';
 import { workflowCreate, workflowDone, type WorkflowFile } from '../../workflow.js';
-import type { DesignbookConfig } from '../../config.js';
+import type { DesignbookConfig } from '../../shared/config.js';
 
 describe('workflowDone awaiting-after behaviour', () => {
   let dataDir: string;

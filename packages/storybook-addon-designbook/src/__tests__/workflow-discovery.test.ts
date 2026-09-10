@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync, symlinkSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { resolveSkillsRoot } from '../config.js';
+import { resolveSkillsRoot } from '../shared/config.js';
 import { resolveWorkflowFile, listWorkflowDefinitions } from '../cli/workflow-discovery.js';
 
 function tmp(prefix: string): string {

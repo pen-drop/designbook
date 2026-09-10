@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { ResolverContext } from '../types.js';
 import { resolveConfigSyncDir, configSyncDirResolver, deriveDocrootFromConfig } from '../config-sync-dir.js';
-import type { DesignbookConfig } from '../../config.js';
+import type { DesignbookConfig } from '../../../shared/config.js';
 
 function makeContext(config: Partial<DesignbookConfig> = {}, params: Record<string, unknown> = {}): ResolverContext {
   return { config: config as DesignbookConfig, params };

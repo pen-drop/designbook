@@ -8,7 +8,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { dump as dumpYaml } from 'js-yaml';
-import { loadConfig } from '../../config.js';
+import { loadConfig } from '../../shared/config.js';
 import { parseBatchEntry, readBatchEntries, runBatchDone } from '../workflow-batch-done.js';
 import { readWorkflow, type WorkflowFile } from '../../workflow.js';
 

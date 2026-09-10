@@ -6,7 +6,7 @@ import { VisualCompareTool } from './components/VisualCompareTool';
 import { InspectTool } from './components/InspectTool';
 import { StructurePanel } from './components/panels/StructurePanel';
 import { isStructureTabDisabled } from './components/panels/structure-tab-visibility';
-import { ADDON_ID, PANEL_ID, INSPECT_TOOL_ID, STRUCTURE_PANEL_ID, VISUAL_TOOL_ID } from './constants';
+import { ADDON_ID, PANEL_ID, INSPECT_TOOL_ID, STRUCTURE_PANEL_ID, VISUAL_TOOL_ID } from './shared/constants';
 import { startWorkflowNotifications } from './manager-notifications';
 
 // Register the addon

@@ -1,8 +1,8 @@
-import type { Result } from 'src/types';
+import type { Result } from './tools/types.js';
 import { useEffect, useChannel } from 'storybook/preview-api';
 import type { DecoratorFunction } from 'storybook/internal/types';
 
-import { EVENTS } from './constants';
+import { EVENTS } from './shared/constants';
 
 /**
  * This is an example of a function that performs some sort of analysis on the

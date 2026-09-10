@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 import { Command } from 'commander';
-import { loadConfig, normalizeExtensions, getExtensionIds, getExtensionSkillIds } from './config.js';
+import { loadConfig, normalizeExtensions, getExtensionIds, getExtensionSkillIds } from './shared/config.js';
 import { validateData } from './validation/data.js';
 import { validateEntityMapping } from './validation/entity-mapping.js';
 import { register as registerWorkflow } from './cli/workflow.js';
@@ -124,8 +124,8 @@ program
       .map((s) => s.trim())
       .filter(Boolean);
     try {
-      const { captureStyleEnv } = await import('./inspect/style-env.js');
-      const { collectMissing } = await import('./inspect/css-guard.js');
+      const { captureStyleEnv } = await import('./tools/inspect/style-env.js');
+      const { collectMissing } = await import('./tools/inspect/css-guard.js');
       const env = await captureStyleEnv(pathToFileURL(opts.probe).href, { fonts });
       const result = collectMissing({ vars, fonts }, env);
       console.log(JSON.stringify(result));

@@ -1,5 +1,5 @@
 import { resolve } from 'node:path';
-import type { DesignbookConfig } from '../config.js';
+import type { DesignbookConfig } from '../../shared/config.js';
 import type { ParamResolver, ResolverResult, ResolverContext } from './types.js';
 
 export interface ConfigSyncDirInput {

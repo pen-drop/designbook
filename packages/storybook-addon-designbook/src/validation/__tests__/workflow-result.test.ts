@@ -20,7 +20,7 @@ import {
   type WorkflowFile,
   type WorkflowTask,
 } from '../../workflow.js';
-import type { DesignbookConfig } from '../../config.js';
+import type { DesignbookConfig } from '../../shared/config.js';
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 
@@ -1109,7 +1109,7 @@ describe('workflow result: generator artifact check', () => {
 
 // ── prepare + generator: end-to-end wiring ────────────────────────────────
 
-const FAKE_CMD = resolve(import.meta.dirname, '../../sync/__tests__/fake-schema-cmd.sh');
+const FAKE_CMD = resolve(import.meta.dirname, '../../tools/sync/__tests__/fake-schema-cmd.sh');
 
 describe('workflow result: prepare+generator end-to-end', () => {
   let dist: string;
@@ -1191,7 +1191,7 @@ describe('workflow result: prepare+generator end-to-end', () => {
 
 // ── prepare: hook — run command, validate against fetched schema ───────────
 
-const FAKE = resolve(import.meta.dirname, '../../sync/__tests__/fake-schema-cmd.sh');
+const FAKE = resolve(import.meta.dirname, '../../tools/sync/__tests__/fake-schema-cmd.sh');
 
 describe('workflow result: prepare hook', () => {
   let dist: string;

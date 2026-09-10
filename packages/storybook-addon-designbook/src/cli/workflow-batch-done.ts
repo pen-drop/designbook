@@ -21,8 +21,8 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { workflowDone } from '../workflow.js';
-import type { DesignbookConfig } from '../config.js';
-import type { AfterDeclaration } from '../workflow-types.js';
+import type { DesignbookConfig } from '../shared/config.js';
+import type { AfterDeclaration } from '../shared/workflow-types.js';
 
 export interface BatchDoneEntry {
   task: string;

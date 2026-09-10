@@ -6,7 +6,7 @@ import type { SceneTreeNode } from '../../scene-model/types';
 import { StructureSplitView } from './StructureSplitView';
 import { EntityMappingDetail, hasEntityMapping } from './EntityMappingDetail';
 import { MappingDetail } from '../MappingDetail';
-import { EVENTS } from '../../constants';
+import { EVENTS } from '../../shared/constants';
 
 interface StructurePanelProps {
   active?: boolean;

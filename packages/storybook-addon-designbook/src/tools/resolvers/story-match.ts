@@ -1,8 +1,8 @@
 import { readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { StorybookDaemon, fetchJson } from '../storybook.js';
-import { StoryMeta } from '../story-entity.js';
-import type { DesignbookConfig } from '../config.js';
+import { StoryMeta } from '../../scene-model/story-entity.js';
+import type { DesignbookConfig } from '../../shared/config.js';
 import type { ResolverResult } from './types.js';
 
 export type StoryResolution =

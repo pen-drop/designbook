@@ -3,7 +3,7 @@ import { useTheme } from 'storybook/theming';
 import { useGlobals, useParameter, useStorybookApi } from 'storybook/manager-api';
 import { IconButton, WithTooltip } from 'storybook/internal/components';
 import { PhotoIcon } from '@storybook/icons';
-import { VISUAL_COMPARE_KEY, VISUAL_TOOL_ID } from '../constants';
+import { VISUAL_COMPARE_KEY, VISUAL_TOOL_ID } from '../shared/constants';
 
 interface VisualCompareState {
   breakpoint: string | null;

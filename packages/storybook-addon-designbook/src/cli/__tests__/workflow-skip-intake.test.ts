@@ -12,7 +12,7 @@ import { randomBytes } from 'node:crypto';
 import { dump as stringifyYaml, load as parseYaml } from 'js-yaml';
 import { resolveAllStages, buildEnvMap } from '../../workflow-resolve.js';
 import { workflowCreate, expandTasksFromParams, type WorkflowFile } from '../../workflow.js';
-import type { DesignbookConfig } from '../../config.js';
+import type { DesignbookConfig } from '../../shared/config.js';
 
 function makeTmpDir(): string {
   const dir = resolve(tmpdir(), `wf-skip-intake-${randomBytes(4).toString('hex')}`);

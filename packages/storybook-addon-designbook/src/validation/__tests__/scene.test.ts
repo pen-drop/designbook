@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { resolve } from 'node:path';
 import { validateSceneBuild } from '../scene.js';
-import type { DesignbookConfig } from '../../config.js';
+import type { DesignbookConfig } from '../../shared/config.js';
 
 const fixtures = resolve(import.meta.dirname, 'fixtures', 'scene');
 

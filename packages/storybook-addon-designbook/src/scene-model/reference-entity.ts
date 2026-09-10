@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse } from 'yaml';
-import type { DesignbookConfig } from './config.js';
+import type { DesignbookConfig } from '../shared/config.js';
 
 export interface ReferenceElement {
   id: string;

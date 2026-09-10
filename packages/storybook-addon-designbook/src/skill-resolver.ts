@@ -24,8 +24,8 @@
 
 import { homedir } from 'node:os';
 import { delimiter, dirname, join } from 'node:path';
-import { type DesignbookConfig, loadConfig } from './config.js';
-import { deriveSkillSourcesFromBase, resolveProjectSkillSources, type SkillSource } from './skill-sources.js';
+import { type DesignbookConfig, loadConfig } from './shared/config.js';
+import { deriveSkillSourcesFromBase, resolveProjectSkillSources, type SkillSource } from './shared/skill-sources.js';
 
 /** Inputs a resolver reads. `env`/`home` are injectable so resolvers are testable. */
 export interface ResolveContext {

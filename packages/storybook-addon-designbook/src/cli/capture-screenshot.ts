@@ -10,7 +10,7 @@
 
 import { mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import type { DesignbookConfig } from '../config.js';
+import type { DesignbookConfig } from '../shared/config.js';
 import { CAPTURE_HEIGHT, isolateAndCapture, runStateSteps, settlePage, type CaptureStep } from './capture-browser.js';
 
 /** Parse the `--steps` JSON argument into a CaptureStep array (empty when absent). */

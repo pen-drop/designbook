@@ -8,9 +8,13 @@ import { register as registerRunbook } from '../runbook.js';
 function seedFixtures(sandbox: CliSandbox): void {
   const agentsDir = resolve(sandbox.tmpRoot, '.agents');
   mkdirSync(agentsDir, { recursive: true });
-  cpSync(resolve(__dirname, '..', '..', 'runbook', '__tests__', 'fixtures', 'skills'), resolve(agentsDir, 'skills'), {
-    recursive: true,
-  });
+  cpSync(
+    resolve(__dirname, '..', '..', 'tools', 'runbook', '__tests__', 'fixtures', 'skills'),
+    resolve(agentsDir, 'skills'),
+    {
+      recursive: true,
+    },
+  );
 }
 
 function programWithRunbook(): Command {

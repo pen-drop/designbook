@@ -8,7 +8,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { Command } from 'commander';
 import { load as parseYaml } from 'js-yaml';
-import { loadConfig } from '../config.js';
+import { loadConfig } from '../shared/config.js';
 
 export interface SummaryOptions {
   dataDir: string;

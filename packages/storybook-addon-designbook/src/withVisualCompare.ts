@@ -1,8 +1,8 @@
 import { useGlobals } from 'storybook/preview-api';
 import type { DecoratorFunction } from 'storybook/internal/types';
 
-import { VISUAL_COMPARE_KEY } from './constants';
-import { referenceImagePath } from './visual-compare-path';
+import { VISUAL_COMPARE_KEY } from './shared/constants';
+import { referenceImagePath } from './tools/visual-compare-path';
 
 interface VisualCompareState {
   breakpoint: string | null;

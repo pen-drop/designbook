@@ -6,7 +6,7 @@ import { themes as sbThemes, ensure, ThemeProvider } from 'storybook/theming';
 import { withThemeByDataAttribute } from '@storybook/addon-themes';
 
 import { themes as designbookThemes, defaultTheme } from 'virtual:designbook-themes';
-import { KEY, VISUAL_COMPARE_KEY } from './constants';
+import { KEY, VISUAL_COMPARE_KEY } from './shared/constants';
 import { withRoundTrip } from './withRoundTrip';
 import { withVisualCompare } from './withVisualCompare';
 import { withInspectOverlay } from './decorators/inspect-overlay';

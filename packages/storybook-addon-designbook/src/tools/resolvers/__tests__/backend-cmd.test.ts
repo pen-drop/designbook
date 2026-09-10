@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { backendCmdResolver, unflattenPrefix } from '../backend-cmd.js';
-import type { DesignbookConfig } from '../../config.js';
+import type { DesignbookConfig } from '../../../shared/config.js';
 import type { ResolverContext, ResolverResult } from '../types.js';
 
 function ctx(config: Record<string, unknown>, params: Record<string, unknown> = {}): ResolverContext {

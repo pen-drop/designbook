@@ -19,7 +19,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { dump as dumpYaml, load as parseYaml } from 'js-yaml';
 import Ajv from 'ajv';
-import { loadConfig } from '../../config.js';
+import { loadConfig } from '../../shared/config.js';
 import { runWorkflowCreate } from '../workflow.js';
 
 function writeMd(filePath: string, fm: Record<string, unknown>, body = ''): void {

@@ -8,7 +8,7 @@
 import type { Command } from 'commander';
 import { readFileSync } from 'node:fs';
 import { load as parseYaml } from 'js-yaml';
-import { loadConfig } from '../config.js';
+import { loadConfig } from '../shared/config.js';
 
 export function register(program: Command): void {
   program
@@ -47,7 +47,7 @@ export function register(program: Command): void {
       const config = loadConfig();
       const { matrixCellsFromMeta, planCaptureMatrix, runCaptureMatrix, ensureCellsPlanned } =
         await import('./capture-matrix.js');
-      const { resolveBreakpointWidths } = await import('../inspect/breakpoint-widths.js');
+      const { resolveBreakpointWidths } = await import('../tools/inspect/breakpoint-widths.js');
       try {
         const meta = parseYaml(readFileSync(metaPath, 'utf-8')) as Parameters<typeof matrixCellsFromMeta>[0];
         const cells = matrixCellsFromMeta(meta);

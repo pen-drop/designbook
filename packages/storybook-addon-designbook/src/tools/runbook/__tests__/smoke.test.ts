@@ -5,7 +5,7 @@ import { join, resolve } from 'node:path';
 import { buildRenderContext } from '../resolve.js';
 import { renderPlan } from '../render.js';
 
-const REPO_ROOT = resolve(__dirname, '..', '..', '..', '..', '..');
+const REPO_ROOT = resolve(__dirname, '..', '..', '..', '..', '..', '..');
 const AGENTS_DIR = resolve(REPO_ROOT, '.agents');
 const WORKFLOW = resolve(AGENTS_DIR, 'skills/designbook/skills/design-shell/workflows/design-shell.md');
 

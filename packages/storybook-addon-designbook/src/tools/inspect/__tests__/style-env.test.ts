@@ -3,7 +3,9 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { captureStyleEnv } from '../style-env.js';
 
-const PROBE = pathToFileURL(join(__dirname, '../../../../../tests/fixtures/element-walker/style-env-probe.html')).href;
+const PROBE = pathToFileURL(
+  join(__dirname, '../../../../../../tests/fixtures/element-walker/style-env-probe.html'),
+).href;
 
 describe('captureStyleEnv (real chromium)', () => {
   it('reads :root custom properties and their resolved values', async () => {

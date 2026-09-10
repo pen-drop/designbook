@@ -1,6 +1,6 @@
 import React from 'react';
 import type { API_HashEntry } from 'storybook/internal/types';
-import { ADDON_ID } from './constants';
+import { ADDON_ID } from './shared/constants';
 
 /**
  * This opt-in helper can be manually imported by your users who want to

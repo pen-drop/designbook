@@ -8,7 +8,7 @@ import { locateRegion } from '../region.js';
 import type { CapturedSource } from '../element-walker.js';
 
 const FIXTURE_URL = pathToFileURL(
-  join(__dirname, '../../../../../tests/fixtures/element-walker/regions-page.html'),
+  join(__dirname, '../../../../../../tests/fixtures/element-walker/regions-page.html'),
 ).href;
 
 describe('capture (real chromium)', () => {
@@ -65,7 +65,7 @@ describe('capture (real chromium)', () => {
 
 describe('capture (multi-breakpoint, real chromium)', () => {
   const RESP_URL = pathToFileURL(
-    join(__dirname, '../../../../../tests/fixtures/element-walker/responsive-page.html'),
+    join(__dirname, '../../../../../../tests/fixtures/element-walker/responsive-page.html'),
   ).href;
   let dir: string;
   let merged: CapturedSource;

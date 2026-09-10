@@ -12,9 +12,9 @@
 
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
-import type { CapturedSource, PropertyNode } from '../inspect/element-walker.js';
-import type { StyleEnv } from '../inspect/style-env.js';
-import type { DesignbookConfig } from '../config.js';
+import type { CapturedSource, PropertyNode } from '../tools/inspect/element-walker.js';
+import type { StyleEnv } from '../tools/inspect/style-env.js';
+import type { DesignbookConfig } from '../shared/config.js';
 
 export interface ExtractLandmark {
   label: string;
@@ -154,8 +154,8 @@ export async function runExtractPage(
   opts: { breakpoints: string[]; fonts: string[] },
   config: DesignbookConfig,
 ): Promise<string> {
-  const { capture } = await import('../inspect/capture.js');
-  const { resolveBreakpointWidths } = await import('../inspect/breakpoint-widths.js');
+  const { capture } = await import('../tools/inspect/capture.js');
+  const { resolveBreakpointWidths } = await import('../tools/inspect/breakpoint-widths.js');
 
   await mkdir(outDir, { recursive: true });
   const capturedPath = resolve(outDir, 'captured.json');
@@ -167,7 +167,7 @@ export async function runExtractPage(
 
   let styleEnv: StyleEnv | undefined;
   try {
-    const { captureStyleEnv } = await import('../inspect/style-env.js');
+    const { captureStyleEnv } = await import('../tools/inspect/style-env.js');
     styleEnv = await captureStyleEnv(url, { fonts: opts.fonts });
   } catch {
     styleEnv = undefined; // degrade — the captured tree still yields fonts/colors

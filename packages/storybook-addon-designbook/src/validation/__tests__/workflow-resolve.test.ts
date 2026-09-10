@@ -34,9 +34,9 @@ import {
   type ResolvedTask,
   type ResolvedStep,
 } from '../../workflow-resolve.js';
-import { resolveSchemaRef } from '../../schema-ref.js';
-import type { StageDefinition } from '../../workflow-types.js';
-import type { DesignbookConfig } from '../../config.js';
+import { resolveSchemaRef } from '../../shared/schema-ref.js';
+import type { StageDefinition } from '../../shared/workflow-types.js';
+import type { DesignbookConfig } from '../../shared/config.js';
 
 // ── Test helpers ───────────────────────────────────────────────────
 

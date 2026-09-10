@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildArtifactIndex } from '../reverse-index.js';
-import type { ResolvedStep } from '../../workflow-resolve.js';
+import type { ResolvedStep } from '../../../workflow-resolve.js';
 
 describe('buildArtifactIndex', () => {
   const stepResolved: Record<string, ResolvedStep | ResolvedStep[]> = {

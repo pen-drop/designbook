@@ -7,7 +7,7 @@ import { buildExtractSkeleton, parseBreakpointNames } from '../extract-page.js';
 import { matrixCellsFromMeta, planCaptureMatrix, ensureCellsPlanned, type MatrixCell } from '../capture-matrix.js';
 import { isStorybookStale } from '../check-story.js';
 import { parseStepsArg } from '../capture-screenshot.js';
-import type { CapturedSource, PropertyNode } from '../../inspect/element-walker.js';
+import type { CapturedSource, PropertyNode } from '../../tools/inspect/element-walker.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 

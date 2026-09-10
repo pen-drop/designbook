@@ -138,7 +138,7 @@
     ],
     "nodeEntries": [
       "src/preset.ts",
-      "src/config.ts"
+      "src/shared/config.ts"
     ]
   },
   "storybook": {
