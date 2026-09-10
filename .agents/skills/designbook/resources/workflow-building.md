@@ -74,7 +74,8 @@ sealing. Every mode uses the same sealed-plan assembly and the same
      JSON with `ephemeral: true` and `plan`. Invoke
      `execute-workflow <ephemeral-plan-path>` in a separate execution invocation.
      After successful completion or explicit abandon, delete that ephemeral plan
-     file; result artifacts remain. Interrupted ephemeral runs have no durable
+     file after caller/tester inspection when scoring needs the sealed plan;
+     result artifacts remain. Interrupted ephemeral runs have no durable
      resume — re-intake and rebuild, or switch to `persist` first.
    - **`ask`:** Before build/execute, present the three choices (run here /
      ephemeral, hand off / persist without execute, or cancel). Follow the chosen

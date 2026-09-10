@@ -262,16 +262,18 @@ export function planToDocument(text, fallbackId) {
   };
 }
 
-// The saved plans of a run. The MD-plan engine writes one sealed plan per
-// workflow at `<DESIGNBOOK_DATA>/plans/<workflow>.plan.md`; the scorer inspects
-// the whole plans directory so a misplaced attempt cannot evade the gates.
+// The saved plans of a run. Durable seals live at
+// `<DESIGNBOOK_DATA>/plans/<workflow>.plan.md`; ephemeral seals live under
+// `plans/.ephemeral/*.plan.md`. The scorer inspects both so a leftover or
+// ephemeral attempt cannot evade the gates. Workflow id comes from `# Plan:`
+// in the file, falling back to the filename (same as `planToDocument`).
 export function savedWorkflows(dataDir) {
   const found = [];
-  const plans = resolve(dataDir, "plans");
-  if (existsSync(plans)) {
-    for (const entry of readdirSync(plans, { withFileTypes: true })) {
+  const loadDir = (dir) => {
+    if (!existsSync(dir)) return;
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
       if (!entry.isFile() || !entry.name.endsWith(".plan.md")) continue;
-      const path = resolve(plans, entry.name);
+      const path = resolve(dir, entry.name);
       try {
         found.push({
           path,
@@ -284,7 +286,10 @@ export function savedWorkflows(dataDir) {
         found.push({ path, error: error.message });
       }
     }
-  }
+  };
+  const plans = resolve(dataDir, "plans");
+  loadDir(plans);
+  loadDir(resolve(plans, ".ephemeral"));
   return found;
 }
 

@@ -52,6 +52,7 @@ executor returns.
 An ephemeral plan path is a full sealed plan under
 `$DESIGNBOOK_DATA/plans/.ephemeral/`. Execute it with the same loop as a durable
 plan. After successful completion or explicit abandon, delete the ephemeral plan
-file; result artifacts (`vision.yml`, scene files, …) remain. Crash leftovers may
-be removed later; they are not a resume handoff — interrupted ephemeral work
-re-intakes (or the user switches to persist first).
+file after caller/tester inspection when scoring needs the sealed plan; result
+artifacts (`vision.yml`, scene files, …) remain. Crash leftovers may be removed
+later; they are not a resume handoff — interrupted ephemeral work re-intakes
+(or the user switches to persist first).

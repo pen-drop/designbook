@@ -12,6 +12,8 @@ import {
   collectRuns,
   componentPrerequisites,
   artifactIntegrity,
+  savedWorkflows,
+  planToDocument,
 } from "./eval-score.mjs";
 
 test("bounded baseline evidence includes unchanged files and detects damage/deletion", () => {
@@ -333,6 +335,41 @@ test("assertions fail closed for absent evidence and damaged artifacts", () => {
 import { componentInventory } from "./eval-score.mjs";
 import { mkdirSync, readFileSync, readdirSync } from "node:fs";
 import { load as parseYaml } from "js-yaml";
+
+test("savedWorkflows loads durable and ephemeral sealed plans via planToDocument", () => {
+  const dir = mkdtempSync(join(tmpdir(), "eval-plans-"));
+  try {
+    const plans = join(dir, "plans");
+    const ephemeral = join(plans, ".ephemeral");
+    mkdirSync(ephemeral, { recursive: true });
+    writeFileSync(
+      join(plans, "tokens.plan.md"),
+      "# Plan: tokens\n\n### Step: create-tokens\n- [ ] create-tokens — palette\n",
+    );
+    writeFileSync(
+      join(ephemeral, "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.plan.md"),
+      "# Plan: vision\n\n### Step: create-vision\n- [x] create-vision — PetMatch\n",
+    );
+    writeFileSync(join(plans, "notes.md"), "not a plan\n");
+    mkdirSync(join(plans, "other"));
+    const found = savedWorkflows(dir);
+    assert.equal(found.length, 2);
+    const byId = Object.fromEntries(
+      found.map((entry) => [entry.document.definition.id, entry]),
+    );
+    assert.equal(byId.tokens.document.state.status, "pending");
+    assert.equal(byId.vision.document.state.status, "completed");
+    assert.match(byId.vision.path, /\.ephemeral/);
+    assert.equal(
+      byId.vision.document.definition.id,
+      planToDocument(readFileSync(byId.vision.path, "utf8"), "ignored")
+        .definition.id,
+    );
+    assert.equal(savedWorkflows(join(dir, "missing")).length, 0);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
 
 test("component inventory detects deletion of a tracked component", () => {
   const dir = mkdtempSync(join(tmpdir(), "eval-inventory-"));

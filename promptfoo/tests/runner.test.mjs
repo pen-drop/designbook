@@ -265,6 +265,36 @@ test("provider reuses bounded baseline and independent execution evidence", asyn
   );
 });
 
+test("collectArtifacts discovers ephemeral sealed plans for scoring", async (t) => {
+  const { provider, workspace } = await fixture(t);
+  const ephemeral = join(workspace, "designbook/plans/.ephemeral");
+  await mkdir(ephemeral, { recursive: true });
+  await writeFile(
+    join(ephemeral, "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.plan.md"),
+    "# Plan: vision\n\n### Step: create-vision\n- [x] create-vision — PetMatch\n",
+  );
+  await writeFile(
+    join(workspace, "designbook/plans/tokens.plan.md"),
+    "# Plan: tokens\n\n### Step: create-tokens\n- [ ] create-tokens — palette\n",
+  );
+  const result = await provider.collectArtifacts(workspace);
+  assert.deepEqual(result.workflowErrors, []);
+  assert.equal(result.completedWorkflows.vision?.state?.status, "completed");
+  assert.equal(result.pendingWorkflows.tokens?.state?.status, "pending");
+  assert.ok(
+    result.newFiles.some(
+      (file) =>
+        file.startsWith("designbook/plans/.ephemeral/") &&
+        file.endsWith(".plan.md"),
+    ),
+  );
+  assert.ok(result.newFiles.includes("designbook/plans/tokens.plan.md"));
+  assert.equal(
+    result.newFiles.includes("designbook/plans/vision.plan.md"),
+    false,
+  );
+});
+
 test("exact workflow IDs preserve failed attempts and archive does not imply completion", async (t) => {
   const { provider, workspace, workflow } = await fixture(t);
   await workflow("changes", "first", "design-shell-first", "blocked");
@@ -460,6 +490,10 @@ test("generated main/verify configs isolate setup and preserve paths", async (t)
     return yaml.load(await readFile(path, "utf8"));
   };
   const main = await generate([]);
+  assert.match(main.prompts[0], /`ephemeral` \| `persist` \| `ask`/);
+  assert.match(main.prompts[0], /--ephemeral/);
+  assert.match(main.prompts[0], /plans\/\.ephemeral\//);
+  assert.match(main.prompts[0], /do not delete an ephemeral plan/);
   const mainIntake = yaml.load(await readFile(main.tags.intake_config, "utf8"));
   assert.equal(mainIntake.tests[0].vars.case, "design-shell");
   assert.equal(main.tests[0].vars.case, undefined);
