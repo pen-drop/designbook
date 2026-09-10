@@ -127,19 +127,19 @@
     "access": "public"
   },
   "bundler": {
-    "managerEntries": [
-      "src/manager.tsx",
-      "src/manager-helpers.tsx"
-    ],
-    "previewEntries": [
-      "src/preview.ts",
-      "src/index.ts",
-      "src/renderer-browser.ts"
-    ],
-    "nodeEntries": [
-      "src/preset.ts",
-      "src/shared/config.ts"
-    ]
+    "managerEntries": {
+      "manager": "src/addon/manager.tsx",
+      "manager-helpers": "src/addon/manager-helpers.tsx"
+    },
+    "previewEntries": {
+      "preview": "src/addon/preview.ts",
+      "index": "src/addon/index.ts",
+      "renderer-browser": "src/addon/renderer-browser.ts"
+    },
+    "nodeEntries": {
+      "preset": "src/addon/preset.ts",
+      "config": "src/shared/config.ts"
+    }
   },
   "storybook": {
     "displayName": "Designbook",
