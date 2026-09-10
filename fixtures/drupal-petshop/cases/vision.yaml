@@ -38,5 +38,5 @@ assert:
     value: output.definitionUnchanged === true
   - type: javascript
     value: |
-      !output.newFiles.includes('designbook/plans/vision.plan.md') &&
-      !output.newFiles.some((f) => /^designbook\/plans\/[^/]+\.plan\.md$/.test(f))
+      return !output.newFiles.includes('designbook/plans/vision.plan.md') &&
+        !output.newFiles.some((f) => /^designbook\/plans\/[^/]+\.plan\.md$/.test(f));

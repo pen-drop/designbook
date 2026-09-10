@@ -27,7 +27,7 @@ assert:
     value: output.newFiles.includes('designbook/plans/vision.plan.md')
   - type: javascript
     value: |
-      !output.newFiles.includes('designbook/vision.yml')
+      return !output.newFiles.includes('designbook/vision.yml');
   - type: javascript
     value: output.completedWorkflows['vision'] == null
   - type: javascript

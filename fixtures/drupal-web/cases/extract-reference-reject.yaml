@@ -41,4 +41,4 @@ assert:
       return !ids.some((id) => id.startsWith('design-'));
   - type: javascript
     value: |
-      !output.newFiles.some((f) => /^designbook\/plans\/design-/.test(f))
+      return !output.newFiles.some((f) => /^designbook\/plans\/design-/.test(f));
