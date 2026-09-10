@@ -13,10 +13,10 @@ ROOTS=(.agents/skills packages/storybook-addon-designbook/src)
 
 # Files exempt from the guard (migration implementation + its tests/docs).
 EXCLUDES=(
-  'packages/storybook-addon-designbook/src/workflow-resolve.ts'
-  'packages/storybook-addon-designbook/src/workflow.ts'
+  'packages/storybook-addon-designbook/src/workflow/workflow-resolve.ts'
+  'packages/storybook-addon-designbook/src/workflow/workflow.ts'
   'packages/storybook-addon-designbook/src/cli/workflow.ts'
-  'packages/storybook-addon-designbook/src/validators/__tests__/workflow-write-file.test.ts'
+  'packages/storybook-addon-designbook/src/validation/__tests__/workflow-write-file.test.ts'
 )
 
 ALL_MATCHES=$(grep -rEn "$PATTERN" "${ROOTS[@]}" || true)
