@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { load as parseYaml } from 'js-yaml';
-import { workflowCreate } from '../../workflow.js';
+import { workflowCreate } from '../../workflow/workflow.js';
 
 interface TaskFileRaw {
   path: string;

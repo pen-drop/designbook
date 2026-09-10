@@ -10,12 +10,12 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve, relative, isAbsolute } from 'node:path';
 import fm from 'front-matter';
 import { globSync } from 'glob';
-import { normalizeExtensions, getExtensionIds, getExtensionSkillIds, type DesignbookConfig } from './shared/config.js';
-import type { SkillSource } from './shared/skill-sources.js';
-import { pluginSources, resolveSchemaRef, collectLocalRefsFromSchema } from './shared/schema-ref.js';
-import { buildSchemaBlock } from './shared/schema-block.js';
-import type { SchemaBlock } from './shared/schema-block.js';
-import { interpolate } from './shared/template/interpolate.js';
+import { normalizeExtensions, getExtensionIds, getExtensionSkillIds, type DesignbookConfig } from '../shared/config.js';
+import type { SkillSource } from '../shared/skill-sources.js';
+import { pluginSources, resolveSchemaRef, collectLocalRefsFromSchema } from '../shared/schema-ref.js';
+import { buildSchemaBlock } from '../shared/schema-block.js';
+import type { SchemaBlock } from '../shared/schema-block.js';
+import { interpolate } from '../shared/template/interpolate.js';
 import { computeMergedSchema, parseSchemaExtension, widenDefinitionEnums } from './workflow-schema-merge.js';
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -2121,8 +2121,8 @@ export async function resolveStageTaskParams(
   stageDef: { steps?: string[] },
   currentParams: Record<string, unknown>,
   config: DesignbookConfig,
-): Promise<import('./tools/resolvers/registry.js').ResolveParamsResult> {
-  const { resolveParams } = await import('./tools/resolvers/registry.js');
+): Promise<import('../tools/resolvers/registry.js').ResolveParamsResult> {
+  const { resolveParams } = await import('../tools/resolvers/registry.js');
 
   const schema: Record<string, Record<string, unknown>> = {};
   const steps = stageDef.steps ?? [];

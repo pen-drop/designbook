@@ -9,7 +9,7 @@ import type { SceneNodeBuilder } from './scene-model/types';
 import { buildSceneModule } from './scene-model/scene-module-builder';
 import { buildEntityModule } from './scene-model/entity-module-builder';
 import { matchHandler, defaultHandlers } from './scene-model/scene-handlers';
-import { scanAllWorkflows } from './workflow-utils';
+import { scanAllWorkflows } from './workflow/workflow-utils';
 import { StoryMeta } from './scene-model/story-entity';
 import { Reference } from './scene-model/reference-entity';
 import { USES_WITH_SELECTOR_SOURCE } from './use-sync-with-selector-source';

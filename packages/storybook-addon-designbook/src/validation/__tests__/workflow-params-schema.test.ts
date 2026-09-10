@@ -15,8 +15,8 @@ import { mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomBytes } from 'node:crypto';
-import { resolveAllStages, type ResolvedStep } from '../../workflow-resolve.js';
-import { expandTasksFromParams } from '../../workflow.js';
+import { resolveAllStages, type ResolvedStep } from '../../workflow/workflow-resolve.js';
+import { expandTasksFromParams } from '../../workflow/workflow.js';
 import type { DesignbookConfig } from '../../shared/config.js';
 import type { StageDefinition } from '../../shared/workflow-types.js';
 

@@ -13,9 +13,14 @@ import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomBytes } from 'node:crypto';
 import { dump as stringifyYaml } from 'js-yaml';
-import { resolveAllStages, buildEnvMap, expandResultDeclarations, parseFrontmatter } from '../workflow-resolve.js';
-import type { ResolvedStep } from '../workflow-resolve.js';
-import { workflowCreate, readWorkflow } from '../workflow.js';
+import {
+  resolveAllStages,
+  buildEnvMap,
+  expandResultDeclarations,
+  parseFrontmatter,
+} from '../workflow/workflow-resolve.js';
+import type { ResolvedStep } from '../workflow/workflow-resolve.js';
+import { workflowCreate, readWorkflow } from '../workflow/workflow.js';
 import type { DesignbookConfig } from '../shared/config.js';
 
 // ── helpers ────────────────────────────────────────────────────────────

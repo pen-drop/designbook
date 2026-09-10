@@ -10,8 +10,8 @@ import {
   workflowDone,
   expandTasksFromParams,
   type WorkflowFile,
-} from '../../workflow.js';
-import type { ResolvedStep } from '../../workflow-resolve.js';
+} from '../../workflow/workflow.js';
+import type { ResolvedStep } from '../../workflow/workflow-resolve.js';
 
 vi.mock('node:child_process', () => ({
   execFileSync: vi.fn(),

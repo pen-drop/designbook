@@ -10,7 +10,7 @@ import { join, resolve } from 'node:path';
 import { dump as dumpYaml } from 'js-yaml';
 import { loadConfig } from '../../shared/config.js';
 import { parseBatchEntry, readBatchEntries, runBatchDone } from '../workflow-batch-done.js';
-import { readWorkflow, type WorkflowFile } from '../../workflow.js';
+import { readWorkflow, type WorkflowFile } from '../../workflow/workflow.js';
 
 describe('workflow-batch-done: parsing', () => {
   it('parses a well-formed entry', () => {

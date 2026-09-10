@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { injectFlowRate } from '../workflow.js';
+import { injectFlowRate } from '../workflow/workflow.js';
 
 describe('injectFlowRate', () => {
   it('computes flow_rate from success_rate + dbo.log errors', () => {

@@ -3,7 +3,7 @@ import { resolve as resolvePath } from 'node:path';
 import fm from 'front-matter';
 import { load as parseYaml } from 'js-yaml';
 import { loadConfig, findConfig } from '../../shared/config.js';
-import { resolveAllStages, parseFrontmatter, buildEnvMap, type ResolvedStep } from '../../workflow-resolve.js';
+import { resolveAllStages, parseFrontmatter, buildEnvMap, type ResolvedStep } from '../workflow-resolve.js';
 import type { SkillSource } from '../../shared/skill-sources.js';
 import { buildSchemaBlock } from '../../shared/schema-block.js';
 import { classifyInputs, type InputSource, type PriorTaskOutput } from './sources.js';

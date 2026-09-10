@@ -8,7 +8,7 @@ import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { dump as stringifyYaml } from 'js-yaml';
-import { workflowGetFile, type WorkflowFile } from '../workflow.js';
+import { workflowGetFile, type WorkflowFile } from '../workflow/workflow.js';
 
 function setup(): string {
   return mkdtempSync(resolve(tmpdir(), 'wf-getfile-'));

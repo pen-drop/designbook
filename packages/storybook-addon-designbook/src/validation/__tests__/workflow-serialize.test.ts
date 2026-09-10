@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { flattenToMarkdown, renderTemplate, serializeForPath, keyToTitleCase } from '../../workflow-serialize.js';
+import {
+  flattenToMarkdown,
+  renderTemplate,
+  serializeForPath,
+  keyToTitleCase,
+} from '../../workflow/workflow-serialize.js';
 
 // ── flattenToMarkdown ────────────────────────────────────────────────────────
 

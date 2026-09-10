@@ -2,7 +2,7 @@ import { basename, resolve, dirname } from 'node:path';
 import { readFileSync, existsSync } from 'node:fs';
 import type { Command } from 'commander';
 import { loadConfig, findConfig, resolveSkillsRoot } from '../shared/config.js';
-import { resolveSkillSources } from '../skill-resolver.js';
+import { resolveSkillSources } from '../workflow/skill-resolver.js';
 import {
   workflowCreate,
   workflowResult,
@@ -16,7 +16,7 @@ import {
   readWorkflow,
   expandTasksFromParams,
   registerChild,
-} from '../workflow.js';
+} from '../workflow/workflow.js';
 import jsonata from 'jsonata';
 import type { StageDefinition, AfterDeclaration } from '../shared/workflow-types.js';
 import { load as parseYaml } from 'js-yaml';
@@ -30,12 +30,12 @@ import {
   type ResolvedStep,
   type ResultDeclaration,
   type ExpectedParam,
-} from '../workflow-resolve.js';
+} from '../workflow/workflow-resolve.js';
 import { resolveSchemaRef, collectLocalRefsFromSchema } from '../shared/schema-ref.js';
-import { computeMergedSchema } from '../workflow-schema-merge.js';
+import { computeMergedSchema } from '../workflow/workflow-schema-merge.js';
 import { resolveParams } from '../tools/resolvers/registry.js';
 import type { ResolverContext } from '../tools/resolvers/types.js';
-import { renderSubmitResultsHint } from './submit-results-hint.js';
+import { renderSubmitResultsHint } from '../workflow/submit-results-hint.js';
 import { initLogger, log } from '../shared/logger.js';
 import { register as registerSummary } from './workflow-summary.js';
 import { listWorkflowDefinitions, loadWorkflowDefinition, resolveWorkflowFile } from './workflow-discovery.js';

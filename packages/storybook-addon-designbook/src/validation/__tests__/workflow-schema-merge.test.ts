@@ -9,7 +9,7 @@ import {
   computeMergedSchema,
   parseSchemaExtension,
   widenDefinitionEnums,
-} from '../../workflow-schema-merge.js';
+} from '../../workflow/workflow-schema-merge.js';
 
 // ── deepMergeExtends ─────────────────────────────────────────────────────────
 

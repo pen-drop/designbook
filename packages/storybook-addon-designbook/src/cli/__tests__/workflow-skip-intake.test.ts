@@ -10,8 +10,8 @@ import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomBytes } from 'node:crypto';
 import { dump as stringifyYaml, load as parseYaml } from 'js-yaml';
-import { resolveAllStages, buildEnvMap } from '../../workflow-resolve.js';
-import { workflowCreate, expandTasksFromParams, type WorkflowFile } from '../../workflow.js';
+import { resolveAllStages, buildEnvMap } from '../../workflow/workflow-resolve.js';
+import { workflowCreate, expandTasksFromParams, type WorkflowFile } from '../../workflow/workflow.js';
 import type { DesignbookConfig } from '../../shared/config.js';
 
 function makeTmpDir(): string {

@@ -10,7 +10,7 @@ import { execSync } from 'node:child_process';
 import { resolve, relative, dirname } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { homedir } from 'node:os';
-import { digestLog } from './shared/log/digest.js';
+import { digestLog } from '../shared/log/digest.js';
 import { computeFlowRate } from './scoring/composite.js';
 import { dump as stringifyYaml, load as parseYaml } from 'js-yaml';
 import type {
@@ -19,7 +19,7 @@ import type {
   StageDefinition,
   TaskFile,
   AfterDeclaration,
-} from './shared/workflow-types.js';
+} from '../shared/workflow-types.js';
 import { engines } from './engines/index.js';
 import { getNextStage, getNextStep, checkStageParams, interpolatePrompt } from './workflow-lifecycle.js';
 import {
@@ -38,10 +38,10 @@ import {
 } from './workflow-resolve.js';
 import jsonata from 'jsonata';
 import { resolvePluginSkillSources } from './skill-resolver.js';
-import { interpolate } from './shared/template/interpolate.js';
-import { resolveEach, type EachDeclaration } from './shared/template/each.js';
-import { getValidatorKeys } from './validation/validation-registry.js';
-import { renderSubmitResultsHint } from './cli/submit-results-hint.js';
+import { interpolate } from '../shared/template/interpolate.js';
+import { resolveEach, type EachDeclaration } from '../shared/template/each.js';
+import { getValidatorKeys } from '../validation/validation-registry.js';
+import { renderSubmitResultsHint } from './submit-results-hint.js';
 
 export type { WorkflowEngine, TransitionContext, TransitionResult } from './engines/index.js';
 export { engines } from './engines/index.js';
@@ -56,7 +56,7 @@ export interface StageLoaded {
   blueprints: string[]; // absolute paths to skill blueprint files
   config_rules: string[]; // strings from designbook.config.yml → workflow.rules.<step>
   config_instructions: string[]; // strings from designbook.config.yml → workflow.tasks.<step>
-  schema?: import('./shared/schema-block.js').SchemaBlock; // unified schema block (params, result, definitions)
+  schema?: import('../shared/schema-block.js').SchemaBlock; // unified schema block (params, result, definitions)
   /** True when this step's stage is isolated. Mirrors ResolvedStep.isolate. */
   isolate?: boolean;
 }
@@ -666,7 +666,7 @@ export async function expandTasksFromParams(
   existingTasks: WorkflowTask[],
   envMap: Record<string, string>,
   scope?: Record<string, unknown>,
-  config?: import('./shared/config.js').DesignbookConfig,
+  config?: import('../shared/config.js').DesignbookConfig,
 ): Promise<WorkflowTask[]> {
   // Merge scope into lookup — scope takes precedence for each: arrays
   const lookup = { ...params, ...(scope ?? {}) };
@@ -830,7 +830,7 @@ export async function expandTasksFromParams(
           }
         }
         if (Object.keys(resolverSchema).length > 0) {
-          const { resolveParams } = await import('./tools/resolvers/registry.js');
+          const { resolveParams } = await import('../tools/resolvers/registry.js');
           const resolverConfig = config ?? { data: '', technology: 'html' as const, extensions: [] };
           const resolveResult = await resolveParams(resolverSchema, {
             config: resolverConfig,
@@ -1089,7 +1089,7 @@ export async function workflowDone(
   options?: {
     summary?: string;
     data?: Record<string, unknown>;
-    config?: import('./shared/config.js').DesignbookConfig;
+    config?: import('../shared/config.js').DesignbookConfig;
     after?: AfterDeclaration[];
   },
 ): Promise<{ archived: boolean; data: WorkflowFile; response?: StageResponse; awaitingAfter?: AfterDeclaration[] }> {
@@ -1775,7 +1775,7 @@ export async function workflowWriteFile(
   taskId: string,
   key: string,
   content: string | Buffer | null,
-  config: import('./shared/config.js').DesignbookConfig,
+  config: import('../shared/config.js').DesignbookConfig,
 ): Promise<{ valid: boolean; errors: string[]; file_path: string }> {
   const changesDir = resolve(dataDir, 'workflows', 'changes', name);
   const filePath = resolve(changesDir, 'tasks.yml');
@@ -1823,7 +1823,7 @@ export async function workflowWriteFile(
   }
 
   // Validate centrally
-  const { validateByKeys } = await import('./validation/validation-registry.js');
+  const { validateByKeys } = await import('../validation/validation-registry.js');
   const validationResult = await validateByKeys(fileEntry.validators, writtenPath, config);
   fileEntry.validation_result = { ...validationResult, file: fileEntry.path };
 
@@ -1906,7 +1906,7 @@ export async function workflowResult(
   taskId: string,
   key: string,
   content: string | Buffer | unknown | null,
-  config: import('./shared/config.js').DesignbookConfig,
+  config: import('../shared/config.js').DesignbookConfig,
 ): Promise<{ valid: boolean; errors: string[]; file_path?: string }> {
   const changesDir = resolve(dataDir, 'workflows', 'changes', name);
   const filePath = resolve(changesDir, 'tasks.yml');
@@ -2064,7 +2064,7 @@ async function validateResultEntry(
   entry: TaskResult,
   content: unknown,
   schemas: Record<string, object> | undefined,
-  config: import('./shared/config.js').DesignbookConfig,
+  config: import('../shared/config.js').DesignbookConfig,
   mode: 'file' | 'data',
 ): Promise<string[]> {
   const errors: string[] = [];
@@ -2126,7 +2126,7 @@ async function validateResultEntry(
 
   // 2. Semantic validators (only for file results)
   if (mode === 'file' && entry.validators && entry.validators.length > 0) {
-    const { validateByKeys } = await import('./validation/validation-registry.js');
+    const { validateByKeys } = await import('../validation/validation-registry.js');
     const result = await validateByKeys(entry.validators, content as string, config);
     if (!result.valid && result.error) {
       errors.push(result.error);

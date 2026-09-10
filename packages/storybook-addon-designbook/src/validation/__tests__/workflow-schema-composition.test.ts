@@ -20,10 +20,10 @@ import {
   buildEnvMap,
   expandResultDeclarations,
   parseFrontmatter,
-} from '../../workflow-resolve.js';
-import type { ResolvedStep, ResolvedSteps } from '../../workflow-resolve.js';
-import { workflowCreate, workflowDone, readWorkflow, readSchemaMap } from '../../workflow.js';
-import type { WorkflowFile } from '../../workflow.js';
+} from '../../workflow/workflow-resolve.js';
+import type { ResolvedStep, ResolvedSteps } from '../../workflow/workflow-resolve.js';
+import { workflowCreate, workflowDone, readWorkflow, readSchemaMap } from '../../workflow/workflow.js';
+import type { WorkflowFile } from '../../workflow/workflow.js';
 import type { DesignbookConfig } from '../../shared/config.js';
 
 // ── helpers ─────────────────────────────────────────────────────────────────

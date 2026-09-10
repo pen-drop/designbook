@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { dump as dumpYaml, load as parseYaml } from 'js-yaml';
 import { buildInstructions } from '../workflow.js';
-import { workflowCreate, workflowDone, workflowResult, type WorkflowFile } from '../../workflow.js';
+import { workflowCreate, workflowDone, workflowResult, type WorkflowFile } from '../../workflow/workflow.js';
 import type { DesignbookConfig } from '../../shared/config.js';
 
 describe('waiting→running auto-transition removal', () => {

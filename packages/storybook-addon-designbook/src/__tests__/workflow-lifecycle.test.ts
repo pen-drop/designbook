@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getNextStage, getNextStep, checkStageParams, interpolatePrompt } from '../workflow-lifecycle.js';
+import { getNextStage, getNextStep, checkStageParams, interpolatePrompt } from '../workflow/workflow-lifecycle.js';
 
 describe('getNextStage', () => {
   it('full lifecycle with all stages present', () => {

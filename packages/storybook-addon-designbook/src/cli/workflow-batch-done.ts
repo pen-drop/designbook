@@ -20,7 +20,7 @@
 
 import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { workflowDone } from '../workflow.js';
+import { workflowDone } from '../workflow/workflow.js';
 import type { DesignbookConfig } from '../shared/config.js';
 import type { AfterDeclaration } from '../shared/workflow-types.js';
 

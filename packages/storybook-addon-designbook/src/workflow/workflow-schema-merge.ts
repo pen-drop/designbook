@@ -8,8 +8,8 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { load as parseYaml } from 'js-yaml';
-import { resolveSchemaRef, collectLocalRefsFromSchema } from './shared/schema-ref.js';
-import type { SkillSource } from './shared/skill-sources.js';
+import { resolveSchemaRef, collectLocalRefsFromSchema } from '../shared/schema-ref.js';
+import type { SkillSource } from '../shared/skill-sources.js';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

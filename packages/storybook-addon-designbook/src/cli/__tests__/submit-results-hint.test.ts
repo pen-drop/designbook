@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { renderSubmitResultsHint } from '../submit-results-hint.js';
+import { renderSubmitResultsHint } from '../../workflow/submit-results-hint.js';
 
 describe('renderSubmitResultsHint', () => {
   it('returns null when no data-submission results exist', () => {

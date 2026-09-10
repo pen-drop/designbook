@@ -17,7 +17,7 @@ import { join, resolve } from 'node:path';
 import { dump as dumpYaml, load as parseYaml } from 'js-yaml';
 import { loadConfig } from '../../shared/config.js';
 import { loadWorkflowDefinition } from '../workflow-discovery.js';
-import { workflowDone, workflowAbandon, workflowArchive, type WorkflowFile } from '../../workflow.js';
+import { workflowDone, workflowAbandon, workflowArchive, type WorkflowFile } from '../../workflow/workflow.js';
 import { runWorkflowCreate, createAfterWorkflows, filterActiveAfterDeclarations } from '../workflow.js';
 import { hashReferenceUrl } from '../../tools/resolvers/reference-folder.js';
 

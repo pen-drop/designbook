@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync, mkdirSync, readFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { dump as dumpYaml, load as parseYaml } from 'js-yaml';
-import { workflowResume } from '../workflow.js';
+import { workflowResume } from '../workflow/workflow.js';
 
 describe('workflowResume', () => {
   let dataDir: string;

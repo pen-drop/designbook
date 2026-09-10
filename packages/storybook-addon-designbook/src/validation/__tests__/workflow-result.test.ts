@@ -19,7 +19,7 @@ import {
   workflowDone,
   type WorkflowFile,
   type WorkflowTask,
-} from '../../workflow.js';
+} from '../../workflow/workflow.js';
 import type { DesignbookConfig } from '../../shared/config.js';
 
 // ── helpers ─────────────────────────────────────────────────────────────────

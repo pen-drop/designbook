@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { resolveWorkflowFile, listWorkflowDefinitions } from '../workflow-discovery.js';
 import { deriveSkillSourcesFromBase, type SkillSource } from '../../shared/skill-sources.js';
-import { deriveArtifactName, resolveFiles, buildRuntimeContext } from '../../workflow-resolve.js';
+import { deriveArtifactName, resolveFiles, buildRuntimeContext } from '../../workflow/workflow-resolve.js';
 import { resolveSchemaRef } from '../../shared/schema-ref.js';
 
 // The marketplace cache base inside the plugin-cache fixture (the `skills` config root).

@@ -15,10 +15,14 @@ import {
   workflowDone,
   workflowAbandon,
   type WorkflowFile,
-} from '../../workflow.js';
+} from '../../workflow/workflow.js';
 import type { DesignbookConfig } from '../../shared/config.js';
 import { getValidatorKeys, getValidator, validateByKeys } from '../validation-registry.js';
-import { expandFileDeclarations, expandResultDeclarations, type TaskFileDeclaration } from '../../workflow-resolve.js';
+import {
+  expandFileDeclarations,
+  expandResultDeclarations,
+  type TaskFileDeclaration,
+} from '../../workflow/workflow-resolve.js';
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 
@@ -584,7 +588,7 @@ describe('workflow done — submission enforcement', () => {
     writeFileSync(targetPath, 'fake-png-bytes');
 
     // Must validate externally-written file via workflowResult before done gate accepts it
-    const { workflowResult } = await import('../../workflow.js');
+    const { workflowResult } = await import('../../workflow/workflow.js');
     await workflowResult(dist, name, 'capture', 'shot', null, config);
 
     const doneResult = await workflowDone(dist, name, 'capture');

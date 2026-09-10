@@ -33,7 +33,7 @@ import {
   type ResolvedFile,
   type ResolvedTask,
   type ResolvedStep,
-} from '../../workflow-resolve.js';
+} from '../../workflow/workflow-resolve.js';
 import { resolveSchemaRef } from '../../shared/schema-ref.js';
 import type { StageDefinition } from '../../shared/workflow-types.js';
 import type { DesignbookConfig } from '../../shared/config.js';
@@ -2220,7 +2220,7 @@ describe('$ref end-to-end: collectAndResolveSchemas → workflowPlan → workflo
     // For items.$ref, only the schemas map is populated — the task schema items stay as-is
 
     // Create workflow and plan with resolved schemas + manually fix items schema
-    const { workflowCreate, workflowPlan, workflowResult } = await import('../../workflow.js');
+    const { workflowCreate, workflowPlan, workflowResult } = await import('../../workflow/workflow.js');
 
     // Build the full schema with resolved items (as workflow create does for intake at lines 216-224)
     tasks[0]!.result!.checks!.schema = {
@@ -2285,7 +2285,7 @@ describe('resolveStageTaskParams', () => {
       ].join('\n'),
     );
 
-    const stageLoaded: Record<string, import('../../workflow-resolve.js').ResolvedStep> = {
+    const stageLoaded: Record<string, import('../../workflow/workflow-resolve.js').ResolvedStep> = {
       validate: { task_file: taskPath, rules: [], blueprints: [], config_rules: [], config_instructions: [] },
     };
     const stageDef: StageDefinition = { steps: ['validate'] };
@@ -2316,7 +2316,7 @@ describe('resolveStageTaskParams', () => {
       ].join('\n'),
     );
 
-    const stageLoaded: Record<string, import('../../workflow-resolve.js').ResolvedStep> = {
+    const stageLoaded: Record<string, import('../../workflow/workflow-resolve.js').ResolvedStep> = {
       validate: { task_file: taskPath, rules: [], blueprints: [], config_rules: [], config_instructions: [] },
     };
     const stageDef: StageDefinition = { steps: ['validate'] };
@@ -2345,7 +2345,7 @@ describe('resolveStageTaskParams', () => {
       ].join('\n'),
     );
 
-    const stageLoaded: Record<string, import('../../workflow-resolve.js').ResolvedStep> = {
+    const stageLoaded: Record<string, import('../../workflow/workflow-resolve.js').ResolvedStep> = {
       plain: { task_file: taskPath, rules: [], blueprints: [], config_rules: [], config_instructions: [] },
     };
     const stageDef: StageDefinition = { steps: ['plain'] };
@@ -2375,7 +2375,7 @@ describe('resolveStageTaskParams', () => {
       ].join('\n'),
     );
 
-    const stageLoaded: Record<string, import('../../workflow-resolve.js').ResolvedStep> = {
+    const stageLoaded: Record<string, import('../../workflow/workflow-resolve.js').ResolvedStep> = {
       validate: { task_file: taskPath, rules: [], blueprints: [], config_rules: [], config_instructions: [] },
     };
     const stageDef: StageDefinition = { steps: ['validate'] };
@@ -2430,7 +2430,7 @@ describe('resolveStageTaskParams', () => {
       ].join('\n'),
     );
 
-    const stageLoaded: Record<string, import('../../workflow-resolve.js').ResolvedStep> = {
+    const stageLoaded: Record<string, import('../../workflow/workflow-resolve.js').ResolvedStep> = {
       'step-a': { task_file: taskA, rules: [], blueprints: [], config_rules: [], config_instructions: [] },
       'step-b': { task_file: taskB, rules: [], blueprints: [], config_rules: [], config_instructions: [] },
     };
@@ -2462,7 +2462,7 @@ describe('resolveStageTaskParams', () => {
       ].join('\n'),
     );
 
-    const stageLoaded: Record<string, import('../../workflow-resolve.js').ResolvedStep> = {
+    const stageLoaded: Record<string, import('../../workflow/workflow-resolve.js').ResolvedStep> = {
       validate: { task_file: taskPath, rules: [], blueprints: [], config_rules: [], config_instructions: [] },
     };
     const stageDef: StageDefinition = { steps: ['validate'] };

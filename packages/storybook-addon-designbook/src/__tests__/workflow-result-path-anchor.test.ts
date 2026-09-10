@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { expandResultDeclarations } from '../workflow-resolve.js';
+import { expandResultDeclarations } from '../workflow/workflow-resolve.js';
 
 const ENV = { DESIGNBOOK_DATA: '/ws/web/themes/custom/t/designbook' };
 
