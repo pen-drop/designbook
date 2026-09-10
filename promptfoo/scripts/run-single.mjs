@@ -35,7 +35,6 @@ for (let i = 0; i < args.length; i++) {
       "history",
       "provider",
       "model",
-      "storybook-port",
       "executor-provider",
       "executor-model",
     ].includes(key)
@@ -92,17 +91,6 @@ const model =
     : cli === "claude"
       ? "claude-opus-5"
       : base.providers[0].config.model);
-const storybookPort =
-  opts["storybook-port"] === undefined
-    ? undefined
-    : Number(opts["storybook-port"]);
-if (
-  storybookPort !== undefined &&
-  (!Number.isInteger(storybookPort) ||
-    storybookPort < 1024 ||
-    storybookPort > 65535)
-)
-  throw new Error("storybook-port must be an integer from 1024 to 65535");
 const requestedOutput = resolve(
   repo,
   opts.output ||
@@ -280,9 +268,6 @@ const config = {
               suite: opts.suite,
               case: opts.case,
               workspace,
-              ...(storybookPort === undefined
-                ? {}
-                : { storybook_port: storybookPort }),
             }
           : { workspace },
       assert: assertions,
@@ -338,7 +323,6 @@ if (designIntake) {
   // Only intake provisions fixtures. Execution preserves its workspace and evidence.
   delete config.tests[0].vars.suite;
   delete config.tests[0].vars.case;
-  delete config.tests[0].vars.storybook_port;
   config.tags.intake_config = intakeConfigPath;
   config.tags.intake_report = intakeOutput;
   writeFileSync(

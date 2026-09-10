@@ -99,31 +99,9 @@ class CliProvider {
         stdio: "pipe",
       });
 
-      if (vars.storybook_port !== undefined) {
-        const port = vars.storybook_port;
-        if (!Number.isInteger(port) || port < 1024 || port > 65535)
-          throw new Error("Invalid Storybook port");
-        const configPath = join(workspaceDir, "designbook.config.yml");
-        const config = yaml.load(readFileSyncFs(configPath, "utf8"));
-        config.designbook.url = `http://localhost:${port}`;
-        writeFileSync(configPath, yaml.dump(config));
-        const startup = execFileSync(
-          process.execPath,
-          [
-            join(repoRoot, "packages/storybook-addon-designbook/dist/cli.js"),
-            "storybook",
-            "start",
-            "--port",
-            String(port),
-          ],
-          {
-            cwd: workspaceDir,
-            env: { ...process.env, DESIGNBOOK_HOME: workspaceDir },
-            encoding: "utf8",
-          },
-        );
-        writeFileSync(join(workspaceDir, "storybook-start.json"), startup);
-      }
+      // Storybook is never pre-started or pinned to a port here: the executing
+      // agent always starts it via `storybook start`, which assigns a free port
+      // and records it in storybook.json for `storybook status` to read back.
 
       if (caseName.startsWith("sync-")) {
         // Provision/import the committed DB baseline before the measured workflow.

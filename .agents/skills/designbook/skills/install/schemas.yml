@@ -95,11 +95,10 @@ DesignbookConfig:
           examples: [css, tailwind]
     designbook:
       type: object
-      description: Run configuration. `home` is the directory (relative to the config file) commands run from; `url` is the default Storybook URL; `cmd` is the dev command.
+      description: Run configuration. `home` is the directory (relative to the config file) commands run from; `cmd` is the Storybook dev command. The live server is always started via `storybook start` (auto-assigned free port), so there is no static URL.
       properties:
         cmd: { type: string, description: Storybook dev command. }
         home: { type: string, description: Directory commands run from, relative to the config file. }
-        url: { type: string, description: Default Storybook URL; the port must match the storybook script. }
     component:
       type: object
       description: Component source location and namespace.

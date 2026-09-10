@@ -18,7 +18,6 @@ frameworks:
 designbook:
   cmd: npx storybook dev
   home: .
-  url: "http://localhost:6006"
 dirs:
   components: components
   css:
@@ -55,9 +54,10 @@ backend_cmd:
   page_url_cmd: "ddev drush eval \"\\$ids=\\Drupal::entityQuery('node')->accessCheck(FALSE)->condition('type','{scene}')->range(0,1)->execute(); print \\$ids ? \\Drupal::entityTypeManager()->getStorage('node')->load(reset(\\$ids))->toUrl('canonical',['absolute'=>TRUE])->toString() : '';\""  # config-derived canonical URL of the synced Layout-Builder page; prints empty when no canonical entity exists yet.
 ```
 
-The port in `designbook.url` must match the `-p` argument of the `storybook` script in
-`package.json` (fresh installs use 6006). The verify step still derives the live URL
-from the start command's `port` output — the config value is a default for later use.
+There is no `designbook.url`. Storybook is always started via `storybook start`,
+which assigns a free port and records it in `$DESIGNBOOK_DATA/storybook.json`; every
+consumer reads the live URL from `storybook status`. The `storybook` script in
+`package.json` needs no fixed `-p` port.
 
 The chosen CSS framework's rules may update `frameworks.css` and append to
 `extensions`.

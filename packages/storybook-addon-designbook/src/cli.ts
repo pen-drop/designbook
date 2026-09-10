@@ -59,13 +59,13 @@ program
       console.log(`export ${envName}='${escaped}'`);
     }
 
-    // Explicit: DESIGNBOOK_HOME, DESIGNBOOK_DATA, DESIGNBOOK_URL
+    // Explicit: DESIGNBOOK_HOME, DESIGNBOOK_DATA. There is no static Storybook URL —
+    // the live server is always started via `storybook start` and its port read
+    // back from `storybook status`.
     const home = config['designbook.home'] as string | undefined;
     const data = config['designbook.data'] as string | undefined;
-    const url = config['designbook.url'] as string | undefined;
     if (home) console.log(`export DESIGNBOOK_HOME='${home.replace(/'/g, "'\\''")}'`);
     if (data) console.log(`export DESIGNBOOK_DATA='${data.replace(/'/g, "'\\''")}'`);
-    if (url) console.log(`export DESIGNBOOK_URL='${url.replace(/'/g, "'\\''")}'`);
 
     // DESIGNBOOK_CMD: shell function that runs from DESIGNBOOK_HOME
     const cmd = config['designbook.cmd'] as string | undefined;
