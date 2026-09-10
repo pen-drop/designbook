@@ -33,7 +33,9 @@ export function executorConfig(base, { repo, runDir, workflowPath, executor }) {
   config.prompts = [
     `You are the execution agent. In ${JSON.stringify(base.tests[0].vars.workspace)}, set up the CLI once: \`_debo() { npx storybook-addon-designbook "$@"; }\` then \`eval "$(_debo config)"\`.\n` +
       `A sealed MD plan already exists at ${JSON.stringify(workflowPath)}. Use the installed execute-workflow skill to execute it until every task is done or one is genuinely blocked. Do NOT re-plan, run intake, or edit the plan's definition.\n` +
-      `Loop through the Designbook CLI one step at a time: \`plan steps <plan>\` to see steps and checkbox state, \`plan instructions <plan> --step <id>\` for a step's context and contracts, produce each task's declared outputs, then \`plan done <plan> --task <name> --data-file <result.json>\` (add \`--title\` when a step repeats a task name). The skill owns the loop. Preserve the saved plan. Use only this workspace and its inputs; do not read earlier test runs or provision fixtures. Finish by reporting \`plan summary <plan>\`.`,
+      `Loop through the Designbook CLI one step at a time: \`plan steps <plan>\` to see steps and checkbox state, \`plan instructions <plan> --step <id>\` for a step's context and contracts, produce each task's declared outputs, then \`plan done <plan> --task <name> --data-file <result.json>\` (add \`--title\` when a step repeats a task name). The skill owns the loop. Preserve the saved plan. Use only this workspace and its inputs; do not read earlier test runs or provision fixtures.\n` +
+      `The plan's \`index_url\` points at the Storybook the planning phase started; check \`storybook status\` first and reuse that running server — its live URL is the plan's index_url. Only run \`storybook start\` if none is running. Never assume a fixed port.\n` +
+      `Finish by reporting \`plan summary <plan>\`.`,
   ];
   return config;
 }
