@@ -15,4 +15,9 @@ Use the request, existing artifacts, and the saved intake context as input. For 
 
 Completion: all identities, requested deltas, preserved content, acceptance criteria, consumer targets, outputs, dependencies and applicable rules are fixed in the plan's task parameters. Clarify unresolved identity or scope before saving a runnable plan.
 
-Follow the [shared builder](../../../resources/workflow-building.md), then invoke [execute-workflow](../../execute-workflow/SKILL.md) with the saved plan path automatically.
+Follow the [shared builder](../../../resources/workflow-building.md) for sealing and execution modes (caller override wins):
+
+- **create / rebuild** → default `ask`
+- **change** of an existing named target → may `ephemeral`; blockade when the work would add undeclared targets/tasks or widen scope
+
+When the plan depends on a published revision, complete the [reference intake](../../../design/resources/reference-intake.md) approval gate (`reference approval-check`) before `plan build`. A missing or unapproved revision is a `ReferenceNeed` blockade — stop; start `extract-reference` separately when capture is required.

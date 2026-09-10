@@ -31,7 +31,7 @@ description: Domain decisions required before planning sync-verify artifacts.
    `triage-config` and `outtake`. All comparison results and issues use explicit
    predecessor inputs. Every issue identifies the backend configuration that
    produced the actual render; the Storybook component remains the reference.
-   Invoke [execute-workflow](../../execute-workflow/SKILL.md) with the saved path.
+   Follow the [shared builder](../../../resources/workflow-building.md) for sealing and execution modes (`ephemeral` | `persist` | `ask`); caller override wins.
 
 Completion: both capture revisions are published, every selected pair is explicit,
 and the report accounts for every comparison. After this check completes, follow

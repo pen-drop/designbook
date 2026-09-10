@@ -54,12 +54,27 @@ Order the resolution steps so each one has what it needs:
    capture block in the publish task params, matching output paths, and the
    query schemas.
 
-Invoke [execute-workflow](../../execute-workflow/SKILL.md) with the saved plan path.
+After sealing, run [execute-workflow](../../execute-workflow/SKILL.md) for this
+capture plan per the builder's chosen mode. This workflow stays a separate start
+from design execute.
 
-Close the run by naming the published revision to the user: the full revision
-directory, and what that directory now holds. `_debo reference validate
---reference <revision-dir>` prints both — the binding directory, every
-fingerprinted file, and the covered subjects, cells and queryable packages. The
-directory is the path every later design workflow binds to, so report it in
-full. Completion: the user has the revision directory plus a per-subject account
-of its states, views, screenshots and asset files.
+After publish succeeds, close out **screenshot approval** before ending the run:
+
+1. Name the published revision to the user: the full revision directory and what
+   it holds. `_debo reference validate --reference <revision-dir>` prints the
+   binding directory, every fingerprinted file, and the covered subjects, cells
+   and queryable packages.
+2. Present the revision's screenshots (actual PNG paths from the publication) to
+   the user for the selected subjects, states and views.
+3. Write `approval.yml` beside the revision with
+   `_debo reference approval-write --reference <revision-dir> --status pending
+   --scope <json>` (scope = subjects/states and views/breakpoints as needed), then
+   update it to `approved` or `rejected` with the user's decision (optional
+   `--note`). See [CLI workflow](../../../resources/cli-workflow.md).
+4. Stop after the approval record is written. Dependent design planning is a
+   later start that runs `reference approval-check`; this closeout does not
+   invoke a design workflow.
+
+Completion: the user has the revision directory, a per-subject account of its
+states, views, screenshots and asset files, and an `approval.yml` reflecting
+pending→approved/rejected.
