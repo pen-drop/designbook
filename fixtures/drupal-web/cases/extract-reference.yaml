@@ -12,11 +12,14 @@ prompt: |
   Download assets with `_debo reference capture-file --reference <dir> --path <rel> --url <absolute-http-url> --session <name>`.
   Font and image assets from the live source are capture outputs, not missing user inputs.
   Execute the saved workflow to a published capture revision.
-  After publish, present the captured screenshots and write approval.yml with
+  After publish, write approval.yml with
   `_debo reference approval-write --reference <revisionDir> --status approved --scope <json>`
-  covering the captured homepage subjects, states and views. This test has no
-  interactive user — record approved. Do not start a design workflow.
-  Execute the workflow now.
+  covering the captured homepage subjects, states and views.
+  This fixture has no interactive user — tag provenance mode simulated (not
+  interactive, not a real human optical design judgment). Also write
+  approval-provenance.yml beside the revision with mode: simulated and
+  status: approved. Do not claim real human approval. Do not start a design
+  workflow. Execute the workflow now.
 
 assert:
   - type: javascript
@@ -66,7 +69,21 @@ assert:
       const approval = Object.entries(output.fileContents).find(([p]) =>
         p.includes('designbook/references/') && p.endsWith('/approval.yml'),
       )?.[1];
-      return approval?.status === 'approved';
+      const provenance = Object.entries(output.fileContents).find(([p]) =>
+        p.includes('designbook/references/') && p.endsWith('/approval-provenance.yml'),
+      )?.[1];
+      // Simulated fixture approval is allowed; it must never be treated as real human approval.
+      return (
+        approval?.status === 'approved' &&
+        provenance?.mode === 'simulated' &&
+        provenance?.status === 'approved'
+      );
+  - type: javascript
+    value: |
+      const provenance = Object.entries(output.fileContents).find(([p]) =>
+        p.includes('designbook/references/') && p.endsWith('/approval-provenance.yml'),
+      )?.[1];
+      return provenance?.mode === 'simulated' && provenance?.mode !== 'interactive';
   - type: javascript
     value: |
       const ids = Object.keys(output.completedWorkflows).concat(Object.keys(output.pendingWorkflows));
