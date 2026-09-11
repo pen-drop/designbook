@@ -2,8 +2,8 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { resolve } from 'node:path';
 import { mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { dump as dumpYaml } from 'js-yaml';
-import { StoryMeta, resolveScene } from '../story-entity.js';
-import type { DesignbookConfig } from '../config.js';
+import { StoryMeta, resolveScene } from '../scene-model/story-entity.js';
+import type { DesignbookConfig } from '../shared/config.js';
 
 const tmpDir = resolve(import.meta.dirname, '__fixtures_story_entity__');
 

@@ -12,7 +12,7 @@ import {
   validatePlanCompleteness,
   type Plan,
   type PlanTask,
-} from '../plan-document.js';
+} from '../workflow/plan-document.js';
 
 /** A plan carrying one obligation rule (requires the publish-capture task) and `tasks`. */
 function planWithObligation(tasks: string[]): Plan {

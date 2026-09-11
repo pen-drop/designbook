@@ -10,9 +10,9 @@ import {
   type CaptureDefinition,
   type ObservationMeta,
   type ObservationExtract,
-} from '../reference-capture.js';
-import { sourceDumpName } from '../reference-project.js';
-import type { CapturedSource } from '../inspect/element-walker.js';
+} from '../tools/reference-capture.js';
+import { sourceDumpName } from '../tools/reference-project.js';
+import type { CapturedSource } from '../tools/inspect/element-walker.js';
 export const png = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a4l8AAAAASUVORK5CYII=',
   'base64',

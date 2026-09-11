@@ -8,7 +8,7 @@ import { mkdtempSync, writeFileSync, readFileSync, rmSync, existsSync } from 'no
 import { tmpdir } from 'node:os';
 import { Command } from 'commander';
 import { register as registerPlan } from '../plan.js';
-import { serializePlan, parsePlan, planDigest, type Plan } from '../../plan-document.js';
+import { serializePlan, parsePlan, planDigest, type Plan } from '../../workflow/plan-document.js';
 
 /** Worktree root — resolves the real `.agents`/`.claude` skills tree. */
 const workspaceRoot = resolve(process.cwd(), '../../');

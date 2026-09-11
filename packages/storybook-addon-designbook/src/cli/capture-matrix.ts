@@ -16,16 +16,22 @@
 import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import type { BreakpointWidth } from '../inspect/breakpoint-widths.js';
-import type { DesignbookConfig } from '../config.js';
-import { CAPTURE_HEIGHT, isolateAndCapture, runStateSteps, settlePage, type CaptureStep } from './capture-browser.js';
+import type { BreakpointWidth } from '../tools/inspect/breakpoint-widths.js';
+import type { DesignbookConfig } from '../shared/config.js';
+import {
+  CAPTURE_HEIGHT,
+  isolateAndCapture,
+  runStateSteps,
+  settlePage,
+  type CaptureStep,
+} from '../tools/capture-browser.js';
 import {
   ANONYMOUS_SESSION,
   loadPrelude,
   resolveSessionStorage,
   runPrelude,
   sessionContextOptions,
-} from './capture-session.js';
+} from '../tools/capture-session.js';
 
 export interface MatrixCell {
   element: string;

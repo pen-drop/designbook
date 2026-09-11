@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { Command } from 'commander';
-import { findConfig, type DesignbookConfig } from '../config.js';
-import { resolveIntakeContext, type IntakeContext } from '../intake-resolve.js';
+import { findConfig, type DesignbookConfig } from '../shared/config.js';
+import { resolveIntakeContext, type IntakeContext } from '../workflow/intake-resolve.js';
 
 /**
  * The palette an agent needs to author a `plan build` task list: the intake

@@ -13,7 +13,7 @@ import {
   findDaemonsByCwd,
   registryPath,
   type StorybookInfo,
-} from '../storybook.js';
+} from '../tools/storybook.js';
 
 function makeTmpDir(): string {
   return mkdtempSync(join(tmpdir(), 'storybook-test-'));

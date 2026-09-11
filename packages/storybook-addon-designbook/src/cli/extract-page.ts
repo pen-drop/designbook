@@ -6,10 +6,11 @@
 
 import { mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import type { CapturedSource, PropertyNode } from '../inspect/element-walker.js';
-import type { StyleEnv } from '../inspect/style-env.js';
-import type { DesignbookConfig } from '../config.js';
-import type { CaptureStep } from './capture-browser.js';
+import type { CapturedSource, PropertyNode } from '../tools/inspect/element-walker.js';
+import type { StyleEnv } from '../tools/inspect/style-env.js';
+import type { DesignbookConfig } from '../shared/config.js';
+import { cssFontFamilies } from '../tools/css-font-families.js';
+import type { CaptureStep } from '../tools/capture-browser.js';
 
 export interface ExtractLandmark {
   label: string;
@@ -52,36 +53,10 @@ export interface ExtractSkeleton {
 
 const INTERACTIVE_KINDS = new Set(['button', 'link', 'input']);
 
-/**
- * Split a computed CSS `font-family` stack into family identities.
- * `"Sarabun Light", sans-serif` → `Sarabun Light`, `sans-serif`.
- */
-export function cssFontFamilies(value: string): string[] {
-  const families: string[] = [];
-  let current = '';
-  let quote: '"' | "'" | null = null;
-  for (const ch of value) {
-    if (quote) {
-      if (ch === quote) quote = null;
-      else current += ch;
-      continue;
-    }
-    if (ch === '"' || ch === "'") {
-      quote = ch;
-      continue;
-    }
-    if (ch === ',') {
-      const family = current.trim();
-      if (family) families.push(family);
-      current = '';
-      continue;
-    }
-    current += ch;
-  }
-  const family = current.trim();
-  if (family) families.push(family);
-  return families;
-}
+// cssFontFamilies moved to the tools/css-font-families leaf (DESIGNBOOK-60 R5)
+// to break the reference-project ↔ extract-page cycle; re-exported here so the
+// existing `extract-page` importers keep their public surface.
+export { cssFontFamilies };
 
 /** Collect the ids of every descendant of `rootId` from the flat node list. */
 function descendantIds(nodes: PropertyNode[], rootId: string): Set<string> {
@@ -205,10 +180,10 @@ export async function runExtractPage(
   },
   config: DesignbookConfig,
 ): Promise<{ dumpPath: string; catalogue: ExtractSkeleton }> {
-  const { capture } = await import('../inspect/capture.js');
-  const { resolveBreakpointWidths } = await import('../inspect/breakpoint-widths.js');
-  const { sourceDumpName } = await import('../reference-project.js');
-  const { prepareCapturePass } = await import('./capture-session.js');
+  const { capture } = await import('../tools/inspect/capture.js');
+  const { resolveBreakpointWidths } = await import('../tools/inspect/breakpoint-widths.js');
+  const { sourceDumpName } = await import('../tools/reference-project.js');
+  const { prepareCapturePass } = await import('../tools/capture-session.js');
 
   await mkdir(outDir, { recursive: true });
   const dumpPath = resolve(outDir, sourceDumpName(opts.state));
@@ -230,7 +205,7 @@ export async function runExtractPage(
 
   let styleEnv: StyleEnv | undefined;
   try {
-    const { captureStyleEnv } = await import('../inspect/style-env.js');
+    const { captureStyleEnv } = await import('../tools/inspect/style-env.js');
     styleEnv = await captureStyleEnv(url, { fonts: opts.fonts });
   } catch {
     styleEnv = undefined; // degrade — the captured tree still yields fonts/colors

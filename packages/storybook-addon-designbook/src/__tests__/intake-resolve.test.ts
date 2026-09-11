@@ -7,8 +7,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import { resolve } from 'node:path';
-import { resolveIntakeContext } from '../intake-resolve.js';
-import type { DesignbookConfig } from '../config.js';
+import { resolveIntakeContext } from '../workflow/intake-resolve.js';
+import type { DesignbookConfig } from '../shared/config.js';
 
 const agents = resolve(process.cwd(), '../../.agents');
 

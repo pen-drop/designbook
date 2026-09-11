@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { referenceImagePath } from '../visual-compare-path';
+import { referenceImagePath } from '../tools/visual-compare-path';
 
 describe('referenceImagePath', () => {
   it('uses the actual capture association including revision and native view filename', () => {

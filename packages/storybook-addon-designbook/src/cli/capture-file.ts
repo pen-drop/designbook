@@ -6,8 +6,8 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import type { DesignbookConfig } from '../config.js';
-import { ANONYMOUS_SESSION, resolveSessionStorage } from './capture-session.js';
+import type { DesignbookConfig } from '../shared/config.js';
+import { ANONYMOUS_SESSION, resolveSessionStorage } from '../tools/capture-session.js';
 
 export interface CaptureFileOptions {
   url: string;

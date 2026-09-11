@@ -1,6 +1,6 @@
 import type { Command } from 'commander';
-import { loadConfig } from '../config.js';
-import { findFreePort, StorybookDaemon } from '../storybook.js';
+import { loadConfig } from '../shared/config.js';
+import { findFreePort, StorybookDaemon } from '../tools/storybook.js';
 
 export function register(program: Command): void {
   const storybookCmd = program.command('storybook').description('Storybook process management');
