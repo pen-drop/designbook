@@ -82,4 +82,17 @@ judgment.
 - Do not double-count cache/reasoning into totals that already include them
 - Publish parallel **elapsed** and **summed active** distinctly
 - Count top-level tool calls only
+- Planned reference-approval tool calls are ledgered but excluded from flow disturbance
 - Early abort / skipped verify ≠ token savings improvement
+
+## Contract tests
+
+```bash
+node --test promptfoo/tests/experiment-*.test.mjs
+pnpm check
+```
+
+Acceptance criteria AC-1…AC-11 are covered by the Spec plus these modules/tests
+(schema, envelope/`final_positive`, usage/tool ledger, evidence store, approval
+provenance, report/judge CLI, Task/Rule fixtures, attended interactive checklist
+in the `debo-test experiment` skill).

@@ -33,18 +33,11 @@ function parseArgs(argv) {
   return out;
 }
 
-async function findExperimentDir(experimentId) {
-  const base = join(repoRoot, "docs/experiments");
-  const direct = join(base, experimentId);
-  try {
-    await readFile(join(direct, "experiment.yml"), "utf8");
-    return direct;
-  } catch {
-    /* scan */
-  }
+async function scanExperimentDirs(base, experimentId, { allowUnderscore = false } = {}) {
   const entries = await readdir(base, { withFileTypes: true });
   for (const ent of entries) {
-    if (!ent.isDirectory() || ent.name.startsWith("_")) continue;
+    if (!ent.isDirectory()) continue;
+    if (!allowUnderscore && ent.name.startsWith("_")) continue;
     const path = join(base, ent.name, "experiment.yml");
     try {
       const doc = yaml.load(await readFile(path, "utf8"));
@@ -56,6 +49,28 @@ async function findExperimentDir(experimentId) {
     }
   }
   return null;
+}
+
+async function findExperimentDir(experimentId) {
+  const base = join(repoRoot, "docs/experiments");
+  const direct = join(base, experimentId);
+  try {
+    await readFile(join(direct, "experiment.yml"), "utf8");
+    return direct;
+  } catch {
+    /* scan */
+  }
+  const found = await scanExperimentDirs(base, experimentId);
+  if (found) return found;
+  const fixtures = join(base, "_fixtures");
+  try {
+    const under = join(fixtures, experimentId);
+    await readFile(join(under, "experiment.yml"), "utf8");
+    return under;
+  } catch {
+    /* scan fixture stubs */
+  }
+  return scanExperimentDirs(fixtures, experimentId, { allowUnderscore: true });
 }
 
 async function cmdValidate(path) {

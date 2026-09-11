@@ -4,7 +4,11 @@ import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import yaml from "js-yaml";
-import { validateExperiment, loadExperimentFile } from "../experiments/schema.mjs";
+import {
+  validateExperiment,
+  loadExperimentFile,
+  assertComparableReferences,
+} from "../experiments/schema.mjs";
 import { generateComparisonReport } from "../experiments/report.mjs";
 import { mkdtemp, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -61,23 +65,20 @@ test("joint task+rule without note fails schema", () => {
 });
 
 test("AC-6 reference revision mismatch blocks single-change claim", () => {
-  const baselineRef = {
-    revision: "rev-a",
-    fingerprint: "fp-a",
-  };
-  const candidateRef = {
-    revision: "rev-b",
-    fingerprint: "fp-b",
-  };
-  const comparable =
-    baselineRef.revision === candidateRef.revision &&
-    baselineRef.fingerprint === candidateRef.fingerprint;
-  assert.equal(comparable, false);
-  // Report helper wording: mismatched upstream refs ⇒ not a single-change claim
-  const claim = comparable
-    ? "single-change"
-    : "not_evaluable: reference revision mismatch";
-  assert.match(claim, /not_evaluable|mismatch/i);
+  const mismatch = assertComparableReferences(
+    { revision: "rev-a", fingerprint: "fp-a" },
+    { revision: "rev-b", fingerprint: "fp-b" },
+  );
+  assert.equal(mismatch.ok, false);
+  assert.equal(mismatch.claim, "not_evaluable");
+  assert.match(mismatch.reason, /mismatch/i);
+
+  const match = assertComparableReferences(
+    { revision: "rev-a", fingerprint: "fp-a" },
+    { revision: "rev-a", fingerprint: "fp-a" },
+  );
+  assert.equal(match.ok, true);
+  assert.equal(match.claim, "single-change");
 });
 
 test("AC-5 model swap factor is visible as requested vs effective", async (t) => {

@@ -55,6 +55,31 @@ export function validateExperiment(doc) {
   return { ok: errors.length === 0, errors };
 }
 
+/**
+ * AC-6: identical upstream reference revision/fingerprint required for a
+ * single-change claim. Mismatch ⇒ not_evaluable.
+ */
+export function assertComparableReferences(baselineRef, candidateRef) {
+  if (!baselineRef?.revision || !candidateRef?.revision) {
+    return {
+      ok: false,
+      claim: "not_evaluable",
+      reason: "missing reference revision",
+    };
+  }
+  if (
+    baselineRef.revision !== candidateRef.revision ||
+    baselineRef.fingerprint !== candidateRef.fingerprint
+  ) {
+    return {
+      ok: false,
+      claim: "not_evaluable",
+      reason: "reference revision mismatch",
+    };
+  }
+  return { ok: true, claim: "single-change", reason: null };
+}
+
 /** Load and validate an experiment.yml file. */
 export async function loadExperimentFile(path) {
   const raw = await readFile(path, "utf8");

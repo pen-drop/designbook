@@ -11,6 +11,7 @@ import {
 import {
   appendToolCall,
   summarizeToolLedger,
+  isPlannedReferenceApprovalCall,
 } from "../experiments/tool-ledger.mjs";
 
 test("missing usage → unknown, never coerced to 0", () => {
@@ -168,4 +169,38 @@ test("genuine token reduction without skip/abort can be improved", () => {
     verify_skipped: false,
   };
   assert.equal(savingsVerdict(baseline, candidate, "tokens"), "improved");
+});
+
+test("planned reference approval calls are excluded from disturbance counts", async (t) => {
+  const dir = await mkdtemp(join(tmpdir(), "tool-ledger-ref-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const ledger = join(dir, "tool-ledger.jsonl");
+
+  assert.equal(
+    isPlannedReferenceApprovalCall({ name: "reference.approval-write" }),
+    true,
+  );
+
+  await appendToolCall(ledger, {
+    name: "reference.capture-image",
+    ok: true,
+    retries: 0,
+  });
+  await appendToolCall(ledger, {
+    name: "reference.approval-write",
+    ok: true,
+    retries: 0,
+  });
+  await appendToolCall(ledger, {
+    name: "reference.approval-check",
+    ok: false,
+    retries: 1,
+  });
+
+  const summary = await summarizeToolLedger(ledger);
+  assert.equal(summary.total_calls, 3);
+  assert.equal(summary.planned_reference_approvals, 2);
+  assert.equal(summary.disturbance_calls, 1);
+  assert.equal(summary.failures, 0);
+  assert.equal(summary.retries, 0);
 });
