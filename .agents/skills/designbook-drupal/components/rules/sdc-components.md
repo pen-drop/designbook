@@ -1,6 +1,6 @@
 ---
 trigger:
-  steps: [write-component]
+  steps: [write-component, refresh-components, validate]
 filter:
   frameworks.component: sdc
 ---
@@ -22,6 +22,31 @@ templates live in [schemas.yml](../schemas.yml) and [blueprints/](../blueprints/
 ### group
 
 `group:` required, one of: `Action`, `Data Display`, `Navigation`, `Layout`, `Shell`.
+
+### Storybook story address
+
+Freeze identity in the plan as `namespace` + `group` + `component` + `variant`. Derive every CSF story id and story URL from that identity.
+
+The SDC Storybook addon builds:
+
+```text
+title = {namespace}/{group}/{name}
+id    = sanitize(title)--sanitize(variant)
+```
+
+`sanitize` lowercases and turns spaces/underscores/other non-alphanumerics into `-` (CSF `toId`). Examples:
+
+| namespace | group | component `name` / dir | variant | CSF story id |
+|---|---|---|---|---|
+| `test_integration_drupal` | `Shell` | `Header` / `header` | `default` | `test-integration-drupal-shell-header--default` |
+| `test_integration_drupal` | `Action` | `Button` / `button` | `primary` | `test-integration-drupal-action-button--primary` |
+| `test_integration_drupal` | `Data Display` | `Icon` / `icon` | `default` | `test-integration-drupal-data-display-icon--default` |
+
+`group: Shell` → segment `shell`. `group: Data Display` → segment `data-display`. The middle segment is always the declared `group`.
+
+When `group` is absent, the addon falls back to title group `SDC` → segment `sdc`. That fallback applies only to retained existing stories that already lack `group` in the live index. Every new or rewritten component declares `group:` and therefore uses the group-derived segment above.
+
+`refresh-components.story_ids` and every `validate` / capture story address for components written in this run use these derived ids. Retained fixture stories keep the exact id already present in the live index.
 
 ### File Set
 

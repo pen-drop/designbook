@@ -91,6 +91,29 @@ through the provider's `setupWorkspace` before starting concurrent model calls;
 `--prepared-workspace` preserves that preparation. Ordinary single runs rebuild
 their workspace.
 
+## Experiments (DESIGNBOOK-62)
+
+Committed manifests and reports live under `docs/experiments/<id>/`. Durable raw
+proof (native logs, tool ledgers, judgments, approval provenance) lives under
+**gitignored** `promptfoo/evidence/<id>/<run-id>/`. Workspace cleanup must never
+delete the evidence store.
+
+```bash
+node promptfoo/scripts/experiment-cli.mjs validate docs/experiments/_fixtures/minimal/experiment.yml
+node promptfoo/scripts/experiment-cli.mjs report <experiment-id>
+node promptfoo/scripts/experiment-cli.mjs judge <evidence-run> \
+  --result result.png --reference reference.png \
+  --status pass --criteria "layout parity" [--blind]
+node --test promptfoo/tests/experiment-*.test.mjs
+```
+
+Authoring guide: [`docs/experiments/README.md`](../docs/experiments/README.md).
+Skill route: `/debo-test experiment validate|report|judge …`.
+
+Reference approval modes: `interactive` (attended real human), `recorded`,
+`simulated`. Only interactive counts as real human reference approval; never
+promote simulated/recorded to human optical design judgment.
+
 ## debo-test
 
 `/debo-test run <suite> <case>` and `/debo-test research <suite> <case>` use
@@ -98,6 +121,8 @@ Promptfoo exclusively. The shared skill procedure owns the required follow-up
 verification, log/artifact audit and research acceptance gates:
 [run procedure](../.agents/skills/designbook-test/skills/run/resources/run.md).
 The read-only `is-clear` audit does not execute a workflow.
+`/debo-test experiment` routes to the experiment CLI above.
+
 
 ```bash
 ./promptfoo/scripts/run-single.sh design-shell --suite drupal-web \

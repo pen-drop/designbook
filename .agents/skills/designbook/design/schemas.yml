@@ -940,7 +940,10 @@ StorybookBuild:
 StorybookIndex:
   type: array
   title: Refreshed Storybook entries
-  description: Actual index entries for the story IDs fixed during intake, captured after the component build.
+  description: >
+    Actual index entries for the story IDs fixed during intake (derived CSF ids
+    for written components plus exact live-index ids for retained stories),
+    captured after the component build.
   minItems: 1
   items:
     type: object

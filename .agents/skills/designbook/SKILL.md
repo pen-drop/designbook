@@ -53,5 +53,5 @@ Shared content roots (no workflow, beside `skills/` at the parent): [design/](de
 
 - [Write planning](design/resources/write-planning.md) — creation/change intake invariants
 - [Workflow building](resources/workflow-building.md) — planning, modes (`ephemeral` \| `persist` \| `ask`), ReferenceNeed gate
-- [Execution](resources/workflow-execution.md) — sole task loop; blockade; ephemeral cleanup
+- [Execution](resources/workflow-execution.md) — sole task loop; problems sidecar; ephemeral cleanup
 - [CLI reference](resources/cli-reference.md)

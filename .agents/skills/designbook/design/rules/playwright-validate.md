@@ -32,4 +32,11 @@ The stage only completes when ALL are true:
 
 ## Failure protocol
 
-Record the failed check and concrete cause. Retry only within the saved task's declared checks and prerequisites. Additional artifact targets or requirements need a new intake and definition. Completion requires the declared semantic and interaction observations as well as a nonempty, error-free render.
+Record the failed check and concrete cause in the execution
+[problems sidecar](../../resources/workflow-execution.md) beside the plan, leave
+the task pending, and continue with the next unfinished task. Retry only within
+the saved task's declared checks and prerequisites before logging. Additional
+artifact targets or requirements need a new intake and definition. Completion
+of a single validate task still requires the declared semantic and interaction
+observations as well as a nonempty, error-free render — a logged failure is not
+a pass.

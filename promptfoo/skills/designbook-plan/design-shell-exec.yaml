@@ -27,8 +27,10 @@ prompts:
           `_debo storybook start` if a browser check needs a running server)
         - `_debo plan done <plan> --task <name> --data-file <result.json>` per task,
           with a result matching that task's frozen contract
-      Continue until every task is done or one is genuinely blocked. Report
-      `_debo plan summary <plan>`.
+      On a persistent task defect: attempt an in-scope correction, then append to
+      the sibling `.problems.md` beside the plan (see workflow-execution Problems
+      contract), leave the task pending, and continue. Exhaust every task. Report
+      `_debo plan summary <plan>` plus the problems file path and entry count.
 
 providers:
   - id: file://../../providers/codex-cli.mjs

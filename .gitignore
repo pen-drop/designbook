@@ -10,6 +10,7 @@ package-lock.json
 .eslintcache
 tmp
 promptfoo/workspaces/
+promptfoo/evidence/
 workspaces/
 autoresearch-results.tsv
 .claude/worktrees/
