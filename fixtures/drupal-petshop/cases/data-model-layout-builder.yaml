@@ -39,7 +39,10 @@ assert:
   - type: javascript
     value: |
       const loaded = output.completedWorkflows['data-model']?.definition?.context || {};
-      return Object.values(loaded).some(s => s.source?.endsWith('drupal-data-model.md'));
+      const c = output.fileContents['designbook/data-model.yml']?.content ?? output.fileContents['designbook/data-model.yml'];
+      const nodes = c?.node || {};
+      const fieldNames = Object.values(nodes).flatMap((n) => Object.keys(n?.fields || {}));
+      return fieldNames.length > 0 && fieldNames.every((name) => !name.includes('-'));
   - type: javascript
     value: |
       const loaded = output.completedWorkflows['data-model']?.definition?.context || {};

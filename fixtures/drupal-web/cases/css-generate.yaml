@@ -16,6 +16,8 @@ assert:
   - type: javascript
     value: Object.keys(output.pendingWorkflows).length === 0
   - type: javascript
-    value: output.newFiles.includes('css/tokens/color.src.css')
+    value: output.newFiles.some((f) => f.endsWith('css/tokens/color.src.css'))
   - type: javascript
-    value: output.newFiles.includes('css/tokens/typography-scale.src.css')
+    # Current css-generate emits typography.src.css (legacy name was typography-scale.src.css).
+    # newFiles may be theme-rooted (web/themes/.../css/tokens/...).
+    value: output.newFiles.some((f) => f.endsWith('css/tokens/typography.src.css') || f.endsWith('css/tokens/typography-scale.src.css'))

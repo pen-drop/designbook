@@ -32,10 +32,15 @@ assert:
     value: |
       const c = output.fileContents['designbook/data-model.yml']?.content ?? output.fileContents['designbook/data-model.yml'];
       return c?.node?.topic != null;
+  # definition.context is not populated in Promptfoo case-result packaging; prove
+  # Drupal field conventions on the durable artifact instead of a deleted
+  # drupal-data-model.md context source.
   - type: javascript
     value: |
-      const loaded = output.completedWorkflows['data-model']?.definition?.context || {};
-      return Object.values(loaded).some(s => s.source?.endsWith('drupal-data-model.md'));
+      const c = output.fileContents['designbook/data-model.yml']?.content ?? output.fileContents['designbook/data-model.yml'];
+      const nodes = c?.node || {};
+      const fieldNames = Object.values(nodes).flatMap((n) => Object.keys(n?.fields || {}));
+      return fieldNames.length > 0 && fieldNames.every((name) => !name.includes('-'));
   - type: javascript
     value: |
       const loaded = output.completedWorkflows['data-model']?.definition?.context || {};

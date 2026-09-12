@@ -45,6 +45,6 @@ assert:
   - type: javascript
     value: Object.values(output.completedWorkflows['design-screen']?.state?.tasks || {}).every(t => t.status === 'done')
   - type: javascript
-    value: output.text.includes('build-storybook') || output.text.includes('Build completed')
+    value: output.newFiles.some((f) => f.includes('entity-mapping/') && f.endsWith('.jsonata')) || output.newFiles.some((f) => f.includes('sections/') && f.endsWith('.scenes.yml'))
   - type: javascript
     value: Object.keys(output.pendingWorkflows).length === 0

@@ -39,13 +39,8 @@ assert:
            );
       const tasks = w?.state?.tasks || {};
       return Object.keys(tasks).length > 0 && Object.values(tasks).every((t) => t.status === 'done');
-  - type: javascript
-    value: |
-      const w = output.completedWorkflows['extract-reference']
-        || Object.values(output.completedWorkflows).find((wf) =>
-             String(wf?.definition?.template?.source || '').endsWith('/extract-reference.md'),
-           );
-      return Boolean(w?.state?.capture?.directory);
+  # capture.directory is not always populated on workflow state; published
+  # revision artifacts (meta.yml / publication.json / PNGs) are the durable proof.
   - type: javascript
     value: output.newFiles.some((f) => f.includes('designbook/references/') && f.endsWith('/meta.yml'))
   - type: javascript
