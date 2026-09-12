@@ -64,9 +64,15 @@ export default {
   // ARRAY of `{ agent, priority?(ticket) }` candidates. The conductor calls each
   // priority(ticket) at dispatch (ticket carries sideloaded `labels` +
   // `environments`), sorts highest-first, and runs the top one; a candidate with
-  // no `priority` scores -Infinity. Claude is the baseline at priority 0 and
-  // stays last, so a ticket carrying no routing label always dispatches.
+  // no `priority` scores -Infinity. Claude Sonnet is the baseline at priority 0
+  // and stays last, so a ticket carrying no routing label always dispatches.
+  // Routing labels: `codex`, `grok`, `opus` — everything else gets Sonnet.
   agent: [
+    {
+      agent: { plugin: '@gaia-ai/addon-codex' },
+      priority: (ticket) =>
+        ticket.labels?.includes('codex') ? 100 : -1000,
+    },
     {
       // Grok Build (xAI) — wins only on the `grok` label. The addon ships as a
       // dependency of @gaia-ai/gaia, so the descriptor resolves without a
@@ -81,9 +87,20 @@ export default {
         ticket.labels?.includes('grok') ? 100 : -1000,
     },
     {
+      // Claude Opus — same addon as the baseline, only the model differs. Wins
+      // on the `opus` label when a ticket needs more headroom than the Sonnet
+      // baseline; must sort before that baseline to ever be picked.
       agent: {
         plugin: '@gaia-ai/addon-claude',
-        with: { model: local.model ?? 'claude-opus-4-8' },
+        with: { model: 'claude-opus-5' },
+      },
+      priority: (ticket) =>
+        ticket.labels?.includes('opus') ? 100 : -1000,
+    },
+    {
+      agent: {
+        plugin: '@gaia-ai/addon-claude',
+        with: { model: local.model ?? 'claude-sonnet-5' },
       },
       priority: () => 0,
     },
