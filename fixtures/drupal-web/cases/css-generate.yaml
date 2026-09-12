@@ -2,6 +2,7 @@ fixtures:
   - vision
   - data-model
   - tokens
+  - css-generate
 
 prompt: |
   You are working in the directory {{workspace}}.

@@ -42,7 +42,10 @@ assert:
   - type: javascript
     value: output.newFiles.some(f => f.endsWith('form-mapping/block_content.hero.edit.jsonata'))
   - type: javascript
-    value: '!output.newFiles.some(f => /entity-mapping\/.*\.jsonata$/.test(f))'
+    # Pre-seeded reading half (block_content.hero.default.jsonata) is part of the
+    # fixture baseline and appears in newFiles after workspace setup — allow it.
+    # Fail only if this form run authored any *other* entity-mapping.
+    value: '!output.newFiles.some((f) => /entity-mapping\\/.*\\.jsonata$/.test(f) && !f.endsWith("entity-mapping/block_content.hero.default.jsonata"))'
   - type: javascript
     value: output.completedWorkflows['design-entity']?.state?.status === 'completed'
   - type: javascript
