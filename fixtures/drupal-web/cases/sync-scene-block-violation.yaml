@@ -17,7 +17,7 @@ prompt: |
   You are working in the directory {{workspace}}. Do NOT ask any questions; if a decision cannot
   be made from the data model + fixtures, fail the run per the rules.
 
-  Run the /debo sync-to workflow with `scene: landing`, `section: landing`, `gate: soft`.
+  Run the /debo sync-to workflow with `scene: landing`, `section: landing`.
 
   The Scene places node.promo as a block on the Layout Builder page, but the data model declares
   NEITHER a block_content bundle NOR a block_plugin entry for promo. Per the block-decision rule the
@@ -48,4 +48,4 @@ assert:
   # guessed_block_type. (A guessed *plugin* block emits no block.block.*/block_content.type.* file,
   # so the filename check alone cannot see it; the stop-state is the real guard.)
   - type: javascript
-    value: output.archivedWorkflows['sync-to']?.status !== 'completed'
+    value: output.completedWorkflows['sync-to']?.state?.status !== 'completed'

@@ -1,0 +1,7 @@
+title: Pet-Card
+component: test_integration_drupal:pet-card
+props:
+  name: Bella
+  breed: Golden Retriever
+  age: 3 years
+  status: available

@@ -118,13 +118,13 @@ Output as markdown tables:
 
 | File | Type | ID | Severity | Description |
 |---|---|---|---|---|
-| tasks/create-component.md | task | TASK-06 | warning | Body contains Twig code (line 45-60) |
+| tasks/write-component.md | task | TASK-06 | warning | Body contains Twig code (line 45-60) |
 
 ### Metrics
 
 | File | Type | Lines | Body | Ratio | Score |
 |---|---|---|---|---|---|
-| tasks/create-component.md | task | 116 | 89 | 0.77 | 70 |
+| tasks/write-component.md | task | 116 | 89 | 0.77 | 70 |
 
 ### Schema Audit
 

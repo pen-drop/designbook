@@ -15,9 +15,9 @@ assert:
   - type: javascript
     value: output.newFiles.some(f => f.endsWith('data.yml'))
   - type: javascript
-    value: output.archivedWorkflows['sample-data']?.status === 'completed'
+    value: output.completedWorkflows['sample-data']?.state?.status === 'completed'
   - type: javascript
-    value: output.archivedWorkflows['sample-data']?.tasks?.every(t => t.status === 'done')
+    value: Object.values(output.completedWorkflows['sample-data']?.state?.tasks || {}).every(t => t.status === 'done')
   - type: javascript
     value: >
       const dataFile = Object.keys(output.fileContents).find(f => f.endsWith('data.yml'));

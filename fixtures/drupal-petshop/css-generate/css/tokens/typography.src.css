@@ -1,0 +1,11 @@
+@theme static {
+  --text-heading: var(--text-2xl);
+  --text-heading--weight: var(--font-weight-bold);
+  --text-heading--line-height: var(--leading-tight);
+  --text-body: var(--text-base);
+  --text-body--weight: var(--font-weight-regular);
+  --text-body--line-height: var(--leading-normal);
+  --text-mono: var(--text-base);
+  --text-mono--weight: var(--font-weight-regular);
+  --text-mono--line-height: var(--leading-normal);
+}

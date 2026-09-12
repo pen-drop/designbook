@@ -208,7 +208,7 @@ git commit -m "fixture(drupal-web): prune design-entity to signage slice"
 **Files:**
 - Delete: `fixtures/drupal-web/sections/`, `fixtures/drupal-web/design-verify-entity-signage/`; `design-shell/components/{checkbox,form_element,input,label,link,submit}/`; cases `design-screen-homepage.yaml`, `design-screen-ausbildung.yaml`, `sample-data-homepage.yaml`, `sample-data-ausbildung.yaml`, `design-verify-screen-homepage.yaml`, `design-verify-screen-ausbildung.yaml`, `sections.yaml`.
 - Modify: any surviving case whose `fixtures:` list references a dropped fixture (e.g. `sections`) — remove that entry.
-- Keep cases: `vision`, `data-model`, `tokens`, `css-generate`, `design-guideline`, `design-shell`, `design-verify-shell`, `design-entity`, `design-verify-entity-signage` (the case yaml stays; its verify *artifacts* dir is dropped — re-run regenerates them).
+- Keep cases: `vision`, `data-model`, `tokens`, `css-generate`, `design-shell`, `design-verify-shell`, `design-entity`, `design-verify-entity-signage` (the case yaml stays; its verify *artifacts* dir is dropped — re-run regenerates them).
 
 **Interfaces:**
 - Produces: a `drupal-web` whose every remaining case's `fixtures:` list points only at fixtures that still exist (setup-test.sh hard-errors on a missing fixture).
@@ -239,7 +239,7 @@ For each hit, remove the `  - sections` line (and any other dropped-fixture line
 
 ```bash
 cd /home/cw/projects/designbook/.claude/worktrees/export
-for c in vision data-model tokens css-generate design-guideline design-shell design-verify-shell design-entity design-verify-entity-signage; do
+for c in vision data-model tokens css-generate design-shell design-verify-shell design-entity design-verify-entity-signage; do
   ./scripts/setup-test.sh drupal-web "$c" --into workspaces/evalwt/web/themes/custom/test_integration_drupal >/dev/null 2>&1 \
     && echo "OK $c" || echo "FAIL $c"
 done

@@ -1,0 +1,169 @@
+fixtures:
+  - vision
+  - tokens
+  - css-generate
+  - screen-prerequisites
+  - shell-update
+  - sample-data
+  - component-update
+prompt: |-
+  You are working in {{workspace}}. Invoke /debo design-component.
+  Update existing test_integration_drupal:avatar: increase only large photo from 64px to 80px square; keep small at 32px and medium at 48px. Rename prop username to display_name without aliases; preserve role, image_url, component ID and the small/default/medium/large story identities. Update every affected avatar story, the include inside staff-card.twig, the direct avatar node in team.section.scenes.yml, and node.pet.avatar.jsonata. Preserve staff-card's own username API and its default story. Inspect all usages during intake. Render all avatar variants, staff-card's default story, the team scene and the mapped pet avatar. Keep every unrelated fixture file byte-identical.
+  During intake freeze concrete story URLs, selectors and checks in the saved definition. Plan actual `pnpm build-storybook` (theme cwd), artifact validation, and `npx storybook-addon-designbook storybook check <story-url>` for every affected story. Run browser observations at desktop 1280x800 and mobile 390x844 where applicable. A build is separate from browser verification.
+  After execution save evidence JSON from actual command outputs and browser observations, as specified by debo-test run's evidence contract. The required observation keys and exact expected values are:
+    - small.width: 32
+    - medium.width: 48
+    - large.width: 80
+    - avatar.text: 'Alex Morgan / Volunteer'
+    - staff.name: 'Alex Morgan'
+    - team.name: 'Alex Morgan'
+    - mapping.name: 'Bella'
+  Preserve the definition before execution and score this case; validate workflow: none. Execute now without clarification; all requested targets and acceptance criteria are supplied.
+validate: none
+evidence:
+  files:
+    - components/avatar/avatar.component.yml
+    - components/avatar/avatar.default.story.yml
+    - components/avatar/avatar.large.story.yml
+    - components/avatar/avatar.medium.story.yml
+    - components/avatar/avatar.small.story.yml
+    - components/avatar/avatar.twig
+    - components/homepage-content/homepage-content.component.yml
+    - components/homepage-content/homepage-content.default.story.yml
+    - components/homepage-content/homepage-content.twig
+    - components/page/page.component.yml
+    - components/page/page.default.story.yml
+    - components/page/page.twig
+    - components/site-footer/site-footer.component.yml
+    - components/site-footer/site-footer.default.story.yml
+    - components/site-footer/site-footer.twig
+    - components/site-header/site-header.component.yml
+    - components/site-header/site-header.default.story.yml
+    - components/site-header/site-header.twig
+    - components/staff-card/staff-card.component.yml
+    - components/staff-card/staff-card.default.story.yml
+    - components/staff-card/staff-card.twig
+    - designbook/data-model.yml
+    - designbook/data/node.homepage.yml
+    - designbook/data/node.pet.yml
+    - designbook/data/node.shelter.yml
+    - designbook/data/taxonomy_term.pet_category.yml
+    - designbook/design-system/design-system.scenes.yml
+    - designbook/design-system/design-tokens.yml
+    - designbook/designbook-css-tailwind/generate-color.jsonata
+    - designbook/designbook-css-tailwind/generate-primitive-color.jsonata
+    - designbook/designbook-css-tailwind/generate-primitive-font.jsonata
+    - designbook/designbook-css-tailwind/generate-primitive-leading.jsonata
+    - designbook/designbook-css-tailwind/generate-primitive-text.jsonata
+    - designbook/designbook-css-tailwind/generate-primitive-weight.jsonata
+    - designbook/designbook-css-tailwind/generate-typography.jsonata
+    - designbook/entity-mapping/node.homepage.full.jsonata
+    - designbook/entity-mapping/node.pet.avatar.jsonata
+    - designbook/sections/homepage/homepage.section.scenes.yml
+    - designbook/sections/team/team.section.scenes.yml
+    - designbook/vision.yml
+  mappings:
+    - file: designbook/entity-mapping/node.pet.avatar.jsonata
+      data: designbook/data/node.pet.yml
+assert:
+  - type: javascript
+    value: output.runs.length > 0 && output.runs.every(r => r.componentPrerequisites?.passed === true)
+  - type: javascript
+    value: output.runs.length === 1 && output.runs.every(r => r.complete && r.definitionUnchanged)
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0 && output.definitionUnchanged === true
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.build?.command === 'pnpm build-storybook' && r.evidence.build.exitCode === 0
+      && typeof r.evidence.build.stdout === 'string' && r.evidence.build.stdout.trim().length > 0 && r.evidence.build.cwd.endsWith('/web/themes/custom/test_integration_drupal')
+      && Array.isArray(r.evidence.checks) && r.evidence.checks.length > 0 && r.evidence.checks.every(c => /^https?:/.test(c.url)
+      && c.result?.ok === true))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["small.width"] ===
+      32))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["medium.width"]
+      === 48))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["large.width"] ===
+      80))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["avatar.text"] ===
+      "Alex Morgan / Volunteer"))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["staff.name"] ===
+      "Alex Morgan"))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["team.name"] ===
+      "Alex Morgan"))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["mapping.name"]
+      === "Bella"))
+  - type: javascript
+    value:
+      const refs = []; const walk = value => { if (!value || typeof value !== 'object') return; if (typeof value.component
+      === 'string') refs.push(value.component); Object.values(value).forEach(walk); }; Object.entries(output.fileContents).filter(([file])
+      => /\.(scenes|story)\.yml$/.test(file)).forEach(([,value]) => walk(value)); Object.values(output.mappingResults).forEach(walk);
+      return refs.length > 0 && refs.every(ref => ref.startsWith('test_integration_drupal:') && output.componentIds.includes(ref.split(':')[1]));
+  - type: javascript
+    value:
+      output.fileContents['components/avatar/avatar.component.yml']?.props?.properties?.display_name?.type === 'string'
+      && !('username' in output.fileContents['components/avatar/avatar.component.yml'].props.properties)
+  - type: javascript
+    value:
+      "['role','image_url'].every(p => JSON.stringify(output.fileContents['components/avatar/avatar.component.yml'].props.properties[p])
+      === JSON.stringify(output.baselineContents['components/avatar/avatar.component.yml'].props.properties[p]))"
+  - type: javascript
+    value:
+      "['small','default','medium','large'].every(v => { const p=`components/avatar/avatar.${v}.story.yml`; const
+      now=output.fileContents[p], before=output.baselineContents[p]; return now?.props?.display_name === before?.props?.username
+      && !('username' in now.props) && now.component === before.component && now.props.variant === before.props.variant;
+      })"
+  - type: javascript
+    value:
+      "output.fileContents['components/staff-card/staff-card.twig']?.includes('display_name: username') && !output.fileContents['components/staff-card/staff-card.twig']?.includes('username:
+      username')"
+  - type: javascript
+    value:
+      output.fileContents['designbook/sections/team/team.section.scenes.yml']?.scenes[0].items[0].with.content[1].props.display_name
+      === 'Alex Morgan' && !('username' in output.fileContents['designbook/sections/team/team.section.scenes.yml'].scenes[0].items[0].with.content[1].props)
+  - type: javascript
+    value:
+      output.mappingResults['designbook/entity-mapping/node.pet.avatar.jsonata']?.[0]?.props?.display_name === 'Bella'
+      && !('username' in output.mappingResults['designbook/entity-mapping/node.pet.avatar.jsonata'][0].props)
+  - type: javascript
+    value: output.unchangedFiles.includes('designbook/data-model.yml')
+  - type: javascript
+    value: output.unchangedFiles.includes('designbook/data/node.pet.yml')
+  - type: javascript
+    value: output.unchangedFiles.includes('components/staff-card/staff-card.component.yml')
+  - type: javascript
+    value: output.unchangedFiles.includes('components/staff-card/staff-card.default.story.yml')
+  - type: javascript
+    value: JSON.stringify(output.componentIds.sort()) === JSON.stringify(output.baselineComponentIds.sort())
+  - type: javascript
+    value: output.runs.every(r => new Set(r.evidence.checks.map(c => c.url)).size >= 6)
+  - type: javascript
+    value:
+      '["components/homepage-content/homepage-content.component.yml", "components/homepage-content/homepage-content.default.story.yml",
+      "components/homepage-content/homepage-content.twig", "components/page/page.component.yml", "components/page/page.default.story.yml",
+      "components/page/page.twig", "components/site-footer/site-footer.component.yml", "components/site-footer/site-footer.default.story.yml",
+      "components/site-footer/site-footer.twig", "components/site-header/site-header.component.yml", "components/site-header/site-header.default.story.yml",
+      "components/site-header/site-header.twig", "components/staff-card/staff-card.component.yml", "components/staff-card/staff-card.default.story.yml",
+      "designbook/data-model.yml", "designbook/data/node.homepage.yml", "designbook/data/node.pet.yml", "designbook/data/node.shelter.yml",
+      "designbook/data/taxonomy_term.pet_category.yml", "designbook/design-system/design-system.scenes.yml", "designbook/design-system/design-tokens.yml",
+      "designbook/designbook-css-tailwind/generate-color.jsonata", "designbook/designbook-css-tailwind/generate-primitive-color.jsonata",
+      "designbook/designbook-css-tailwind/generate-primitive-font.jsonata", "designbook/designbook-css-tailwind/generate-primitive-leading.jsonata",
+      "designbook/designbook-css-tailwind/generate-primitive-text.jsonata", "designbook/designbook-css-tailwind/generate-primitive-weight.jsonata",
+      "designbook/designbook-css-tailwind/generate-typography.jsonata", "designbook/entity-mapping/node.homepage.full.jsonata",
+      "designbook/sections/homepage/homepage.section.scenes.yml", "designbook/vision.yml"].every(file => output.unchangedFiles.includes(file))'
+  - type: javascript
+    value: >-
+      JSON.stringify(output.fileContents["components/avatar/avatar.component.yml"].variants) === JSON.stringify(output.baselineContents["components/avatar/avatar.component.yml"].variants)

@@ -1,0 +1,58 @@
+description: "design-shell planner (opus) — intake → author + seal the MD plan (no execution)"
+
+outputPath: promptfoo/reports/design-shell-plan.json
+
+prompts:
+  - id: design-shell-plan
+    label: plan
+    raw: |
+      You are working in the directory {{workspace}} (contains `designbook.config.yml`
+      and a `.agents/skills/designbook` skill tree).
+
+      Set up the CLI once:
+        _debo() { npx storybook-addon-designbook "$@"; }
+        eval "$(_debo config)"
+
+      Read `.agents/skills/designbook/skills/design-shell/SKILL.md`,
+      `resources/intake.md`, and `.agents/skills/designbook/resources/`
+      (`cli-workflow.md`, `workflow-building.md`). Follow them exactly.
+
+      Request: create the application shell — a `header` component (site title +
+      primary navigation) and a `footer` component (copyright + secondary links),
+      and a shell scene that composes them. No external design reference; describe
+      the visual intent in the task params.
+
+      Run `_debo intake design-shell`. Then author the COMPLETE MD plan at the
+      intake context's `plan_path`, covering every step: `write-component` (header
+      and footer as separate checkbox tasks), `refresh-components`,
+      `create-sample-data`, `map-entity`, `create-scene-file`, `write-scene`, and
+      `validate`. Each task carries its frozen `#### Contract` outputs (copied from
+      the palette) and concrete `#### Params`; embed the referenced `## Context` and
+      the needed `## Schemas` definitions.
+
+      Finally run `_debo plan validate <plan_path>` (fix any missing obligation) and
+      `_debo plan seal <plan_path>`. Do NOT execute any task — no file writes beyond
+      the plan itself. Report the `plan_path`.
+
+providers:
+  - id: file://../../providers/claude-cli.mjs
+    label: claude-opus-5
+    config:
+      model: claude-opus-5
+      timeout: 3600000
+
+defaultTest:
+  options:
+    provider:
+      id: file://../../providers/claude-cli.mjs
+      config:
+        model: claude-opus-5
+        timeout: 3600000
+
+tests:
+  - description: "design-shell: opus authors and seals a complete MD plan"
+    vars:
+      workspace: workspaces/design-shell
+    assert:
+      - type: javascript
+        value: file://assert-design-shell-plan.mjs

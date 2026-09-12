@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { loadConfig } from '../config.js';
+import { loadConfig } from '../shared/config.js';
 
 describe('loadConfig — repo-root guard', () => {
   it('refuses to resolve DESIGNBOOK_DATA inside a directory containing pnpm-workspace.yaml AND .git', () => {

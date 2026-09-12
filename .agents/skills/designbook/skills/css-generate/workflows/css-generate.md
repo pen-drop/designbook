@@ -1,20 +1,27 @@
 ---
 title: Generate CSS
-description: Generate CSS token files from design tokens. Automatically selects the correct skill based on DESIGNBOOK_FRAMEWORK_CSS.
+description: >-
+  Generate CSS token files from design tokens. Automatically selects the correct skill based on
+  DESIGNBOOK_FRAMEWORK_CSS.
 stages:
-  intake:
-    steps: [css-generate:intake]
   prepare:
-    steps: [prepare-fonts]
+    steps:
+      - prepare-fonts
   generate:
-    steps: [generate-jsonata]
+    steps:
+      - generate-jsonata
   transform:
-    steps: [generate-css]
+    steps:
+      - generate-css
   compile:
-    steps: [compile-css]
+    steps:
+      - compile-css
   guard:
-    steps: [guard-css]
+    steps:
+      - guard-css
   index:
-    steps: [generate-index]
-engine: direct
+    steps:
+      - generate-index
 ---
+
+Template for the planning agent. Use the ordered steps as building blocks. Enumerate repeated targets during intake and write each concrete task explicitly; these stages do not execute or expand at runtime.

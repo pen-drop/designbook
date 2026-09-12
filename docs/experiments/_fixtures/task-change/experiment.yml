@@ -1,0 +1,35 @@
+schema_version: 1
+id: db62-task-design-shell-tighten
+ticket: DESIGNBOOK-62
+primary_key:
+  branch: feat/designbook-62-task-und-ru
+  experiment: db62-task-design-shell-tighten
+hypothesis: |
+  Tightening design-shell task guidance reduces correction loops without quality loss.
+affected:
+  tasks:
+    - .agents/skills/designbook/design/tasks/design-shell.md
+  rules: []
+baseline:
+  repo: designbook
+  branch: feat/designbook-56-designbook
+  commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+candidate:
+  repo: designbook
+  branch: feat/designbook-62-task-und-ru
+  commit: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+cases:
+  - suite: drupal-web
+    case: design-shell
+    validate: design-verify
+expected_effect:
+  quality: improve_or_hold
+  flow: fewer_corrections
+  tokens: reduce_or_hold
+models_constant: true
+budget:
+  probe_first: true
+  repetitions_per_variant: 3
+harness:
+  commit: cccccccccccccccccccccccccccccccccccccccc
+  promptfoo_schema: 1

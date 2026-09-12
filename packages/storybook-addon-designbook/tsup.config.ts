@@ -102,18 +102,18 @@ export default defineConfig(async () => {
 
   configs.push({
     entry: {
-      // pages/
-      'pages/mount-react': 'src/pages/mount-react.js',
-      'pages/theme-store': 'src/pages/theme-store.js',
-      'pages/foundation.stories': 'src/pages/foundation.stories.jsx',
-      'pages/design-system.stories': 'src/pages/design-system.stories.jsx',
-      'pages/sections.stories': 'src/pages/sections.stories.jsx',
-      'pages/theme-test.stories': 'src/pages/theme-test.stories.jsx',
+      // pages/ — dist keys pinned; sources moved under addon/ (DESIGNBOOK-60)
+      'pages/mount-react': 'src/addon/pages/mount-react.js',
+      'pages/theme-store': 'src/addon/pages/theme-store.js',
+      'pages/foundation.stories': 'src/addon/pages/foundation.stories.jsx',
+      'pages/design-system.stories': 'src/addon/pages/design-system.stories.jsx',
+      'pages/sections.stories': 'src/addon/pages/sections.stories.jsx',
+      'pages/theme-test.stories': 'src/addon/pages/theme-test.stories.jsx',
       // components/pages/
-      'components/pages/DeboSectionPage': 'src/components/pages/DeboSectionPage.jsx',
-      'components/pages/DeboSectionsOverview': 'src/components/pages/DeboSectionsOverview.jsx',
-      'components/pages/DeboFoundationPage': 'src/components/pages/DeboFoundationPage.jsx',
-      'components/pages/DeboDesignSystemPage': 'src/components/pages/DeboDesignSystemPage.jsx',
+      'components/pages/DeboSectionPage': 'src/addon/components/pages/DeboSectionPage.jsx',
+      'components/pages/DeboSectionsOverview': 'src/addon/components/pages/DeboSectionsOverview.jsx',
+      'components/pages/DeboFoundationPage': 'src/addon/components/pages/DeboFoundationPage.jsx',
+      'components/pages/DeboDesignSystemPage': 'src/addon/components/pages/DeboDesignSystemPage.jsx',
     },
     outDir: 'dist',
     platform: 'browser',
@@ -143,7 +143,7 @@ export default defineConfig(async () => {
   // Vitest plugin for SDC story testing
   configs.push({
     ...commonConfig,
-    entry: ['src/vitest-plugin-sdc.ts'],
+    entry: ['src/addon/vitest-plugin-sdc.ts'],
     platform: 'node',
     target: NODE_TARGET,
     dts: true,
@@ -152,11 +152,11 @@ export default defineConfig(async () => {
   // CLI entry point
   configs.push({
     ...commonConfig,
-    entry: ['src/cli.ts'],
+    entry: ['src/cli.ts', 'src/workflow-markdown.ts'],
     platform: 'node',
     target: NODE_TARGET,
     banner: { js: '#!/usr/bin/env node' },
-    onSuccess: 'cp -r src/validators/schemas dist/schemas',
+    onSuccess: 'cp -r src/validation/schemas dist/schemas',
   });
 
   return configs;

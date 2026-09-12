@@ -5,7 +5,7 @@ fixtures:
 
 prompt: |
   You are working in the directory {{workspace}}.
-  Run the /debo sync-to workflow in eval mode (gate: soft) to export the
+  Run the /debo sync-to workflow to export the
   node.landing_page and node.article bundles to Drupal config.
   Filter the export to entity_type=node. Author the per-config-name JSONata
   against the prepare-fetched schema, write each config YAML, validate, and run

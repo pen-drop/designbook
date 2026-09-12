@@ -86,6 +86,6 @@ assert:
       return typeof run1 === 'string' && typeof run2 === 'string' && run1 !== run2;
   # The last sync-verify run archived cleanly and nothing was left pending.
   - type: javascript
-    value: output.archivedWorkflows['sync-verify']?.status === 'completed'
+    value: output.completedWorkflows['sync-verify']?.state?.status === 'completed'
   - type: javascript
     value: Object.keys(output.pendingWorkflows).length === 0

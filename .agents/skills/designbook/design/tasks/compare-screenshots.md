@@ -1,29 +1,37 @@
 ---
 name: designbook:design:compare-screenshots
-title: "Compare Screenshots: {{ story_id }} ({{ screenshot.breakpoint }}/{{ screenshot.element }}--{{ screenshot.state }})"
+title: >-
+  Compare Screenshots: {{ story_id }} ({{ screenshot.breakpoint }}/{{ screenshot.element }}--{{
+  screenshot.state }})
 trigger:
-  steps: [compare, re-compare]
+  steps:
+    - compare
+    - re-compare
 params:
   type: object
-  required: [screenshot, reference_dir, story_id]
+  required:
+    - screenshot
+    - reference_query
+    - actual_path
+    - story_id
   properties:
     screenshot:
       $ref: ../schemas.yml#/Screenshot
     story_id:
       $ref: ../../scenes/schemas.yml#/StoryId
-    reference_dir:
+    reference_query:
+      $ref: ../schemas.yml#/FrozenObservationQuery
+    actual_path:
       type: string
-      description: "Absolute path to the reference directory (references/<hash>/) containing frozen baseline PNGs."
+      description: Exact absolute path of the actual screenshot declared by the predecessor capture task.
     design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
       type: object
-each:
-  screenshot:
-    expr: "story_screenshots"
-    schema: { $ref: ../schemas.yml#/Screenshot }
 result:
   type: object
-  required: [issues, compare_artifacts]
+  required:
+    - issues
+    - compare_artifacts
   properties:
     issues:
       type: array
@@ -37,22 +45,16 @@ result:
 
 # Compare Screenshots
 
-Compare each story screenshot against its frozen baseline for the current
-`(element, state, breakpoint)` triple.
-
-- Story file: `$DESIGNBOOK_DATA/stories/{{ story_id }}/screenshots/{{ screenshot.breakpoint }}--{{ screenshot.element }}--{{ screenshot.state }}.png`
-- Baseline file: `{{ reference_dir }}/{{ screenshot.breakpoint }}--{{ screenshot.element }}--{{ screenshot.state }}.png`
-
-Use the loaded `screen-compare` rule for the compare procedure.
-
-Emit issues for visual deviations found and one `compare_artifact` entry per screenshot.
-If no deviations are found, return an empty issues array and a passing artifact.
+Measured deviations between the bound source observation cell and the exact
+actual screenshot produced by the predecessor capture task. The source cell may
+use a different native subject, view and state identity from the actual render.
+Every selected comparison produces one measured artifact and its complete issues.
 
 ## Result: issues
 
-Collect all visual deviations between story screenshot and baseline.
-Each issue carries the `severity` returned by the `compare-images` CLI — do not raise or lower it.
+Visual deviations with the deterministic severity returned by the comparison.
 
 ## Result: compare_artifacts
 
-One entry per screenshot compared. Carries `story_id`, `breakpoint`, `element`, `state`, `passed`, `diff_percent`, and `severity` from the CLI output.
+One artifact per actual screenshot, preserving its identity, exact source and
+actual image paths, measured deviation and severity.

@@ -7,9 +7,9 @@ trigger:
 
 When the `extract` param (a `DesignReference`) is present, it is the **authoritative** source for token values. Fall back to vision or user input only when extract is missing.
 
-## Value Origin — No Invention
+## Values from an extract
 
-Values placed in `primitive.*` MUST be limited to the union of values actually observed in `extract`:
+When an extract is present, values placed in `primitive.*` MUST be limited to the union of values actually observed in `extract`:
 
 - `primitive.fontSize.*` — only values found in `extract.typography[].font_size`
 - `primitive.fontWeight.*` — only values found in `extract.typography[].font_weight` (union with `extract.fonts[].weights` is allowed for declared but unused weights)
@@ -31,6 +31,6 @@ For each role, `$value` MUST reference primitives for `fontFamily`, `fontSize`, 
 
 Every named key in `extract.tokens.colors` MUST be present in `semantic.color.*`, referencing a matching `primitive.color.*` entry.
 
-## Non-Interactive Execution
+## Values from intake
 
-When the workflow is invoked with a "do not ask questions" instruction, derivation runs strictly deterministically from `extract` — no inventive values, no user confirmation step. If `extract` is missing in non-interactive mode, abort with an error instead of falling back to vision.
+When no extract is present, use the palette, fonts, and scales recorded in the task params during intake. These decisions are the source for primitive values and semantic roles. Do not reopen the dialogue during execution. If a required decision is missing, block the task and report the missing value so intake can author a complete new definition.

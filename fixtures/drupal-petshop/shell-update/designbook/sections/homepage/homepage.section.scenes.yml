@@ -1,0 +1,17 @@
+id: homepage
+title: Homepage
+description: Preserve this section description
+status: done
+order: 1
+group: Designbook/Sections/Homepage
+scenes:
+  - name: homepage
+    docs: Primary route /; retain these docs
+    section: homepage
+    items:
+      - scene: design-system:shell
+        with:
+          content:
+            - entity: node.homepage
+              view_mode: full
+              record: 0

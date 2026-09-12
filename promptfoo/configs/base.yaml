@@ -1,10 +1,21 @@
+# Automatic verification fallback when the saved main plan declares no threshold.
+verificationThresholdPercent: 3
+
+# Role defaults for design tests; CLI flags override each role independently.
+modelRoles:
+  planner:
+    provider: claude
+    model: claude-opus-5
+  executor:
+    provider: codex
+    model: gpt-5.6-luna
+
 providers:
-  - id: file://../providers/claude-cli.mjs
-    label: claude-sonnet-4-6
+  - id: file://../providers/codex-cli.mjs
+    label: gpt-5.6-luna
     config:
-      model: claude-sonnet-4-6
-      timeout: 800000
-      max_turns: 200
+      model: gpt-5.6-luna
+      timeout: 7200000
 
 evaluateOptions:
   maxConcurrency: 1
@@ -12,8 +23,7 @@ evaluateOptions:
 defaultTest:
   options:
     provider:
-      id: file://../providers/claude-cli.mjs
+      id: file://../providers/codex-cli.mjs
       config:
-        model: claude-sonnet-4-6
-        timeout: 800000
-        max_turns: 200
+        model: gpt-5.6-luna
+        timeout: 7200000

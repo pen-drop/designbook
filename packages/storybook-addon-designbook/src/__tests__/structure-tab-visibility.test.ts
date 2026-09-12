@@ -7,7 +7,7 @@
  * the fix so it cannot regress.
  */
 import { describe, it, expect } from 'vitest';
-import { isStructureTabDisabled } from '../components/panels/structure-tab-visibility';
+import { isStructureTabDisabled } from '../addon/components/panels/structure-tab-visibility';
 
 describe('isStructureTabDisabled', () => {
   it('enables the tab for scene stories (scene param present)', () => {

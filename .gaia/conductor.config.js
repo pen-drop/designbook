@@ -1,9 +1,17 @@
-// Canonical GAIA conductor config — committed. Connection + identity come from
+// Canonical GAIA conductor config — committed, ENGINE-ONLY. Identity comes from
 // your user-global machine context (~/.config/conductor/conductor.config.machine.js:
-// { machine_id, user_id, base_url, client_id, client_secret }); machine_id is
-// composed here as `${user_id}-${machine_id}-${project}`. `project` is the only
-// per-repo value and is baked in below. The client_secret is read from the
-// machine context (gitignored, user-only) — never committed here.
+// { machine_id, user_id }); machine_id is composed here as
+// `${user_id}-${machine_id}-${project}`. `project` is the only per-repo value and
+// is baked in below.
+//
+// NO CONNECTION HERE (GAIA-230): this file must NOT declare `site` or the auth
+// `plugins` — loadConductorConfig ignores both, and the connection resolver
+// accepts any `.gaia/conductor.config.js` that declares a top-level `site` as a
+// legacy connection source, which stops the walk-up before it can reach the
+// global `~/.gaia/gaia.config.js`. In a worktree (which carries no project
+// `gaia.config.js`) that left the `session`/`pm` auth profiles unresolvable.
+// Connection + credentials therefore come solely from `~/.gaia/gaia.config.js`
+// plus `~/.gaia/machine.config.js`.
 //
 // IMPORT-FREE (GAIA-78): the plugin slots + plugins[] are `{ plugin, with }`
 // descriptors naming the REAL published package (`@gaia-ai/addon-*`,
@@ -20,8 +28,8 @@
 // default-exports the EXECUTOR, so the workspace slot names
 // `export: 'herdrWorkspace'` (GAIA-139).
 
-// The user-global machine context: identity + connection (incl. secret), shared
-// by every project on this machine. Never committed.
+// The user-global machine context: the identity half, shared by every project on
+// this machine. Never committed.
 async function loadMachine() {
   try {
     return (await import(`${process.env.HOME}/.config/conductor/conductor.config.machine.js`)).default ?? {};
@@ -30,9 +38,9 @@ async function loadMachine() {
 }
 
 // OPTIONAL per-project override — create conductor.config.local.js beside this
-// file to override any field this module reads from it (machine_id, base_url,
-// model, project, jsonapi_prefix, oauth). It is loaded only if present and is
-// NOT created by `gaia conductor init`.
+// file to override any field this module reads from it (machine_id, model,
+// project). It is loaded only if present and is NOT created by
+// `gaia conductor init`.
 async function loadLocal() {
   try { return (await import('./conductor.config.local.js')).default ?? {}; } catch {}
   return {};
@@ -41,16 +49,12 @@ async function loadLocal() {
 const machine = await loadMachine();
 const local = await loadLocal();
 const project = local.project ?? 'designbook';
-const baseUrl = local.base_url ?? machine.base_url;
-const clientId = local.oauth?.client_id ?? machine.client_id ?? 'gaia-agent';
-const clientSecret = local.oauth?.client_secret ?? machine.client_secret;
 const composedMachineId =
   machine.user_id && machine.machine_id
     ? `${machine.user_id}-${machine.machine_id}-${project}`
     : undefined;
 
 export default {
-  site: { base_url: baseUrl, jsonapi_prefix: local.jsonapi_prefix ?? '/jsonapi' },
   project,
   machine_id: local.machine_id ?? composedMachineId,
   max_parallel: 5,

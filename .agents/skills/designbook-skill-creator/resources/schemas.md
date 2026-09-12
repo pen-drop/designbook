@@ -225,7 +225,7 @@ result:
 
 ### Data Results (without `path:`)
 
-Structured data returned via `--data` on `workflow done`. Flow into workflow scope at stage completion.
+Structured data returned via `--data` on `workflow done`. Read through explicit predecessor result references.
 
 ```yaml
 result:
@@ -244,7 +244,7 @@ result:
 - JSON Schema type required (inline or `$ref`)
 - `title:` — optional human-readable label
 - `description:` — optional semantic help text
-- `default:` — auto-filled if not provided on `workflow done`
+- `default:` — resolved during intake and embedded in concrete task parameters
 
 ### Validators
 
@@ -300,60 +300,14 @@ Each issue needs a `severity`:
 - Explains *what* goes into the result, never *how* it's returned (file write vs. `--data`)
 - Keys whose schema type is self-explanatory need no section (e.g. `scene: { type: string }`)
 
-## `each:` — Iteration Declaration
+## Concrete repetition and result references
 
-Tasks declare iteration over scope arrays via `each:` in frontmatter. Every `each:` names one or more **bindings**. The value is a JSONata expression evaluated against task scope. Each array item is bound to the scope under the binding name, and one task instance is emitted per item.
+The intake enumerates target objects. The planning agent authors a concrete task for each target,
+with explicit parameters and dependencies. Tasks do not declare runtime iteration.
 
-**Short form** (no schema):
+The generated definition uses `inputs: { name: { task: predecessor-id, result: output-key } }`
+for values produced by a known predecessor. Output content can depend on these values; targets,
+paths, task counts, dependencies and rule assignments are already fixed.
 
-```yaml
-each:
-  component: "components"
-```
-
-**Long form** (with schema):
-
-```yaml
-each:
-  component:
-    expr: "components"
-    schema: { $ref: ../schemas.yml#/Component }
-```
-
-- Binding names are **singular** (`component`, `variant`, `check`, `issue`)
-- Values are JSONata expressions evaluated against task scope — plain identifiers (`"issues"`), dotted paths (`"component.variants"`), filters (`"variants[published = true]"`), and functions (`"$filter(variants, function($v) { $v.order > 0 })"`) all work
-- Optional `schema:` describes the item shape for validation/documentation
-- Templates inside the task address iteration state through the binding: `{{ component.component }}`, `{{ variant.id }}`, **never** `{{ component }}` (which is the whole object)
-
-### Dependent axes — cross-products
-
-Inner bindings evaluate against the scope enriched with earlier bindings. This replaces dotpath-with-singularization:
-
-```yaml
-each:
-  component:
-    expr: "components"
-    schema: { $ref: ../schemas.yml#/Component }
-  variant:
-    expr: "component.variants"
-    schema: { $ref: ../schemas.yml#/Variant }
-```
-
-Semantics:
-
-- Each axis evaluates its expression against scope extended with previously bound axes
-- The engine emits one task per `(component, variant)` pair
-- Independent axes (no reference to earlier bindings) produce the full cross-product
-- Templates reference both axes:
-  ```yaml
-  result:
-    variant-story:
-      path: ${DESIGNBOOK_HOME}/components/{{ component.component }}/{{ component.component }}.{{ variant.id }}.story.yml
-  ```
-
-### Iteration helpers
-
-Inside each expanded task, two helpers are available in JSONata expressions:
-
-- `$i` — zero-based iteration index across the cross-product
-- `$total` — total number of emitted task instances
+The canonical generated-document schema is exposed by `workflow schema`; the
+[shared builder](../../designbook/resources/workflow-building.md) explains its assembly.

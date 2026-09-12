@@ -1,19 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { referenceImagePath } from '../visual-compare-path';
+import { referenceImagePath } from '../tools/visual-compare-path';
 
 describe('referenceImagePath', () => {
-  it('uses breakpoint, element, and state in the baseline filename', () => {
-    expect(
-      referenceImagePath('references/174cdaac3562', 'xl', {
-        name: 'entity-paragraph-signage-full',
-        state: 'rest',
-      }),
-    ).toBe('/__designbook/load?path=references/174cdaac3562/xl--entity-paragraph-signage-full--rest.png');
+  it('uses the actual capture association including revision and native view filename', () => {
+    expect(referenceImagePath('references/id/revision', 'frame-42-header-open.png')).toBe(
+      '/__designbook/load?path=references%2Fid%2Frevision%2Fframe-42-header-open.png',
+    );
   });
-
-  it('encodes dynamic filename segments', () => {
-    expect(referenceImagePath('references/hash', '2xl', { name: 'hero cta', state: 'open/menu' })).toBe(
-      '/__designbook/load?path=references/hash/2xl--hero%20cta--open%2Fmenu.png',
+  it('encodes the full stored path as one query value', () => {
+    expect(referenceImagePath('references/id/revision', 'header & search.png')).toBe(
+      '/__designbook/load?path=references%2Fid%2Frevision%2Fheader%20%26%20search.png',
     );
   });
 });

@@ -10,53 +10,32 @@ Hard constraints for screenshot-based screen comparison. Applies both to the
 regular compare stages used by design verification and final workflow review.
 All browser interaction uses `playwright-cli`.
 
-## Preconditions
+## Declared comparison inputs
 
-Use the task-provided values only:
+Resolve the saved `reference_query` with `reference query --request <query-file>`.
+Use the one returned capture's exact path; a native view or a selected frame need
+not follow a breakpoint-based filename convention. Use `actual_path` from the
+predecessor capture task's declared output. The saved source query and the task's
+`screenshot` identity explicitly establish the correspondence between the sides.
+Capture is a predecessor task; comparison consumes its exact result and cannot
+recapture or select additional targets.
 
-- `story_url` — pre-resolved iframe URL for the story under review
-- `reference_folder` — resolved folder that contains `extract.json` and any
-  reference screenshots
-- `screenshot` when present — provides `story_id`, `breakpoint`, `element`,
-  `selector`, and threshold context for the compare stage
-- `breakpoints[]` and `elements[]` when present — the requested review surface
+If either image is missing or unreadable, or the frozen query fails, block this
+task. A missing comparison cannot pass. Published source metadata and evidence
+remain unchanged.
 
-If `story_url` or `reference_folder` is empty, skip the compare and emit a
-non-passing compare artifact instead of fabricating a result.
+## Measurement
 
-## Capture And Compare Pass
+Compare the declared files with:
 
-When the values are present, the stage MUST do all of the following:
+```bash
+npx storybook-addon-designbook compare-images --reference <ref.png> --actual <story.png> --diff <declared-diff.png>
+```
 
-1. Open the Storybook story with Playwright.
-2. Resolve the viewport width from the active breakpoint context.
-3. Wait for the story render to settle before capturing.
-4. Capture the story screenshot:
-   - full-page for `full` or empty selector
-   - element-specific capture for named elements/selectors
-5. Compare the captured screenshot against the reference screenshot in
-   `reference_folder` with the **measurement CLI** — do not eyeball the diff:
-   ```
-   npx storybook-addon-designbook compare-images \
-     --reference <ref.png> --actual <story.png> --diff <out-diff.png>
-   ```
-   `--reference` is the comparison base. Pair story and reference by the full
-   `(breakpoint, element, state)` triple — screenshot filenames follow
-   `<bp>--<element>--<state>.png`, so a non-rest state never compares against the rest image.
-   When `check.steps` are present, run them before capturing the story side so both
-   sides are in the same interaction state. Take `diff_percent`, `diff_path`, and the
-   issue `severity` from the CLI's JSON. The CLI does **not** emit `passed` — derive
-   the artifact's `passed` deterministically as `diff_percent <= check.threshold` (the
-   check's configured percentage threshold). A check with no reference (empty
-   `story_url`/`reference_folder`) is `passed: false` with no `diff_percent`.
-6. Save the resulting compare artifact, carrying the check's `state` plus the
-   CLI's `diff_percent` and `severity` (outtake scores by severity, not pixel
-   ratio alone, so both must reach the artifact).
-
-For the compare stage:
-- emit actionable `issues`
-- emit one compare artifact per check (one per breakpoint × element × state)
-- save any diff/report file needed by that artifact
+Use `diff_percent`, `diff_path` and `severity` from the CLI output. It does not emit
+`passed`; derive that field as `diff_percent <= screenshot.threshold`. Emit every
+observed deviation as an actionable issue and one comparison artifact for each
+declared screenshot. Write diff/report files only to declared output paths.
 
 ## Structural Dimension Drift
 
@@ -86,14 +65,6 @@ where `effective_deviation = max(diff_percent, severity_floor[severity])` (floor
 shift that pixel ratio alone undercounts still costs at least its severity floor.
 Measured, not authored. (The exact band thresholds live in the CLI and are
 calibrated there; do not re-derive them here.)
-
-## Playwright Execution Rules
-
-- Reuse one Playwright session per compare pass when possible.
-- Use the same viewport sizing discipline as capture/compare stages.
-- Wait for the story render to settle before capturing.
-- If Storybook needs a restart after same-run component creation, restart it
-  before the final compare instead of accepting a broken render.
 
 ## Output Discipline
 

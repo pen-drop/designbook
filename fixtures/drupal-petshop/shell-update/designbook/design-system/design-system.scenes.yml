@@ -1,0 +1,18 @@
+id: debo-design-system
+title: PetMatch Shell
+description: Shared site chrome
+group: Designbook/Design System
+scenes:
+  - name: shell
+    docs: Canonical shell; preserve this identity.
+    items:
+      - component: test_integration_drupal:page
+        slots:
+          header:
+            - component: test_integration_drupal:site-header
+              props:
+                adopt_label: Adopt
+                adopt_url: /pets
+          content: $content
+          footer:
+            - component: test_integration_drupal:site-footer

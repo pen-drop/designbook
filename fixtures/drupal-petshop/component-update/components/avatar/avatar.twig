@@ -1,0 +1,5 @@
+{% set sizes = {small: 'size-8', medium: 'size-12', large: 'size-16'} %}
+<figure{{ attributes.addClass([]) }} data-avatar="{{ variant|default('medium') }}">
+  <img class="{{ sizes[variant|default('medium')] }} rounded-full" src="{{ image_url }}" alt="{{ username }}" />
+  <figcaption><strong>{{ username }}</strong><span>{{ role }}</span></figcaption>
+</figure>

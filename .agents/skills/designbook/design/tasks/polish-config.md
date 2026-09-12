@@ -1,22 +1,21 @@
 ---
 name: designbook:design:polish-config
-title: "Polish Config {{ issue.id }}"
-description: "{{ issue.description }}"
+title: Polish Config {{ issue.id }}
+description: '{{ issue.description }}'
 trigger:
-  steps: [polish-config]
-domain: [sync-verify]
+  steps:
+    - polish-config
+domain:
+  - sync-verify
 priority: 50
 params:
   type: object
-  required: [issue]
+  required:
+    - issue
   properties:
     issue:
       type: object
       $ref: ../schemas.yml#/Issue
-each:
-  issue:
-    expr: "issues"
-    schema: { $ref: ../schemas.yml#/Issue }
 ---
 
 # Polish Config

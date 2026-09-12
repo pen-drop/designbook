@@ -53,5 +53,4 @@ frontend. Framework-independent: checks `:root` custom properties and
    tree-shaken / not generated), missing fonts (no `@font-face` coverage), and
    unresolved placeholders (alias never resolved by the transform).
 
-If chromium/playwright is unavailable, skip with a warning and pass (best-effort
-where no browser exists).
+If Chromium or Playwright is unavailable, attempt to restore the declared browser environment. If the probe still cannot run, block the task with the command failure; an unperformed check cannot pass.

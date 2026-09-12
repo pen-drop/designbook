@@ -1,0 +1,38 @@
+schema_version: 1
+id: db62-rule-via-design-shell
+ticket: DESIGNBOOK-62
+primary_key:
+  branch: feat/designbook-62-task-und-ru
+  experiment: db62-rule-via-design-shell
+hypothesis: |
+  A rule change consumed by design-shell improves flow; claims are joint when
+  both rule and task paths are listed.
+affected:
+  tasks:
+    - .agents/skills/designbook/design/tasks/design-shell.md
+  rules:
+    - .agents/skills/designbook/design/rules/design-consistency.md
+  note: "joint rule+task edit ⇒ joint-change claims only"
+baseline:
+  repo: designbook
+  branch: feat/designbook-56-designbook
+  commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+candidate:
+  repo: designbook
+  branch: feat/designbook-62-task-und-ru
+  commit: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+cases:
+  - suite: drupal-web
+    case: design-shell
+    validate: design-verify
+expected_effect:
+  quality: improve_or_hold
+  flow: fewer_corrections
+  tokens: reduce_or_hold
+models_constant: true
+budget:
+  probe_first: true
+  repetitions_per_variant: 3
+harness:
+  commit: cccccccccccccccccccccccccccccccccccccccc
+  promptfoo_schema: 1

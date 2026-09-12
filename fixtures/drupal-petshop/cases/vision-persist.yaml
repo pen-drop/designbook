@@ -1,0 +1,39 @@
+workflow: vision
+fixtures: []
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo vision workflow in persist mode. Do NOT ask any questions — use the following inputs directly:
+
+  Product name: PetMatch
+  Description: A modern pet adoption platform connecting shelters with potential adopters
+  Problems & Solutions:
+  1. Shelters struggle to showcase available pets → Rich pet profiles with photos and personality traits
+  2. Adopters can't filter by lifestyle compatibility → Smart matching algorithm based on living situation
+  3. Post-adoption support is lacking → Built-in community and vet appointment scheduling
+  Key Features:
+  - Pet profile browser with advanced search
+  - Shelter dashboard for managing listings
+  - Adoption application workflow
+  - Community forum and resources
+  - Vet integration and health tracking
+
+  Mode: persist. Seal a durable plan with `_debo plan build vision --tasks <tasks.json>` (no `--ephemeral`).
+  Write `$DESIGNBOOK_DATA/plans/vision.plan.md`. Stop after plan build succeeds.
+  Do NOT invoke execute-workflow. Do NOT write designbook/vision.yml.
+
+assert:
+  - type: javascript
+    value: output.newFiles.includes('designbook/plans/vision.plan.md')
+  - type: javascript
+    value: |
+      return !output.newFiles.includes('designbook/vision.yml');
+  - type: javascript
+    value: output.completedWorkflows['vision'] == null
+  - type: javascript
+    value: output.pendingWorkflows['vision'] != null
+  - type: javascript
+    value: Object.keys(output.completedWorkflows).length === 0
+  - type: javascript
+    value: |
+      return !output.newFiles.some((f) => f.startsWith('designbook/plans/.ephemeral/'));

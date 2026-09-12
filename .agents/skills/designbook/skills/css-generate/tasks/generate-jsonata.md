@@ -1,11 +1,16 @@
 ---
-title: "Generate JSONata: {{ artifact.group }}"
+title: 'Generate JSONata: {{ artifact.group }}'
 trigger:
-  steps: [generate-jsonata]
-domain: [css]
+  steps:
+    - generate-jsonata
+domain:
+  - css
 params:
   type: object
-  required: [artifact, css_generation_plan, design_tokens]
+  required:
+    - artifact
+    - css_generation_plan
+    - design_tokens
   properties:
     artifact:
       $ref: ../schemas.yml#/CssArtifactPlan
@@ -17,18 +22,15 @@ params:
       type: object
 result:
   type: object
-  required: [generate-jsonata]
+  required:
+    - generate-jsonata
   properties:
     generate-jsonata:
-      path: "{{ artifact.jsonata_path }}"
+      path: '{{ artifact.jsonata_path }}'
       $ref: ../schemas.yml#/Jsonata
       validators:
-        - "cmd:npx jsonata-w transform --dry-run {{ file }}"
-        - "cmd:npx jsonata-w transform --dry-run {{ file }} | npx stylelint --stdin-filename output.css"
-each:
-  artifact:
-    expr: "css_generation_plan.jsonata.artifacts"
-    schema: { $ref: ../schemas.yml#/CssArtifactPlan }
+        - cmd:npx jsonata-w transform --dry-run {{ file }}
+        - cmd:npx jsonata-w transform --dry-run {{ file }} | npx stylelint --stdin-filename output.css
 ---
 
 # Generate JSONata Expression

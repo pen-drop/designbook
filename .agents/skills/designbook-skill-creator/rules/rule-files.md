@@ -76,7 +76,7 @@ reader should be able to guess from the filename alone which file type the rule 
 - `misc.md`
 
 Prefer the name of the output file type or transform over the name of the task that
-produces it. `twig-component-format.md` is better than `create-component-rules.md`
+produces it. `twig-component-format.md` is better than `write-component-rules.md`
 because multiple tasks may produce Twig components.
 
 ## Rules Never Declare `params:`
@@ -149,7 +149,7 @@ Rules can extend the merged result schema of a task. Three operations:
 
 **Union vs. intersect.** `extends:` **widens** a closed enum (union — appends allowed values, base order preserved, deduplicated); `constrains:` **narrows** it (intersection — keeps only values present in both). They act on the same enum leaf from opposite directions, so a project skill *registers* a new allowed value with `extends:`, never `constrains:`.
 
-**Registering a value into a shared definition's closed enum.** When the enum leaf lives on a shared `schemas.yml` **definition** that a task references only through a nested `$ref` (an array `items.$ref`, a nested property `$ref`) — so it is never a top-level result key and the result-key merge never reaches it — key the `extends:` entry by the **definition name** (e.g. `extends: { Unit: { properties: { kind: { enum: [<new-value>] } } } }`). The value is unioned into that definition in the schema map `workflow done` validates against (the once-generated `schema.yml`), with no edit to the addon or the shipping skill. See [`resources/schema-composition.md`](../resources/schema-composition.md).
+**Registering a value into a shared definition's closed enum.** When the enum leaf lives on a shared `schemas.yml` **definition** that a task references only through a nested `$ref` (an array `items.$ref`, a nested property `$ref`) — so it is never a top-level result key and the result-key merge never reaches it — key the `extends:` entry by the **definition name** (e.g. `extends: { Unit: { properties: { kind: { enum: [<new-value>] } } } }`). The value is unioned into that definition in the schema map `workflow done` validates against (the embedded definition schemas), with no edit to the addon or the shipping skill. See [`resources/schema-composition.md`](../resources/schema-composition.md).
 
 ```yaml
 ---
@@ -240,23 +240,9 @@ Triggers are strict: a `trigger.domain: X` rule does **not** load for a task tha
 
 Use dot-notation for finer scoping: `components.layout`, `scenes.shell`. A task with `domain: [components]` loads rules with `trigger.domain: components` and `trigger.domain: components.*`. A task with `domain: [components.layout]` loads `trigger.domain: components` (parent) and `trigger.domain: components.layout` (exact), but not `trigger.domain: components.discovery` (sibling).
 
-### Provider Rules (`provides`) — Legacy
+### Intake providers
 
-> **Prefer code resolvers.** New param resolution should use `resolve:` in the task's param declarations (see `resources/schemas.md`). Provider rules are a legacy mechanism kept for backwards compatibility.
-
-A rule with `provides: <param>` declares that it can resolve a specific workflow param via AI execution. The workflow engine runs provider rules **before** the task starts (step 2a-resolve), but only for params not already resolved by a code resolver or `--params`.
-
-```markdown
----
-provides: url
-trigger:
-  domain: design.intake
-filter:
-  extensions: stitch
----
-```
-
-Use `provide-` as the filename prefix for provider rules (e.g. `provide-stitch-url.md`). Constraint rules (without `provides`) use descriptive names as before.
+Resolve provider-dependent inputs during intake. Embed the chosen instructions and resolved values before execution. Runtime task completion never selects providers.
 
 ## Checks
 

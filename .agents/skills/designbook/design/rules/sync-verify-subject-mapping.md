@@ -38,9 +38,8 @@ The presence of a `selector` selects the sub-mode:
   renders the entity in isolation.
 - **candidate (backend) side** — `selector` isolates the same single entity subtree in the
   backend render (a full canonical page containing site chrome around the entity). The
-  concrete selector is supplied by the backend integration; when it matches nothing the
-  capture falls back to full-page, which will diff against the isolated baseline and surface
-  as a deviation.
+  concrete selector is supplied by the backend integration; a missing match blocks capture because a full-page image would describe a
+  different subject.
 
 ### entity-view-mapping (selector empty)
 

@@ -1,6 +1,6 @@
 # Playwright Eval Scripts
 
-Reusable eval scripts for the `extract-reference` task. Each script runs via `npx @playwright/cli eval` and returns JSON.
+Reusable eval scripts for the website source tasks in the standalone `extract-reference` workflow. Each script runs via `npx @playwright/cli eval` and returns JSON.
 
 ## eval 1: Fonts
 

@@ -1,0 +1,14 @@
+name: site-header
+status: experimental
+props:
+  type: object
+  properties:
+    adopt_label:
+      type: string
+    adopt_url:
+      type: string
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+group: Shell
+provider: test_integration_drupal

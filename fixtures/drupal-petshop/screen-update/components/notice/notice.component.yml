@@ -1,0 +1,12 @@
+name: notice
+status: experimental
+props:
+  type: object
+  properties:
+    text:
+      type: string
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+group: Data Display
+provider: test_integration_drupal

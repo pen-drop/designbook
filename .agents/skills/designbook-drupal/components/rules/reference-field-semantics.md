@@ -1,6 +1,6 @@
 ---
 trigger:
-  steps: [create-component]
+  steps: [write-component]
 filter:
   frameworks.component: sdc
 ---

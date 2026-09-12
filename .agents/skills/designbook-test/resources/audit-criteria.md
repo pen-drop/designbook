@@ -9,16 +9,16 @@ Systematic file-level review applied after a workflow completes. Output is a Mar
 
 ## When applied
 
-- After each `debo-test research` case run within an iteration: reads tasks.yml + dbo.log digest, produces `research-runs/<slug>/iterations/<N>/cases/<case>/audit.md`.
+- After each `debo-test research` case run within an iteration: reads the saved workflow definition + validated Codex/CLI evidence, produces `research-runs/<slug>/iterations/<N>/cases/<case>/audit.md`.
 - After a research run terminates: produces `research-runs/<slug>/final-audit.md`.
 
 ## Inputs
 
 | Input | Source |
 |---|---|
-| Resolved file list | `<workspace>/<DATA>/workflows/archive/<workflow>/tasks.yml` — tasks, rules, blueprints, schemas |
+| Resolved file list | Every attempted saved workflow — embedded task/context sources and schemas |
 | Per-file content | Read each path |
-| Friction signals | Output of `digestLog($DATA/dbo.log)` |
+| Friction signals | `log-validation.json` and `friction.json`, linked to saved Codex JSONL/CLI events |
 
 ## Audit dimensions
 
@@ -52,6 +52,9 @@ For each loaded file, check:
 
 - Does the file reference CLI commands or params that exist?
 - Does it describe manual steps that the CLI handles automatically?
+- Extract/capture HOW must name `_debo reference save`, `_debo reference capture-image`
+  (or `_debo capture matrix`), and `_debo reference capture-file`. Flag
+  playwright-cli recipes, addon-source reads, or other workarounds in their place.
 - Are `domain:` values current (valid taxonomy, no stale domains)?
 - Do `result:` schemas match the actual outputs being produced?
 

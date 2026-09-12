@@ -1,8 +1,7 @@
 name: pet-card
-status: ready
-group: content
-provider: petmatch
-
+status: experimental
+group: Data Display
+provider: test_integration_drupal
 props:
   type: object
   properties:
@@ -25,7 +24,9 @@ props:
         - available
         - pending
         - adopted
-
 slots:
   cta:
     title: Call to Action
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

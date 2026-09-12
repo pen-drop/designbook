@@ -1,0 +1,5 @@
+title: Site-Header
+component: test_integration_drupal:site-header
+props:
+  adopt_label: Adopt
+  adopt_url: /pets

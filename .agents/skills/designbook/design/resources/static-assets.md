@@ -21,7 +21,7 @@ These are then available at `/logo.svg`, `/logo-secondary.png`, etc.
 
 ## When to Download
 
-During **intake** and **create-scene**, identify visual assets from the design reference that are not decorative CSS (gradients, borders, shadows). Download these assets before writing scene YAML or component templates.
+During **intake**, identify required visual assets from the supplied reference or text request and declare exact download outputs as prerequisites of scene/component writes. Execution downloads only those selected assets. Existing sufficient assets remain unchanged.
 
 Assets to download:
 - Brand logos (site logo, partner logos, institutional marks)

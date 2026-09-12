@@ -1,11 +1,20 @@
 ---
-title: "Map Entity: {{ mapping.entity_type }}.{{ mapping.bundle }}.{{ mapping.mode_kind = 'form' ? mapping.form_mode : mapping.view_mode }}"
+title: >-
+  Map Entity: {{ mapping.entity_type }}.{{ mapping.bundle }}.{{ mapping.mode_kind = 'form' ? mapping.form_mode
+  : mapping.view_mode }}
 trigger:
-  steps: [design-screen:map-entity, design-entity:map-entity]
-domain: [data-mapping]
+  steps:
+    - design-screen:map-entity
+    - design-entity:map-entity
+    - design-component:map-entity
+    - design-shell:map-entity
+domain:
+  - data-mapping
 params:
   type: object
-  required: [mapping, data_model]
+  required:
+    - mapping
+    - data_model
   properties:
     mapping:
       type: object
@@ -14,38 +23,24 @@ params:
       path: $DESIGNBOOK_DATA/data-model.yml
       workflow: debo-data-model
       type: object
-each:
-  mapping:
-    expr: "entity_mappings"
-    schema: { $ref: ../schemas.yml#/EntityMapping }
 result:
   type: object
-  required: [entity-mapping]
+  required:
+    - entity-mapping
   properties:
     entity-mapping:
-      path: "$DESIGNBOOK_DATA/{{ mapping.mode_kind = 'form' ? 'form-mapping' : 'entity-mapping' }}/{{ mapping.entity_type }}.{{ mapping.bundle }}.{{ mapping.mode_kind = 'form' ? mapping.form_mode : mapping.view_mode }}.jsonata"
-      validators: [entity-mapping]
+      path: >-
+        $DESIGNBOOK_DATA/{{ mapping.mode_kind = 'form' ? 'form-mapping' : 'entity-mapping' }}/{{
+        mapping.entity_type }}.{{ mapping.bundle }}.{{ mapping.mode_kind = 'form' ? mapping.form_mode :
+        mapping.view_mode }}.jsonata
+      validators:
+        - entity-mapping
 ---
 
 # Map Entity
 
-Creates a JSONata expression file that maps an entity's data to `ComponentNode[]`.
+Produce the complete mapping expression for the one entity type, bundle and mode selected by `mapping`. Apply the requested field-output delta to the existing expression when present, preserving unrelated assignments and references.
 
-## Input
+Retain other view/form modes, bundles, model/display settings and sample records. Any necessary model, sample or consumer changes are separate outputs/tasks declared by intake. Reuse components that already satisfy the mapping.
 
-- `data-model.yml` → the chosen half of `content.{{ mapping.entity_type }}.{{ mapping.bundle }}`: `form_modes.{{ mapping.form_mode }}` when `mapping.mode_kind` is `form`, else `view_modes.{{ mapping.view_mode }}` — for template name and settings
-
-## Output
-
-A pure JSONata expression returning `ComponentNode[]`. See [jsonata-reference](../resources/jsonata-reference.md) for output format.
-
-## Data Mapping Pattern
-
-Read the data-mapping blueprint from `task.blueprints[]` filtered by `type: data-mapping`. The matching blueprint provides the JSONata pattern and rules for the declared template.
-
-## Constraints
-
-- One file per `entity_type.bundle.<mode>` combination, where `<mode>` is the `view_mode` or `form_mode` selected by `mapping.mode_kind`
-- Provider prefix resolved at generation time (never leave as placeholder)
-- Reference fields emit `{ "entity": "<entity_type>.<bundle>", "view_mode": "...", "record": N }` nodes **in a slot of the wrapping component, never in `props`** — resolved recursively at build time (refs in `props` are never resolved; see scenes-constraints)
-- If no matching data-mapping blueprint found for the template, stop and report the error
+Completion: the selected mapping expresses the requested delta and all preserved assignments remain equivalent. The saved definition includes the standalone preview and concrete mapped-field browser observations.

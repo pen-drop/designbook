@@ -1,0 +1,808 @@
+import { transformWithEsbuild, type Plugin, type ViteDevServer } from 'vite';
+import type { IncomingMessage } from 'http';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { resolve, join, basename, dirname, relative, sep } from 'node:path';
+import { createRequire } from 'node:module';
+import { load as parseYaml } from 'js-yaml';
+
+import type { SceneNodeBuilder } from '../scene-model/types';
+import { buildSceneModule } from '../scene-model/scene-module-builder';
+import { buildEntityModule } from '../scene-model/entity-module-builder';
+import { matchHandler, defaultHandlers } from '../scene-model/scene-handlers';
+import { digestLog } from '../shared/log/digest.js';
+import { StoryMeta } from '../scene-model/story-entity';
+import { Reference } from '../tools/reference-entity';
+import { USES_WITH_SELECTOR_SOURCE } from './use-sync-with-selector-source';
+
+/** Minimal glob matcher — supports * (no slash) and **-slash (zero or more dirs). */
+function globMatch(pattern: string, filePath: string): boolean {
+  // Split on **/ first so the * quantifier in (?:[^/]+/)* isn't consumed
+  // by the later single-* replacement.
+  const regexStr = pattern
+    .split('**/')
+    .map((part) => part.replace(/\./g, '\\.').replace(/\*/g, '[^/]*'))
+    .join('(?:[^/]+/)*');
+  return new RegExp('^' + regexStr + '$').test(filePath);
+}
+
+/**
+ * List the `.jsonata` basenames under `<designbookDir>/<dir>`. Returns `[]`
+ * when the directory is missing. Throws when `dir` resolves outside
+ * `designbookDir` (path-escape guard) — same convention as the
+ * `/__designbook/load` and `/__designbook/file` middlewares.
+ */
+export function listMappingFiles(designbookDir: string, dir: string): string[] {
+  const full = resolve(designbookDir, dir);
+  if (full !== designbookDir && !full.startsWith(designbookDir + sep)) {
+    throw new Error('Path outside designbook directory');
+  }
+  if (!existsSync(full)) return [];
+  return readdirSync(full).filter((f) => f.endsWith('.jsonata'));
+}
+
+export function isEntityMappingFile(id: string): boolean {
+  return /(?:^|\/)entity-mapping\/[^/]+\.jsonata$/.test(id);
+}
+
+export function isFormMappingFile(id: string): boolean {
+  return /(?:^|\/)form-mapping\/[^/]+\.jsonata$/.test(id);
+}
+
+/**
+ * Map a `form-mapping/<type>.<bundle>.<form_mode>.jsonata` id to the bundle's
+ * canonical entity-mapping file (its first sorted view mapping, one directory
+ * over). Form stories are appended to that entity-mapping module, so a directly
+ * requested form-mapping id resolves to the same module the form index entries
+ * redirect to. Returns null when the bundle has no entity-mapping (form-only
+ * bundle — out of scope).
+ */
+function canonicalEntityMappingFor(formId: string): string | null {
+  const prefixParts = basename(formId).split('.'); // [type, bundle, form_mode, 'jsonata']
+  const prefix = `${prefixParts[0] ?? ''}.${prefixParts[1] ?? ''}.`;
+  const entityDir = resolve(dirname(formId), '..', 'entity-mapping');
+  if (!existsSync(entityDir)) return null;
+  const canonical = readdirSync(entityDir)
+    .filter((f) => f.startsWith(prefix) && f.endsWith('.jsonata'))
+    .sort()[0];
+  return canonical ? resolve(entityDir, canonical) : null;
+}
+
+// Resolve React from the addon's own dependencies (works in pnpm strict mode)
+const addonRequire = createRequire(import.meta.url);
+
+export function designbookLoadPlugin(
+  baseDir: string,
+  options: {
+    fsRoot?: string;
+    provider?: string;
+    builders?: SceneNodeBuilder[];
+    resolveImportPath?: (componentId: string) => string | null;
+    wrapImport?: (alias: string) => string;
+  },
+): Plugin {
+  const designbookDir = resolve(baseDir, options.fsRoot || 'designbook');
+
+  const VIRTUAL_SECTIONS = 'virtual:designbook-sections';
+  const RESOLVED_VIRTUAL_SECTIONS = '\0' + VIRTUAL_SECTIONS;
+
+  const VIRTUAL_THEMES = 'virtual:designbook-themes';
+  const RESOLVED_VIRTUAL_THEMES = '\0' + VIRTUAL_THEMES;
+
+  const RESOLVED_USES_SHIM = '\0designbook-uses/shim';
+  const RESOLVED_USES_WITH_SELECTOR = '\0designbook-uses/shim-with-selector';
+
+  // Resolve React package directories so mount-react.js works in pnpm strict mode
+  let reactDir: string | undefined;
+  let reactDomDir: string | undefined;
+  try {
+    reactDir = dirname(addonRequire.resolve('react/package.json'));
+    reactDomDir = dirname(addonRequire.resolve('react-dom/package.json'));
+  } catch {
+    // React not available — docs pages will fail but scenes still work
+  }
+
+  // js-yaml + marked are bundled into the client components by tsup, so they
+  // need no aliasing here. semver + yaml are still required: storybook-core's
+  // preview-runtime does `import semver from 'semver'` (and yaml), and these CJS
+  // packages are served raw under a pnpm-strict consumer → no `default` export →
+  // the preview crashes. Resolve them from the addon's own node_modules, alias
+  // the bare specifier, and pre-bundle (optimizeDeps) so esbuild adds the
+  // CJS-default interop.
+  let semverDir: string | undefined;
+  try {
+    semverDir = dirname(addonRequire.resolve('semver/package.json'));
+  } catch {
+    // semver not reachable from the addon — leave resolution to Vite defaults
+  }
+
+  let yamlDir: string | undefined;
+  try {
+    yamlDir = dirname(addonRequire.resolve('yaml/package.json'));
+  } catch {
+    // yaml not reachable from the addon — leave resolution to Vite defaults
+  }
+
+  return {
+    name: 'vite-plugin-designbook-load',
+    enforce: 'pre',
+
+    config() {
+      const alias: { find: RegExp; replacement: string }[] = [];
+      if (reactDir && reactDomDir) {
+        alias.push(
+          { find: /^react-dom$/, replacement: reactDomDir },
+          { find: /^react-dom\/(.*)/, replacement: reactDomDir + '/$1' },
+          { find: /^react$/, replacement: reactDir },
+          { find: /^react\/(.*)/, replacement: reactDir + '/$1' },
+        );
+      }
+      if (semverDir) {
+        alias.push({ find: /^semver$/, replacement: semverDir });
+      }
+      if (yamlDir) {
+        alias.push({ find: /^yaml$/, replacement: yamlDir });
+      }
+      return {
+        resolve: alias.length ? { alias } : undefined,
+        optimizeDeps: {
+          include: [
+            'react',
+            'react/jsx-runtime',
+            'react/jsx-dev-runtime',
+            'react-dom',
+            'react-dom/client',
+            // Pre-bundle these so Vite doesn't discover them at preview runtime
+            // (runtime discovery triggers "optimized dependencies changed. reloading"
+            // which causes an infinite HMR loop in workspace-linked setups).
+            '@storybook/addon-themes',
+            // semver + yaml: aliased above to the addon's resolved copies;
+            // pre-bundle so esbuild adds CJS-default interop (storybook-core's
+            // preview-runtime imports them by default under pnpm-strict).
+            'semver',
+            'yaml',
+          ],
+          // Leave the CJS external-store shim un-optimized so the dev server
+          // routes the bare import through resolveId/load (virtual ESM wrapper),
+          // instead of esbuild pre-bundling it and losing the named export.
+          exclude: [
+            'use-sync-external-store',
+            'use-sync-external-store/shim',
+            'use-sync-external-store/shim/with-selector',
+          ],
+        },
+        server: {
+          watch: {
+            // Setting `ignored` REPLACES Vite's defaults — so we explicitly
+            // re-include `.git` and `node_modules`. Without `node_modules`,
+            // Vite resolves pnpm's `.pnpm/<pkg>/node_modules/<pkg>` symlinks
+            // and watches the whole dependency tree (~2200+ dirs). The 16k
+            // inotify event queue (`fs.inotify.max_queued_events`) is then
+            // one event burst away from overflowing — at which point Linux
+            // silently drops events and any watcher built on top goes deaf.
+            //
+            // `followSymlinks: false` is needed alongside the glob: chokidar
+            // matches `ignored` against the original symlink path, but once
+            // it follows the link it watches the resolved tree without
+            // re-checking ignores against the target.
+            //
+            // `storybook-addon-designbook/**` exists because the addon is
+            // consumed via a pnpm workspace symlink — Vite would otherwise
+            // resolve and watch its source under packages/, multiplying the
+            // surface and being pointless (addon changes need a Storybook
+            // restart anyway).
+            followSymlinks: false,
+            ignored: ['**/.git/**', '**/node_modules/**', '**/dist/**', '**/storybook-addon-designbook/**'],
+          },
+        },
+        // Force Vite to process twing through its own module pipeline in SSR context.
+        // When externalized, Node.js ESM loads twing/index.mjs which imports locutus
+        // subpaths without .js extensions — not allowed in Node.js ESM strict mode.
+        // With noExternal, Vite resolves these imports via its own resolver (see resolveId).
+        ssr: {
+          noExternal: ['twing'],
+        },
+      };
+    },
+
+    resolveId(id: string, importer: string | undefined, options?: { ssr?: boolean }) {
+      // Re-entry guard: the use-sync wrappers import the real CJS files —
+      // let Vite resolve those normally instead of looping back into the virtual.
+      if (importer === RESOLVED_USES_SHIM || importer === RESOLVED_USES_WITH_SELECTOR) {
+        return undefined;
+      }
+      // When twing is noExternal, Vite calls resolveId for its locutus imports.
+      // locutus files exist as rtrim.js etc. — append .js so Vite finds them.
+      if (options?.ssr && id.startsWith('locutus/') && !id.endsWith('.js') && !id.endsWith('/')) {
+        return id + '.js';
+      }
+      const cleanId = id.startsWith('./') ? id.slice(2) : id;
+      // use-sync-external-store ships CJS shims whose named export
+      // `useSyncExternalStore` is assigned dynamically, so esbuild's CJS->ESM
+      // interop can't detect it (breaks under Storybook 10 / React 19). Map the
+      // two shim entrypoints to ESM wrappers that default-import the CJS and
+      // re-export the named members.
+      if (cleanId === 'use-sync-external-store/shim' || /use-sync-external-store\/shim\/index\.js$/.test(cleanId))
+        return RESOLVED_USES_SHIM;
+      if (
+        cleanId === 'use-sync-external-store/shim/with-selector' ||
+        /use-sync-external-store\/shim\/with-selector\.js$/.test(cleanId)
+      )
+        return RESOLVED_USES_WITH_SELECTOR;
+      if (cleanId === VIRTUAL_SECTIONS) return RESOLVED_VIRTUAL_SECTIONS;
+      if (cleanId === VIRTUAL_THEMES) return RESOLVED_VIRTUAL_THEMES;
+
+      // Resolve *.scenes.yml imports so Vite treats them as modules (not static assets)
+      if (cleanId.endsWith('.scenes.yml')) {
+        if (importer) return resolve(dirname(importer), cleanId);
+        return cleanId;
+      }
+      if (isEntityMappingFile(cleanId) || isFormMappingFile(cleanId)) {
+        if (importer) return resolve(dirname(importer), cleanId);
+        return cleanId;
+      }
+    },
+
+    async load(id: string) {
+      if (id === RESOLVED_USES_SHIM) {
+        // React 18+/19 expose useSyncExternalStore natively — re-export from
+        // React (ESM) instead of the CJS shim whose named export esbuild can't see.
+        return (
+          "import { useSyncExternalStore } from 'react';\n" +
+          'export { useSyncExternalStore };\n' +
+          'export default { useSyncExternalStore };\n'
+        );
+      }
+      if (id === RESOLVED_USES_WITH_SELECTOR) {
+        // Standard useSyncExternalStoreWithSelector implementation (React source),
+        // built on React's native useSyncExternalStore — no CJS interop needed.
+        return USES_WITH_SELECTOR_SOURCE;
+      }
+      if (id === RESOLVED_VIRTUAL_SECTIONS) {
+        return buildSectionsModule(designbookDir);
+      }
+
+      if (id === RESOLVED_VIRTUAL_THEMES) {
+        return buildThemesModule(designbookDir);
+      }
+
+      if (isEntityMappingFile(id)) {
+        return loadEntityModule(id, designbookDir, {
+          builders: options.builders,
+          resolveImportPath: options.resolveImportPath,
+          wrapImport: options.wrapImport,
+        });
+      }
+
+      // A directly-requested form-mapping id resolves to the bundle's canonical
+      // entity-mapping module — buildEntityModule appends the form stories there,
+      // so both ids produce the identical module (and Storybook dedupes by the
+      // canonical importPath the form index entries already point at).
+      if (isFormMappingFile(id)) {
+        const canonical = canonicalEntityMappingFor(id);
+        if (canonical) {
+          return loadEntityModule(canonical, designbookDir, {
+            builders: options.builders,
+            resolveImportPath: options.resolveImportPath,
+            wrapImport: options.wrapImport,
+          });
+        }
+      }
+
+      const match = matchHandler(id, defaultHandlers);
+      if (!match) return undefined;
+      return loadSceneModule(id, designbookDir, {
+        provider: options.provider,
+        builders: options.builders,
+        resolveImportPath: options.resolveImportPath,
+        wrapImport: options.wrapImport,
+      });
+    },
+
+    configureServer(server: ViteDevServer) {
+      // File type registry — first matching glob wins; no match = no event sent
+      const FILE_TYPES: Record<string, string> = {
+        task: 'workflows/**/*.yml',
+        scene: '**/*.scenes.yml',
+        vision: 'vision.yml',
+        tokens: 'tokens/**/*.yml',
+        designTokens: 'design-system/design-tokens.yml',
+        dataModel: 'data-model.yml',
+      };
+
+      const resolveFileType = (relPath: string): string | null => {
+        for (const [type, glob] of Object.entries(FILE_TYPES)) {
+          if (globMatch(glob, relPath)) return type;
+        }
+        return null;
+      };
+
+      server.watcher.add(resolve(designbookDir, 'data-model.yml'));
+      server.watcher.add(resolve(designbookDir, 'design-system'));
+      server.watcher.add(resolve(designbookDir, 'vision.yml'));
+      server.watcher.add(resolve(designbookDir, 'sections'));
+      server.watcher.add(resolve(designbookDir, 'tokens'));
+      server.watcher.add(resolve(designbookDir, 'workflows'));
+
+      // No `.workflow-trigger` restart side channel: a full Vite restart on stage
+      // flushes churned Storybook reloads (esp. the polish fix→recapture loop).
+      // The workflow now owns its restarts explicitly as phase boundaries — a
+      // single `storybook start --force` before the first render (validate
+      // preflight) and one per polish recapture round — which start a fresh
+      // process, so the story index, namespace map and Twig template cache are
+      // all rebuilt complete. New files in the (startup-created) story-glob roots
+      // are otherwise surfaced by the file-event channel below.
+
+      for (const [watchEvent, channelEvent] of [
+        ['add', 'designbook:file-add'],
+        ['change', 'designbook:file-update'],
+        ['unlink', 'designbook:file-delete'],
+      ] as const) {
+        server.watcher.on(watchEvent, (file: string) => {
+          if (!file.startsWith(designbookDir)) return;
+          const relPath = relative(designbookDir, file);
+          const fileType = resolveFileType(relPath);
+          if (!fileType) return;
+          const payload = { fileType, path: relPath };
+          console.debug('[Designbook] watcher:', watchEvent, relPath, '→ sending', channelEvent, payload);
+          server.ws.send({
+            type: 'custom',
+            event: channelEvent,
+            data: payload,
+          });
+
+          // Invalidate virtual:designbook-themes when design tokens change
+          if (fileType === 'designTokens') {
+            const themesModule = server.moduleGraph.getModuleById(RESOLVED_VIRTUAL_THEMES);
+            if (themesModule) {
+              server.moduleGraph.invalidateModule(themesModule);
+              server.ws.send({ type: 'full-reload' });
+            }
+          }
+        });
+      }
+
+      // HTTP endpoint: serve the digested CLI log (the panel is a logs-only view)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      server.middlewares.use('/__designbook/log', (_req: IncomingMessage, res: any) => {
+        try {
+          const digest = digestLog(resolve(designbookDir, 'dbo.log'));
+          res.setHeader('Content-Type', 'application/json');
+          res.statusCode = 200;
+          res.end(JSON.stringify({ designbookDir, ...digest }));
+        } catch (err: unknown) {
+          res.statusCode = 500;
+          res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }));
+        }
+      });
+
+      // HTTP endpoint: project status overview
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      server.middlewares.use('/__designbook/status', (_req: IncomingMessage, res: any) => {
+        try {
+          const sectionsDir = resolve(designbookDir, 'sections');
+          const sections: Array<{ id: string; title: string; hasScenes: boolean }> = [];
+
+          if (existsSync(sectionsDir)) {
+            for (const entry of readdirSync(sectionsDir, { withFileTypes: true })) {
+              if (!entry.isDirectory()) continue;
+              const id = entry.name;
+              const scenesFile = resolve(sectionsDir, id, `${id}.section.scenes.yml`);
+              let title = id;
+              let hasScenes = false;
+              if (existsSync(scenesFile)) {
+                try {
+                  const parsed = parseYaml(readFileSync(scenesFile, 'utf-8')) as Record<string, unknown>;
+                  title = (parsed?.title as string) || id;
+                  hasScenes = Array.isArray(parsed?.scenes) && (parsed.scenes as unknown[]).length > 0;
+                } catch {
+                  /* skip */
+                }
+              }
+              sections.push({ id, title, hasScenes });
+            }
+          }
+
+          const status = {
+            vision: { exists: existsSync(resolve(designbookDir, 'vision.yml')) },
+            designSystem: {
+              tokens: existsSync(resolve(designbookDir, 'design-system/design-tokens.yml')),
+            },
+            dataModel: { exists: existsSync(resolve(designbookDir, 'data-model.yml')) },
+            shell: { exists: existsSync(resolve(designbookDir, 'design-system/design-system.scenes.yml')) },
+            sections,
+          };
+
+          res.setHeader('Content-Type', 'application/json');
+          res.statusCode = 200;
+          res.end(JSON.stringify(status));
+        } catch (err: unknown) {
+          res.statusCode = 500;
+          res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }));
+        }
+      });
+
+      // HTTP endpoint: list mapping files in a designbook subdirectory (single request
+      // so the data-model overview resolves every badge's mapped/open state at once).
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      server.middlewares.use('/__designbook/list', (req: IncomingMessage, res: any) => {
+        try {
+          const url = new URL(req.url || '', 'http://localhost');
+          const dir = url.searchParams.get('dir') || '';
+          const files = listMappingFiles(designbookDir, dir);
+          res.setHeader('Content-Type', 'application/json');
+          res.statusCode = 200;
+          res.end(JSON.stringify({ dir, files }));
+        } catch (err: unknown) {
+          res.statusCode = 403;
+          res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }));
+        }
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      server.middlewares.use('/__designbook/load', (req: IncomingMessage, res: any) => {
+        if (req.method !== 'GET') {
+          res.statusCode = 405;
+          res.end(JSON.stringify({ error: 'Method not allowed' }));
+          return;
+        }
+
+        try {
+          const url = new URL(req.url || '', 'http://localhost');
+          const filePath = url.searchParams.get('path');
+
+          if (!filePath) {
+            res.statusCode = 400;
+            res.end(JSON.stringify({ error: 'Invalid path' }));
+            return;
+          }
+
+          const fullPath = resolve(designbookDir, filePath);
+
+          // Security: resolve() honors absolute inputs and ../ segments, so a
+          // crafted `path` could escape designbookDir and read any readable
+          // file. Require the resolved path to stay within designbookDir.
+          if (fullPath !== designbookDir && !fullPath.startsWith(designbookDir + sep)) {
+            res.statusCode = 403;
+            res.end(JSON.stringify({ error: 'Path outside designbook directory' }));
+            return;
+          }
+
+          if (!existsSync(fullPath)) {
+            res.setHeader('Content-Type', 'application/json');
+            res.statusCode = 200;
+            res.end(JSON.stringify({ exists: false, content: null, searchedPath: fullPath, baseDir: designbookDir }));
+            return;
+          }
+
+          const ext = filePath.split('.').pop()?.toLowerCase();
+          const mimeTypes: Record<string, string> = {
+            png: 'image/png',
+            jpg: 'image/jpeg',
+            jpeg: 'image/jpeg',
+            gif: 'image/gif',
+            webp: 'image/webp',
+            svg: 'image/svg+xml',
+            ico: 'image/x-icon',
+          };
+
+          if (ext && mimeTypes[ext]) {
+            const binaryContent = readFileSync(fullPath);
+            res.setHeader('Content-Type', mimeTypes[ext]);
+            res.statusCode = 200;
+            res.end(binaryContent);
+            return;
+          }
+
+          const content = readFileSync(fullPath, 'utf-8');
+          res.setHeader('Content-Type', 'application/json');
+          res.statusCode = 200;
+          res.end(JSON.stringify({ exists: true, content }));
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (err: any) {
+          res.statusCode = 500;
+          res.end(JSON.stringify({ error: err.message }));
+        }
+      });
+
+      // Serve workspace files by absolute path (for file viewer modal).
+      // Restricted to files under baseDir to prevent directory traversal.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      server.middlewares.use('/__designbook/file', (req: IncomingMessage, res: any) => {
+        if (req.method !== 'GET') {
+          res.statusCode = 405;
+          res.end(JSON.stringify({ error: 'Method not allowed' }));
+          return;
+        }
+
+        try {
+          const url = new URL(req.url || '', 'http://localhost');
+          const absPath = url.searchParams.get('path');
+
+          if (!absPath) {
+            res.statusCode = 400;
+            res.end(JSON.stringify({ error: 'Missing path parameter' }));
+            return;
+          }
+
+          // Security: resolve and verify the path is under baseDir. Compare
+          // against `baseDir + sep` so a sibling dir sharing the prefix
+          // (e.g. /home/ws-evil vs /home/ws) cannot pass the check.
+          const resolved = resolve(absPath);
+          if (resolved !== baseDir && !resolved.startsWith(baseDir + sep)) {
+            res.statusCode = 403;
+            res.end(JSON.stringify({ error: 'Path outside workspace' }));
+            return;
+          }
+
+          if (!existsSync(resolved)) {
+            res.statusCode = 404;
+            res.end(JSON.stringify({ error: 'File not found' }));
+            return;
+          }
+
+          const ext = resolved.split('.').pop()?.toLowerCase();
+          const mimeTypes: Record<string, string> = {
+            png: 'image/png',
+            jpg: 'image/jpeg',
+            jpeg: 'image/jpeg',
+            gif: 'image/gif',
+            webp: 'image/webp',
+            svg: 'image/svg+xml',
+          };
+
+          if (ext && mimeTypes[ext]) {
+            const binaryContent = readFileSync(resolved);
+            res.setHeader('Content-Type', mimeTypes[ext]);
+            res.statusCode = 200;
+            res.end(binaryContent);
+            return;
+          }
+
+          const content = readFileSync(resolved, 'utf-8');
+          res.setHeader('Content-Type', 'application/json');
+          res.statusCode = 200;
+          res.end(JSON.stringify({ content, path: resolved }));
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (err: any) {
+          res.statusCode = 500;
+          res.end(JSON.stringify({ error: err.message }));
+        }
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      server.middlewares.use('/__designbook/story', (req: IncomingMessage, res: any) => {
+        if (req.method !== 'GET') {
+          res.statusCode = 405;
+          res.end(JSON.stringify({ error: 'Method not allowed' }));
+          return;
+        }
+
+        try {
+          const url = new URL(req.url || '', 'http://localhost');
+          // Extract storyId from path: /__designbook/story/{storyId}
+          const pathParts = url.pathname.split('/').filter(Boolean);
+          const storyId = pathParts[0] ? decodeURIComponent(pathParts[0]) : url.searchParams.get('id');
+
+          if (!storyId) {
+            res.statusCode = 400;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: 'Missing storyId — use /__designbook/story/{storyId}' }));
+            return;
+          }
+
+          const config = { data: designbookDir, technology: 'html' as const };
+          const story = StoryMeta.load(config, storyId);
+
+          if (!story) {
+            res.statusCode = 404;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: `Story not found: ${storyId}` }));
+            return;
+          }
+
+          const storyJson = story.toJSON();
+          const ref = storyJson.reference ? Reference.load(config, storyJson.reference) : null;
+          const referenceJson = ref?.toJSON();
+          const payload = {
+            ...storyJson,
+            referenceElements: referenceJson?.elements ?? [],
+            referenceCaptures: referenceJson?.captures ?? [],
+          };
+          res.setHeader('Content-Type', 'application/json');
+          res.statusCode = 200;
+          res.end(JSON.stringify(payload));
+        } catch (err: unknown) {
+          res.statusCode = 500;
+          res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }));
+        }
+      });
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Overview story (canvas replacement for the old docs page)
+// ---------------------------------------------------------------------------
+
+const MOUNT_REACT_IMPORT = "import { mountReact } from 'storybook-addon-designbook/dist/pages/mount-react.js';";
+const SECTION_PAGE_IMPORT =
+  "import { DeboSectionPage } from 'storybook-addon-designbook/dist/components/pages/DeboSectionPage.js';";
+
+function buildOverviewStory(sectionId: string, title: string): string {
+  const sid = sectionId.replace(/'/g, "\\'");
+  const ttl = title.replace(/'/g, "\\'");
+  return [
+    'export const overview = {',
+    "  tags: ['!autodocs'],",
+    "  parameters: { layout: 'fullscreen', designbook: { order: 3 } },",
+    `  render: () => mountReact(DeboSectionPage, { sectionId: '${sid}', title: '${ttl}' }),`,
+    '};',
+    '',
+  ].join('\n');
+}
+
+function buildPlaceholderModule(group: string, sectionId: string, title: string): string {
+  return [
+    MOUNT_REACT_IMPORT,
+    SECTION_PAGE_IMPORT,
+    '',
+    'export default {',
+    `  title: '${group.replace(/'/g, "\\'")}',`,
+    "  tags: ['!autodocs'],",
+    "  parameters: { layout: 'fullscreen' },",
+    '};',
+    '',
+    buildOverviewStory(sectionId, title),
+  ].join('\n');
+}
+
+function prependOverviewToModule(sceneCode: string, sectionId: string, title: string): string {
+  const header = [MOUNT_REACT_IMPORT, SECTION_PAGE_IMPORT, '', buildOverviewStory(sectionId, title)].join('\n');
+  return header + sceneCode;
+}
+
+// ---------------------------------------------------------------------------
+// Error module
+// ---------------------------------------------------------------------------
+
+function buildErrorModule(id: string, error: unknown): string {
+  const msg = (error instanceof Error ? error.message : String(error)).replace(/'/g, "\\'").replace(/\n/g, '\\n');
+  const name = (id.split('/').pop() || 'unknown').replace(/'/g, "\\'");
+  return [
+    `export default { title: 'Errors/${name}', tags: ['scene', '!autodocs'], parameters: { layout: 'centered' } };`,
+    `export const LoadError = { render: () => '<div style="padding:2rem;color:#ef4444;font-family:monospace"><h3>Scene Load Error</h3><pre>${msg}</pre><p>File: ${name}</p></div>' };`,
+  ].join('\n');
+}
+
+// ---------------------------------------------------------------------------
+// Sections virtual module
+// ---------------------------------------------------------------------------
+
+function buildSectionsModule(designbookDir: string): string {
+  const sectionsDir = resolve(designbookDir, 'sections');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sections: any[] = [];
+
+  if (existsSync(sectionsDir)) {
+    for (const dir of readdirSync(sectionsDir)) {
+      const sectionDir = join(sectionsDir, dir);
+      try {
+        const file = readdirSync(sectionDir).find((f) => f.endsWith('.section.scenes.yml'));
+        if (!file) continue;
+        const parsed = parseYaml(readFileSync(join(sectionDir, file), 'utf-8'));
+        if (parsed && typeof parsed === 'object') {
+          sections.push(parsed);
+        }
+      } catch {
+        // skip unreadable dirs
+      }
+    }
+    sections.sort((a, b) => (a.order || 999) - (b.order || 999));
+  }
+
+  return `export default ${JSON.stringify(sections)};`;
+}
+
+// ---------------------------------------------------------------------------
+// Themes virtual module
+// ---------------------------------------------------------------------------
+
+export function buildThemesModule(designbookDir: string): string {
+  const tokensPath = resolve(designbookDir, 'design-system/design-tokens.yml');
+  const themeNames: string[] = ['light'];
+
+  if (existsSync(tokensPath)) {
+    try {
+      const parsed = parseYaml(readFileSync(tokensPath, 'utf-8')) as Record<string, unknown>;
+      const themesObj = parsed?.themes;
+      if (themesObj && typeof themesObj === 'object' && !Array.isArray(themesObj)) {
+        for (const key of Object.keys(themesObj)) {
+          if (!themeNames.includes(key)) themeNames.push(key);
+        }
+      }
+    } catch {
+      // design-tokens.yml unreadable — fall back to light only
+    }
+  }
+
+  const themes: Record<string, string> = {};
+  for (const name of themeNames) {
+    themes[name] = name;
+  }
+
+  return [
+    `export const themes = ${JSON.stringify(themes)};`,
+    `export const themeNames = ${JSON.stringify(themeNames)};`,
+    `export const defaultTheme = 'light';`,
+  ].join('\n');
+}
+
+// ---------------------------------------------------------------------------
+// Main scene loader
+// ---------------------------------------------------------------------------
+
+async function loadEntityModule(
+  id: string,
+  designbookDir: string,
+  options: {
+    builders?: SceneNodeBuilder[];
+    resolveImportPath?: (componentId: string) => string | null;
+    wrapImport?: (alias: string) => string;
+  },
+): Promise<string | null> {
+  try {
+    const code = await buildEntityModule(id, designbookDir, options);
+    const result = await transformWithEsbuild(code, id + '.js', { loader: 'js' });
+    return result.code;
+  } catch (e: unknown) {
+    console.error('[Designbook] Error loading entity module:', id, e);
+    return buildErrorModule(id, e);
+  }
+}
+
+async function loadSceneModule(
+  id: string,
+  designbookDir: string,
+  options: {
+    provider?: string;
+    builders?: SceneNodeBuilder[];
+    resolveImportPath?: (componentId: string) => string | null;
+    wrapImport?: (alias: string) => string;
+  },
+): Promise<string | null> {
+  try {
+    const content = readFileSync(id, 'utf-8');
+    const raw = parseYaml(content);
+
+    if (!raw || typeof raw !== 'object') {
+      console.warn('[Designbook] Scene file parsed as null/empty:', id);
+      return null;
+    }
+
+    const parsed = raw as Record<string, unknown>;
+    const scenes = parsed.scenes as unknown[] | undefined;
+    const hasScenes = Array.isArray(scenes) && scenes.length > 0;
+
+    const fileBase = basename(id);
+    const sectionId = (parsed.id as string) || fileBase.replace(/\.(\w+\.)?scenes\.yml$/, '');
+    const title = (parsed.title as string) || 'Untitled';
+    const group = (parsed.name as string) || `Designbook/Sections/${title}`;
+
+    if (!hasScenes) {
+      return buildPlaceholderModule(group, sectionId, title);
+    }
+
+    const sceneCode = await buildSceneModule(id, parsed, designbookDir, {
+      builders: options.builders,
+      resolveImportPath: options.resolveImportPath,
+      wrapImport: options.wrapImport,
+    });
+
+    const codeWithOverview = prependOverviewToModule(sceneCode, sectionId, title);
+    const result = await transformWithEsbuild(codeWithOverview, id + '.js', { loader: 'js' });
+    return result.code;
+  } catch (e: unknown) {
+    console.error('[Designbook] Error loading scene module:', id, e);
+    return buildErrorModule(id, e);
+  }
+}

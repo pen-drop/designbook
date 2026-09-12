@@ -15,5 +15,12 @@
     ]
   },
   "enableAllProjectMcpServers": true,
-  "prefersReducedMotion": true
+  "prefersReducedMotion": true,
+  "enabledPlugins": {
+    "designbook@designbook": false,
+    "designbook-drupal@designbook": false,
+    "designbook-css-tailwind@designbook": false,
+    "designbook-stitch@designbook": false,
+    "designbook-gaia@designbook": false
+  }
 }

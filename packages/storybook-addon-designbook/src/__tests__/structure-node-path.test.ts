@@ -11,11 +11,11 @@
  * shapes where the old three-place path derivation drifted.
  */
 import { describe, it, expect } from 'vitest';
-import { view } from '../renderer/view';
-import { renderComponent } from '../renderer/renderer';
-import { toTreeItems } from '../components/composition-tree';
-import type { SceneTreeNode, ComponentModule } from '../renderer/types';
-import type { DeboTreeItem } from '../components/ui/DeboTree';
+import { view } from '../scene-model/view';
+import { renderComponent } from '../addon/renderer/renderer';
+import { toTreeItems } from '../addon/components/composition-tree';
+import type { SceneTreeNode, ComponentModule } from '../scene-model/types';
+import type { DeboTreeItem } from '../addon/components/ui/DeboTree';
 
 /** Flatten resolved slot values (strings / arrays of rendered strings) into HTML. */
 function embedSlots(slots: Record<string, unknown>): string {

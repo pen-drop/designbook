@@ -1,6 +1,6 @@
 ---
 trigger:
-  steps: [design-screen:intake, design-entity:intake, create-sample-data, design-screen:map-entity, design-entity:map-entity, create-scene]
+  steps: [design-screen:intake, design-entity:intake, design-component:intake, design-shell:intake, create-sample-data, map-entity, write-scene]
 ---
 
 # Entity Reference Rendering

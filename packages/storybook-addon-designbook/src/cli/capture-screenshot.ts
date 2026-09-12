@@ -1,17 +1,20 @@
 /**
- * `_debo capture screenshot` — capture ONE element (or story root, or full page)
- * in a single browser session, using the same isolate-and-capture core as
- * `capture matrix`. This is the story-side accelerator referenced from
- * `ensure-baseline` / `capture-storybook`: point it at a story iframe or a
- * reference URL with a selector, optional state steps, and a breakpoint width,
- * and it produces one PNG with the mandated settle — no per-run improvised
- * playwright one-liners.
+ * Runner for `reference capture-image` — capture ONE element (or story root,
+ * or full page) in a single browser session, using the same isolate-and-capture
+ * core as `capture matrix`.
  */
 
 import { mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import type { DesignbookConfig } from '../config.js';
-import { CAPTURE_HEIGHT, isolateAndCapture, runStateSteps, settlePage, type CaptureStep } from './capture-browser.js';
+import type { DesignbookConfig } from '../shared/config.js';
+import {
+  CAPTURE_HEIGHT,
+  isolateAndCapture,
+  runStateSteps,
+  settlePage,
+  type CaptureStep,
+} from '../tools/capture-browser.js';
+import { ANONYMOUS_SESSION, prepareCapturePass, runPrelude, sessionContextOptions } from '../tools/capture-session.js';
 
 /** Parse the `--steps` JSON argument into a CaptureStep array (empty when absent). */
 export function parseStepsArg(raw: string | undefined): CaptureStep[] {
@@ -37,7 +40,14 @@ export interface ScreenshotOptions {
   steps?: CaptureStep[];
   transparent?: boolean;
   fullPage?: boolean;
-  consentSelector?: string;
+  /** Named session to observe as; defaults to the reserved anonymous session. */
+  session?: string;
+  /** Observed state this shot belongs to; passed to the prelude as context. */
+  state?: string;
+  /** View identity this shot belongs to; passed to the prelude as context. */
+  view?: string;
+  /** Path to the capture workflow's prelude module. */
+  prelude?: string;
 }
 
 export interface ScreenshotResult {
@@ -50,16 +60,26 @@ export async function runCaptureScreenshot(
   opts: ScreenshotOptions,
   config: DesignbookConfig,
 ): Promise<ScreenshotResult> {
-  void config;
+  const session = opts.session ?? ANONYMOUS_SESSION;
+  const { storageState, prelude } = await prepareCapturePass(config, {
+    session,
+    ...(opts.prelude ? { prelude: opts.prelude } : {}),
+  });
   const { chromium } = await import('playwright');
   const browser = await chromium.launch({ headless: true });
   try {
-    const context = await browser.newContext({ viewport: { width: opts.width, height: CAPTURE_HEIGHT } });
+    const context = await browser.newContext({
+      viewport: { width: opts.width, height: CAPTURE_HEIGHT },
+      ...sessionContextOptions(storageState),
+    });
     const page = await context.newPage();
     await page.goto(opts.url);
-    if (opts.consentSelector) {
-      await page.click(opts.consentSelector, { timeout: 3000 }).catch(() => {});
-    }
+    await runPrelude(page, prelude, {
+      session,
+      url: opts.url,
+      ...(opts.state ? { state: opts.state } : {}),
+      ...(opts.view ? { view: opts.view } : {}),
+    });
     await settlePage(page, opts.selector || undefined);
     await runStateSteps(page, opts.steps ?? []);
     await mkdir(resolve(opts.outPath, '..'), { recursive: true });

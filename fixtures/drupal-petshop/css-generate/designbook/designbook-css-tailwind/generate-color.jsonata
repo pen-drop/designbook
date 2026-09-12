@@ -1,0 +1,46 @@
+/** @config
+ {
+   "input": "../design-system/design-tokens.yml",
+   "output": "../../css/tokens/color.src.css"
+ }
+ */
+(
+  $normalizeCssValue := function($val) {
+    $type($val) = "string"
+      ? $replace($val, /(^|\s|:|,|\()(-?)\.(\d)/, function($m) { $m.groups[0] & $m.groups[1] & "0." & $m.groups[2] })
+      : $val
+  };
+  $resolve := function($val) {
+    $substring($val, 0, 1) = "{" ? (
+      $ref := $replace($replace($val, "{", ""), "}", "");
+      $parts := $split($ref, ".");
+      $type := $parts[1];
+      $primPrefix := $type = "fontFamily" ? "font"
+        : $type = "fontSize" ? "text"
+        : $type = "fontWeight" ? "font-weight"
+        : $type = "lineHeight" ? "leading"
+        : $type;
+      "var(--" & $primPrefix & "-" & $join($filter($parts, function($p, $i) { $i >= 2 }), "-") & ")"
+    ) : $normalizeCssValue($val)
+  };
+  $walk := function($node, $path) {
+    $reduce(
+      $keys($node),
+      function($acc, $k) {
+        $substring($k, 0, 1) != "$" ? (
+          $v := $lookup($node, $k);
+          $sub := $path = "" ? $k : $path & "-" & $k;
+          $exists($v."$value")
+            ? $append($acc, "  --color-" & $sub & ": " & $resolve($v."$value") & ";")
+            : $append($acc, $walk($v, $sub))
+        ) : $acc
+      },
+      []
+    )
+  };
+  $node := $reduce($split("semantic.color", "."), function($a, $s) { $lookup($a, $s) }, $$);
+  $lines := $walk($node, "");
+  $count($lines) > 0
+    ? "@theme static {\n" & $join($lines, "\n") & "\n}\n"
+    : ""
+)

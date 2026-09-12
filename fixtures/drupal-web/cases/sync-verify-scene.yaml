@@ -18,7 +18,7 @@ prompt: |
 
   PART A — Scene sync (CONFIG ONLY, no content):
   1. Run the /debo sync-to workflow with `scene: landing`, `section: landing`,
-     `gate: soft` (providing a `scene` selects the scene branch). It must emit an ordered
+     (providing a `scene` selects the scene branch). It must emit an ordered
      CONFIG-unit list — and ONLY config units, never content units:
      - the config of the node.landing and block_content.hero bundles + their fields,
      - the block_content.hero.default display,
@@ -87,6 +87,6 @@ assert:
     value: '!output.newFiles.some(p => /sync\/content\//.test(p))'
   # Both workflows archived cleanly, nothing left pending.
   - type: javascript
-    value: output.archivedWorkflows['sync-verify']?.status === 'completed'
+    value: output.completedWorkflows['sync-verify']?.state?.status === 'completed'
   - type: javascript
     value: Object.keys(output.pendingWorkflows).length === 0

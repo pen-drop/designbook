@@ -40,10 +40,7 @@ Apply the config-sync directory to the live Drupal site by running:
 
 Capture stdout, stderr, and the exit code.
 
-**On a non-zero exit code:**
-
-- If `scope.validation_gate` is `'soft'` (eval/gradient-scoring mode) — record the outcome in `sync-result` and **continue**. The scorer needs the result even on failure.
-- Otherwise (`scope.validation_gate` is `'hard'` or absent) — record `drush_summary` and `cim_ok: false`, then **abort** the stage immediately and surface the drush output as the failure reason.
+On a non-zero exit code, retain stdout/stderr as failure evidence. Correct the cause and retry this task. If it cannot be corrected within the saved definition, block the task with the attempted correction and the command output. A failed import does not complete this task.
 
 ## Result: sync-result
 

@@ -31,7 +31,7 @@ drush eval '$p = explode(".", "{config_id}"); [$type, $bundle, $viewMode] = $p; 
 
 - The canonical page renders the entity in its `full` view mode; for other view modes point
   the command at a route that renders that view mode.
-- The backend-side isolation `selector` for the rendered entity (used by `capture-backend`)
+- The backend-side isolation `selector` for the rendered entity (supplied to the website capture workflow)
   is the entity's rendered wrapper — e.g. `.node`, `article.node`, or the SDC/component root
   the view display renders into. Supply it as the sync-verify element `selector`; its
   presence is what selects this config-entity sub-mode.
@@ -92,7 +92,8 @@ drush config:export -y   # persist the change to the config sync directory
 
 Typical fixes that move the score: change a field's `type` (formatter), its `settings`,
 `label` visibility, `weight`/ordering under `content`, or move a field to `hidden`. After the
-edit, the workflow re-captures and re-compares — do not re-render inside the fix pass.
+edit, create a fresh backend capture revision and a new comparison definition;
+keep the prior published captures unchanged.
 
 For a `scene`-kind subject the fixable surface is the synced page's **config only** — the
 Layout-Builder display/layout config (`core.entity_view_display.<et>.<bundle>.<full>` with its

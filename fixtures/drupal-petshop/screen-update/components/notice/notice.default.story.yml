@@ -1,0 +1,4 @@
+title: Notice
+component: test_integration_drupal:notice
+props:
+  text: Adoption appointments available

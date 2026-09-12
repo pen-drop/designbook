@@ -2,12 +2,12 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { mkdtempSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
-import { indexEntity } from '../preset';
+import { indexEntity } from '../addon/preset';
 
 // The fixture designbook dir carries a data-model.yml where `view` lives under
 // config: and `node` under content: — the indexer derives Config vs Entities
 // grouping from that section, so it reads the model from dirname(dirname(file)).
-const FIXTURES = resolve(__dirname, '../renderer/__tests__/fixtures');
+const FIXTURES = resolve(__dirname, '../addon/renderer/__tests__/fixtures');
 
 let em: string;
 

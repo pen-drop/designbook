@@ -1,128 +1,35 @@
 ---
 name: workflow-files
-description: Authoring + validation rules for workflow files (workflows/*.md). Load before creating or editing any workflow file; load alongside common-rules.md.
-applies-to:
-  - workflows/*.md
-  - "**/workflows/*.md"
+description: Author workflow templates and their intake/executor boundaries. Load when editing workflows/*.md.
+applies-to: ["**/workflows/*.md"]
 ---
 
-# Workflow File Rules
+# Workflow templates
 
-Load together with [common-rules.md](common-rules.md).
+Load with [common rules](common-rules.md). The [shared builder](../../designbook/resources/workflow-building.md) owns the definition-building procedure; `workflow schema` owns its machine contract.
 
-## Workflow File Format
+A domain skill is an intake outside the run. Its resource owns questions, reference analysis, structural inputs and handoff. First command: `workflow discover <id>`. That catalogue is the palette of tasks, rules and blueprints. Resolve the entire target inventory, instantiate the definition with the [shared builder](../../designbook/resources/workflow-building.md), then follow the builder's chosen mode (`ephemeral` | `persist` | `ask`) for whether to invoke `execute-workflow` on the sealed path.
 
-Workflow files live at `.agents/skills/<skill>/<concern>/workflows/<workflow-id>.md`. The filename (minus `.md`) becomes the workflow's ID — `design/workflows/design-component.md` defines workflow `design-component`.
+Templates contain executable building blocks, grouped by `stages: { name: { steps: [...] } }`. Task names are plain names; task discovery can qualify them with the template ID. Repetition is a prose hint to the planning agent, which writes each concrete task. Template stages never create runtime tasks.
 
-### Frontmatter Fields
-
-| Field | Type | Notes |
-|-------|------|-------|
-| `name:` | string | Canonical name. Defaults to filename (minus `.md`) if omitted — usually omit. |
-| `title:` | string | Human-readable title shown in UI surfaces. |
-| `description:` | string | One-liner summary. |
-| `stages:` | map | Stage-name → `{ steps: [<step-name>, ...] }`. See below. |
-| `track:` | bool | Default `true`. Set `false` for untracked utility workflows (e.g. `sb`) that don't write run state. |
-| `engine:` | string | Execution engine. Always `direct` for designbook workflows; omit only for untracked workflows. |
-| `params:` | map | Workflow inputs; see [`resources/schemas.md`](../resources/schemas.md) for `resolve:` / `from:`. |
-| `before:` | list | Before-hooks — see below. |
-| `after:` | list | After-hooks — see below. |
-
-### `stages:`
-
-Each key is a stage name; its `steps:` lists step names that resolve to `tasks/<step>.md` in any loaded skill. See [task-files.md](task-files.md) for task filename conventions and workflow-qualified step names.
-
-A stage may also declare `domain: [<name>, ...]` to seed the rule/blueprint context for every step in that stage (additive to any `domain:` a task itself declares):
-
-```yaml
-stages:
-  data:
-    steps: [define-data-model]
-    domain: [data-model]
-```
-
-A stage may also declare `isolate: true` to run that stage's task(s) in a dedicated subagent context instead of inline in the orchestrator. Default is `false` (or absent — omit rather than spell out `false`). Use `isolate: true` on context-heavy stages of long workflows; lightweight stages such as intake, setup, and outtake should stay inline. The engine surfaces the flag on each `step_resolved` entry and on `workflow instructions`; the driver acts on it per `resources/workflow-execution.md`. An isolated stage that contains multiple `each:`-expanded tasks runs as **one** subagent that loops over the sibling tasks, not one subagent per task.
-
-```yaml
-stages:
-  create-component:
-    steps: [create-component]
-    isolate: true
-```
-
-### `before:` / `after:` Hooks
-
-Hooks are authored in the workflow frontmatter. The engine surfaces `before:` in the `workflow create` response (after intake resolves) and surfaces `after:` when the final `workflow done` lands. The AI driver reads these and triggers follow-up workflows per their policy.
-
-```yaml
-before:
-  - workflow: css-generate
-    execute: if-never-run   # always | if-never-run | ask
-
-after:
-  - workflow: design-verify
-    # no execute field — after-hooks always ask
-```
-
-- **`before`**: requires an `execute` policy (`always`, `if-never-run`, or `ask`). Runs after `workflow create` intake succeeds, before the first stage starts.
-- **`after`**: has no `execute` field — after-hooks always ask. Suggested after the workflow's final `done`.
-- **Reads gate (both)**: if the referenced workflow's required `reads:` (declared on its tasks, not on the hook) are unsatisfied in the current project, the hook is skipped silently.
-- **Parent linkage (both)**: the engine passes `--parent <workflow-name>` when triggering the hook workflow, so the hook's parent is the workflow that declared it.
-- **`when:` (optional, hook-level)**: JSONata expression evaluated against the declaring workflow's scope; skip the hook if it returns falsey (e.g. `when: "components.length <= 1"`).
-- **`optional: true` (optional, hook-level)**: mark a hook as skippable if its workflow is not installed in the current project.
-
-### Example
+Templates have `title`, `description`, optional input descriptions in `params`, and `stages`. They contain no intake stages, interactive stages, runtime repetition or before/after hooks. Conditional prerequisite work is decided during intake and incorporated into the fixed definition.
 
 ```yaml
 ---
 title: Design Component
-description: Create a new UI component from a design reference
-params:
-  component_id: { type: string }
-  reference_url: { type: string, default: "" }
-engine: direct
+description: Produce the component artifacts selected during intake
 stages:
-  intake:
-    steps: [intake]
   component:
-    steps: [create-component]
-before:
-  - workflow: css-generate
-    execute: if-never-run
-after:
-  - workflow: design-verify
+    steps: [write-component]
 ---
 ```
 
-## Workflow Steps Are Plain Names
-
-In workflow definitions (`stages.*.steps`), step names are always plain — never prefixed with the workflow name:
-
-**Correct:**
-```yaml
-stages:
-  intake:
-    steps: [intake]
-  outtake:
-    steps: [outtake]
-```
-
-**Wrong:**
-```yaml
-stages:
-  intake:
-    steps: [design-screen:intake]
-  outtake:
-    steps: [design-screen:outtake]
-```
-
-The workflow prefix belongs in task files' `trigger.steps` for disambiguation (e.g. `trigger: steps: [design-screen:intake]`), not in the workflow definition itself. The resolver combines the workflow name with the step name automatically.
-
-**Note:** `trigger.steps` is only used in **task files** for step matching. Rules and blueprints use `trigger.domain` instead — see [rule-files.md](rule-files.md) for the domain matching model.
+Completion: the template describes only artifact work; structural decisions live in intake; the generated document embeds every task instruction, applicable constraint, blueprint, configuration instruction and validation schema. Execution reads only that definition and updates its separate state.
 
 ## Checks
 
 | ID | Severity | What to verify | Where |
 |---|---|---|---|
-| WORKFLOW-01 | warning | No `stages.*.steps` entry contains a workflow-qualified name (a `:`-separated step with a workflow prefix) — step names inside a workflow definition must be plain | body |
-| WORKFLOW-02 | warning | If any `stages.*.isolate` is present, it is a boolean | body |
+| WORKFLOW-01 | error | Step names are plain names | frontmatter |
+| WORKFLOW-02 | error | No intake/interactive stages, each, before or after declarations | frontmatter |
+| WORKFLOW-03 | error | Domain intake invokes the shared builder; execute follows the chosen mode | intake resource |

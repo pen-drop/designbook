@@ -1,21 +1,14 @@
 ---
 name: designbook-gaia
 description: >
-  GAIA integration for Designbook — provides the two GAIA workflow-step skills
-  that encode Designbook domain knowledge: `debo-designbook-design`
-  (work_type design-to-designbook) and `debo-config-sync`
-  (work_type designbook-to-config). Designbook is the sole owner of this
-  knowledge (debo flags, design-verify/sync-verify, Storybook & Drupal
-  preview links, design_verify/config_verify measurements). Each step-skill is a
-  nested sub-skill under `skills/<name>/`, addressable as
-  `@designbook-gaia/<name>`. This skill ships only GAIA-step prose — it copies
-  no gaia helper and is deliberately non-runnable without the gaia plugin loaded.
+  Use for GAIA design-to-designbook and designbook-to-config work types.
+  Do not use without the GAIA plugin or for unrelated workflow steps.
 ---
 
 # designbook-gaia — GAIA step-skills for the Designbook work-types
 
 This integration skill is the **home** of the two GAIA workflow-step skills that carry Designbook
-domain knowledge. Designbook is the source of that knowledge (debo flags, `design-verify` /
+domain knowledge. Designbook is the source of that knowledge (Designbook intake and execution, `design-verify` /
 `sync-verify`, the Storybook and Drupal preview-module links, the `design_verify` /
 `config_verify` measurements), so the skills live here rather than in the gaia plugin.
 
@@ -24,9 +17,13 @@ domain knowledge. Designbook is the source of that knowledge (debo flags, `desig
 | `debo-designbook-design` | `design-to-designbook` | `diagnose`, `spec`, `coding`, `review` | `debo design-verify` | `@designbook-gaia/debo-designbook-design` |
 | `debo-config-sync` | `designbook-to-config` | `diagnose`, `spec`, `coding`, `review` | `debo sync-verify` | `@designbook-gaia/debo-config-sync` |
 
-Both follow **plan → build → validate**: `spec` runs the debo workflow with `--plan` to write the
-plan and stop; `coding` runs it with `--from-plan` to build autonomously from that plan; `validate`
-(`debo design-verify` / `debo sync-verify`) checks the result.
+Both use scope specification in GAIA spec and Designbook build/execute in coding.
+`debo-designbook-design` may record intended mode (`ephemeral` | `persist` | `ask`) and any
+`ReferenceNeed` in spec without invoking intake; coding prefers `@designbook/execute-workflow`
+on a pre-persisted durable plan when present, otherwise a mode-aware intake. Intakes follow
+shared builder modes — they do **not** unconditionally auto-invoke the executor.
+`extract-reference` stays a separate start from design execute. Validation uses the matching
+verification intake after artifact production.
 
 ## Contract
 
@@ -66,6 +63,7 @@ and (optionally) overrides their inputs inline. Copyable block:
     provision: ddev init --provider recipe-test
 ```
 
-The `spec` / `build` / `validate` inputs default to the debo commands baked into each sub-skill
-(`debo <workflow> --plan`, `debo <workflow> --from-plan <plan>`, `debo design-verify` /
-`debo sync-verify`); override any of them the same way if a project needs a different command.
+The `spec` input defaults to a written domain scope (mode + ReferenceNeed allowed for design).
+The `build` input for design prefers execute-from-plan when a durable handoff exists; otherwise
+a mode-aware Designbook intake. `validate` invokes `debo design-verify` or `debo sync-verify`.
+Override an input only when the project requires a different implementation or verification task.

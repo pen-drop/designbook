@@ -98,7 +98,7 @@ function buildOutput(workspaceDir) {
     } catch { /* skip */ }
   }
 
-  // Harness-computed sha256 of every output file (bytes) — mirrors the claude-cli
+  // Harness-computed sha256 of every output file (bytes) — mirrors the codex-cli
   // provider so offline assertion checks see the same tester-computed digests.
   const fileHashes = {};
   for (const filePath of newFiles) {

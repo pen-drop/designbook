@@ -1,3 +1,5 @@
+verify: design-verify-screen
+
 fixtures:
   - vision
   - data-model
@@ -18,8 +20,10 @@ prompt: |
   Do NOT list the landing pages as several equal-rank entity nodes and do NOT use
   `records: [...]` — the listing is the View.
 
-  No design reference is available; infer the structure from the section spec and the
-  data model (state reference: none in the structure preview).
+  Use https://leando.de/ as the design reference for the main content region
+  (reference selector "main"). Extract the reference during intake, then adapt
+  its layout and visual treatment to the content structure specified above.
+  Use breakpoints sm and xl with comparison threshold 3%.
   Generate any UI components the View rows need, the entity-mapping (JSONata) files,
   the sample data, and the scenes file. After generating all files, run
   `pnpm build-storybook` to verify everything renders.
@@ -29,13 +33,11 @@ assert:
   - type: javascript
     value: output.newFiles.some(f => f.endsWith('.scenes.yml'))
   - type: javascript
-    value: |
-      return output.archivedWorkflows['design-screen']?.status === 'completed';
+    value: output.completedWorkflows['design-screen']?.state?.status === 'completed'
   - type: javascript
-    value: |
-      return output.archivedWorkflows['design-screen']?.tasks?.every(t => t.status === 'done');
+    value: Object.values(output.completedWorkflows['design-screen']?.state?.tasks || {}).every(t => t.status === 'done')
   - type: javascript
-    value: |
-      return output.text.includes('build-storybook') || output.text.includes('Build completed');
+    # Prefer durable artifacts over agent prose mentioning the build command.
+    value: output.newFiles.some((f) => f.includes('entity-mapping/') && f.endsWith('.jsonata')) || output.newFiles.some((f) => f.includes('sections/') && f.endsWith('.scenes.yml'))
   - type: javascript
     value: Object.keys(output.pendingWorkflows).length === 0

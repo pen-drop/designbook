@@ -1,0 +1,26 @@
+{#
+/**
+ * @file
+ * Template for page component.
+ *
+ * Available variables:
+ * - header: Header region
+ * - content: Main content region
+ * - footer: Footer region
+ */
+#}
+<div{{ attributes.addClass(["min-h-screen", "flex", "flex-col", "bg-background", "text-foreground"]) }}>
+  {% if header %}
+    {{ header }}
+  {% endif %}
+
+  <main class="flex-1">
+    {% if content %}
+      {{ content }}
+    {% endif %}
+  </main>
+
+  {% if footer %}
+    {{ footer }}
+  {% endif %}
+</div>

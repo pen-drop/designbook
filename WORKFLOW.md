@@ -19,8 +19,7 @@ build/verify tooling) under each `## State:` section.
 
 ```yaml
 # designbook IS the design surface: the `design` aspect drives every UI artifact through the
-# `debo` skill (design-entity | design-component | sections | design-screen) — planned in spec
-# (--plan), executed in coding (--from-plan). No hand-coded components.
+# `debo` skill (design-entity | design-component | sections | design-screen) — scoped in spec, built through intake and executor in coding. No hand-coded components.
 aspects:
   - name: design
 ```
@@ -34,7 +33,7 @@ aspects:
 ## State: spec
 
 ```yaml
-# ui_or_design handled by the `design` aspect (plan UI artifacts with `debo` in --plan mode)
+# ui_or_design handled by the `design` aspect (describe intended UI artifacts without invoking an intake)
 # debo-test task-kind — a tester ticket records its target suite/case + validate workflow here; no design planning.
 ```
 
@@ -49,7 +48,7 @@ aspects:
 ## State: coding
 
 ```yaml
-# ui_or_design handled by the `design` aspect (execute the spec's plans with `debo` --from-plan).
+# ui_or_design handled by the `design` aspect (invoke the matching `debo` intake with the specified task).
 # The verify tooling below is designbook-specific. Any change to a designbook skill
 # (workflow/task/rule/blueprint/schema) is verified through the matching `debo-test`
 # tester — never ad-hoc — over the suite/case whose fixture exercises the change.
@@ -58,8 +57,8 @@ tasks:
     reasoning: []   # the work is running one fixed tester command, not writing code — TDD does not apply
 ```
 
-- if the ticket's Task-Art is debo-test: run `debo-test run <suite> <case> --validate <workflow>` for the suite+case and validate workflow recorded by spec (append `--validate` only when spec recorded one) — never ad-hoc — and capture the tester output (the `workflow summary --json` block). Do not hand-edit skill files. Run the tester from **inside the ticket's git worktree**, never a shared plain checkout: each worktree owns its own `workspaces/` tree, so parallel same-suite runs (e.g. an A/B across agents on the same case) stay isolated and cannot clobber each other via the setup `rm -rf workspaces/<suite>`. The setup `git reset --hard`/`git clean -fd` targets only the workspace theme dir (its own git repo) and is fenced by a git-toplevel assert in `setup-test.sh`, so it never reaches the enclosing worktree.
-- if the change has a runtime surface: verify it end-to-end through the matching `debo-test` tester (never ad-hoc) — pick the suite/case whose fixture exercises the changed skill and run `debo-test run <suite> <case>` for a single functional pass, or `debo-test research <suite> <case> --baseline-only` for a scored audit; the tester provisions the test workspace (and, for a Drupal `sync-*` case, the live Drupal target via `start-drupal-workspace.sh`) and exercises the changed workflow. If no fixture exercises the change yet, author it first. Run `pnpm check` (typecheck → lint → test) in addition when the change touches the addon/TS. NOTE: run the tester from inside the ticket's git worktree (isolated `workspaces/` per ticket — the collision guard for parallel same-suite runs). `debo-test`'s setup `git reset --hard`/`git clean -fd` targets only the workspace theme dir (its own git repo) and `setup-test.sh` asserts that dir is its own git toplevel before resetting, so it is safe inside a worktree and never touches the enclosing checkout.
+- if the ticket's Task-Art is debo-test: run `debo-test run <suite> <case> --validate <workflow>` for the suite+case and validate workflow recorded by spec (append `--validate` only when spec recorded one) — never ad-hoc — and capture the tester output (the `workflow summary --json` block). Do not hand-edit skill files. Run the tester from **inside the ticket's git worktree**. For parallel same-suite runs (e.g. an A/B across agents on the same case), pass a distinct `--workspace <path>` to each invocation so setup rebuilds separate trees and ddev projects. The setup `git reset --hard`/`git clean -fd` targets only the workspace theme dir (its own git repo) and is fenced by a git-toplevel assert in `setup-test.sh`, so it never reaches the enclosing worktree.
+- if the change has a runtime surface: verify it end-to-end through the matching `debo-test` tester (never ad-hoc) — pick the suite/case whose fixture exercises the changed skill and run `debo-test run <suite> <case>` for a single functional pass, or `debo-test research <suite> <case> --baseline-only` for a scored audit; pass a distinct `--workspace <path>` for concurrent runs. The tester provisions the test workspace (and, for a Drupal `sync-*` case, the live Drupal target via `start-drupal-workspace.sh`) and exercises the changed workflow. If no fixture exercises the change yet, author it first. Run `pnpm check` (typecheck → lint → test) in addition when the change touches the addon/TS. NOTE: run the tester from inside the ticket's git worktree. `debo-test`'s setup `git reset --hard`/`git clean -fd` targets only the workspace theme dir (its own git repo) and `setup-test.sh` asserts that dir is its own git toplevel before resetting, so it is safe inside a worktree and never touches the enclosing checkout.
 - on app change: run `pnpm check` (typecheck → lint → test, fail-fast) from the repo root.
 - on conductor change: run `pnpm check` (typecheck → lint → test, fail-fast) from the repo root.
 

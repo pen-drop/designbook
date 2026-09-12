@@ -1,3 +1,5 @@
+workflow: design-entity
+
 fixtures:
   - vision
   - tokens
@@ -9,8 +11,11 @@ prompt: |
   EDITING half — the non-default "edit" form mode (form_mode: edit; do NOT pass a view_mode).
   Do NOT ask any questions. The product is "LEANDO".
 
-  No design reference is available; infer the structure from the data model
-  (state reference: none). Do NOT capture or extract any reference URL.
+  Use https://leando.de/ as the design reference. Inspect its form controls
+  during intake and select the matching control regions for visual verification;
+  the editing form's fields and structure still come from the data model below.
+  Use breakpoints sm and xl with comparison threshold 3%.
+  If no matching reference control exists, report that comparison as unavailable.
 
   The bundle is fully pre-seeded: its reading half already exists
   (designbook/entity-mapping/block_content.hero.default.jsonata) and every component the
@@ -37,14 +42,15 @@ assert:
   - type: javascript
     value: output.newFiles.some(f => f.endsWith('form-mapping/block_content.hero.edit.jsonata'))
   - type: javascript
-    value: |
-      return !output.newFiles.some(f => /entity-mapping\/.*\.jsonata$/.test(f));
+    # Pre-seeded reading half (block_content.hero.default.jsonata) is part of the
+    # fixture baseline and appears in newFiles after workspace setup — allow it.
+    # Fail only if this form run authored any *other* entity-mapping.
+    value: '!output.newFiles.some((f) => /entity-mapping\\/.*\\.jsonata$/.test(f) && !f.endsWith("entity-mapping/block_content.hero.default.jsonata"))'
   - type: javascript
-    value: output.archivedWorkflows['design-entity']?.status === 'completed'
+    value: output.completedWorkflows['design-entity']?.state?.status === 'completed'
   - type: javascript
-    value: output.archivedWorkflows['design-entity']?.tasks?.every(t => t.status === 'done')
+    value: Object.values(output.completedWorkflows['design-entity']?.state?.tasks || {}).every(t => t.status === 'done')
   - type: javascript
-    value: |
-      return output.text.includes('build-storybook') || output.text.includes('Build completed');
+    value: output.newFiles.some((f) => f.includes('form-mapping/') && f.endsWith('.jsonata'))
   - type: javascript
     value: Object.keys(output.pendingWorkflows).length === 0

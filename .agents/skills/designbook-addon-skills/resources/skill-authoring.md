@@ -63,8 +63,8 @@ When a skill covers multiple stage types, create one task file per stage. Stages
 A skill might have multiple task files for different frameworks (same stage name, differentiated by `when`):
 
 ```
-designbook-drupal/components/tasks/create-component.md    ← when: { frameworks.component: sdc }
-designbook-components-react/tasks/create-component.md  ← when: { frameworks.component: react }
+designbook-drupal/components/tasks/write-component.md    ← when: { frameworks.component: sdc }
+designbook-components-react/tasks/write-component.md  ← when: { frameworks.component: react }
 ```
 
 Only the matching one is loaded. No workflow changes needed to support new frameworks.
@@ -131,12 +131,12 @@ Framework skills that support component-level design references must provide a `
 
 ```
 designbook-drupal/components/rules/component-reference.md
-  when: steps: [resolve-reference, design-component:intake]
+  when: steps: [resolve-reference, write-component]
 ```
 
 This rule must handle two responsibilities:
 
-1. **Store** — During `design-component:intake`, store the reference in the framework-specific component file format (e.g. `.component.yml` for Drupal, `.stories.tsx` parameters for React)
+1. **Store** — During `write-component`, store the reference in the framework-specific component file format (e.g. `.component.yml` for Drupal, `.stories.tsx` parameters for React)
 2. **Read** — During `resolve-reference`, read the reference from the component file and return the normalized schema (`type`, `url`, `title`, `screens`)
 
 The reference schema is identical to the scene-level `reference` block:

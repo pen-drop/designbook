@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { storyGlobDirs } from '../storybook.js';
+import { storyGlobDirs } from '../tools/storybook.js';
 
 let ws: string;
 

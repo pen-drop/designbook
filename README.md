@@ -52,6 +52,14 @@ Test workspaces symlink the repo's `.agents`/`.claude` directories — no instal
 
 ## Development
 
+Claude Code in this repository uses the worktree's local skills. Relative links
+under `.agents/skills/` expose the nested sub-skills as slash commands such as
+`/design-shell` and `/debo-test-run`; their source stays in the owning skill's
+`skills/` directory. Project settings disable the installed Designbook plugins
+so their commands cannot load files from another checkout. Restart Claude after
+changing plugin settings. When adding a sub-skill, add its relative discovery
+link alongside the existing links.
+
 ```bash
 pnpm run dev          # Addon watcher + Storybook (parallel)
 pnpm run lint         # ESLint + Prettier
@@ -64,4 +72,3 @@ autonomous, SkillOpt-style train/val loop (`debo-test research`). See
 ## License
 
 [MIT](./LICENSE)
-

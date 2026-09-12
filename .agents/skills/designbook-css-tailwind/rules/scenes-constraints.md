@@ -1,6 +1,6 @@
 ---
 trigger:
-  steps: [create-scene-file, create-scene]
+  steps: [create-scene-file, write-scene]
 filter:
   frameworks.css: tailwind
 ---
