@@ -41,13 +41,10 @@ assert:
   - type: javascript
     value: output.newFiles.some(f => f.endsWith('.scenes.yml'))
   - type: javascript
-    value: |
-      return output.completedWorkflows['design-screen']?.state?.status === 'completed';
+    value: output.completedWorkflows['design-screen']?.state?.status === 'completed'
   - type: javascript
-    value: |
-      return Object.values(output.completedWorkflows['design-screen']?.state?.tasks || {}).every(t => t.status === 'done');
+    value: Object.values(output.completedWorkflows['design-screen']?.state?.tasks || {}).every(t => t.status === 'done')
   - type: javascript
-    value: |
-      return output.text.includes('build-storybook') || output.text.includes('Build completed');
+    value: output.text.includes('build-storybook') || output.text.includes('Build completed')
   - type: javascript
     value: Object.keys(output.pendingWorkflows).length === 0

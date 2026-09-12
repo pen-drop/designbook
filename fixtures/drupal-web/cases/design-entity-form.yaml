@@ -42,14 +42,12 @@ assert:
   - type: javascript
     value: output.newFiles.some(f => f.endsWith('form-mapping/block_content.hero.edit.jsonata'))
   - type: javascript
-    value: |
-      return !output.newFiles.some(f => /entity-mapping\/.*\.jsonata$/.test(f));
+    value: '!output.newFiles.some(f => /entity-mapping\/.*\.jsonata$/.test(f))'
   - type: javascript
     value: output.completedWorkflows['design-entity']?.state?.status === 'completed'
   - type: javascript
     value: Object.values(output.completedWorkflows['design-entity']?.state?.tasks || {}).every(t => t.status === 'done')
   - type: javascript
-    value: |
-      return output.text.includes('build-storybook') || output.text.includes('Build completed');
+    value: output.text.includes('build-storybook') || output.text.includes('Build completed')
   - type: javascript
     value: Object.keys(output.pendingWorkflows).length === 0

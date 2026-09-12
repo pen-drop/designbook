@@ -39,8 +39,10 @@ assert:
   # No guessed content block for promo (filename check).
   - type: javascript
     value: |
-      const cfg = output.newFiles.filter(p => /files\/sync\/.*\.yml$/.test(p)).join('\n');
-      return !/block_content\.type\.promo/.test(cfg);
+      (() => {
+        const cfg = output.newFiles.filter(p => /files\/sync\/.*\.yml$/.test(p)).join('\n');
+        return !/block_content\.type\.promo/.test(cfg);
+      })()
   # OBJECTIVE RED guard (independent of the self-reported flags above): a correct run REPORTS the
   # undeterminable block and STOPS, so sync-to must NOT archive as `completed`. A run that instead
   # silently guessed a block_plugin for node.promo, authored it inline in the LB display, and ran to

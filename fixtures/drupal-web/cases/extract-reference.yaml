@@ -22,28 +22,36 @@ prompt: |
   workflow. Execute the workflow now.
 
 assert:
+  # Promptfoo javascript asserts are expression-context: no bare `return`.
+  # Multi-statement checks use an IIFE so `const`/`return` are valid.
   - type: javascript
     value: |
-      const w = output.completedWorkflows['extract-reference']
-        || Object.values(output.completedWorkflows).find((wf) =>
-             String(wf?.definition?.template?.source || '').endsWith('/extract-reference.md'),
-           );
-      return w?.state?.status === 'completed';
+      (() => {
+        const w = output.completedWorkflows['extract-reference']
+          || Object.values(output.completedWorkflows).find((wf) =>
+               String(wf?.definition?.template?.source || '').endsWith('/extract-reference.md'),
+             );
+        return w?.state?.status === 'completed';
+      })()
   - type: javascript
     value: |
-      const w = output.completedWorkflows['extract-reference']
-        || Object.values(output.completedWorkflows).find((wf) =>
-             String(wf?.definition?.template?.source || '').endsWith('/extract-reference.md'),
-           );
-      const tasks = w?.state?.tasks || {};
-      return Object.keys(tasks).length > 0 && Object.values(tasks).every((t) => t.status === 'done');
+      (() => {
+        const w = output.completedWorkflows['extract-reference']
+          || Object.values(output.completedWorkflows).find((wf) =>
+               String(wf?.definition?.template?.source || '').endsWith('/extract-reference.md'),
+             );
+        const tasks = w?.state?.tasks || {};
+        return Object.keys(tasks).length > 0 && Object.values(tasks).every((t) => t.status === 'done');
+      })()
   - type: javascript
     value: |
-      const w = output.completedWorkflows['extract-reference']
-        || Object.values(output.completedWorkflows).find((wf) =>
-             String(wf?.definition?.template?.source || '').endsWith('/extract-reference.md'),
-           );
-      return Boolean(w?.state?.capture?.directory);
+      (() => {
+        const w = output.completedWorkflows['extract-reference']
+          || Object.values(output.completedWorkflows).find((wf) =>
+               String(wf?.definition?.template?.source || '').endsWith('/extract-reference.md'),
+             );
+        return Boolean(w?.state?.capture?.directory);
+      })()
   - type: javascript
     value: output.newFiles.some((f) => f.includes('designbook/references/') && f.endsWith('/meta.yml'))
   - type: javascript
@@ -54,40 +62,47 @@ assert:
     value: output.newFiles.filter((f) => f.includes('designbook/references/') && f.endsWith('.png')).length >= 1
   - type: javascript
     value: |
-      const meta = Object.entries(output.fileContents).find(([p]) =>
-        p.includes('designbook/references/') && p.endsWith('/meta.yml'),
-      )?.[1];
-      return (
-        meta?.source?.kind === 'website' &&
-        String(meta?.source?.identity || '').includes('leando.de') &&
-        meta?.role === 'reference'
-      );
+      (() => {
+        const meta = Object.entries(output.fileContents).find(([p]) =>
+          p.includes('designbook/references/') && p.endsWith('/meta.yml'),
+        )?.[1];
+        return (
+          meta?.source?.kind === 'website' &&
+          String(meta?.source?.identity || '').includes('leando.de') &&
+          meta?.role === 'reference'
+        );
+      })()
   - type: javascript
     value: output.newFiles.some((f) => f.includes('designbook/references/') && f.endsWith('/approval.yml'))
   - type: javascript
     value: |
-      const approval = Object.entries(output.fileContents).find(([p]) =>
-        p.includes('designbook/references/') && p.endsWith('/approval.yml'),
-      )?.[1];
-      const provenance = Object.entries(output.fileContents).find(([p]) =>
-        p.includes('designbook/references/') && p.endsWith('/approval-provenance.yml'),
-      )?.[1];
-      // Simulated fixture approval is allowed; it must never be treated as real human approval.
-      return (
-        approval?.status === 'approved' &&
-        provenance?.mode === 'simulated' &&
-        provenance?.status === 'approved'
-      );
+      (() => {
+        const approval = Object.entries(output.fileContents).find(([p]) =>
+          p.includes('designbook/references/') && p.endsWith('/approval.yml'),
+        )?.[1];
+        const provenance = Object.entries(output.fileContents).find(([p]) =>
+          p.includes('designbook/references/') && p.endsWith('/approval-provenance.yml'),
+        )?.[1];
+        // Simulated fixture approval is allowed; it must never be treated as real human approval.
+        return (
+          approval?.status === 'approved' &&
+          provenance?.mode === 'simulated' &&
+          provenance?.status === 'approved'
+        );
+      })()
   - type: javascript
     value: |
-      const provenance = Object.entries(output.fileContents).find(([p]) =>
-        p.includes('designbook/references/') && p.endsWith('/approval-provenance.yml'),
-      )?.[1];
-      return provenance?.mode === 'simulated' && provenance?.mode !== 'interactive';
+      (() => {
+        const provenance = Object.entries(output.fileContents).find(([p]) =>
+          p.includes('designbook/references/') && p.endsWith('/approval-provenance.yml'),
+        )?.[1];
+        return provenance?.mode === 'simulated' && provenance?.mode !== 'interactive';
+      })()
   - type: javascript
     value: |
-      const ids = Object.keys(output.completedWorkflows).concat(Object.keys(output.pendingWorkflows));
-      return !ids.some((id) => id.startsWith('design-'));
+      (() => {
+        const ids = Object.keys(output.completedWorkflows).concat(Object.keys(output.pendingWorkflows));
+        return !ids.some((id) => id.startsWith('design-'));
+      })()
   - type: javascript
-    value: |
-      return !output.newFiles.some((f) => /^designbook\/plans\/design-/.test(f));
+    value: '!output.newFiles.some((f) => /^designbook\/plans\/design-/.test(f))'
