@@ -31,30 +31,22 @@ assert:
   # The open entry survives verbatim — it is accepted, not rejected and not "repaired".
   - type: javascript
     value: |
-      (() => {
-        const c = output.fileContents['designbook/data-model.yml']?.content;
-        return c?.config?.block_plugin?.promo_grid != null;
-      })()
+      const c = output.fileContents['designbook/data-model.yml']?.content ?? output.fileContents['designbook/data-model.yml'];
+      return c?.config?.block_plugin?.promo_grid != null;
   - type: javascript
     value: |
-      (() => {
-        const e = output.fileContents['designbook/data-model.yml']?.content?.config?.block_plugin?.promo_grid;
-        return e?.plugin === 'Promo Block!' && e?.layout === 'grid';
-      })()
+      const e = output.fileContents['designbook/data-model.yml']?.content?.config?.block_plugin?.promo_grid;
+      return e?.plugin === 'Promo Block!' && e?.layout === 'grid';
   # No enforcement smuggled back in: the entry still has no `component` (the old required prop).
   - type: javascript
     value: |
-      (() => {
-        const e = output.fileContents['designbook/data-model.yml']?.content?.config?.block_plugin?.promo_grid;
-        return e != null && e.component == null;
-      })()
+      const e = output.fileContents['designbook/data-model.yml']?.content?.config?.block_plugin?.promo_grid;
+      return e != null && e.component == null;
   # The data-model stage loaded the drupal data-model rule but NO block_plugin schema is enforced
   # (the blueprint no longer injects `#/BlockPlugin` via `extends:`).
   - type: javascript
     value: |
-      (() => {
-        const loaded = output.completedWorkflows['data-model']?.definition?.context || {};
-        return Object.values(loaded).some(s => s.source?.endsWith('drupal-data-model.md'));
-      })()
+      const loaded = output.completedWorkflows['data-model']?.definition?.context || {};
+      return Object.values(loaded).some(s => s.source?.endsWith('drupal-data-model.md'));
   - type: javascript
     value: Object.keys(output.pendingWorkflows).length === 0

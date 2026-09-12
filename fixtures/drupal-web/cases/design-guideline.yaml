@@ -33,7 +33,5 @@ assert:
     value: Object.keys(output.pendingWorkflows).length === 0
   - type: javascript
     value: |
-      (() => {
-        const c = output.fileContents['designbook/design-system/guidelines.yml']?.content;
-        return c?.design_reference?.url?.includes('leando.de');
-      })()
+      const c = output.fileContents['designbook/design-system/guidelines.yml']?.content ?? output.fileContents['designbook/design-system/guidelines.yml'];
+      return Boolean(c?.design_reference?.url?.includes('leando.de'));

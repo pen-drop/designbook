@@ -22,28 +22,22 @@ prompt: |
 assert:
   - type: javascript
     value: |
-      (() => {
-        const w = output.completedWorkflows['extract-reference']
-          || Object.values(output.completedWorkflows).find((wf) =>
-               String(wf?.definition?.template?.source || '').endsWith('/extract-reference.md'),
-             );
-        return w?.state?.status === 'completed';
-      })()
+      const w = output.completedWorkflows['extract-reference']
+        || Object.values(output.completedWorkflows).find((wf) =>
+             String(wf?.definition?.template?.source || '').endsWith('/extract-reference.md'),
+           );
+      return w?.state?.status === 'completed';
   - type: javascript
     value: output.newFiles.some((f) => f.includes('designbook/references/') && f.endsWith('/approval.yml'))
   - type: javascript
     value: |
-      (() => {
-        const approval = Object.entries(output.fileContents).find(([p]) =>
-          p.includes('designbook/references/') && p.endsWith('/approval.yml'),
-        )?.[1];
-        return approval?.status === 'rejected';
-      })()
+      const approval = Object.entries(output.fileContents).find(([p]) =>
+        p.includes('designbook/references/') && p.endsWith('/approval.yml'),
+      )?.[1];
+      return approval?.status === 'rejected';
   - type: javascript
     value: |
-      (() => {
-        const ids = Object.keys(output.completedWorkflows).concat(Object.keys(output.pendingWorkflows));
-        return !ids.some((id) => id.startsWith('design-'));
-      })()
+      const ids = Object.keys(output.completedWorkflows).concat(Object.keys(output.pendingWorkflows));
+      return !ids.some((id) => id.startsWith('design-'));
   - type: javascript
     value: '!output.newFiles.some((f) => /^designbook\/plans\/design-/.test(f))'

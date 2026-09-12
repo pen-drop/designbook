@@ -76,11 +76,9 @@ assert:
   # AC-1/AC-3: the first sync created the expected config (bundles + LB display).
   - type: javascript
     value: |
-      (() => {
-        const cfg = output.newFiles.filter(p => /files\/sync\/.*\.yml$/.test(p)).join('\n');
-        return /node\.type\.landing/.test(cfg) && /block_content\.type\.hero/.test(cfg)
-          && /core\.entity_view_display\.node\.landing\.full/.test(cfg);
-      })()
+      const cfg = output.newFiles.filter(p => /files\/sync\/.*\.yml$/.test(p)).join('\n');
+      return /node\.type\.landing/.test(cfg) && /block_content\.type\.hero/.test(cfg)
+        && /core\.entity_view_display\.node\.landing\.full/.test(cfg);
   # AC-4: the second sync is idempotent — no new config units emitted.
   - type: javascript
     value: output.fileContents['designbook/sync-verify-scene.yml']?.run2_config_units === 0

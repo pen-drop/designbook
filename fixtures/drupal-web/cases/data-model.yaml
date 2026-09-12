@@ -18,39 +18,27 @@ assert:
     value: Object.values(output.completedWorkflows['data-model']?.state?.tasks || {}).every(t => t.status === 'done')
   - type: javascript
     value: |
-      (() => {
-        const c = output.fileContents['designbook/data-model.yml']?.content;
-        return c?.node && Object.keys(c.node).length >= 5;
-      })()
+      const c = output.fileContents['designbook/data-model.yml']?.content ?? output.fileContents['designbook/data-model.yml'];
+      return Boolean(c?.node && Object.keys(c.node).length >= 5);
   - type: javascript
     value: |
-      (() => {
-        const c = output.fileContents['designbook/data-model.yml']?.content;
-        return c?.node?.landing_page != null;
-      })()
+      const c = output.fileContents['designbook/data-model.yml']?.content ?? output.fileContents['designbook/data-model.yml'];
+      return c?.node?.landing_page != null;
   - type: javascript
     value: |
-      (() => {
-        const c = output.fileContents['designbook/data-model.yml']?.content;
-        return c?.node?.event != null;
-      })()
+      const c = output.fileContents['designbook/data-model.yml']?.content ?? output.fileContents['designbook/data-model.yml'];
+      return c?.node?.event != null;
   - type: javascript
     value: |
-      (() => {
-        const c = output.fileContents['designbook/data-model.yml']?.content;
-        return c?.node?.topic != null;
-      })()
+      const c = output.fileContents['designbook/data-model.yml']?.content ?? output.fileContents['designbook/data-model.yml'];
+      return c?.node?.topic != null;
   - type: javascript
     value: |
-      (() => {
-        const loaded = output.completedWorkflows['data-model']?.definition?.context || {};
-        return Object.values(loaded).some(s => s.source?.endsWith('drupal-data-model.md'));
-      })()
+      const loaded = output.completedWorkflows['data-model']?.definition?.context || {};
+      return Object.values(loaded).some(s => s.source?.endsWith('drupal-data-model.md'));
   - type: javascript
     value: |
-      (() => {
-        const loaded = output.completedWorkflows['data-model']?.definition?.context || {};
-        return !Object.values(loaded).some(s => s.rules?.some(r => r.endsWith('canvas.md') || r.endsWith('layout-builder.md')));
-      })()
+      const loaded = output.completedWorkflows['data-model']?.definition?.context || {};
+      return !Object.values(loaded).some(s => s.rules?.some(r => r.endsWith('canvas.md') || r.endsWith('layout-builder.md')));
   - type: javascript
     value: Object.keys(output.pendingWorkflows).length === 0

@@ -37,13 +37,9 @@ assert:
     value: Object.keys(output.pendingWorkflows).length === 0
   - type: javascript
     value: |
-      (() => {
-        const md = output.fileContents['designbook/vision.md'] || '';
-        return md.includes('LEANDO');
-      })()
+      const md = output.fileContents['designbook/vision.md'] || '';
+      return md.includes('LEANDO');
   - type: javascript
     value: |
-      (() => {
-        const md = output.fileContents['designbook/vision.md'] || '';
-        return md.includes('## Description') || md.includes('## Problems') || md.includes('## Key Features');
-      })()
+      const md = output.fileContents['designbook/vision.md'] || '';
+      return md.includes('## Description') || md.includes('## Problems') || md.includes('## Key Features');
