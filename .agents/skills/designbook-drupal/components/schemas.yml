@@ -43,7 +43,10 @@ SdcComponent:
     group:
       type: string
       enum: [Action, "Data Display", Navigation, Layout, Shell]
-      description: Top-level category used for Storybook grouping. Must be one of the listed values.
+      description: >
+        Top-level Storybook category. Also the middle segment of the derived CSF
+        story id after sanitize (see sdc-components story-address rule). Must be
+        one of the listed values.
     description:
       type: string
       description: One-sentence summary of the component's purpose and typical usage context.

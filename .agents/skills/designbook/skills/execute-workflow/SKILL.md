@@ -10,4 +10,6 @@ description: >
 
 Follow the [executor](../../resources/workflow-execution.md) with the supplied
 plan path. Run `plan steps`, `plan instructions --step`, then `plan done --task`
-from that loop.
+from that loop. On persistent task defects, append to the sibling `.problems.md`
+beside the plan and continue; finish with `plan summary` plus the problems
+inventory.

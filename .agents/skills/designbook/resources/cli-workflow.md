@@ -41,8 +41,10 @@ overview, `plan instructions <path> --step <id>` for a step's referenced context
 and task contracts, `plan done <path> --task <name> --data-file <json>` to
 validate one task result against its frozen in-plan contract and record it, and
 `plan validate <path>` to report obligations whose required task is absent.
-`plan summary <path>` reports done/total. Execution reads only the plan — no
-discovery, no flow construction.
+`plan summary <path>` reports done/total. Persistent task defects are recorded in
+the sibling `.problems.md` beside the plan (see
+[execution](workflow-execution.md)); the CLI checkbox state stays done/pending
+only. Execution reads only the plan — no discovery, no flow construction.
 
 `plan done` validates the result against the task's embedded output contract
 (`$ref`s resolve against the plan's `definitions`) and refuses when the stored

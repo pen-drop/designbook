@@ -15,7 +15,7 @@ providers:
     label: gpt-5.6-luna
     config:
       model: gpt-5.6-luna
-      timeout: 3600000
+      timeout: 7200000
 
 evaluateOptions:
   maxConcurrency: 1
@@ -26,4 +26,4 @@ defaultTest:
       id: file://../providers/codex-cli.mjs
       config:
         model: gpt-5.6-luna
-        timeout: 3600000
+        timeout: 7200000

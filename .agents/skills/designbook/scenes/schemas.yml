@@ -13,9 +13,15 @@ SceneId:
 StoryId:
   type: string
   description: >
-    Storybook story ID in `Group/Component--variant` format (CSF-compliant).
-    Used to render or verify a specific story variant.
-  examples: ["Designbook/Sections/Hero--default", "Components/Card--primary"]
+    CSF story id (`sanitize(title)--sanitize(exportName)`). For SDC component
+    stories, derive from frozen identity namespace + group + component + variant
+    (see designbook-drupal `sdc-components` story-address rule), e.g.
+    `test-integration-drupal-shell-header--default`. Scene and entity stories use
+    their own title prefixes; copy retained ids from the live index when unchanged.
+  examples:
+    - test-integration-drupal-shell-header--default
+    - test-integration-drupal-action-button--primary
+    - design-system--shell
 
 SceneFile:
   type: object
