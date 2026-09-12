@@ -16,9 +16,9 @@ prompt: |
 
 assert:
   - type: javascript
-    value: output.archivedWorkflows['sections']?.status === 'completed'
+    value: output.completedWorkflows['sections']?.state?.status === 'completed'
   - type: javascript
-    value: output.archivedWorkflows['sections']?.tasks?.every(t => t.status === 'done')
+    value: Object.values(output.completedWorkflows['sections']?.state?.tasks || {}).every(t => t.status === 'done')
   - type: javascript
     value: Object.keys(output.pendingWorkflows).length === 0
   - type: javascript

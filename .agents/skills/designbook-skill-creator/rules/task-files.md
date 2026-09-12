@@ -50,7 +50,7 @@ Implementation guidance belongs in blueprints (overridable) or rules (hard const
 
 Task results are declared in the `result:` frontmatter field with a JSON Schema. Two types:
 
-- **File results** (with `path:`) — files written to disk. Path template supports `$ENV` and `{{ param }}`. Optional `submission: data | direct` (default `data`) and `flush: deferred | immediate` (default `deferred`) control who writes the file and when. Optional `validators:` for semantic validation. Optional JSON Schema type (inline or `$ref`). Optional `prepare:` (`{ cmd, as }`) to fetch a runtime validation schema by running an opaque command. Optional `generator:` (`{ jsonata }`) when the result is produced by an author-then-run JSONata artifact persisted at the given path.
+- **File results** (with `path:`) — files written to disk. Path template supports `$ENV` and `{{ param }}`. Optional `submission: data | direct` (default `data`) decides who writes the file: the engine from the submitted value, or the task itself. Optional `validators:` for semantic validation. Optional JSON Schema type (inline or `$ref`). Prepare schema queries during intake and embed the schema. Optional `generator:` (`{ jsonata }`) when the result is produced by an author-then-run JSONata artifact persisted at the given path.
 - **Data results** (without `path:`) — structured data returned via `--data`. JSON Schema type required (inline or `$ref`).
 
 Both support `$ref` to `schemas.yml` definitions (see [`resources/schemas.md`](../resources/schemas.md)).
@@ -132,36 +132,13 @@ Each issue needs a `severity`:
 
 No `## Result: scene` needed — the schema type `string` is self-explanatory.
 
-## Stages Flush After Completion
+## Output completion
 
-After each stage completes, all output files are **flushed** — renamed from their temporary working names to their final canonical names. This flush is what makes outputs referenceable by later stages.
-
-Consequence: a task file must declare the **final flushed paths** in `result:`, not temporary names. If stage B needs to read a file produced by stage A, it references the flushed name as a file-input param (with `path:` extension field).
-
-```markdown
-# Stage A task — produces flushed output
-result:
-  type: object
-  required: [component-yml]
-  properties:
-    component-yml:
-      path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
-
-# Stage B task — declares file-input param for flushed output
-params:
-  type: object
-  required: [component_yml]
-  properties:
-    component_yml:
-      path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
-      type: object
-```
-
-Never reference unflushed (in-progress) file names from another stage — the file will not exist at that path until the producing stage has completed and flushed.
+Declare canonical output paths. The planning agent resolves them before execution. Validated data outputs are flushed when their task completes; consumers declare the producing task as a dependency. The executor reads the saved output contract.
 
 ## Stage = Filename, No Duplication
 
-A task file's filename IS its stage assignment. `tasks/create-component.md` applies to stage `create-component`. Never declare `stage:` in frontmatter — it is redundant and becomes stale.
+A task file's filename IS its stage assignment. `tasks/write-component.md` applies to stage `write-component`. Never declare `stage:` in frontmatter — it is redundant and becomes stale.
 
 ## Validation Is Automatic
 
@@ -182,26 +159,26 @@ Implementation details that vary between integrations belong in **blueprints** (
 
 ## `tasks/` — Naming Rule
 
-**Filename = stage name.** `tasks/create-component.md` applies to stage `create-component`. The AI discovers tasks by scanning all skill directories for `tasks/<stage>.md`. No explicit stage declaration in frontmatter.
+**Filename = stage name.** `tasks/write-component.md` applies to stage `write-component`. The AI discovers tasks by scanning all skill directories for `tasks/<stage>.md`. No explicit stage declaration in frontmatter.
 
 ### Workflow-qualified tasks
 
 **Scope.** This subsection applies **only** to task files whose filename contains `--`
-(e.g. `intake--design-verify.md`). Non-qualified task files ignore this subsection.
+(e.g. `outtake--design-verify.md`). Non-qualified task files ignore this subsection.
 
-Task files scoped to a specific workflow use `<step>--<workflow>.md` naming (e.g. `intake--design-verify.md`). Their `trigger.steps:` **MUST** use the fully qualified step name including the workflow prefix:
+Task files scoped to a specific workflow use `<step>--<workflow>.md` naming (e.g. `outtake--design-verify.md`). Their `trigger.steps:` **MUST** use the fully qualified step name including the workflow prefix:
 
 ```yaml
-# ✅ CORRECT — matches workflow step "design-verify:intake"
+# ✅ CORRECT — matches workflow step "design-verify:outtake"
 trigger:
-  steps: [design-verify:intake]
+  steps: [design-verify:outtake]
 
 # ❌ WRONG — bare step name will NOT match, task gets skipped
 trigger:
-  steps: [intake]
+  steps: [outtake]
 ```
 
-The CLI matches `trigger.steps:` values literally against the step name from the workflow definition. A workflow that declares `steps: [design-verify:intake]` will only find task files whose `trigger.steps:` contains the exact string `design-verify:intake`.
+The CLI matches `trigger.steps:` values literally against the step name from the workflow definition. A workflow that declares `steps: [design-verify:outtake]` will only find task files whose `trigger.steps:` contains the exact string `design-verify:outtake`.
 
 ## Param + Body Consistency
 
@@ -226,7 +203,7 @@ These five map to `TASK-10` through `TASK-14` in the Checks table.
 | ID | Severity | What to verify | Where |
 |---|---|---|---|
 | TASK-01 | error | Required frontmatter fields present: `when`/`trigger`; if the task declares outputs, `result:` must be present | frontmatter |
-| TASK-02 | error | Applies only when filename contains `--`: `trigger.steps:` uses the fully qualified step name `<step>:<workflow>` matching the workflow's `stages.*.steps` entry | filename |
+| TASK-02 | error | Applies only when filename contains `--`: `trigger.steps:` uses the fully qualified step name `<workflow>:<step>` matching the workflow's `stages.*.steps` entry | filename |
 | TASK-03 | error | `stage:` field absent in frontmatter (redundant — filename is the stage) | frontmatter |
 | TASK-04 | error | No inline schema in `result:` properties when a matching type exists in the concern's `schemas.yml` — must use `$ref` instead | frontmatter |
 | TASK-05 | warning | Body does not repeat a self-explanatory `result:` schema (a `## Result: <key>` section for a result whose schema type alone is self-explanatory) | body |

@@ -1,0 +1,14 @@
+---
+name: data-model-intake
+description: Domain decisions required before planning data-model artifacts.
+---
+
+# data-model intake
+
+Read the vision and existing model. Agree on all content and configuration entity types, bundles, fields, references and cardinalities. Include referenced media and taxonomy entities. Decide each view/form mode, its template and settings, and bundle purpose using the effective integration rules. Present the complete model for any unresolved decisions before planning.
+
+Use the request, existing project artifacts, and the saved intake context as input. Ask only questions not answered by those inputs.
+
+Completion: every target, structural parameter, dependency and applicable rule is determined. Record the complete decisions as concrete task parameters in the plan; intake itself creates no run task or progress entry.
+
+Follow the [shared builder](../../../resources/workflow-building.md) for sealing and execution modes. Default mode for this simple foundation flow is `ephemeral` (caller override wins).

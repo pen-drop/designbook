@@ -1,52 +1,52 @@
 ---
 title: Design Shell
-description: Design the application shell -- page component with header, content, and footer slots
+description: Create or change the application shell. Use for shared header, footer, navigation, or shell content injection.
 params:
   section:
     type: object
     default:
       id: shell
-      group: "Designbook/Design System"
-      title: "Shell"
+      group: Designbook/Design System
+      title: Shell
       status: planned
   scene_id:
     type: string
     default: design-system:shell
   story_id:
     type: string
-    resolve: story_id
-    from: scene_id
   scene_path:
     type: string
-    resolve: scene_path
-    from: section.id
-  reference_url: { type: string, default: "" }
+  reference_url:
+    type: string
+    default: ''
   reference_folder:
     type: string
-    resolve: reference_folder
-    from: reference_url
   breakpoints:
     type: array
     default: []
   regions:
     type: array
-    default: [header, footer]
+    default:
+      - header
+      - footer
 stages:
-  reference:
-    steps: [extract-reference]
-    isolate: true
-  intake:
-    steps: [intake]
   component:
-    steps: [create-component]
-    isolate: true
+    steps:
+      - write-component
+  component-index:
+    steps:
+      - refresh-components
+  consumers:
+    steps:
+      - create-sample-data
+      - map-entity
   scene:
-    steps: [create-scene-file, create-scene]
-    isolate: true
+    steps:
+      - create-scene-file
+      - write-scene
   validate:
-    steps: [validate]
-engine: direct
-before:
-  - workflow: css-generate
-    execute: if-never-run
+    steps:
+      - validate
 ---
+
+Creation/change building blocks: intake selects only necessary writes and absent-file initialization. Reference analysis is completed before execution. Include explicit prerequisite builds/index refreshes and final build/browser checks for all affected targets. Template for the planning agent. Use the ordered steps as building blocks. Enumerate repeated targets during intake and write each concrete task explicitly; these stages do not execute or expand at runtime.

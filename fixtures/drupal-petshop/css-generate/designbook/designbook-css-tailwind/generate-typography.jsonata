@@ -1,0 +1,39 @@
+/** @config
+ {
+   "input": "../design-system/design-tokens.yml",
+   "output": "../../css/tokens/typography.src.css"
+ }
+ */
+(
+  $normalizeCssValue := function($val) {
+    $type($val) = "string"
+      ? $replace($val, /(^|\s|:|,|\()(-?)\.(\d)/, function($m) { $m.groups[0] & $m.groups[1] & "0." & $m.groups[2] })
+      : $val
+  };
+  $resolve := function($val) {
+    $substring($val, 0, 1) = "{" ? (
+      $ref := $replace($replace($val, "{", ""), "}", "");
+      $parts := $split($ref, ".");
+      $type := $parts[1];
+      $primPrefix := $type = "fontFamily" ? "font"
+        : $type = "fontSize" ? "text"
+        : $type = "fontWeight" ? "font-weight"
+        : $type = "lineHeight" ? "leading"
+        : $type;
+      "var(--" & $primPrefix & "-" & $join($filter($parts, function($p, $i) { $i >= 2 }), "-") & ")"
+    ) : $normalizeCssValue($val)
+  };
+  $node := $reduce($split("semantic.typography", "."), function($a, $s) { $lookup($a, $s) }, $$);
+  $entries := $each($node, function($v, $k) {
+    $substring($k, 0, 1) != "$" and $v."$type" = "typography" ? (
+      $val := $v."$value";
+      "  --text-" & $k & ": " & $resolve($val.fontSize) & ";\n" &
+      "  --text-" & $k & "--weight: " & $resolve($val.fontWeight) & ";\n" &
+      "  --text-" & $k & "--line-height: " & $resolve($val.lineHeight) & ";"
+    )
+  });
+  $lines := $filter($entries, function($e) { $e != null });
+  $count($lines) > 0
+    ? "@theme static {\n" & $join($lines, "\n") & "\n}\n"
+    : ""
+)

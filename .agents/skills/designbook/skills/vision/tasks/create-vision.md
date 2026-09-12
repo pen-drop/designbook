@@ -17,8 +17,6 @@ result:
       $ref: ../schemas.yml#/Vision
 ---
 
-# Product Vision
+# Create vision
 
-Define the product vision through dialog. Extract fields from the user's message.
-If all required fields are present, no questions needed.
-If fields are missing, ask for all missing in a single question.
+Produce the declared artifact from the complete decisions in task parameters. Completion: all agreed fields and target objects are represented in the result.

@@ -1,0 +1,43 @@
+workflow: extract-reference
+fixtures: []
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run /extract-reference leando.de. Do NOT ask any questions.
+  Capture https://leando.de as a website design reference (homepage).
+  Use the catalogue from `npx storybook-addon-designbook workflow discover extract-reference` stdout.
+  The CLI is the command contract; skill descriptions are not.
+  Explore with `_debo reference save --reference <dir> --url <url> --state <name> --session <name>`.
+  Capture PNGs with `_debo reference capture-image --reference <dir> --path <png> --url <url> --selector <sel> --width <px> --session <name>`.
+  Download assets with `_debo reference capture-file --reference <dir> --path <rel> --url <absolute-http-url> --session <name>`.
+  Font and image assets from the live source are capture outputs, not missing user inputs.
+  Execute the saved workflow to a published capture revision.
+  After publish, present the captured screenshots and write approval.yml with
+  `_debo reference approval-write --reference <revisionDir> --status rejected --scope <json>`
+  covering the captured homepage subjects, states and views. This test has no
+  interactive user — record rejected. Do not start a design workflow or seal a
+  design-* plan.
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: |
+      const w = output.completedWorkflows['extract-reference']
+        || Object.values(output.completedWorkflows).find((wf) =>
+             String(wf?.definition?.template?.source || '').endsWith('/extract-reference.md'),
+           );
+      return w?.state?.status === 'completed';
+  - type: javascript
+    value: output.newFiles.some((f) => f.includes('designbook/references/') && f.endsWith('/approval.yml'))
+  - type: javascript
+    value: |
+      const approval = Object.entries(output.fileContents).find(([p]) =>
+        p.includes('designbook/references/') && p.endsWith('/approval.yml'),
+      )?.[1];
+      return approval?.status === 'rejected';
+  - type: javascript
+    value: |
+      const ids = Object.keys(output.completedWorkflows).concat(Object.keys(output.pendingWorkflows));
+      return !ids.some((id) => id.startsWith('design-'));
+  - type: javascript
+    value: '!output.newFiles.some((f) => /^designbook\/plans\/design-/.test(f))'

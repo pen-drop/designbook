@@ -115,7 +115,7 @@ extends:
 ---
 ```
 
-`Unit.kind.enum` becomes `[a, b, c]` in the schema map `workflow done` validates against, so a unit carrying `kind: c` passes validation. Because this widening runs at `workflow create` over every step, the persisted `schema.yml` already carries the unioned enum — no per-stage-transition re-merge is involved.
+`Unit.kind.enum` becomes `[a, b, c]` in the schema map `workflow done` validates against, so a unit carrying `kind: c` passes validation. The planning catalogue supplies this composed schema. The agent embeds it in the definition; runtime reads that snapshot.
 
 ## Merge Order
 

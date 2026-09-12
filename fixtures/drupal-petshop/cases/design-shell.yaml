@@ -1,26 +1,67 @@
 fixtures:
   - vision
   - tokens
+  - css-generate
   - sections
-
-prompt: |
-  You are working in the directory {{workspace}}.
-  Run the /debo design-shell workflow. Do NOT ask any questions.
-  The product is "PetMatch". Read the product overview and section definitions for navigation planning.
-  The shell should have a top navigation bar with links to all sections, a footer, and responsive mobile menu.
-  The result should be a shell.scenes.yml file under designbook/shell/ and page/header/footer components.
-  After generating all files, run `pnpm build-storybook` to verify everything renders.
-  Execute the workflow now.
-
+prompt: |-
+  You are working in {{workspace}}. Invoke /debo design-shell.
+  Create canonical design-system:shell at designbook/design-system/design-system.scenes.yml, file id debo-design-system, scene name shell. Build page/header/footer composition with one $content injection, PetMatch home link, adoption navigation "Adopt" to /pets and footer. Render desktop navigation at 1280x800. At 390x844 provide an initially closed accessible Menu toggle; opening it reveals the adoption link and closing it hides that link. Bind exact selectors during intake. Preview content injection with the visible text "Shell content probe"; preserve one injection marker in the saved shell.
+  During intake freeze concrete story URLs, selectors and checks in the saved definition. Plan actual `pnpm build-storybook` (theme cwd), artifact validation, and `npx storybook-addon-designbook storybook check <story-url>` for every affected story. Run browser observations at desktop 1280x800 and mobile 390x844 where applicable. A build is separate from browser verification.
+  After execution save evidence JSON from actual command outputs and browser observations, as specified by debo-test run's evidence contract. The required observation keys and exact expected values are:
+    - desktop.adoptLink: '/pets'
+    - mobile.initiallyClosed: True
+    - mobile.opens: True
+    - mobile.closes: True
+    - shell.content: 'Shell content probe'
+    - shell.footer: True
+  Preserve the definition before execution and score this case; validate workflow: none. Execute now without clarification; all requested targets and acceptance criteria are supplied.
+validate: none
+evidence:
+  files:
+    - designbook/design-system/design-system.scenes.yml
 assert:
   - type: javascript
-    value: output.newFiles.some(f => f.includes('components/') && f.endsWith('.component.yml'))
+    value: output.runs.length > 0 && output.runs.every(r => r.componentPrerequisites?.passed === true)
   - type: javascript
-    value: output.archivedWorkflows['design-shell']?.status === 'completed'
+    value: output.runs.length === 1 && output.runs.every(r => r.complete && r.definitionUnchanged)
   - type: javascript
-    value: output.archivedWorkflows['design-shell']?.tasks?.every(t => t.status === 'done')
+    value: Object.keys(output.pendingWorkflows).length === 0 && output.definitionUnchanged === true
   - type: javascript
-    value: |
-      return output.text.includes('build-storybook') || output.text.includes('Build completed');
+    value: |-
+      output.runs.every(r => r.evidence?.build?.command === 'pnpm build-storybook' && r.evidence.build.exitCode === 0 && typeof r.evidence.build.stdout === 'string' && r.evidence.build.stdout.trim().length > 0 && r.evidence.build.cwd.endsWith('/web/themes/custom/test_integration_drupal') && Array.isArray(r.evidence.checks) && r.evidence.checks.length > 0 && r.evidence.checks.every(c => /^https?:/.test(c.url) && c.result?.ok === true))
   - type: javascript
-    value: Object.keys(output.pendingWorkflows).length === 0
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["desktop.adoptLink"]
+      === "/pets"))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["mobile.initiallyClosed"]
+      === true))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["mobile.opens"]
+      === true))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["mobile.closes"]
+      === true))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["shell.content"]
+      === "Shell content probe"))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["shell.footer"]
+      === true))
+  - type: javascript
+    value: |-
+      const refs = []; const walk = value => { if (!value || typeof value !== 'object') return; if (typeof value.component === 'string') refs.push(value.component); Object.values(value).forEach(walk); }; Object.entries(output.fileContents).filter(([file]) => /\.(scenes|story)\.yml$/.test(file)).forEach(([,value]) => walk(value)); Object.values(output.mappingResults).forEach(walk); return refs.length > 0 && refs.every(ref => ref.startsWith('test_integration_drupal:') && output.componentIds.includes(ref.split(':')[1]));
+  - type: javascript
+    value: |-
+      output.fileContents['designbook/design-system/design-system.scenes.yml']?.id === 'debo-design-system' && output.fileContents['designbook/design-system/design-system.scenes.yml'].scenes.filter(s => s.name === 'shell').length === 1
+  - type: javascript
+    value:
+      (JSON.stringify(output.fileContents['designbook/design-system/design-system.scenes.yml']).match(/\$content/g) ||
+      []).length === 1
+  - type: javascript
+    value: "!JSON.stringify(output.fileContents['designbook/design-system/design-system.scenes.yml']).includes('node.homepage')"

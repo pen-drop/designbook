@@ -13,20 +13,20 @@ assert:
   - type: javascript
     value: output.newFiles.includes('designbook/design-system/design-tokens.yml')
   - type: javascript
-    value: output.archivedWorkflows['tokens']?.status === 'completed'
+    value: output.completedWorkflows['tokens']?.state?.status === 'completed'
   - type: javascript
-    value: output.archivedWorkflows['tokens']?.tasks?.every(t => t.status === 'done')
+    value: Object.values(output.completedWorkflows['tokens']?.state?.tasks || {}).every(t => t.status === 'done')
   - type: javascript
     value: Object.keys(output.pendingWorkflows).length === 0
   - type: javascript
     value: |
-      const c = output.fileContents['designbook/design-system/design-tokens.yml']?.content;
+      const c = output.fileContents['designbook/design-system/design-tokens.yml']?.content ?? output.fileContents['designbook/design-system/design-tokens.yml'];
       return c?.primitive?.color != null;
   - type: javascript
     value: |
-      const c = output.fileContents['designbook/design-system/design-tokens.yml']?.content;
+      const c = output.fileContents['designbook/design-system/design-tokens.yml']?.content ?? output.fileContents['designbook/design-system/design-tokens.yml'];
       return c?.semantic?.color?.primary != null;
   - type: javascript
     value: |
-      const c = output.fileContents['designbook/design-system/design-tokens.yml']?.content;
+      const c = output.fileContents['designbook/design-system/design-tokens.yml']?.content ?? output.fileContents['designbook/design-system/design-tokens.yml'];
       return c?.semantic?.typography?.heading != null;

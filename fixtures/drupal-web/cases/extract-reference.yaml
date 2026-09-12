@@ -1,0 +1,89 @@
+workflow: extract-reference
+fixtures: []
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run /extract-reference leando.de. Do NOT ask any questions.
+  Capture https://leando.de as a website design reference (homepage).
+  Use the catalogue from `npx storybook-addon-designbook workflow discover extract-reference` stdout.
+  The CLI is the command contract; skill descriptions are not.
+  Explore with `_debo reference save --reference <dir> --url <url> --state <name> --session <name>`.
+  Capture PNGs with `_debo reference capture-image --reference <dir> --path <png> --url <url> --selector <sel> --width <px> --session <name>`.
+  Download assets with `_debo reference capture-file --reference <dir> --path <rel> --url <absolute-http-url> --session <name>`.
+  Font and image assets from the live source are capture outputs, not missing user inputs.
+  Execute the saved workflow to a published capture revision.
+  After publish, write approval.yml with
+  `_debo reference approval-write --reference <revisionDir> --status approved --scope <json>`
+  covering the captured homepage subjects, states and views.
+  This fixture has no interactive user — tag provenance mode simulated (not
+  interactive, not a real human optical design judgment). Also write
+  approval-provenance.yml beside the revision with mode: simulated and
+  status: approved. Do not claim real human approval. Do not start a design
+  workflow. Execute the workflow now.
+
+assert:
+  # Promptfoo javascript asserts are expression-context: no bare `return`.
+  # Multi-statement checks use an IIFE so `const`/`return` are valid.
+  - type: javascript
+    value: |
+      const w = output.completedWorkflows['extract-reference']
+        || Object.values(output.completedWorkflows).find((wf) =>
+             String(wf?.definition?.template?.source || '').endsWith('/extract-reference.md'),
+           );
+      return w?.state?.status === 'completed';
+  - type: javascript
+    value: |
+      const w = output.completedWorkflows['extract-reference']
+        || Object.values(output.completedWorkflows).find((wf) =>
+             String(wf?.definition?.template?.source || '').endsWith('/extract-reference.md'),
+           );
+      const tasks = w?.state?.tasks || {};
+      return Object.keys(tasks).length > 0 && Object.values(tasks).every((t) => t.status === 'done');
+  # capture.directory is not always populated on workflow state; published
+  # revision artifacts (meta.yml / publication.json / PNGs) are the durable proof.
+  - type: javascript
+    value: output.newFiles.some((f) => f.includes('designbook/references/') && f.endsWith('/meta.yml'))
+  - type: javascript
+    value: output.newFiles.some((f) => f.includes('designbook/references/') && /extract--[^/]+\.json$/.test(f))
+  - type: javascript
+    value: output.newFiles.some((f) => f.includes('designbook/references/') && f.endsWith('/publication.json'))
+  - type: javascript
+    value: output.newFiles.filter((f) => f.includes('designbook/references/') && f.endsWith('.png')).length >= 1
+  - type: javascript
+    value: |
+      const meta = Object.entries(output.fileContents).find(([p]) =>
+        p.includes('designbook/references/') && p.endsWith('/meta.yml'),
+      )?.[1];
+      return (
+        meta?.source?.kind === 'website' &&
+        String(meta?.source?.identity || '').includes('leando.de') &&
+        meta?.role === 'reference'
+      );
+  - type: javascript
+    value: output.newFiles.some((f) => f.includes('designbook/references/') && f.endsWith('/approval.yml'))
+  - type: javascript
+    value: |
+      const approval = Object.entries(output.fileContents).find(([p]) =>
+        p.includes('designbook/references/') && p.endsWith('/approval.yml'),
+      )?.[1];
+      const provenance = Object.entries(output.fileContents).find(([p]) =>
+        p.includes('designbook/references/') && p.endsWith('/approval-provenance.yml'),
+      )?.[1];
+      // Simulated fixture approval is allowed; it must never be treated as real human approval.
+      return (
+        approval?.status === 'approved' &&
+        provenance?.mode === 'simulated' &&
+        provenance?.status === 'approved'
+      );
+  - type: javascript
+    value: |
+      const provenance = Object.entries(output.fileContents).find(([p]) =>
+        p.includes('designbook/references/') && p.endsWith('/approval-provenance.yml'),
+      )?.[1];
+      return provenance?.mode === 'simulated' && provenance?.mode !== 'interactive';
+  - type: javascript
+    value: |
+      const ids = Object.keys(output.completedWorkflows).concat(Object.keys(output.pendingWorkflows));
+      return !ids.some((id) => id.startsWith('design-'));
+  - type: javascript
+    value: '!output.newFiles.some((f) => /^designbook\/plans\/design-/.test(f))'

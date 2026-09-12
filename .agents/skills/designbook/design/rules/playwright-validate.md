@@ -8,27 +8,9 @@ trigger:
 
 Hard constraints for verifying that a Storybook story renders. Applies to every `validate` step.
 
-## Preflight
+## Prerequisites
 
-`story_url` is pre-resolved by the `story_url` resolver at `workflow create` time. The resolver already ensured:
-
-- Storybook is running.
-- The story ID is present in Storybook's `/index.json`.
-
-If the resolver returned an error, fix the input (Storybook not running, no matching story ID, or compile error) and restart the stage — do NOT fabricate a URL and do NOT re-check `/index.json` here.
-
-### New components in the same workflow run
-
-Storybook's Twig namespace map (`toTwingNamespaces()`) is built **once at startup**. Components created inside `components/` after Storybook was started are not in that map — stories referencing them render with `Cannot find template: …/<name>/<name>.twig` even though the file exists on disk.
-
-Before the first `validate` step of any workflow that created new components:
-
-- Run `_debo storybook start --force` once to rebuild the namespace map with the new component directories present.
-- This is a **preflight** action, not a failure recovery — do not wait for the validate step to fail first.
-
-This `--force` is the **only** refresh: stage flushes no longer poke the dev server, so a fresh process started here (with every built component present) is what makes the story index, namespace map and template cache complete. There is no automatic per-flush restart to fall back on.
-
-Skip the preflight only when you can confirm that every component referenced in the scene already existed before Storybook started (e.g. pure scene edits against pre-existing components).
+Use the concrete `story_url`, viewport, selectors and observations fixed by intake. For components written in this run, intake declares a Storybook build/restart and index refresh before dependent verification. Their results confirm known IDs; they cannot select new stories or expand scope. A missing prerequisite blocks the saved run.
 
 ## Render check
 
@@ -50,6 +32,11 @@ The stage only completes when ALL are true:
 
 ## Failure protocol
 
-1. First failure → `_debo storybook start --force` (single restart attempt), then **restart the stage**. Restarting re-runs the `story_url` resolver, which automatically re-verifies that the story is in `/index.json`.
-2. Second failure → stop, read `designbook/storybook.log`, report the cause (missing `.component.yml`, invalid Twig, scene file path, etc.), and fix before resubmitting.
-3. Never mark the stage done with a visible error banner or empty root.
+Record the failed check and concrete cause in the execution
+[problems sidecar](../../resources/workflow-execution.md) beside the plan, leave
+the task pending, and continue with the next unfinished task. Retry only within
+the saved task's declared checks and prerequisites before logging. Additional
+artifact targets or requirements need a new intake and definition. Completion
+of a single validate task still requires the declared semantic and interaction
+observations as well as a nonempty, error-free render — a logged failure is not
+a pass.

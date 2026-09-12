@@ -1,0 +1,1 @@
+[{"component":"test_integration_drupal:pet-card","props":{"name":title,"breed":field_breed,"age":field_age,"image_url":field_photo_url,"status":field_status}}]

@@ -91,6 +91,8 @@
     "boxen": "^8.0.1",
     "eslint": "^9.36.0",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-import-x": "^4.17.1",
     "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-storybook": "^10.0.0",
@@ -120,6 +122,12 @@
   "peerDependenciesMeta": {
     "playwright": {
       "optional": true
+    },
+    "storybook": {
+      "optional": true
+    },
+    "vite": {
+      "optional": true
     }
   },
   "publishConfig": {
@@ -127,17 +135,17 @@
   },
   "bundler": {
     "managerEntries": [
-      "src/manager.tsx",
-      "src/manager-helpers.tsx"
+      "src/addon/manager.tsx",
+      "src/addon/manager-helpers.tsx"
     ],
     "previewEntries": [
-      "src/preview.ts",
-      "src/index.ts",
-      "src/renderer-browser.ts"
+      "src/addon/preview.ts",
+      "src/addon/index.ts",
+      "src/addon/renderer-browser.ts"
     ],
     "nodeEntries": [
-      "src/preset.ts",
-      "src/config.ts"
+      "src/addon/preset.ts",
+      "src/shared/config.ts"
     ]
   },
   "storybook": {

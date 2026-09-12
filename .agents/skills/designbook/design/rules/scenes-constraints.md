@@ -1,26 +1,18 @@
 ---
 trigger:
-  steps: [create-scene-file, create-scene, map-entity]
+  steps: [create-scene-file, write-scene, map-entity]
 ---
 
 # Scenes Critical Constraints
 
-> ⛔ **Rebuild Storybook before create-scene when components were created in the same run.**
-> The `components` inventory for the scene is resolved from Storybook's live
-> `/index.json` + SDC namespace map, both built once at startup. Components
-> created earlier in the same workflow run are absent until a rebuild, so the
-> resolver returns `Available: (none)` and scene validation fails one stage
-> before `validate` ever runs. Run `_debo storybook start --force` once before
-> the first `create-scene` of a run that added components — a preflight, not a
-> failure recovery.
+Intake fixes the component identities used by scene and mapping outputs (`namespace` + `group` + `component` + `variant`) and the CSF story ids **derived** from them. If this run writes components, the saved graph includes `refresh-components` after those writes and before dependent scene or mapping work. Every dependent task consumes that predecessor’s refreshed `index` result through an explicit input. A refresh supplies artifact data for those declared (derived) IDs only; newly discovered scope blocks the run. Every prerequisite is an explicit task, never a runtime preflight added by this rule.
 
 > Full `*.scenes.yml` format and `SceneNode` types: see [scenes/schemas.yml](../../scenes/schemas.yml).
 
 > ⛔ **`component:` values MUST always use `provider:component` format.**
-> Write `$DESIGNBOOK_COMPONENT_NAMESPACE:header`, NEVER just `header`.
-> The engine substitutes `$DESIGNBOOK_COMPONENT_NAMESPACE` (and any `$VAR` /
-> `${VAR}` env token) on `workflow done --data` submission. The scene file on
-> disk contains the resolved provider literal (e.g. `test_integration_drupal:page`).
+> Resolve the provider from the saved configuration before submission.
+> Use the concrete literal (e.g. `test_integration_drupal:header`), never just
+> `header` or an environment placeholder. `done` does not substitute variables.
 
 ```yaml
 # ✅ Correct — provider prefix on every component, including nested slots

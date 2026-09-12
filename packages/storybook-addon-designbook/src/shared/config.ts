@@ -1,0 +1,282 @@
+/**
+ * Shared config resolution module for Designbook.
+ *
+ * Implements "walk up" directory traversal to find `designbook.config.yml`,
+ * starting from a given directory and walking up parent directories until
+ * the filesystem root.
+ *
+ * Used by both the Storybook addon (preset.ts) and agent tooling (load-config.cjs).
+ */
+
+import { existsSync, readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { resolve, dirname, parse as parsePath } from 'node:path';
+import { load as parseYaml } from 'js-yaml';
+
+const CONFIG_FILENAMES = ['designbook.config.yml', 'designbook.config.yaml'];
+
+export interface ExtensionEntry {
+  id: string;
+  url?: string;
+  skill?: string;
+}
+
+export interface DesignbookConfig {
+  /** Resolved absolute path to the workflow data directory (= DESIGNBOOK_DATA). */
+  data: string;
+  /** Technology used (e.g. 'html', 'drupal'). */
+  technology: string;
+  /**
+   * Absolute path to a skill lookup root. When Designbook is installed as a
+   * plugin, point this at the marketplace cache base
+   * (e.g. `~/.claude/plugins/cache/designbook`); the CLI scans
+   * `<root>/<skill>/<hash>` for each skill. Unset → project-local skills only.
+   */
+  skills?: string;
+  /** Absolute path to the git workspace root (= DESIGNBOOK_WORKSPACE). */
+  workspace?: string;
+  /** Feature flags. `features.<name>: false` disables a feature; default is on. */
+  features?: Record<string, boolean>;
+  /**
+   * Named observation sessions. `sessions.<name>` is a path to a Playwright
+   * storage-state JSON that establishes that session's cookies and local
+   * storage. Capture commands take `--session <name>`, never a path, so a saved
+   * workflow records who was observed without embedding machine-local paths or
+   * credentials. `anonymous` is reserved and needs no entry.
+   */
+  sessions?: Record<string, string>;
+  /** Any additional keys from the config file. */
+  [key: string]: unknown;
+}
+
+/**
+ * Normalize the `extensions` array from config.
+ * Accepts both plain strings and objects with `id`, optional `url` and `skill`.
+ */
+export function normalizeExtensions(raw: unknown): ExtensionEntry[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((entry) => {
+      if (typeof entry === 'string') return { id: entry };
+      if (typeof entry === 'object' && entry !== null && typeof (entry as Record<string, unknown>).id === 'string') {
+        const e = entry as Record<string, unknown>;
+        return {
+          id: e.id as string,
+          ...(typeof e.url === 'string' ? { url: e.url } : {}),
+          ...(typeof e.skill === 'string' ? { skill: e.skill } : {}),
+        };
+      }
+      return null;
+    })
+    .filter((e): e is ExtensionEntry => e !== null);
+}
+
+/** Return comma-separated extension IDs, or empty string. */
+export function getExtensionIds(entries: ExtensionEntry[]): string {
+  return entries.map((e) => e.id).join(',');
+}
+
+/** Return comma-separated skill IDs from extensions that declare a skill. Unknown/missing skills are included as-is (caller validates). */
+export function getExtensionSkillIds(entries: ExtensionEntry[]): string {
+  return entries
+    .map((e) => e.skill)
+    .filter((s): s is string => typeof s === 'string' && s.length > 0)
+    .join(',');
+}
+
+const DEFAULTS: DesignbookConfig = {
+  data: 'designbook', // will be overwritten during loadConfig
+  technology: 'html',
+};
+
+/**
+ * Find a designbook config file by walking up the directory tree.
+ *
+ * Starts at `startDir` (defaults to `process.cwd()`) and checks each
+ * directory for `designbook.config.yml` or `designbook.config.yaml`,
+ * walking up to the filesystem root.
+ *
+ * @param startDir - Directory to start searching from (defaults to cwd)
+ * @returns Absolute path to the config file, or `null` if not found
+ */
+export function findConfig(startDir: string = process.cwd()): string | null {
+  let currentDir = resolve(startDir);
+  const root = parsePath(currentDir).root;
+
+  while (true) {
+    for (const filename of CONFIG_FILENAMES) {
+      const configPath = resolve(currentDir, filename);
+      if (existsSync(configPath)) {
+        return configPath;
+      }
+    }
+
+    if (currentDir === root) {
+      break;
+    }
+
+    currentDir = dirname(currentDir);
+  }
+
+  return null;
+}
+
+/**
+ * Resolve the root directory that contains the `skills/` folder.
+ *
+ * Tries candidate directories relative to `configDir` until one
+ * with a `skills/` subdirectory is found, then **walks up** the parent
+ * directories doing the same. Walking up lets the CLI resolve skills when
+ * invoked from a subdirectory of the workspace (e.g. the Storybook theme dir,
+ * where `debo-test`'s run.md runs every command) while the `.agents`/`.claude`
+ * roots live at the workspace root next to `designbook.config.yml`. Falls back
+ * to `<configDir>/.claude` if no ancestor matches.
+ *
+ * Candidate order per directory: `.claude`, `.agents`, `.` (the directory itself)
+ */
+export function resolveSkillsRoot(configDir: string): string {
+  const candidates = ['.claude', '.agents'];
+  let currentDir = resolve(configDir);
+  const root = parsePath(currentDir).root;
+
+  while (true) {
+    for (const candidate of candidates) {
+      const dir = resolve(currentDir, candidate);
+      if (existsSync(resolve(dir, 'skills'))) {
+        return dir;
+      }
+    }
+    if (existsSync(resolve(currentDir, 'skills'))) {
+      return currentDir;
+    }
+    if (currentDir === root) break;
+    currentDir = dirname(currentDir);
+  }
+
+  return resolve(configDir, '.claude');
+}
+
+/**
+ * Load and parse a designbook config file.
+ *
+ * Finds the config file via `findConfig()`, parses it as YAML,
+ * applies defaults for missing keys, and resolves paths:
+ * - `workspace` → absolute, relative to config dir; defaults to config dir (DESIGNBOOK_WORKSPACE)
+ * - `designbook.home` → absolute, relative to workspace; defaults to workspace (DESIGNBOOK_HOME)
+ * - `designbook.data` → absolute, as `home/<name>`; defaults to `home/designbook` (DESIGNBOOK_DATA)
+ * - `dirs.*` → absolute, relative to workspace (DESIGNBOOK_DIRS_*)
+ *
+ * @param startDir - Directory to start searching from (defaults to cwd)
+ * @returns Parsed config with defaults applied
+ */
+/** Expand a leading `~` / `~/` to the user's home directory. */
+function expandTilde(p: string): string {
+  if (p === '~') return homedir();
+  if (p.startsWith('~/') || p.startsWith('~\\')) return resolve(homedir(), p.slice(2));
+  return p;
+}
+
+function assertNotRepoRoot(dataDir: string): void {
+  const parent = dirname(dataDir);
+  const hasPnpmWorkspace = existsSync(resolve(parent, 'pnpm-workspace.yaml'));
+  const hasGit = existsSync(resolve(parent, '.git'));
+  if (hasPnpmWorkspace && hasGit) {
+    throw new Error(
+      `designbook CLI cannot write runtime data to the repo root (resolved DESIGNBOOK_DATA=${dataDir}). ` +
+        `Run from a workspace theme dir (cd workspaces/<suite>/web/themes/custom/<theme>) or set DESIGNBOOK_DATA explicitly.`,
+    );
+  }
+}
+
+export function loadConfig(startDir?: string): DesignbookConfig {
+  const configPath = findConfig(startDir);
+
+  if (!configPath) {
+    const cwd = startDir ?? process.cwd();
+    const dataDir = resolve(cwd, 'designbook');
+    assertNotRepoRoot(dataDir);
+    return {
+      ...DEFAULTS,
+      data: dataDir,
+      workspace: cwd,
+      'designbook.home': cwd,
+      'designbook.data': dataDir,
+    };
+  }
+
+  try {
+    const content = readFileSync(configPath, 'utf-8');
+    const parsed = parseYaml(content) || {};
+    const configDir = dirname(configPath);
+
+    // Recursively flatten nested keys (e.g. dirs.css.tokens → dirs.css.tokens)
+    // for compatibility with the environment variable pattern.
+    // Arrays (like extensions) are preserved as-is at their original key.
+    const flat: Record<string, unknown> = {};
+    const flatten = (obj: Record<string, unknown>, prefix: string) => {
+      for (const [key, value] of Object.entries(obj)) {
+        const fullKey = prefix ? `${prefix}.${key}` : key;
+        if (Array.isArray(value)) {
+          flat[fullKey] = value;
+        } else if (typeof value === 'object' && value !== null) {
+          flatten(value as Record<string, unknown>, fullKey);
+        } else {
+          flat[fullKey] = value;
+        }
+      }
+    };
+    flatten(parsed as Record<string, unknown>, '');
+
+    const config = { ...DEFAULTS, ...flat } as DesignbookConfig;
+
+    // Resolve css.app to absolute path and derive the css base directory
+    // (= DESIGNBOOK_CSS_DIR) for tasks that write next to the app stylesheet.
+    if (typeof config['css.app'] === 'string') {
+      config['css.app'] = resolve(configDir, config['css.app'] as string);
+      config['css.dir'] = dirname(config['css.app'] as string);
+    }
+
+    // 1. Resolve workspace (git project root)
+    const rawWorkspace = config['workspace'] as string | undefined;
+    const workspaceDir = rawWorkspace !== undefined ? resolve(configDir, rawWorkspace) : configDir;
+    config['workspace'] = workspaceDir;
+    config.workspace = workspaceDir;
+
+    // 2. Resolve designbook.home (Storybook/theme app dir)
+    const rawHome = config['designbook.home'] as string | undefined;
+    const home = rawHome !== undefined ? resolve(configDir, rawHome) : workspaceDir;
+    config['designbook.home'] = home;
+
+    // 3. Resolve designbook.data (workflow data dir, name relative to home)
+    const rawData = (config['designbook.data'] as string | undefined) ?? 'designbook';
+    const dataDir = resolve(home, rawData);
+    assertNotRepoRoot(dataDir);
+    config['designbook.data'] = dataDir;
+    config.data = dataDir;
+
+    // 4. designbook.cmd is a plain string — no resolution needed
+
+    // 5. Resolve dirs.* relative to configDir
+    for (const key of Object.keys(config)) {
+      if (key.startsWith('dirs.') && typeof config[key] === 'string') {
+        config[key] = resolve(configDir, config[key] as string);
+      }
+    }
+
+    // 6. Resolve skills lookup root (~ expansion, relative to configDir)
+    if (typeof config['skills'] === 'string') {
+      config['skills'] = resolve(configDir, expandTilde(config['skills'] as string));
+    }
+
+    // 7. Resolve sessions.* storage-state files relative to configDir
+    for (const key of Object.keys(config)) {
+      if (key.startsWith('sessions.') && typeof config[key] === 'string') {
+        config[key] = resolve(configDir, expandTilde(config[key] as string));
+      }
+    }
+
+    return config;
+  } catch (err) {
+    throw new Error(`Failed to parse designbook.config.yml: ${(err as Error).message}`);
+  }
+}

@@ -1,13 +1,17 @@
-import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { afterEach, describe, it, expect, vi } from 'vitest';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import { Command } from 'commander';
 import { load as parseYaml } from 'js-yaml';
-import { buildExtractSkeleton, parseBreakpointNames } from '../extract-page.js';
+import { buildExtractSkeleton, cssFontFamilies, parseBreakpointNames } from '../extract-page.js';
 import { matrixCellsFromMeta, planCaptureMatrix, ensureCellsPlanned, type MatrixCell } from '../capture-matrix.js';
 import { isStorybookStale } from '../check-story.js';
 import { parseStepsArg } from '../capture-screenshot.js';
-import type { CapturedSource, PropertyNode } from '../../inspect/element-walker.js';
+import { register } from '../inspect-register.js';
+import { png } from '../../__tests__/capture-fixture.js';
+import type { CapturedSource, PropertyNode } from '../../tools/inspect/element-walker.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -41,7 +45,7 @@ describe('extract-page: buildExtractSkeleton', () => {
     ];
     const skel = buildExtractSkeleton(
       captured(nodes),
-      { root_vars: {}, fonts: [{ family: 'Roboto', loaded: true }] },
+      { root_vars: {}, fonts: [{ family: 'Roboto', loaded: true }], font_faces: [] },
       {
         url: 'http://ref',
         breakpoints: ['sm', 'xl'],
@@ -73,6 +77,44 @@ describe('extract-page: buildExtractSkeleton', () => {
     expect(parseBreakpointNames(' sm , xl ,')).toEqual(['sm', 'xl']);
     expect(parseBreakpointNames(undefined)).toEqual([]);
   });
+
+  it('splits computed CSS font stacks into family identities', () => {
+    expect(cssFontFamilies('"Sarabun Light", sans-serif')).toEqual(['Sarabun Light', 'sans-serif']);
+    expect(cssFontFamilies('Reef, sans-serif')).toEqual(['Reef', 'sans-serif']);
+    expect(cssFontFamilies('system-ui, -apple-system, "Segoe UI", Roboto')).toEqual([
+      'system-ui',
+      '-apple-system',
+      'Segoe UI',
+      'Roboto',
+    ]);
+    const skel = buildExtractSkeleton(
+      captured([
+        node({
+          id: 'copy',
+          kind: 'container',
+          style: {
+            padding: '0',
+            margin: '0',
+            background: '',
+            font_family: '"Sarabun Light", sans-serif',
+          },
+        }),
+      ]),
+      {
+        root_vars: {},
+        fonts: [{ family: 'Reef, sans-serif', loaded: true }],
+        font_faces: [
+          { family: 'Reef', weight: '700', urls: ['https://x.test/Reef-Bold.woff2'] },
+          { family: 'Unused Face', weight: '400', urls: ['https://x.test/unused.woff2'] },
+        ],
+      },
+      { url: 'u', breakpoints: [] },
+    );
+    expect(skel.fonts).toEqual(['Reef', 'Sarabun Light', 'sans-serif']);
+    // Only faces of families the walked document renders — a stylesheet's
+    // unused weights are not capture scope.
+    expect(skel.font_faces).toEqual([{ family: 'Reef', weight: '700', urls: ['https://x.test/Reef-Bold.woff2'] }]);
+  });
 });
 
 describe('capture-matrix: planning', () => {
@@ -101,12 +143,27 @@ describe('capture-matrix: planning', () => {
 
   it('expands elements × states × breakpoints into cells carrying selector + steps', () => {
     expect(matrixCellsFromMeta(meta)).toEqual([
-      { element: 'scene-header', selector: 'app-site-header', state: 'rest', steps: [], breakpoint: 'sm' },
-      { element: 'scene-header', selector: 'app-site-header', state: 'rest', steps: [], breakpoint: 'xl' },
-      { element: 'nav', selector: 'app-nav', state: 'rest', steps: [], breakpoint: 'sm' },
+      {
+        element: 'scene-header',
+        selector: 'app-site-header',
+        session: 'anonymous',
+        state: 'rest',
+        steps: [],
+        breakpoint: 'sm',
+      },
+      {
+        element: 'scene-header',
+        selector: 'app-site-header',
+        session: 'anonymous',
+        state: 'rest',
+        steps: [],
+        breakpoint: 'xl',
+      },
+      { element: 'nav', selector: 'app-nav', session: 'anonymous', state: 'rest', steps: [], breakpoint: 'sm' },
       {
         element: 'nav',
         selector: 'app-nav',
+        session: 'anonymous',
         state: 'open',
         steps: [{ action: 'click', selector: '.toggle', timeout: 300 }],
         breakpoint: 'sm',
@@ -119,7 +176,9 @@ describe('capture-matrix: planning', () => {
       source: {},
       elements: [{ id: 'x', selector: 'x-el', breakpoints: ['sm'] }],
     });
-    expect(cells).toEqual([{ element: 'x', selector: 'x-el', state: 'rest', steps: [], breakpoint: 'sm' }]);
+    expect(cells).toEqual([
+      { element: 'x', selector: 'x-el', session: 'anonymous', state: 'rest', steps: [], breakpoint: 'sm' },
+    ]);
   });
 
   it('yields zero cells for the OLD fabricated shape (proving the no-op is now visible)', () => {
@@ -146,7 +205,9 @@ describe('capture-matrix: planning', () => {
   });
 
   it('drops cells whose breakpoint has no known width', () => {
-    const cells: MatrixCell[] = [{ element: 'x', selector: 'x', state: 'rest', steps: [], breakpoint: 'unknown' }];
+    const cells: MatrixCell[] = [
+      { element: 'x', selector: 'x', state: 'rest', session: 'anonymous', steps: [], breakpoint: 'unknown' },
+    ];
     expect(planCaptureMatrix(cells, [{ name: 'sm', width: 640 }], '/out', () => false)).toHaveLength(0);
   });
 
@@ -185,7 +246,7 @@ describe('capture-matrix: planning', () => {
   });
 });
 
-describe('capture screenshot: parseStepsArg', () => {
+describe('reference capture-image: parseStepsArg', () => {
   it('parses a JSON steps array', () => {
     expect(parseStepsArg('[{"action":"click","selector":".t","timeout":300}]')).toEqual([
       { action: 'click', selector: '.t', timeout: 300 },
@@ -216,5 +277,34 @@ describe('check-story: staleness', () => {
 
   it('is not stale when the daemon start time is unknown', () => {
     expect(isStorybookStale([Date.now()], undefined)).toBe(false);
+  });
+});
+
+describe('reference CLI surface', () => {
+  const dirs: string[] = [];
+  afterEach(() => dirs.splice(0).forEach((dir) => rmSync(dir, { recursive: true, force: true })));
+
+  it('registers save, capture-image, capture-file and image; drops extract and capture screenshot', () => {
+    const program = new Command();
+    register(program);
+    expect(program.commands.map((command) => command.name())).not.toContain('extract');
+    const reference = program.commands.find((command) => command.name() === 'reference')!;
+    expect(reference.commands.map((command) => command.name())).toEqual(
+      expect.arrayContaining(['save', 'capture-image', 'capture-file', 'image', 'validate', 'prepare', 'query']),
+    );
+    const capture = program.commands.find((command) => command.name() === 'capture')!;
+    expect(capture.commands.map((command) => command.name())).toEqual(['matrix']);
+  });
+
+  it('reference image prints PNG dimensions without pixel bytes', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'reference-image-'));
+    dirs.push(dir);
+    writeFileSync(join(dir, 'shot.png'), png);
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const program = new Command();
+    register(program);
+    await program.parseAsync(['reference', 'image', '--reference', dir, '--path', 'shot.png'], { from: 'user' });
+    expect(JSON.parse(log.mock.calls[0]![0] as string)).toEqual({ path: 'shot.png', width: 1, height: 1 });
+    log.mockRestore();
   });
 });

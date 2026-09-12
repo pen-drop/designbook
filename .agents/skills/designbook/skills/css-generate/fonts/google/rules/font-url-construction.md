@@ -13,7 +13,7 @@ Font weights SHALL be derived from `semantic.typography-scale` tokens by collect
 
 ## Download Tool
 
-Use `google-font-cli` to download woff2 files:
+Use local woff2 files already present under the planned fonts directory when their basename matches the family. Otherwise download with `google-font-cli`:
 
 ```bash
 npx google-font-cli download "<Font Name>" -v <weights> --woff2 -d $DESIGNBOOK_CSS_DIR/fonts

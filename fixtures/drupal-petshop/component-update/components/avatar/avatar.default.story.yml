@@ -1,0 +1,7 @@
+title: Avatar
+component: test_integration_drupal:avatar
+props:
+  variant: medium
+  username: Alex Morgan
+  role: Volunteer
+  image_url: data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MCIgaGVpZ2h0PSI4MCI+PHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMGQ5NDg4Ii8+PGNpcmNsZSBjeD0iNDAiIGN5PSIzMCIgcj0iMTQiIGZpbGw9IndoaXRlIi8+PC9zdmc+Cg==

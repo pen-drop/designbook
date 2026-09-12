@@ -1,0 +1,4 @@
+title: Staff-Card
+component: test_integration_drupal:staff-card
+props:
+  username: Alex Morgan

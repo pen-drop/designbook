@@ -124,6 +124,6 @@ before keeping or squashing.
 ## See also
 
 - `debo-test/SKILL.md` — subcommands and flag parsing
-- `debo-test/workflows/research.md` — the authoritative loop spec
+- `.agents/skills/designbook-test/skills/research/resources/research.md` — the authoritative loop spec
 - `debo-test/resources/audit-criteria.md` — the per-case audit table
 - `designbook/design/workflows/design-verify.md` — the loss (visual measurement)

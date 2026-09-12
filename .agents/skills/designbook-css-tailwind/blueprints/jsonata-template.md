@@ -28,7 +28,7 @@ The leaf-emit branch has three variants depending on the `CssGroup` flags:
 
 ## CSS Value Normalization
 
-Normalize emitted CSS literals before writing them. Decimal values must include
+Emit hexadecimal color literals in lowercase so Stylelint/Prettier accepts the generated CSS. Preserve font-family case. Decimal values must include
 a leading zero so formatter/stylelint validation passes:
 
 - `.1` → `0.1`
@@ -60,7 +60,7 @@ nesting depth work without manual quoting.
 (
   $normalizeCssValue := function($val) {
     $type($val) = "string"
-      ? $replace($replace($val, /(^|[\s(:,])\.(\d)/, "$10.$2"), /(^|[\s(:,])-\.(\d)/, "$1-0.$2")
+      ? $replace($val, /(^|\s|:|,|\()(-?)\.(\d)/, function($m) { $m.groups[0] & $m.groups[1] & "0." & $m.groups[2] })
       : $val
   };
   $walk := function($node, $path) {
@@ -101,7 +101,7 @@ the consuming group's prefix differs:
 ```jsonata
 $normalizeCssValue := function($val) {
   $type($val) = "string"
-    ? $replace($replace($val, /(^|[\s(:,])\.(\d)/, "$10.$2"), /(^|[\s(:,])-\.(\d)/, "$1-0.$2")
+    ? $replace($val, /(^|\s|:|,|\()(-?)\.(\d)/, function($m) { $m.groups[0] & $m.groups[1] & "0." & $m.groups[2] })
     : $val
 };
 $exists($v."$value") ? (
@@ -140,7 +140,7 @@ unresolved braces produce invalid CSS:
 (
   $normalizeCssValue := function($val) {
     $type($val) = "string"
-      ? $replace($replace($val, /(^|[\s(:,])\.(\d)/, "$10.$2"), /(^|[\s(:,])-\.(\d)/, "$1-0.$2")
+      ? $replace($val, /(^|\s|:|,|\()(-?)\.(\d)/, function($m) { $m.groups[0] & $m.groups[1] & "0." & $m.groups[2] })
       : $val
   };
   $resolve := function($val) {

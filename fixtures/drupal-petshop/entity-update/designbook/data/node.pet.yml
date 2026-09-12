@@ -1,0 +1,16 @@
+- id: 1
+  title: Bella
+  field_breed: Golden Retriever
+  field_age: 3 years
+  field_status: available
+  field_photo_url: data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MCIgaGVpZ2h0PSI4MCI+PHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMGQ5NDg4Ii8+PGNpcmNsZSBjeD0iNDAiIGN5PSIzMCIgcj0iMTQiIGZpbGw9IndoaXRlIi8+PC9zdmc+Cg==
+  __designbook:
+    section: homepage
+- id: 2
+  title: Whiskers
+  field_breed: Maine Coon
+  field_age: 5 years
+  field_status: pending
+  field_photo_url: data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MCIgaGVpZ2h0PSI4MCI+PHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMGQ5NDg4Ii8+PGNpcmNsZSBjeD0iNDAiIGN5PSIzMCIgcj0iMTQiIGZpbGw9IndoaXRlIi8+PC9zdmc+Cg==
+  __designbook:
+    section: homepage

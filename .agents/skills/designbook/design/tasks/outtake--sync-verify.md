@@ -17,19 +17,11 @@ result:
     score-report: { $ref: ../schemas.yml#/ScoreReport }
 ---
 
-# Outtake — Sync Verify
+# Check report
 
-Assemble the `ScoreReport` from this workflow's own measurements and submit it as the task
-result. Both measurements come from this workflow's task results in scope — no params are
-passed in for them:
+Assemble the declared report from this check's comparison results, supplied through explicit
+predecessor input references. This run contains no correction pass: `first_shot` and `final`
+are the same measurement and `delta` is zero. Preserve every issue and check result.
 
-- `first_shot` is the `VerifyResult` sourced from the `compare` stage results (the backend
-  render measured against the live Storybook baseline, before any fix pass).
-- `final` is the `VerifyResult` sourced from the `re-compare` stage results (after the single
-  backend fix pass).
-
-When the `compare` stage scored 0 (backend already matches Storybook within threshold), the
-fix and re-measurement stages produce no change — `final` equals `first_shot`.
-
-See `schemas.yml#/ScoreReport` and `schemas.yml#/VerifyResult` for field semantics (delta,
-tokens, per-check breakdown).
+Completion: the report covers every declared capture/check. The intake owns the later repair
+handoff; this task produces only its declared report.

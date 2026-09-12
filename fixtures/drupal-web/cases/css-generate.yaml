@@ -2,6 +2,7 @@ fixtures:
   - vision
   - data-model
   - tokens
+  - css-generate
 
 prompt: |
   You are working in the directory {{workspace}}.
@@ -10,12 +11,14 @@ prompt: |
 
 assert:
   - type: javascript
-    value: output.archivedWorkflows['css-generate']?.status === 'completed'
+    value: output.completedWorkflows['css-generate']?.state?.status === 'completed'
   - type: javascript
-    value: output.archivedWorkflows['css-generate']?.tasks?.every(t => t.status === 'done')
+    value: Object.values(output.completedWorkflows['css-generate']?.state?.tasks || {}).every(t => t.status === 'done')
   - type: javascript
     value: Object.keys(output.pendingWorkflows).length === 0
   - type: javascript
-    value: output.newFiles.includes('css/tokens/color.src.css')
+    value: output.newFiles.some((f) => f.endsWith('css/tokens/color.src.css'))
   - type: javascript
-    value: output.newFiles.includes('css/tokens/typography-scale.src.css')
+    # Current css-generate emits typography.src.css (legacy name was typography-scale.src.css).
+    # newFiles may be theme-rooted (web/themes/.../css/tokens/...).
+    value: output.newFiles.some((f) => f.endsWith('css/tokens/typography.src.css') || f.endsWith('css/tokens/typography-scale.src.css'))

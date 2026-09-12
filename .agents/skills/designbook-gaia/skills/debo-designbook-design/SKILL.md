@@ -1,6 +1,6 @@
 ---
 name: debo-designbook-design
-description: Own the diagnose, spec, coding, and review steps for a work:design-to-designbook sub-work — plan by loading the chosen design sub-skill in --plan mode, build with --from-plan <plan>, validate with @designbook/design-verify (recording its statistics as the design_verify measurement and resolving the final Storybook link), each step with its own transition.
+description: Handle the GAIA workflow step for this Designbook work type. Use only for the matching work_type and current step.
 when:
   work_type: design-to-designbook
   workflow: [gaia_feature, gaia_bug, gaia_chore]
@@ -10,11 +10,18 @@ work_type_term:
   description: "Sub-work: build or fix the Designbook/SDC component; acceptance in Storybook, validated via design-verify."
 inputs:
   spec:
-    description: how to produce the design plan in the spec step (load the chosen design sub-skill, run to the last interactive stage, writing a plan file)
-    default: load the chosen design sub-skill and run it with --plan   # candidates: @designbook/design-screen | @designbook/design-entity | @designbook/design-shell | @designbook/design-component
+    description: domain scope to record during spec without executing an intake
+    default: describe intended artifacts, targets, references and acceptance checks
   build:
     description: how to build the design autonomously from the spec plan
-    default: load the chosen design sub-skill and run it with --from-plan <plan>
+    default: >
+      Prefer @designbook/execute-workflow on a durable plan_path from a persist
+      handoff when present. If references are pending or unapproved
+      (approval-check fails or ReferenceNeed unresolved), surface the blockade
+      and do not start design execute. Otherwise, when no durable plan exists yet
+      and the mode allows, invoke the matching Designbook intake with the
+      specified domain task — intakes honor ephemeral|persist|ask (not
+      unconditional auto-execute).
   validate:
     description: command that validates the Designbook artifacts
     default: "@designbook/design-verify"
@@ -24,30 +31,20 @@ inputs:
   reference_capture:
     description: how the spec step surfaces the design reference in the ticket — which reference images/screenshots to list and link
     default: |
-      After the design `--plan` run, `@designbook/design`'s `extract-reference` has captured the
-      reference into the resolved `reference_folder`: the mobile/desktop overview PNGs
-      (`overview--mobile--<bp>.png`, `overview--desktop--<bp>.png`) plus any downloaded reference
-      assets. List them and pass each as a resolved link with `options.gaia.kind: reference` and a
-      self-describing `title` (e.g. `Reference (mobile) — <breakpoint>`) — both to `@gaia/run-outtake`
-      for display and to `@gaia/transition-ticket` so they land in `gaia_ticket.links[]`. When there
-      is no `reference_url`/`reference_folder` (nothing was captured), name the reference surface
-      explicitly `not_required` and link nothing.
+      List existing reference images or capture the supplied reference independently of any
+      Designbook intake. Pass resolved links with options.gaia.kind: reference to run-outtake
+      and transition-ticket. If no reference is needed, record not_required.
+
 ---
 
 # Designing to Designbook (work:design-to-designbook)
 
-You own the `diagnose`, `spec`, `coding`, and `review` steps for a `work:design-to-designbook`
-sub-work. The Designbook flow is **plan → build → validate**: `spec` loads the chosen design
-sub-skill and runs it with `--plan` to write the plan and stop; `coding` loads it and runs it with
-`--from-plan <plan>` to build autonomously from that plan; `validate` (`@designbook/design-verify`)
-checks the result. The `--plan` and `--from-plan <plan>` flags stay unchanged — each design sub-skill
-parses them itself from `$ARGUMENTS` (per `designbook/SKILL.md` § Global Flags); only *how* the
-workflow is started changes. One run works one step; do only the step matching the ticket's current
-state, then STOP. Every value you reference (`spec`, `build`, `validate`, `provision`) has a short
-description and a default in this skill's `inputs`; a project overrides any inline under this skill's
-bullet in `WORKFLOW.md` (effective = override ?? default).
-(`gaia_feature`/`gaia_chore` run `spec` then `coding`; `gaia_bug` runs `diagnose` then `coding` and
-has no `spec`.)
+Work only the ticket's current step, then stop. In spec, describe intended artifacts,
+references, targets, acceptance checks, intended execution mode
+(`ephemeral` | `persist` | `ask`), and any `ReferenceNeed` without invoking a Designbook
+intake. In coding, prefer `@designbook/execute-workflow` on a durable plan from a persist
+handoff; otherwise use the matching intake under shared builder modes. Validate with the
+configured verification skill. Project overrides replace the corresponding input defaults.
 
 **Shared start.** Invoke `@gaia/read-ticket` (all comments + latest handoff). For `spec`,
 `diagnose`, and `coding` also invoke `@gaia/ensure-qualification` — STOP on
@@ -59,20 +56,19 @@ starts the same way **without** `@gaia/ensure-qualification`.
 ## spec
 
 1. Shared start.
-2. Produce the design plan by running `spec`: choose the design workflow and load its matching
-   sub-skill (candidates: `@designbook/design-screen`, `@designbook/design-entity`,
-   `@designbook/design-shell`, `@designbook/design-component`), then run it with `--plan`. It runs
-   the sub-skill up to its last interactive stage, writes the plan file, and stops — no artifacts are
-   built yet. Explore and decide only.
+2. Describe the intended domain work: artifact types, exact target scope, references,
+   dependencies and acceptance checks. Record the matching Designbook intake for coding,
+   the intended execution mode (`ephemeral` | `persist` | `ask`), any `ReferenceNeed`, and
+   whether coding should consume a pre-persisted durable plan. Do **not** invoke a Designbook
+   intake during spec — intakes now honor modes, but spec still only records intent; coding
+   owns build/execute. When capture is needed, point at `extract-reference` as a **separate**
+   start (GAIA may assign a different agent); do not chain design execute from extract.
 3. Publish the gaia `spec` + `test` handoff (design decision, alternatives, risks, `Task-Art`, the
-   written plan path, and the AC↔evidence matrix mapping each acceptance criterion to the
+   written plan path, intended mode / ReferenceNeed / persist handoff notes, and the
+   AC↔evidence matrix mapping each acceptance criterion to the
    `@designbook/design-verify` evidence). Commit the plan.
-4. **Surface the design reference** by running `reference_capture`: the `spec` `--plan` run already
-   executed the `reference` stage (`extract-reference`), so the reference PNGs + assets exist in the
-   `reference_folder`. List them and carry them as `options.gaia.kind: reference` resolved links —
-   shown in the `@gaia/run-outtake` below **and** passed to `@gaia/transition-ticket` in step 7 so
-   they persist in `gaia_ticket.links[]`. When no reference exists, record the reference surface as
-   `not_required`.
+4. Surface the design reference using `reference_capture`. Include the resolved links in
+   run-outtake and transition-ticket; record not_required when no reference is needed.
 5. Invoke `@gaia/run-outtake`, leading with the design decision and the plan head, and displaying the
    reference links from step 4.
 6. Ask the human to confirm the design plan.
@@ -97,14 +93,20 @@ starts the same way **without** `@gaia/ensure-qualification`.
 
 1. Shared start (GREEN target gate). The guard protects `coding` even when entered through a manual
    state change or an import.
-2. Invoke `@gaia/implement-ticket` to **build** the design artifacts autonomously from the spec
-   plan by running `build`: load the chosen design sub-skill and run it with `--from-plan <plan>` —
-   it reads the decisions from the plan written in `spec` instead of asking, and runs the
-   deterministic stages to completion. A `gaia_bug` has no `spec` plan; build directly with the
-   chosen design sub-skill, following the Designbook skill. **The design build is no exception**: it
-   goes through `@gaia/implement-ticket`, which owns the build-dispatch mechanism and runs it in an
-   isolated subagent with a self-contained handoff and no credentials/no comment-publishing,
-   returning its artifacts/evidence; this parent keeps confirmation, transition, and notification.
+2. Invoke `@gaia/implement-ticket` with `build`:
+   - If a durable `plan_path` exists from a persist handoff / spec artifact → run
+     `@designbook/execute-workflow` on that path only; do **not** re-intake into a path that
+     would rebuild and auto-start execute.
+   - If references are pending or unapproved (`reference approval-check` fails or a
+     `ReferenceNeed` is unresolved) → do not start design execute; surface the blockade.
+     Capture and screenshot approval remain a separate `extract-reference` start (GAIA routes;
+     Designbook presents the PNGs).
+   - When no durable plan yet and the mode allows, may invoke the matching Designbook intake
+     with the specified domain task and reference inputs — the intake follows shared builder
+     modes (`ephemeral` | `persist` | `ask`), not unconditional auto-execute. Reuse decisions
+     already answered by the spec.
+   The implementation subagent returns artifacts and evidence; this parent owns confirmation,
+   transitions and notifications.
 3. Drive the acceptance criteria to GREEN. For a feature or chore author the QA artifacts now
    (`@gaia/acceptance` → `@gaia/scenario` → the concrete check) if `spec` did not; a bug reuses the
    `diagnose` artifacts. Then invoke `@gaia/verify` with `validate` (`@designbook/design-verify`) and

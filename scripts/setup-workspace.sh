@@ -10,13 +10,14 @@
 # (CWD), so workspaces created from a git worktree reflect that worktree's skill
 # state for Claude Code, Cursor and Codex alike.
 #
-# Usage: ./scripts/setup-workspace.sh [name] [--feature name=value]... [--features a=on,b=off]
+# Usage: ./scripts/setup-workspace.sh [name] [--into <dir>] [--feature name=value]... [--features a=on,b=off]
 #   name             Workspace name (default: drupal)
+#   --into dir       Workspace directory (default: workspaces/<name>)
 #   --feature k=v    Set a feature flag in the workspace's designbook.config.yml
 #                    (repeatable). value: on/1/true/yes or off/0/false/no.
 #   --features a=v,b=v   Comma-separated shorthand for several flags.
 #
-# Example: ./scripts/setup-workspace.sh ab-test --feature region_properties=off
+# Example: ./scripts/setup-workspace.sh ab-test --into /tmp/designbook-ab --feature region_properties=off
 
 set -euo pipefail
 
@@ -26,9 +27,12 @@ WT_ID="$(printf '%s' "$REPO_ROOT" | cksum | cut -d' ' -f1)"   # stable per-workt
 THEME="test_integration_drupal"
 
 WORKSPACE_NAME=""
+WORKSPACE_DIR_OVERRIDE=""
 FEATURE_ARGS=()
 while [ $# -gt 0 ]; do
   case "$1" in
+    --into) WORKSPACE_DIR_OVERRIDE="${2:?--into needs a directory}"; shift 2 ;;
+    --into=*) WORKSPACE_DIR_OVERRIDE="${1#*=}"; shift ;;
     --feature=*) FEATURE_ARGS+=("${1#*=}"); shift ;;
     --feature|-f) FEATURE_ARGS+=("${2:?--feature needs name=value}"); shift 2 ;;
     --features=*) IFS=',' read -ra _f <<< "${1#*=}"; FEATURE_ARGS+=("${_f[@]}"); shift ;;
@@ -41,7 +45,27 @@ while [ $# -gt 0 ]; do
   esac
 done
 WORKSPACE_NAME="${WORKSPACE_NAME:-drupal}"
-WORKSPACE_DIR="$REPO_ROOT/workspaces/$WORKSPACE_NAME"
+if [ -n "$WORKSPACE_DIR_OVERRIDE" ]; then
+  if [[ "$WORKSPACE_DIR_OVERRIDE" = /* ]]; then
+    WORKSPACE_DIR="$WORKSPACE_DIR_OVERRIDE"
+  else
+    WORKSPACE_DIR="$REPO_ROOT/$WORKSPACE_DIR_OVERRIDE"
+  fi
+else
+  WORKSPACE_DIR="$REPO_ROOT/workspaces/$WORKSPACE_NAME"
+fi
+mkdir -p "$(dirname "$WORKSPACE_DIR")"
+WORKSPACE_DIR="$(realpath -m "$WORKSPACE_DIR")"
+if [ "$WORKSPACE_DIR" = "$REPO_ROOT" ] || [ "$WORKSPACE_DIR" = "/" ]; then
+  echo "Refusing to rebuild repository root or filesystem root: $WORKSPACE_DIR" >&2
+  exit 1
+fi
+WORKSPACE_KEY="$WORKSPACE_NAME"
+if [ -n "$WORKSPACE_DIR_OVERRIDE" ]; then
+  WORKSPACE_KEY="$(basename "$WORKSPACE_DIR")-$(printf '%s' "$WORKSPACE_DIR" | cksum | cut -d' ' -f1)"
+fi
+WORKSPACE_KEY="$(printf '%s' "$WORKSPACE_KEY" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g; s/--*/-/g; s/^-//; s/-$//')"
+WORKSPACE_KEY="${WORKSPACE_KEY:-workspace}"
 THEME_REL="web/themes/custom/$THEME"
 THEME_DIR="$WORKSPACE_DIR/$THEME_REL"
 
@@ -119,7 +143,7 @@ rm -f "$THEME_DIR/designbook.config.yml"
 # A per-worktree config.local.yaml keeps config.yaml pristine and gives each
 # worktree a distinct project so parallel worktrees never collide. DO NOT start it.
 mkdir -p "$WORKSPACE_DIR/.ddev"
-printf 'name: db-%s-%s\n' "$WT_ID" "$WORKSPACE_NAME" > "$WORKSPACE_DIR/.ddev/config.local.yaml"
+printf 'name: db-%s-%s\n' "$WT_ID" "$WORKSPACE_KEY" > "$WORKSPACE_DIR/.ddev/config.local.yaml"
 
 # Apply feature-flag overrides into the workspace-root designbook.config.yml.
 # Note: this rewrites the YAML (comments are dropped) — only runs when flags
@@ -149,20 +173,21 @@ if [ ${#FEATURE_ARGS[@]} -gt 0 ]; then
   '
 fi
 
-# Symlink agent directories into the WORKSPACE ROOT (not the theme) so the CLI
+# Copy agent directories into the WORKSPACE ROOT (not the theme) so the CLI
 # and every agent (Claude, Cursor, Codex) can resolve skills and commands from
 # where designbook.config.yml now lives.
 # The skills/commands inside .claude, .cursor and .codex are themselves relative
 # symlinks into .agents, so .agents must also be present alongside them.
-ln -sfn "$REPO_ROOT/.claude" "$WORKSPACE_DIR/.claude"
-ln -sfn "$REPO_ROOT/.cursor" "$WORKSPACE_DIR/.cursor"
-ln -sfn "$REPO_ROOT/.codex" "$WORKSPACE_DIR/.codex"
-ln -sfn "$REPO_ROOT/.agents" "$WORKSPACE_DIR/.agents"
+cp -a "$REPO_ROOT/.agents" "$WORKSPACE_DIR/.agents"
+cp -a "$REPO_ROOT/.claude" "$WORKSPACE_DIR/.claude"
+cp -a "$REPO_ROOT/.cursor" "$WORKSPACE_DIR/.cursor"
+cp -a "$REPO_ROOT/.codex" "$WORKSPACE_DIR/.codex"
 
 # No theme-dir .agents symlink is needed: debo-test drives workflow CLI commands
 # from the WORKSPACE ROOT (where designbook.config.yml lives). Storybook still
 # runs from the theme dir. resolveSkillsRoot walks UP from the config dir and
-# finds these symlinks at the workspace root.
+# finds the copied skills at the workspace root. Later source edits do not alter
+# an already provisioned run's instruction inputs.
 
 # Initialize git repo in the theme dir (where Storybook runs from).
 cd "$THEME_DIR"
@@ -181,6 +206,10 @@ echo "Building storybook-addon-designbook..."
 # Install dependencies in the theme dir.
 # workspaces/*/web/themes/custom/* is a pnpm workspace member, so this resolves
 # workspace:* deps (e.g. storybook-addon-designbook) against the monorepo.
+# An explicit --into path may live outside the monorepo. In that layout pnpm
+# cannot resolve workspace:*; rewrite the disposable workspace package to a
+# local link before installing. The fixture's committed package stays unchanged
+# because this happens after the initial theme commit.
 #   --no-frozen-lockfile: a fresh workspace name is not yet in pnpm-lock.yaml; the
 #     lockfile MUST be allowed to update (frozen is the default under CI=true and
 #     would abort with ERR_PNPM_OUTDATED_LOCKFILE).
@@ -188,6 +217,34 @@ echo "Building storybook-addon-designbook..."
 #     root node_modules otherwise triggers an interactive purge prompt that hangs
 #     in a non-TTY script, leaving deps unlinked (e.g. @tailwindcss/vite missing →
 #     Storybook fails to boot).
+case "$WORKSPACE_DIR" in
+  "$REPO_ROOT"/workspaces/*) ;;
+  *)
+    PACKAGE_FILE="$THEME_DIR/package.json" \
+    ADDON_DIR="$REPO_ROOT/packages/storybook-addon-designbook" \
+    NODE_PATH="$REPO_ROOT/node_modules" \
+    node -e '
+      const fs = require("fs");
+      const file = process.env.PACKAGE_FILE;
+      const pkg = JSON.parse(fs.readFileSync(file, "utf8"));
+      for (const section of ["dependencies", "devDependencies", "optionalDependencies"]) {
+        if (pkg[section]?.["storybook-addon-designbook"] === "workspace:*") {
+          pkg[section]["storybook-addon-designbook"] = `link:${process.env.ADDON_DIR}`;
+        }
+      }
+      fs.writeFileSync(file, `${JSON.stringify(pkg, null, 4)}\n`);
+    '
+    # External workspaces are discovered as their own pnpm workspace. Explicitly
+    # allow the native build steps needed by Storybook and its watcher.
+    cat > "$WORKSPACE_DIR/pnpm-workspace.yaml" <<'EOF'
+packages:
+  - web/themes/custom/test_integration_drupal
+allowBuilds:
+  "@parcel/watcher": true
+  esbuild: true
+EOF
+    ;;
+esac
 pnpm install --no-frozen-lockfile --config.confirmModulesPurge=false
 
 # Link the LOCAL addon build into the theme workspace so that
@@ -205,6 +262,21 @@ pnpm install --no-frozen-lockfile --config.confirmModulesPurge=false
 echo "Linking local storybook-addon-designbook..."
 pnpm add -D "link:$REPO_ROOT/packages/storybook-addon-designbook"
 
+# The driver runs from the workspace root containing designbook.config.yml.
+# Give that directory its own local CLI and delegate Storybook builds to the theme.
+WORKSPACE_DIR="$WORKSPACE_DIR" ADDON_DIR="$REPO_ROOT/packages/storybook-addon-designbook" \
+node -e '
+  const fs = require("fs");
+  const path = require("path");
+  fs.writeFileSync(path.join(process.env.WORKSPACE_DIR, "package.json"), JSON.stringify({
+    name: "designbook-test-workspace",
+    private: true,
+    scripts: { "build-storybook": "pnpm --dir web/themes/custom/test_integration_drupal build-storybook" },
+    devDependencies: { "storybook-addon-designbook": `link:${process.env.ADDON_DIR}` }
+  }, null, 2) + "\n");
+'
+(cd "$WORKSPACE_DIR" && pnpm install --no-frozen-lockfile --config.confirmModulesPurge=false)
+
 echo ""
 echo "✓ Workspace ready (Drupal layout, ddev NOT started)"
 echo ""
@@ -221,4 +293,8 @@ echo "Storybook itself still runs from the theme dir:"
 echo "  cd $THEME_DIR && npx storybook dev"
 echo ""
 echo "To boot Drupal for sync/verify:"
-echo "  ./scripts/start-drupal-workspace.sh $WORKSPACE_NAME"
+if [ -n "$WORKSPACE_DIR_OVERRIDE" ]; then
+  echo "  ./scripts/start-drupal-workspace.sh --workspace $WORKSPACE_DIR"
+else
+  echo "  ./scripts/start-drupal-workspace.sh $WORKSPACE_NAME"
+fi
