@@ -551,17 +551,19 @@ test("vision ephemeral, persist, and reference-approval case assertions fail clo
   const rejected = reject.assert.find((a) =>
     String(a.value).includes("status === 'rejected'"),
   );
+  // Workflow-id-based, not file-path-based: `# Plan: <workflow>` always carries
+  // the real workflow id regardless of the caller's chosen `--name` slug, so
+  // this is the one reliable "no design plan leaked" check under the
+  // folder-per-initiative naming contract (a path-based check is not, since a
+  // realistic --name has no guaranteed relationship to the workflow id).
+  const approveNoDesign = approve.assert.find((a) =>
+    String(a.value).includes("startsWith('design-')"),
+  );
   const noDesign = reject.assert.find((a) =>
     String(a.value).includes("startsWith('design-')"),
   );
   const persistEphemeral = persist.assert.find((a) =>
     String(a.value).includes("plans/.ephemeral"),
-  );
-  const approveNoPlan = approve.assert.find((a) =>
-    String(a.value).includes("[^/]*design"),
-  );
-  const rejectNoPlan = reject.assert.find((a) =>
-    String(a.value).includes("[^/]*design"),
   );
   assert.ok(
     durable &&
@@ -570,9 +572,8 @@ test("vision ephemeral, persist, and reference-approval case assertions fail clo
       persistEphemeral &&
       approved &&
       rejected &&
-      noDesign &&
-      approveNoPlan &&
-      rejectNoPlan,
+      approveNoDesign &&
+      noDesign,
   );
   const green = {
     newFiles: [
@@ -639,21 +640,17 @@ test("vision ephemeral, persist, and reference-approval case assertions fail clo
     },
     pendingWorkflows: {},
   };
-  assert.equal(evalAssertions([approved, approveNoPlan], captured).passed, 2);
+  assert.equal(evalAssertions([approved, approveNoDesign], captured).passed, 2);
   captured.fileContents["designbook/references/rev/approval.yml"].status =
     "rejected";
   assert.equal(evalAssertions([approved], captured).passed, 0);
-  assert.equal(
-    evalAssertions([rejected, noDesign, rejectNoPlan], captured).passed,
-    3,
-  );
+  assert.equal(evalAssertions([rejected, noDesign], captured).passed, 2);
+  // A leaked design plan is detected by its `# Plan: <workflow>` id — reliable
+  // regardless of the folder slug a real `--name` would produce — not by
+  // guessing the slug from a file path.
   captured.pendingWorkflows["design-screen"] = { state: { status: "pending" } };
   assert.equal(evalAssertions([noDesign], captured).passed, 0);
-  captured.newFiles = [
-    ...captured.newFiles,
-    "designbook/plans/2026-09-13-design-screen/plan.md",
-  ];
-  assert.equal(evalAssertions([approveNoPlan, rejectNoPlan], captured).passed, 0);
+  assert.equal(evalAssertions([approveNoDesign], captured).passed, 0);
 });
 
 test("screen preservation and repeat assertions detect lost sibling metadata and duplicate append", () => {
