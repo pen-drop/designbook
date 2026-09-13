@@ -1,27 +1,14 @@
 import React from 'react';
 import { addons, types } from 'storybook/manager-api';
 
-import { WorkflowPanel } from './components/panels/WorkflowPanel';
 import { VisualCompareTool } from './components/VisualCompareTool';
 import { InspectTool } from './components/InspectTool';
 import { StructurePanel } from './components/panels/StructurePanel';
 import { isStructureTabDisabled } from './components/panels/structure-tab-visibility';
-import { ADDON_ID, PANEL_ID, INSPECT_TOOL_ID, STRUCTURE_PANEL_ID, VISUAL_TOOL_ID } from '../shared/constants';
-import { startWorkflowNotifications } from './manager-notifications';
+import { ADDON_ID, INSPECT_TOOL_ID, STRUCTURE_PANEL_ID, VISUAL_TOOL_ID } from '../shared/constants';
 
 // Register the addon
-addons.register(ADDON_ID, (api) => {
-  // Start workflow notification polling — runs always, independent of panel state
-  startWorkflowNotifications(api);
-
-  // Register a panel (Designbook workflow panel)
-  addons.add(PANEL_ID, {
-    type: types.PANEL,
-    title: 'Designbook',
-    match: () => true,
-    render: ({ active }) => <WorkflowPanel active={active} />,
-  });
-
+addons.register(ADDON_ID, () => {
   // Visual Compare toolbar tool — overlay reference screenshots on scenes
   addons.add(VISUAL_TOOL_ID, {
     type: types.TOOL,

@@ -9,7 +9,6 @@ import type { SceneNodeBuilder } from '../scene-model/types';
 import { buildSceneModule } from '../scene-model/scene-module-builder';
 import { buildEntityModule } from '../scene-model/entity-module-builder';
 import { matchHandler, defaultHandlers } from '../scene-model/scene-handlers';
-import { digestLog } from '../shared/log/digest.js';
 import { StoryMeta } from '../scene-model/story-entity';
 import { Reference } from '../tools/reference-entity';
 import { USES_WITH_SELECTOR_SOURCE } from './use-sync-with-selector-source';
@@ -360,20 +359,6 @@ export function designbookLoadPlugin(
           }
         });
       }
-
-      // HTTP endpoint: serve the digested CLI log (the panel is a logs-only view)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      server.middlewares.use('/__designbook/log', (_req: IncomingMessage, res: any) => {
-        try {
-          const digest = digestLog(resolve(designbookDir, 'dbo.log'));
-          res.setHeader('Content-Type', 'application/json');
-          res.statusCode = 200;
-          res.end(JSON.stringify({ designbookDir, ...digest }));
-        } catch (err: unknown) {
-          res.statusCode = 500;
-          res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }));
-        }
-      });
 
       // HTTP endpoint: project status overview
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

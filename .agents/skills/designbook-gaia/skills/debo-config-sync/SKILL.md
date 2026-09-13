@@ -15,8 +15,9 @@ inputs:
   build:
     description: how to build the Drupal config autonomously from the spec plan
     default: >
-      Prefer @designbook/execute-workflow on a durable plan_path from a persist
-      handoff when present. Otherwise, when no durable plan exists yet and the
+      Prefer @designbook/execute-workflow on a durable persisted-plan path from a
+      persist handoff (the exact `plan` field `plan build` returned) when present.
+      Otherwise, when no durable plan exists yet and the
       mode allows, invoke the matching Designbook intake with the specified
       domain task — intakes honor ephemeral|persist|ask (not unconditional
       auto-execute).
@@ -92,7 +93,8 @@ the same way **without** `@gaia/ensure-qualification`.
 1. Shared start (GREEN target gate). The guard protects `coding` even when entered through a manual
    state change or an import.
 2. Invoke `@gaia/implement-ticket` with `build`:
-   - If a durable `plan_path` exists from a persist handoff / spec artifact → run
+   - If a durable persisted-plan path exists from a persist handoff / spec artifact
+     (the exact `plan` field `plan build` returned) → run
      `@designbook/execute-workflow` on that path only; do **not** re-intake into a path that
      would rebuild and auto-start execute.
    - When no durable plan yet and the mode allows, may invoke the matching Designbook intake

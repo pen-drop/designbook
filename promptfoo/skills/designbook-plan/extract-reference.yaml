@@ -28,12 +28,16 @@ prompts:
         - `_debo reference save --reference <dir> --url https://example.com --state rest --session anonymous`
         - `_debo reference inspect --reference <dir> --state rest --locator "body > div"`
         - `_debo reference capture-image --reference <dir> --path desktop--main--rest.png --url https://example.com --selector "body > div" --width 1280 --session anonymous`
-      Then author the MD plan at the intake context's `plan_path`, embedding
-      `Reference`, `DesignReference` and their definitions in `## Schemas`, with the
-      confirmed capture block as the publish task's params. `_debo plan validate`,
-      `_debo plan seal`, then execute each step with `_debo plan done`. Author the
-      `meta.yml` observation metadata for the publish step, and publish with
-      `_debo reference publish --capture <block.json> --workflow-id <id> --owner <plan_path> --contract <contract.json>`.
+      Then author the MD plan via `_debo plan build extract-reference --tasks
+      <tasks.json> --name <a concrete name for this initiative>` (using the intake
+      context's `plans_dir` plus a concrete `--name`), embedding `Reference`,
+      `DesignReference` and their definitions in `## Schemas`, with the confirmed
+      capture block as the publish task's params. `_debo plan validate <plan>`,
+      `_debo plan seal <plan>` — use the exact `plan` value `plan build` returned,
+      never reconstruct a path from `plans_dir` — then execute each step with
+      `_debo plan done <plan>`. Author the `meta.yml` observation metadata for the
+      publish step, and publish with `_debo reference publish --capture <block.json>
+      --workflow-id <id> --owner <plan> --contract <contract.json>`.
 
       Report the revision directory and the produced files.
 

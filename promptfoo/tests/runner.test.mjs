@@ -267,14 +267,17 @@ test("provider reuses bounded baseline and independent execution evidence", asyn
 
 test("collectArtifacts discovers ephemeral sealed plans for scoring", async (t) => {
   const { provider, workspace } = await fixture(t);
+  const today = new Date().toISOString().slice(0, 10);
   const ephemeral = join(workspace, "designbook/plans/.ephemeral");
+  const tokensDir = join(workspace, "designbook/plans", `${today}-tokens`);
   await mkdir(ephemeral, { recursive: true });
+  await mkdir(tokensDir, { recursive: true });
   await writeFile(
-    join(ephemeral, "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.plan.md"),
+    join(ephemeral, "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.md"),
     "# Plan: vision\n\n### Step: create-vision\n- [x] create-vision — PetMatch\n",
   );
   await writeFile(
-    join(workspace, "designbook/plans/tokens.plan.md"),
+    join(tokensDir, "plan.md"),
     "# Plan: tokens\n\n### Step: create-tokens\n- [ ] create-tokens — palette\n",
   );
   const result = await provider.collectArtifacts(workspace);
@@ -285,12 +288,14 @@ test("collectArtifacts discovers ephemeral sealed plans for scoring", async (t) 
     result.newFiles.some(
       (file) =>
         file.startsWith("designbook/plans/.ephemeral/") &&
-        file.endsWith(".plan.md"),
+        file.endsWith(".md"),
     ),
   );
-  assert.ok(result.newFiles.includes("designbook/plans/tokens.plan.md"));
+  assert.ok(
+    result.newFiles.includes(`designbook/plans/${today}-tokens/plan.md`),
+  );
   assert.equal(
-    result.newFiles.includes("designbook/plans/vision.plan.md"),
+    result.newFiles.includes(`designbook/plans/${today}-vision/plan.md`),
     false,
   );
 });
@@ -300,7 +305,7 @@ test("ephemeral plan.md without definition-before still scores definitionUnchang
   const ephemeral = join(workspace, "designbook/plans/.ephemeral");
   await mkdir(ephemeral, { recursive: true });
   await writeFile(
-    join(ephemeral, "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.plan.md"),
+    join(ephemeral, "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.md"),
     "# Plan: vision\n\n### Step: create-vision\n- [x] create-vision — PetMatch\n",
   );
   const result = await provider.collectArtifacts(workspace);

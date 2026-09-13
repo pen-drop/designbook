@@ -46,7 +46,11 @@ export default function assertDesignShell(_output, context) {
   let doneTasks = 0;
   let totalTasks = 0;
   try {
-    const md = fs.readFileSync(path.join(dataDir, 'plans', 'design-shell.plan.md'), 'utf8');
+    const plansDir = path.join(dataDir, 'plans');
+    const entry = fs
+      .readdirSync(plansDir, { withFileTypes: true })
+      .find((e) => e.isDirectory() && e.name !== '.ephemeral' && fs.existsSync(path.join(plansDir, e.name, 'plan.md')));
+    const md = fs.readFileSync(path.join(plansDir, entry.name, 'plan.md'), 'utf8');
     doneTasks = (md.match(/^- \[x\] /gim) || []).length;
     totalTasks = (md.match(/^- \[[ xX]\] /gm) || []).length;
   } catch {

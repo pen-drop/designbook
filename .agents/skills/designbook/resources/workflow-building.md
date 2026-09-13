@@ -11,7 +11,7 @@ sealing. Every mode uses the same sealed-plan assembly and the same
 
 1. Run `intake <workflow> --palette`. The palette is small: per execution step the
    task names and each task's `params_schema`, the `open_selectors` with their
-   `gated` tasks, and the canonical `plan_path`. Read the applicable intake rules
+   `gated` tasks, and `plans_dir` (the plans directory). Read the applicable intake rules
    (their sources are in the full `intake <workflow>` output if you need to consult
    one) and complete the structural decisions. Resolve every open selector — pick
    each variant; its gated tasks join the palette. Completion: every target, param
@@ -49,7 +49,7 @@ sealing. Every mode uses the same sealed-plan assembly and the same
    | Mode | Persist durable plan? | Start execute? |
    |---|---|---|
    | `ephemeral` | No (temp under `plans/.ephemeral/`) | Yes |
-   | `persist` | Yes (canonical `plan_path`) | No |
+   | `persist` | Yes (folder `plans_dir/<date>-<slug>/plan.md`, `--name` required) | No |
    | `ask` | After user choice | After user choice |
 
    **Defaults when unset** (per-workflow intakes may restate; override still wins):
@@ -66,11 +66,12 @@ sealing. Every mode uses the same sealed-plan assembly and the same
 
    **Mode actions:**
 
-   - **`persist`:** `plan build <workflow> --tasks tasks.json` (durable default).
-     Stop after `ok`. Hand the durable `plan_path` out — do **not** invoke
-     `execute-workflow` in this start.
+   - **`persist`:** `plan build <workflow> --tasks tasks.json --name <concrete
+     initiative name>` (durable default). Stop after `ok`. Hand the CLI's
+     returned `plan` path out — do **not** invoke `execute-workflow` in this
+     start.
    - **`ephemeral`:** `plan build <workflow> --tasks tasks.json --ephemeral`. The
-     CLI writes `$DESIGNBOOK_DATA/plans/.ephemeral/<unique>.plan.md` and returns
+     CLI writes `$DESIGNBOOK_DATA/plans/.ephemeral/<unique>.md` and returns
      JSON with `ephemeral: true` and `plan`. Invoke
      `execute-workflow <ephemeral-plan-path>` in a separate execution invocation.
      After successful completion or explicit abandon, delete that ephemeral plan
