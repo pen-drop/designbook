@@ -17,9 +17,10 @@ Choose the matching domain sub-skill below. Every intake starts with
 `intake <workflow>`. Then the sub-skill resolves its complete scope from that
 context and follows the [shared builder](resources/workflow-building.md): seal a
 plan, then either run [execute-workflow](skills/execute-workflow/SKILL.md), stop
-after a durable `plan_path` handoff (**persist**), or ask which — persistence and
-execute start are separate mode decisions (defaults per workflow; caller override
-wins). Ephemeral and durable builds use the same sealed-plan contract. Run `_debo`
+after a durable persisted-plan handoff (**persist**) — the exact path `plan build`
+returned, never a reconstructed one — or ask which — persistence and execute start
+are separate mode decisions (defaults per workflow; caller override wins).
+Ephemeral and durable builds use the same sealed-plan contract. Run `_debo`
 / `npx storybook-addon-designbook` from the [CLI reference](resources/cli-reference.md).
 
 `--optimize` asks for optimization suggestions after completion; apply only separately requested changes.

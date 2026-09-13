@@ -263,33 +263,36 @@ export function planToDocument(text, fallbackId) {
 }
 
 // The saved plans of a run. Durable seals live at
-// `<DESIGNBOOK_DATA>/plans/<workflow>.plan.md`; ephemeral seals live under
-// `plans/.ephemeral/*.plan.md`. The scorer inspects both so a leftover or
-// ephemeral attempt cannot evade the gates. Workflow id comes from `# Plan:`
-// in the file, falling back to the filename (same as `planToDocument`).
+// `<DESIGNBOOK_DATA>/plans/<date>-<slug>/plan.md` (one per-initiative folder per
+// seal); ephemeral seals live under `plans/.ephemeral/*.md` (bare, no sidecar).
+// The scorer inspects both so a leftover or ephemeral attempt cannot evade the
+// gates. Workflow id comes from `# Plan:` in the file, falling back to the
+// containing folder name for a durable plan or the filename for an ephemeral
+// one (same as `planToDocument`).
 export function savedWorkflows(dataDir) {
   const found = [];
-  const loadDir = (dir) => {
-    if (!existsSync(dir)) return;
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      if (!entry.isFile() || !entry.name.endsWith(".plan.md")) continue;
-      const path = resolve(dir, entry.name);
-      try {
-        found.push({
-          path,
-          document: planToDocument(
-            readFileSync(path, "utf8"),
-            entry.name.replace(/\.plan\.md$/, ""),
-          ),
-        });
-      } catch (error) {
-        found.push({ path, error: error.message });
-      }
+  const loadFile = (path, fallbackId) => {
+    try {
+      found.push({ path, document: planToDocument(readFileSync(path, "utf8"), fallbackId) });
+    } catch (error) {
+      found.push({ path, error: error.message });
     }
   };
   const plans = resolve(dataDir, "plans");
-  loadDir(plans);
-  loadDir(resolve(plans, ".ephemeral"));
+  if (existsSync(plans)) {
+    for (const entry of readdirSync(plans, { withFileTypes: true })) {
+      if (!entry.isDirectory() || entry.name === ".ephemeral") continue;
+      const planPath = resolve(plans, entry.name, "plan.md");
+      if (existsSync(planPath)) loadFile(planPath, entry.name);
+    }
+  }
+  const ephemeral = resolve(plans, ".ephemeral");
+  if (existsSync(ephemeral)) {
+    for (const entry of readdirSync(ephemeral, { withFileTypes: true })) {
+      if (!entry.isFile() || !entry.name.endsWith(".md")) continue;
+      loadFile(resolve(ephemeral, entry.name), entry.name.replace(/\.md$/, ""));
+    }
+  }
   return found;
 }
 

@@ -15,8 +15,9 @@ inputs:
   build:
     description: how to build the design autonomously from the spec plan
     default: >
-      Prefer @designbook/execute-workflow on a durable plan_path from a persist
-      handoff when present. If references are pending or unapproved
+      Prefer @designbook/execute-workflow on a durable persisted-plan path from a
+      persist handoff (the exact `plan` field `plan build` returned) when present.
+      If references are pending or unapproved
       (approval-check fails or ReferenceNeed unresolved), surface the blockade
       and do not start design execute. Otherwise, when no durable plan exists yet
       and the mode allows, invoke the matching Designbook intake with the
@@ -94,7 +95,8 @@ starts the same way **without** `@gaia/ensure-qualification`.
 1. Shared start (GREEN target gate). The guard protects `coding` even when entered through a manual
    state change or an import.
 2. Invoke `@gaia/implement-ticket` with `build`:
-   - If a durable `plan_path` exists from a persist handoff / spec artifact → run
+   - If a durable persisted-plan path exists from a persist handoff / spec artifact
+     (the exact `plan` field `plan build` returned) → run
      `@designbook/execute-workflow` on that path only; do **not** re-intake into a path that
      would rebuild and auto-start execute.
    - If references are pending or unapproved (`reference approval-check` fails or a

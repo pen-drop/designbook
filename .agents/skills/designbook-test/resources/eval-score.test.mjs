@@ -341,13 +341,15 @@ test("savedWorkflows loads durable and ephemeral sealed plans via planToDocument
   try {
     const plans = join(dir, "plans");
     const ephemeral = join(plans, ".ephemeral");
+    const initiative = join(plans, "2026-09-13-tokens");
     mkdirSync(ephemeral, { recursive: true });
+    mkdirSync(initiative, { recursive: true });
     writeFileSync(
-      join(plans, "tokens.plan.md"),
+      join(initiative, "plan.md"),
       "# Plan: tokens\n\n### Step: create-tokens\n- [ ] create-tokens — palette\n",
     );
     writeFileSync(
-      join(ephemeral, "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.plan.md"),
+      join(ephemeral, "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.md"),
       "# Plan: vision\n\n### Step: create-vision\n- [x] create-vision — PetMatch\n",
     );
     writeFileSync(join(plans, "notes.md"), "not a plan\n");
@@ -535,10 +537,10 @@ test("vision ephemeral, persist, and reference-approval case assertions fail clo
     readFileSync(new URL("cases/extract-reference-reject.yaml", web), "utf8"),
   );
   const durable = vision.assert.find((a) =>
-    String(a.value).includes("plans/vision.plan.md"),
+    String(a.value).includes("[^/]+\\/plan\\.md$"),
   );
   const persistPlan = persist.assert.find((a) =>
-    String(a.value).includes("plans/vision.plan.md"),
+    String(a.value).includes("[^/]+\\/plan\\.md$"),
   );
   const persistVision = persist.assert.find((a) =>
     String(a.value).includes("vision.yml"),
@@ -575,7 +577,7 @@ test("vision ephemeral, persist, and reference-approval case assertions fail clo
   const green = {
     newFiles: [
       "designbook/vision.yml",
-      "designbook/plans/.ephemeral/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.plan.md",
+      "designbook/plans/.ephemeral/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.md",
     ],
     completedWorkflows: {
       vision: {
@@ -592,13 +594,13 @@ test("vision ephemeral, persist, and reference-approval case assertions fail clo
       [durable],
       {
         ...green,
-        newFiles: [...green.newFiles, "designbook/plans/vision.plan.md"],
+        newFiles: [...green.newFiles, "designbook/plans/2026-09-13-vision/plan.md"],
       },
     ).passed,
     0,
   );
   const sealed = {
-    newFiles: ["designbook/plans/vision.plan.md"],
+    newFiles: ["designbook/plans/2026-09-13-vision/plan.md"],
     completedWorkflows: {},
     pendingWorkflows: { vision: { state: { status: "pending" } } },
   };
@@ -621,7 +623,7 @@ test("vision ephemeral, persist, and reference-approval case assertions fail clo
         ...sealed,
         newFiles: [
           ...sealed.newFiles,
-          "designbook/plans/.ephemeral/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.plan.md",
+          "designbook/plans/.ephemeral/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.md",
         ],
       },
     ).passed,

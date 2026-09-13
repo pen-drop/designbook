@@ -1,6 +1,7 @@
 # Execute a saved workflow plan
 
-Input: a path to a complete MD plan (durable `plan_path` or an ephemeral path from
+Input: a path to a complete MD plan (durable persisted-plan path — the exact
+`plan` field `plan build` returned — or an ephemeral path from
 `plan build --ephemeral`). This is the sole owner of the task loop. The executor
 reads only the plan — no discovery, no rule selection, no added tasks, no widened
 scope.
@@ -46,8 +47,8 @@ scope.
 Unresolved task defects live in a **problems sidecar beside the plan**, not in
 the sealed plan body (run state stays checkbox-only).
 
-**Path:** same directory as the plan; replace a trailing `.plan.md` with
-`.problems.md` (e.g. `design-shell.plan.md` → `design-shell.problems.md`). Create
+**Path:** `problems.md` in the same per-initiative folder as `plan.md` (no
+suffix-derivation — the folder already disambiguates the initiative). Create
 the file on the first entry; append thereafter.
 
 **Each entry** records: ISO-8601 time, step name, task name, task title, the
