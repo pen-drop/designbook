@@ -487,7 +487,17 @@ describe('plan build --name', () => {
     const { dir, configPath, tasksPath } = setupFixture();
     try {
       process.exitCode = undefined;
-      await run(['plan', 'build', 'vision', '--tasks', tasksPath, '--config-dir', workspaceRoot, '--config', configPath]);
+      await run([
+        'plan',
+        'build',
+        'vision',
+        '--tasks',
+        tasksPath,
+        '--config-dir',
+        workspaceRoot,
+        '--config',
+        configPath,
+      ]);
       expect(process.exitCode).toBe(1);
     } finally {
       process.exitCode = undefined;
@@ -531,14 +541,32 @@ describe('plan build --name', () => {
       process.exitCode = undefined;
       const first = JSON.parse(
         await run([
-          'plan', 'build', 'vision', '--tasks', tasksPath, '--name', 'panel removal',
-          '--config-dir', workspaceRoot, '--config', configPath,
+          'plan',
+          'build',
+          'vision',
+          '--tasks',
+          tasksPath,
+          '--name',
+          'panel removal',
+          '--config-dir',
+          workspaceRoot,
+          '--config',
+          configPath,
         ]),
       );
       const second = JSON.parse(
         await run([
-          'plan', 'build', 'vision', '--tasks', tasksPath, '--name', 'panel removal',
-          '--config-dir', workspaceRoot, '--config', configPath,
+          'plan',
+          'build',
+          'vision',
+          '--tasks',
+          tasksPath,
+          '--name',
+          'panel removal',
+          '--config-dir',
+          workspaceRoot,
+          '--config',
+          configPath,
         ]),
       );
       expect(first.plan).toBe(join(dataDir, 'plans', `${today}-panel-removal`, 'plan.md'));
@@ -556,8 +584,17 @@ describe('plan build --name', () => {
     try {
       process.exitCode = undefined;
       await run([
-        'plan', 'build', 'vision', '--tasks', tasksPath, '--name', '!!!',
-        '--config-dir', workspaceRoot, '--config', configPath,
+        'plan',
+        'build',
+        'vision',
+        '--tasks',
+        tasksPath,
+        '--name',
+        '!!!',
+        '--config-dir',
+        workspaceRoot,
+        '--config',
+        configPath,
       ]);
       expect(process.exitCode).toBe(1);
     } finally {
