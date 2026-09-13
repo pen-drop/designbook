@@ -72,8 +72,10 @@ export interface GatedGroup {
 }
 export interface IntakeContext {
   workflow: string;
-  /** Canonical path the intake must save the MD plan to: `<DESIGNBOOK_DATA>/plans/<workflow>.plan.md`. */
-  plan_path: string;
+  /** Directory persisted plans live under: `<DESIGNBOOK_DATA>/plans`. The final file path is only
+   * known once `plan build` also has the caller's `--name` (see cli/plan.ts); this field is a
+   * directory hint, not the exact target — never reconstruct a plan path from it. */
+  plans_dir: string;
   config: Record<string, unknown>;
   /** Frozen `#/definitions/<Name>` pulled transitively from schemas.yml. */
   definitions: Record<string, unknown>;
@@ -310,7 +312,7 @@ export async function resolveIntakeContext(
 
   return {
     workflow: workflowId,
-    plan_path: `${String(config.data)}/plans/${workflowId}.plan.md`,
+    plans_dir: `${String(config.data)}/plans`,
     config: config as Record<string, unknown>,
     definitions,
     context: registry.toRecord(),
