@@ -40,4 +40,4 @@ assert:
       const ids = Object.keys(output.completedWorkflows).concat(Object.keys(output.pendingWorkflows));
       return !ids.some((id) => id.startsWith('design-'));
   - type: javascript
-    value: '!output.newFiles.some((f) => /^designbook\/plans\/design-/.test(f))'
+    value: '!output.newFiles.some((f) => /^designbook\/plans\/\d{4}-\d{2}-\d{2}-[^/]*design/.test(f))'

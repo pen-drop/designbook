@@ -49,7 +49,7 @@ and task contracts, `plan done <path> --task <name> --data-file <json>` to
 validate one task result against its frozen in-plan contract and record it, and
 `plan validate <path>` to report obligations whose required task is absent.
 `plan summary <path>` reports done/total. Persistent task defects are recorded in
-the sibling `.problems.md` beside the plan (see
+the `problems.md` sidecar in the plan's per-initiative folder (see
 [execution](workflow-execution.md)); the CLI checkbox state stays done/pending
 only. Execution reads only the plan — no discovery, no flow construction.
 

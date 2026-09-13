@@ -58,8 +58,8 @@ const withDesignbookTheme = withThemeByDataAttribute({
   attributeName: 'data-theme',
 });
 
-// Forward Vite HMR custom events to the Storybook channel so the Panel
-// and manager-notifications can react to file-change events.
+// Forward Vite HMR custom events to the Storybook channel so useSections/
+// useDesignbookData can react to file-change events.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const metaHot = (import.meta as any).hot as { on: (event: string, cb: (data: unknown) => void) => void } | undefined;
 if (metaHot) {

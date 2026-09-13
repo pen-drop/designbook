@@ -558,10 +558,10 @@ test("vision ephemeral, persist, and reference-approval case assertions fail clo
     String(a.value).includes("plans/.ephemeral"),
   );
   const approveNoPlan = approve.assert.find((a) =>
-    String(a.value).includes("plans\\/design-"),
+    String(a.value).includes("[^/]*design"),
   );
   const rejectNoPlan = reject.assert.find((a) =>
-    String(a.value).includes("plans\\/design-"),
+    String(a.value).includes("[^/]*design"),
   );
   assert.ok(
     durable &&
@@ -651,7 +651,7 @@ test("vision ephemeral, persist, and reference-approval case assertions fail clo
   assert.equal(evalAssertions([noDesign], captured).passed, 0);
   captured.newFiles = [
     ...captured.newFiles,
-    "designbook/plans/design-screen.plan.md",
+    "designbook/plans/2026-09-13-design-screen/plan.md",
   ];
   assert.equal(evalAssertions([approveNoPlan, rejectNoPlan], captured).passed, 0);
 });

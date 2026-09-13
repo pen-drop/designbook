@@ -75,10 +75,10 @@ task pending.
 ## Ephemeral plans
 
 An ephemeral plan path is a full sealed plan under
-`$DESIGNBOOK_DATA/plans/.ephemeral/`. Execute it with the same loop as a durable
-plan. After successful completion or explicit abandon, delete the ephemeral plan
-file after caller/tester inspection when scoring needs the sealed plan; result
-artifacts (`vision.yml`, scene files, …) and any sibling `.problems.md` remain
-for inspection when useful. Crash leftovers may be removed later; they are not a
-resume handoff — interrupted ephemeral work re-intakes (or the user switches to
-persist first).
+`$DESIGNBOOK_DATA/plans/.ephemeral/` — a bare flat file, no per-initiative folder
+and no `problems.md` sidecar. Execute it with the same loop as a durable plan.
+After successful completion or explicit abandon, delete the ephemeral plan file
+after caller/tester inspection when scoring needs the sealed plan; result
+artifacts (`vision.yml`, scene files, …) remain for inspection when useful.
+Crash leftovers may be removed later; they are not a resume handoff —
+interrupted ephemeral work re-intakes (or the user switches to persist first).
