@@ -21,16 +21,19 @@ prompts:
 
       Do this for TWO workflows, in order:
 
-      1. `vision`: run `_debo intake vision`. Author the MD plan at the intake
-         context's `plan_path` (the CLI mints it) per the builder: embed the `Vision`
-         definition in `## Schemas`, the `create-vision` task with its frozen
-         `#### Contract` outputs, and concrete `#### Params`. Choose a product
-         vision and fill every required field of the Vision schema. Validate, seal,
-         then run `plan done` for `create-vision` with a `--data-file` holding the
-         `vision` object.
-      2. `data-model`: run `_debo intake data-model`. Author the plan at its
-         `plan_path` the same way for the `create-data-model` task, validate,
-         seal, and run `plan done` for `create-data-model`.
+      1. `vision`: run `_debo intake vision`. Author the MD plan via `_debo plan
+         build vision --tasks <tasks.json> --name <a concrete name for this
+         initiative>` (using the intake context's `plans_dir` plus that `--name`)
+         per the builder: embed the `Vision` definition in `## Schemas`, the
+         `create-vision` task with its frozen `#### Contract` outputs, and concrete
+         `#### Params`. Choose a product vision and fill every required field of
+         the Vision schema. Validate, seal, then run `plan done` for
+         `create-vision` with a `--data-file` holding the `vision` object — use the
+         exact `plan` value `plan build` returned throughout, never reconstruct a
+         path from `plans_dir`.
+      2. `data-model`: run `_debo intake data-model`. Author the plan the same way
+         for the `create-data-model` task, validate, seal, and run `plan done` for
+         `create-data-model`.
 
       Report each plan path and confirm `vision.yml` and `data-model.yml` now exist
       under `$DESIGNBOOK_DATA`. Do not run any other workflow.

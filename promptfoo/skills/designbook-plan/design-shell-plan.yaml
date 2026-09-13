@@ -22,17 +22,20 @@ prompts:
       and a shell scene that composes them. No external design reference; describe
       the visual intent in the task params.
 
-      Run `_debo intake design-shell`. Then author the COMPLETE MD plan at the
-      intake context's `plan_path`, covering every step: `write-component` (header
-      and footer as separate checkbox tasks), `refresh-components`,
-      `create-sample-data`, `map-entity`, `create-scene-file`, `write-scene`, and
-      `validate`. Each task carries its frozen `#### Contract` outputs (copied from
-      the palette) and concrete `#### Params`; embed the referenced `## Context` and
-      the needed `## Schemas` definitions.
+      Run `_debo intake design-shell`. Then author the COMPLETE MD plan via
+      `_debo plan build design-shell --tasks <tasks.json> --name <a concrete name for
+      this initiative>` (using the intake context's `plans_dir` plus that `--name`),
+      covering every step: `write-component` (header and footer as separate
+      checkbox tasks), `refresh-components`, `create-sample-data`, `map-entity`,
+      `create-scene-file`, `write-scene`, and `validate`. Each task carries its
+      frozen `#### Contract` outputs (copied from the palette) and concrete
+      `#### Params`; embed the referenced `## Context` and the needed `## Schemas`
+      definitions.
 
-      Finally run `_debo plan validate <plan_path>` (fix any missing obligation) and
-      `_debo plan seal <plan_path>`. Do NOT execute any task — no file writes beyond
-      the plan itself. Report the `plan_path`.
+      Finally run `_debo plan validate <plan>` (fix any missing obligation) and
+      `_debo plan seal <plan>` — use the exact `plan` value `plan build` returned,
+      never reconstruct a path from `plans_dir`. Do NOT execute any task — no file
+      writes beyond the plan itself. Report the `plan` path.
 
 providers:
   - id: file://../../providers/claude-cli.mjs
