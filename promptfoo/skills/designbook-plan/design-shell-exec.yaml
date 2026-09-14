@@ -16,7 +16,9 @@ prompts:
       Read `.agents/skills/designbook/resources/workflow-execution.md` and
       `.agents/skills/designbook/skills/execute-workflow/SKILL.md`. Follow them exactly.
 
-      A sealed MD plan already exists at `$DESIGNBOOK_DATA/plans/design-shell.plan.md`.
+      A sealed MD plan already exists under `$DESIGNBOOK_DATA/plans/` in its own
+      per-initiative folder (`<date>-<slug>/plan.md`, not under `.ephemeral/`) from
+      the previous planning run — locate that one `plan.md` and use its exact path.
       Execute it — do NOT re-plan, do NOT run intake, do NOT edit the plan's
       definition. Loop:
         - `_debo plan steps <plan>` to see the steps and checkbox state

@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, renameSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, renameSync, mkdirSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { dump as dumpYaml } from 'js-yaml';
@@ -31,6 +31,38 @@ function writePlan(path: string, md: string): void {
   renameSync(tmp, path);
 }
 
+/** Normalize a caller-supplied initiative name into a filesystem-safe slug. */
+function slugify(name: string): string {
+  const slug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  if (!slug) throw new Error('--name produced an empty slug');
+  return slug;
+}
+
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * Compute the file `plan build` actually writes to. `--output` wins outright.
+ * `--ephemeral` writes a flat, sidecar-free file under `.ephemeral/` (no slug
+ * needed — the UUID is the identity). Otherwise a per-initiative folder
+ * `<date>-<slug>/plan.md`, auto-suffixing the slug on a same-day collision so a
+ * colliding name never overwrites a different initiative (AC-2).
+ */
+function resolveTarget(plansDir: string, opts: { output?: string; ephemeral?: boolean; name?: string }): string {
+  if (opts.output) return opts.output;
+  if (opts.ephemeral) return join(plansDir, '.ephemeral', `${randomUUID()}.md`);
+  const base = slugify(opts.name!);
+  const date = todayIso();
+  let slug = base;
+  let n = 2;
+  while (existsSync(join(plansDir, `${date}-${slug}`))) slug = `${base}-${n++}`;
+  return join(plansDir, `${date}-${slug}`, 'plan.md');
+}
+
 /**
  * Address a task by name, disambiguated by `title` when a name repeats (e.g.
  * write-component for header and footer). Returns `'ambiguous'` when the name
@@ -58,21 +90,35 @@ export function register(program: Command): void {
       '--tasks <path>',
       'JSON task list: { workflow, selectors?, tasks: [{ step, task, title?, params }] }',
     )
-    .option('--output <path>', 'Write the plan here instead of the canonical plan_path')
-    .option('--ephemeral', 'Seal under plans/.ephemeral/ instead of the durable plan_path')
+    .option('--output <path>', 'Write the plan here instead of the computed plans_dir target')
+    .option('--ephemeral', 'Seal under plans/.ephemeral/ instead of a durable per-initiative folder')
+    .option(
+      '--name <text>',
+      'Concrete initiative name — required to persist a plan (ignored with --ephemeral, overridden by --output)',
+    )
     .option('--config-dir <path>', 'Workspace dir to resolve skills root and sources from')
     .option('--config <path>', 'Draft configuration JSON (skips designbook.config.yml lookup)')
     .action(
       async (
         workflow: string,
-        opts: { tasks: string; output?: string; ephemeral?: boolean; configDir?: string; config?: string },
+        opts: {
+          tasks: string;
+          output?: string;
+          ephemeral?: boolean;
+          name?: string;
+          configDir?: string;
+          config?: string;
+        },
       ) => {
+        if (!opts.output && !opts.ephemeral && !opts.name) {
+          return fail('--name is required to persist a plan (or pass --output/--ephemeral)');
+        }
         const taskList = JSON.parse(readFileSync(opts.tasks, 'utf8')) as TaskList;
         taskList.workflow = workflow;
         const draft = opts.config ? JSON.parse(readFileSync(opts.config, 'utf8')) : undefined;
         const {
           plan: built,
-          plan_path,
+          plans_dir,
           errors,
         } = await buildPlan(taskList, {
           configDir: opts.configDir,
@@ -83,9 +129,12 @@ export function register(program: Command): void {
           process.exitCode = 1;
           return;
         }
-        const target = opts.ephemeral
-          ? join(dirname(plan_path), '.ephemeral', `${randomUUID()}.plan.md`)
-          : (opts.output ?? plan_path);
+        let target: string;
+        try {
+          target = resolveTarget(plans_dir, opts);
+        } catch (err: unknown) {
+          return fail(err instanceof Error ? err.message : String(err));
+        }
         writePlan(target, serializePlan(built));
         print({
           ok: true,

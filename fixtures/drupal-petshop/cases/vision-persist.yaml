@@ -18,13 +18,13 @@ prompt: |
   - Community forum and resources
   - Vet integration and health tracking
 
-  Mode: persist. Seal a durable plan with `_debo plan build vision --tasks <tasks.json>` (no `--ephemeral`).
-  Write `$DESIGNBOOK_DATA/plans/vision.plan.md`. Stop after plan build succeeds.
+  Mode: persist. Seal a durable plan with `_debo plan build vision --tasks <tasks.json> --name vision` (no `--ephemeral`).
+  Write `$DESIGNBOOK_DATA/plans/<date>-vision/plan.md`. Stop after plan build succeeds.
   Do NOT invoke execute-workflow. Do NOT write designbook/vision.yml.
 
 assert:
   - type: javascript
-    value: output.newFiles.includes('designbook/plans/vision.plan.md')
+    value: output.newFiles.some((f) => /^designbook\/plans\/(?!\.ephemeral\/)[^/]+\/plan\.md$/.test(f))
   - type: javascript
     value: |
       return !output.newFiles.includes('designbook/vision.yml');

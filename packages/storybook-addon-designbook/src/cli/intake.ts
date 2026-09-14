@@ -8,9 +8,10 @@ import { resolveIntakeContext, type IntakeContext } from '../workflow/intake-res
  * The palette an agent needs to author a `plan build` task list: the intake
  * rules/blueprints (the `<wf>:intake` domain guidance the planner decides against),
  * per step the task names + their `params_schema`, the open selectors and their gated
- * tasks (with the source-specific rules), and the canonical `plan_path`. It excludes
- * the execution-step rules and the task instruction bodies — the `plan build` CLI
- * reads those from disk when it assembles the plan and the executor reads them there.
+ * tasks (with the source-specific rules), and the `plans_dir` directory hint (the final
+ * file is only known after `plan build` also has `--name`). It excludes the
+ * execution-step rules and the task instruction bodies — the `plan build` CLI reads
+ * those from disk when it assembles the plan and the executor reads them there.
  */
 function toPalette(ctx: IntakeContext) {
   const task = (t: IntakeContext['steps'][number]['tasks'][number]) => ({
@@ -26,7 +27,7 @@ function toPalette(ctx: IntakeContext) {
   const intakeStep = ctx.steps.find((s) => s.name === `${ctx.workflow}:intake`);
   return {
     workflow: ctx.workflow,
-    plan_path: ctx.plan_path,
+    plans_dir: ctx.plans_dir,
     // The intake rules/blueprints the planner structures the task list against.
     intake_context: (intakeStep?.context ?? [])
       .map((k) => ctx.context[k])

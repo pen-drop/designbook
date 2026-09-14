@@ -18,7 +18,7 @@ prompt: |
   - Vet integration and health tracking
 
   Default mode is ephemeral. Seal with `_debo plan build vision --tasks <tasks.json> --ephemeral`.
-  Do not write the durable `$DESIGNBOOK_DATA/plans/vision.plan.md`.
+  Do not write a durable per-initiative plan folder under `$DESIGNBOOK_DATA/plans/`.
   Execute the ephemeral plan. Leave the ephemeral plan file in place for scoring — do not delete it before this run ends.
 
   Execute the workflow now.
@@ -38,5 +38,4 @@ assert:
     value: output.definitionUnchanged === true
   - type: javascript
     value: |
-      return !output.newFiles.includes('designbook/plans/vision.plan.md') &&
-        !output.newFiles.some((f) => /^designbook\/plans\/[^/]+\.plan\.md$/.test(f));
+      return !output.newFiles.some((f) => /^designbook\/plans\/(?!\.ephemeral\/)[^/]+\/plan\.md$/.test(f));

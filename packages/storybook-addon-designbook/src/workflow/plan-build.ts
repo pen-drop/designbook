@@ -40,8 +40,8 @@ export interface TaskList {
 }
 export interface BuildResult {
   plan: Plan | null;
-  /** Canonical path the plan should be written to (`<DESIGNBOOK_DATA>/plans/<workflow>.plan.md`). */
-  plan_path: string;
+  /** Directory persisted plans live under (`<DESIGNBOOK_DATA>/plans`) — see IntakeContext.plans_dir. */
+  plans_dir: string;
   errors: string[];
 }
 
@@ -119,7 +119,7 @@ export async function buildPlan(taskList: TaskList, opts: ResolveIntakeOptions =
 
   // No fixed-set completeness gate — the agent decides which tasks come along.
   // Hard requirements are enforced by `plan validate` (obligation rules), not here.
-  if (errors.length > 0) return { plan: null, plan_path: intake.plan_path, errors };
+  if (errors.length > 0) return { plan: null, plans_dir: intake.plans_dir, errors };
 
   // Assemble steps in the order the agent listed them (first-seen). Each step embeds
   // its intake-step context keys, or its gated context entries for a selector step.
@@ -162,5 +162,5 @@ export async function buildPlan(taskList: TaskList, opts: ResolveIntakeOptions =
   // in-memory plan — or `plan done` would report a digest mismatch.
   const plan = parsePlan(serializePlan(draft));
   plan.digest = planDigest(plan);
-  return { plan, plan_path: intake.plan_path, errors: [] };
+  return { plan, plans_dir: intake.plans_dir, errors: [] };
 }

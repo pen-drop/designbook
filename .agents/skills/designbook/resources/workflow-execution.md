@@ -1,6 +1,7 @@
 # Execute a saved workflow plan
 
-Input: a path to a complete MD plan (durable `plan_path` or an ephemeral path from
+Input: a path to a complete MD plan (durable persisted-plan path — the exact
+`plan` field `plan build` returned — or an ephemeral path from
 `plan build --ephemeral`). This is the sole owner of the task loop. The executor
 reads only the plan — no discovery, no rule selection, no added tasks, no widened
 scope.
@@ -46,8 +47,8 @@ scope.
 Unresolved task defects live in a **problems sidecar beside the plan**, not in
 the sealed plan body (run state stays checkbox-only).
 
-**Path:** same directory as the plan; replace a trailing `.plan.md` with
-`.problems.md` (e.g. `design-shell.plan.md` → `design-shell.problems.md`). Create
+**Path:** `problems.md` in the same per-initiative folder as `plan.md` (no
+suffix-derivation — the folder already disambiguates the initiative). Create
 the file on the first entry; append thereafter.
 
 **Each entry** records: ISO-8601 time, step name, task name, task title, the
@@ -74,10 +75,10 @@ task pending.
 ## Ephemeral plans
 
 An ephemeral plan path is a full sealed plan under
-`$DESIGNBOOK_DATA/plans/.ephemeral/`. Execute it with the same loop as a durable
-plan. After successful completion or explicit abandon, delete the ephemeral plan
-file after caller/tester inspection when scoring needs the sealed plan; result
-artifacts (`vision.yml`, scene files, …) and any sibling `.problems.md` remain
-for inspection when useful. Crash leftovers may be removed later; they are not a
-resume handoff — interrupted ephemeral work re-intakes (or the user switches to
-persist first).
+`$DESIGNBOOK_DATA/plans/.ephemeral/` — a bare flat file, no per-initiative folder
+and no `problems.md` sidecar. Execute it with the same loop as a durable plan.
+After successful completion or explicit abandon, delete the ephemeral plan file
+after caller/tester inspection when scoring needs the sealed plan; result
+artifacts (`vision.yml`, scene files, …) remain for inspection when useful.
+Crash leftovers may be removed later; they are not a resume handoff —
+interrupted ephemeral work re-intakes (or the user switches to persist first).

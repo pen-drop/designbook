@@ -402,12 +402,11 @@ describe('plan steps', () => {
 });
 
 describe('plan build --ephemeral', () => {
-  it('seals under plans/.ephemeral and does not write the canonical plan_path', async () => {
+  it('seals under plans/.ephemeral as a bare .md file, not the canonical folder', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'plan-ephemeral-'));
     const dataDir = join(dir, 'data');
     const configPath = join(dir, 'config.json');
     const tasksPath = join(dir, 'tasks.json');
-    const canonicalPlanPath = join(dataDir, 'plans', 'vision.plan.md');
     writeFileSync(
       configPath,
       JSON.stringify({
@@ -445,10 +444,159 @@ describe('plan build --ephemeral', () => {
       expect(result.ok).toBe(true);
       expect(result.ephemeral).toBe(true);
       expect(result.plan).toContain('.ephemeral');
+      expect(result.plan.endsWith('.md')).toBe(true);
+      expect(result.plan.endsWith('.plan.md')).toBe(false);
       expect(existsSync(result.plan)).toBe(true);
-      expect(existsSync(canonicalPlanPath)).toBe(false);
       expect(result.steps).toBeGreaterThan(0);
       expect(result.tasks).toBeGreaterThan(0);
+    } finally {
+      process.exitCode = undefined;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('plan build --name', () => {
+  function setupFixture() {
+    const dir = mkdtempSync(join(tmpdir(), 'plan-name-'));
+    const dataDir = join(dir, 'data');
+    const configPath = join(dir, 'config.json');
+    const tasksPath = join(dir, 'tasks.json');
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        data: dataDir,
+        technology: 'html',
+        backend: 'drupal',
+        'frameworks.component': 'sdc',
+        'frameworks.css': 'tailwind',
+        extensions: [],
+      }),
+    );
+    writeFileSync(
+      tasksPath,
+      JSON.stringify({
+        workflow: 'vision',
+        tasks: [{ step: 'create-vision', task: 'create-vision', title: 'v', params: {} }],
+      }),
+    );
+    return { dir, dataDir, configPath, tasksPath };
+  }
+
+  it('refuses to persist a plan without --name, --output, or --ephemeral', async () => {
+    const { dir, configPath, tasksPath } = setupFixture();
+    try {
+      process.exitCode = undefined;
+      await run([
+        'plan',
+        'build',
+        'vision',
+        '--tasks',
+        tasksPath,
+        '--config-dir',
+        workspaceRoot,
+        '--config',
+        configPath,
+      ]);
+      expect(process.exitCode).toBe(1);
+    } finally {
+      process.exitCode = undefined;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('writes plans/<date>-<slug>/plan.md and returns that exact path', async () => {
+    const { dir, dataDir, configPath, tasksPath } = setupFixture();
+    const today = new Date().toISOString().slice(0, 10);
+    try {
+      process.exitCode = undefined;
+      const out = await run([
+        'plan',
+        'build',
+        'vision',
+        '--tasks',
+        tasksPath,
+        '--name',
+        'Panel Removal!',
+        '--config-dir',
+        workspaceRoot,
+        '--config',
+        configPath,
+      ]);
+      expect(process.exitCode ?? 0).toBe(0);
+      const result = JSON.parse(out);
+      expect(result.ok).toBe(true);
+      expect(result.plan).toBe(join(dataDir, 'plans', `${today}-panel-removal`, 'plan.md'));
+      expect(existsSync(result.plan)).toBe(true);
+    } finally {
+      process.exitCode = undefined;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('auto-suffixes the slug on a same-day collision instead of overwriting', async () => {
+    const { dir, dataDir, configPath, tasksPath } = setupFixture();
+    const today = new Date().toISOString().slice(0, 10);
+    try {
+      process.exitCode = undefined;
+      const first = JSON.parse(
+        await run([
+          'plan',
+          'build',
+          'vision',
+          '--tasks',
+          tasksPath,
+          '--name',
+          'panel removal',
+          '--config-dir',
+          workspaceRoot,
+          '--config',
+          configPath,
+        ]),
+      );
+      const second = JSON.parse(
+        await run([
+          'plan',
+          'build',
+          'vision',
+          '--tasks',
+          tasksPath,
+          '--name',
+          'panel removal',
+          '--config-dir',
+          workspaceRoot,
+          '--config',
+          configPath,
+        ]),
+      );
+      expect(first.plan).toBe(join(dataDir, 'plans', `${today}-panel-removal`, 'plan.md'));
+      expect(second.plan).toBe(join(dataDir, 'plans', `${today}-panel-removal-2`, 'plan.md'));
+      expect(existsSync(first.plan)).toBe(true);
+      expect(existsSync(second.plan)).toBe(true);
+    } finally {
+      process.exitCode = undefined;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects a --name that normalizes to an empty slug', async () => {
+    const { dir, configPath, tasksPath } = setupFixture();
+    try {
+      process.exitCode = undefined;
+      await run([
+        'plan',
+        'build',
+        'vision',
+        '--tasks',
+        tasksPath,
+        '--name',
+        '!!!',
+        '--config-dir',
+        workspaceRoot,
+        '--config',
+        configPath,
+      ]);
+      expect(process.exitCode).toBe(1);
     } finally {
       process.exitCode = undefined;
       rmSync(dir, { recursive: true, force: true });

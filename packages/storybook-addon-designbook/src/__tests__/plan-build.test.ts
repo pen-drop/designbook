@@ -22,7 +22,7 @@ const opts = { agentsDir: agents, config };
 
 describe('buildPlan', () => {
   it('builds a sealed, complete plan from a task list', async () => {
-    const { plan, plan_path, errors } = await buildPlan(
+    const { plan, plans_dir, errors } = await buildPlan(
       { workflow: 'vision', tasks: [{ step: 'create-vision', task: 'create-vision', title: 'v', params: {} }] },
       opts,
     );
@@ -36,7 +36,7 @@ describe('buildPlan', () => {
     // would report a digest mismatch (embedded bodies are trimmed on parse).
     expect(planDigest(parsePlan(serializePlan(plan!)))).toBe(plan!.digest);
     expect(validatePlanCompleteness(plan!).ok).toBe(true);
-    expect(plan_path).toBe(`${config.data}/plans/vision.plan.md`);
+    expect(plans_dir).toBe(`${config.data}/plans`);
   });
 
   it('rejects a truly unknown task but imposes no fixed-set completeness', async () => {

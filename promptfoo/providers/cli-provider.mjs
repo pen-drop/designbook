@@ -34,7 +34,7 @@ import {
   existsSync,
 } from "node:fs";
 import { createHash } from "node:crypto";
-import { dirname, join, relative, resolve } from "node:path";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { createRequire } from "node:module";
 import {
@@ -566,8 +566,10 @@ class CliProvider {
           )
             throw new Error(`Duplicate workflow id: ${parsed.definition.id}`);
           target[parsed.definition.id] = parsed;
-          // MD-plan integrity is the sealed plan + checkbox completion.
-          if (path.endsWith(".plan.md")) continue;
+          // MD-plan integrity is the sealed plan + checkbox completion. Durable
+          // seals are always named `plan.md` inside their per-initiative folder;
+          // ephemeral seals are a bare `<uuid>.md` inside `.ephemeral/`.
+          if (basename(path) === "plan.md" || dirname(path).endsWith(".ephemeral")) continue;
           try {
             const before = yaml.load(
               await readFile(
