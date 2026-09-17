@@ -16,9 +16,9 @@ Use this collection under the loading and ticket-context contract in `@gaia/meth
 
 | Work step or condition | Skill |
 |---|---|
-| Specification: design intent, mode, references | `designbook` intake, `vision`, `tokens` |
+| Specification: drive the intake that writes the plan | `design-screen`, `design-entity`, `design-shell`, `tokens`, `vision`, `sections` |
 | Diagnosis | `design-verify`, then `sync-verify` |
-| Coding: build design artifacts | `designbook` intake, then `execute-workflow` |
+| Coding: execute the written plan | `execute-workflow` |
 | Coding: map artifacts to backend config | `sync-to` |
 | Reference capture | `extract-reference` |
 | Review | `design-verify`, `sync-verify` |
