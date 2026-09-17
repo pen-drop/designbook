@@ -1,6 +1,5 @@
 ---
 name: designbook-drupal
-disable-model-invocation: true
 user-invocable: false
 description: Unified Drupal/SDC skill root. Contains all Drupal-backend and SDC-framework content organized by concern.
 ---
