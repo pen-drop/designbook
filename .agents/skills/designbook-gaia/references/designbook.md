@@ -14,14 +14,20 @@ Use the original Designbook skills as made available by the agent's environment.
 Names below identify upstream skills, not installation paths or a GAIA-managed package.
 Use this collection under the loading and ticket-context contract in `@gaia/method-context`.
 
+The Designbook work splits into two GAIA work types, each with its own intake and verification —
+these are the same two the `designbook-gaia` step-skills own (`debo-designbook-design` for
+`design-to-designbook`, `debo-config-sync` for `designbook-to-config`). In both, specification
+drives the intake that writes the plan and coding runs it with `execute-workflow`; only the intake
+and the verify command differ.
+
 | Work step or condition | Skill |
 |---|---|
-| Specification: drive the intake that writes the plan | `design-screen`, `design-entity`, `design-shell`, `tokens`, `vision`, `sections` |
-| Diagnosis | `design-verify`, then `sync-verify` |
-| Coding: execute the written plan | `execute-workflow` |
-| Coding: map artifacts to backend config | `sync-to` |
-| Reference capture | `extract-reference` |
-| Review | `design-verify`, `sync-verify` |
+| Specification — `design-to-designbook`: intake writes the plan | `design-screen`, `design-entity`, `design-shell`, `tokens`, `vision`, `sections` |
+| Specification — `designbook-to-config`: intake writes the plan | `sync-to` |
+| Coding (either work type): execute the written plan | `execute-workflow` |
+| Diagnosis / Review — `design-to-designbook` | `design-verify` |
+| Diagnosis / Review — `designbook-to-config` | `sync-verify` |
+| Reference capture — `design-to-designbook` | `extract-reference` |
 
 Apply conditional rows only when they fit the task. GAIA lifecycle steps without an engineering
 method use their existing owner. A method's activity beyond the current GAIA state waits for that
