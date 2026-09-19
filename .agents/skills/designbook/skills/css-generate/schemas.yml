@@ -82,6 +82,21 @@ CssArtifactPlan:
       type: string
       description: Output path written into the JSONata @config block, relative to the JSONata file itself.
       examples: ["../../css/tokens/color.src.css"]
+    theme:
+      type: string
+      description: >-
+        Set when this artifact is a theme/mode override (see the css-mapping
+        blueprint's Theme / Mode Overrides section) rather than a base group.
+        The theme's key under design-tokens.yml's top-level `themes:` map.
+      examples: [cozy, dark, hyperstructure]
+    selector_attr:
+      type: string
+      description: Attribute name wrapping a theme override's declarations, derived per the css-mapping blueprint's Selector attribute derivation rules. Only present when `theme` is set.
+      examples: [data-theme, data-mode, data-layout]
+    selector_value:
+      type: string
+      description: Attribute value wrapping a theme override's declarations. Only present when `theme` is set.
+      examples: [dark, cozy, hyperstructure]
 
 CssJsonataPlan:
   type: object

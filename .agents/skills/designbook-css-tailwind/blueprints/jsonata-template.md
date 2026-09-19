@@ -178,41 +178,102 @@ by the `primitive-font` group.
 ## Theme Override Expression Template
 
 For themes declared in the `themes:` section of `design-tokens.yml`, use
-`@layer theme` with a `[data-theme]` selector instead of `@theme`. The input
-is the same `design-tokens.yml`; the expression navigates to
-`$$.themes.<name>.semantic.color`.
+`@layer theme` with an attribute selector instead of `@theme`. The input is
+the same `design-tokens.yml`; the expression navigates to
+`$$.themes.<name>.<resolved_path>`, where `<resolved_path>` is whatever path
+the `css-mapping` blueprint's Path Discovery step resolved for this
+`(group, theme)` pair (e.g. `semantic.color`, or a nested
+`primitive.layout.spacing` on a project that groups its primitives that
+way — the override lives under the same depth as the base group it
+overrides). The attribute name (`<attr>`) and value (`<attr_value>`) come
+from the `css-mapping` blueprint's *Selector attribute derivation* rules
+(`data-theme`/`<name>` by default — the pre-existing, only previously
+supported shape — `data-mode`/`dark` for dark-mode themes, `data-layout`/
+`<name>` for primitive-only density themes, or an explicit
+`$extensions.designbook.axis` override). The walk below reuses the same
+recursive, depth-agnostic `$walk` helper as the Default Expression so a
+nested override subtree flattens exactly the way the base group would.
 
 ### Standard Theme
 
 ```jsonata
 (
-  $entries := $each($$.themes."<name>".semantic.color, function($v, $k) {
-    $substring($k, 0, 1) != "$" ? "    --color-" & $k & ": " & $v."$value" & ";"
-  });
-  $lines := $filter($entries, function($e) { $e != null });
+  $normalizeCssValue := function($val) {
+    $type($val) = "string"
+      ? $replace($val, /(^|\s|:|,|\()(-?)\.(\d)/, function($m) { $m.groups[0] & $m.groups[1] & "0." & $m.groups[2] })
+      : $val
+  };
+  $walk := function($node, $path) {
+    $reduce(
+      $keys($node),
+      function($acc, $k) {
+        $substring($k, 0, 1) != "$" ? (
+          $v := $lookup($node, $k);
+          $sub := $path = "" ? $k : $path & "-" & $k;
+          $exists($v."$value")
+            ? $append($acc, "    --<prefix>-" & $sub & ": " & $normalizeCssValue($v."$value") & ";")
+            : $append($acc, $walk($v, $sub))
+        ) : $acc
+      },
+      []
+    )
+  };
+  $node := $reduce($split("<resolved_path>", "."), function($a, $s) { $lookup($a, $s) }, $$.themes."<name>");
+  $lines := $walk($node, "");
   $count($lines) > 0
-    ? "@layer theme {\n  [data-theme=\"<name>\"] {\n" & $join($lines, "\n") & "\n  }\n}\n"
+    ? "@layer theme {\n  [<attr>=\"<attr_value>\"] {\n" & $join($lines, "\n") & "\n  }\n}\n"
     : ""
 )
 ```
 
+For the pre-existing shape (a `semantic.color` override with no
+`$extensions` metadata), `<resolved_path>` is `semantic.color`, `<attr>` is
+`data-theme` and `<attr_value>` is `<name>` — this reproduces the previous,
+non-generalized expression byte-for-byte.
+
 ### Dark Mode Theme
 
-If the theme has `$extensions.darkMode: true`, output **both** a
-`prefers-color-scheme` media query and a `data-theme` selector:
+If the theme has `$extensions.darkMode: true`, the derivation rule selects
+`<attr> = data-mode` / `<attr_value> = dark`, and the expression outputs
+**both** a `prefers-color-scheme` media query and the `data-mode` selector:
 
 ```jsonata
 (
+  $normalizeCssValue := function($val) {
+    $type($val) = "string"
+      ? $replace($val, /(^|\s|:|,|\()(-?)\.(\d)/, function($m) { $m.groups[0] & $m.groups[1] & "0." & $m.groups[2] })
+      : $val
+  };
+  $walk := function($node, $path) {
+    $reduce(
+      $keys($node),
+      function($acc, $k) {
+        $substring($k, 0, 1) != "$" ? (
+          $v := $lookup($node, $k);
+          $sub := $path = "" ? $k : $path & "-" & $k;
+          $exists($v."$value")
+            ? $append($acc, "    --<prefix>-" & $sub & ": " & $normalizeCssValue($v."$value") & ";")
+            : $append($acc, $walk($v, $sub))
+        ) : $acc
+      },
+      []
+    )
+  };
   $theme := $$.themes."<name>";
-  $entries := $each($theme.semantic.color, function($v, $k) {
-    $substring($k, 0, 1) != "$" ? "    --color-" & $k & ": " & $v."$value" & ";"
-  });
-  $block := $join($filter($entries, function($e) { $e != null }), "\n");
+  $node := $reduce($split("<resolved_path>", "."), function($a, $s) { $lookup($a, $s) }, $theme);
+  $lines := $walk($node, "");
+  $block := $join($lines, "\n");
   $dark := $theme."$extensions".darkMode;
   $darkBlock := $dark ? "@layer theme {\n  @media (prefers-color-scheme: dark) {\n    :root {\n" & $block & "\n    }\n  }\n}\n\n" : "";
-  $darkBlock & "@layer theme {\n  [data-theme=\"<name>\"] {\n" & $block & "\n  }\n}\n"
+  $darkBlock & "@layer theme {\n  [<attr>=\"<attr_value>\"] {\n" & $block & "\n  }\n}\n"
 )
 ```
+
+Substitute:
+- `<name>` — the theme's key under `themes:` (e.g. `cozy`, `dark`, `hyperstructure`).
+- `<prefix>` — the base group's `CssGroup.prefix` (unchanged from the group it overrides).
+- `<resolved_path>` — the path discovered under `themes.<name>` for this group (see the `css-mapping` blueprint's Path Discovery and Theme / Mode Overrides sections).
+- `<attr>` / `<attr_value>` — from the Selector attribute derivation rules.
 
 ### @config Block for Theme Expressions
 
