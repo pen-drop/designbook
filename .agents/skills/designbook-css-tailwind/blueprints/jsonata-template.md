@@ -177,8 +177,16 @@ by the `primitive-font` group.
 
 ## Theme Override Expression Template
 
-For themes declared in the `themes:` section of `design-tokens.yml`, use
-`@layer theme` with an attribute selector instead of `@theme`. The input is
+For themes declared in the `themes:` section of `design-tokens.yml`, use an
+attribute selector instead of `@theme`, emitted **unlayered** (no `@layer`
+wrapper). The base group it overrides is produced by Tailwind's own
+`@theme static` directive, which compiles to an unlayered `:root,:host{...}`
+block — CSS's cascade gives ANY unlayered declaration priority over ANY
+layered declaration regardless of selector specificity or source order, so a
+layered override can never win against an unlayered base. Emitting the
+override unlayered keeps both sides in the same layer relationship, and the
+attribute selector then wins on ordinary cascade rules: higher specificity
+than `:root,:host`, and later in source order. The input is
 the same `design-tokens.yml`; the expression navigates to
 `$$.themes.<name>.<resolved_path>`, where `<resolved_path>` is whatever path
 the `css-mapping` blueprint's Path Discovery step resolved for this
@@ -221,7 +229,7 @@ nested override subtree flattens exactly the way the base group would.
   $node := $reduce($split("<resolved_path>", "."), function($a, $s) { $lookup($a, $s) }, $$.themes."<name>");
   $lines := $walk($node, "");
   $count($lines) > 0
-    ? "@layer theme {\n  [<attr>=\"<attr_value>\"] {\n" & $join($lines, "\n") & "\n  }\n}\n"
+    ? "[<attr>=\"<attr_value>\"] {\n" & $join($lines, "\n") & "\n}\n"
     : ""
 )
 ```
@@ -264,8 +272,8 @@ If the theme has `$extensions.darkMode: true`, the derivation rule selects
   $lines := $walk($node, "");
   $block := $join($lines, "\n");
   $dark := $theme."$extensions".darkMode;
-  $darkBlock := $dark ? "@layer theme {\n  @media (prefers-color-scheme: dark) {\n    :root {\n" & $block & "\n    }\n  }\n}\n\n" : "";
-  $darkBlock & "@layer theme {\n  [<attr>=\"<attr_value>\"] {\n" & $block & "\n  }\n}\n"
+  $darkBlock := $dark ? "@media (prefers-color-scheme: dark) {\n  :root {\n" & $block & "\n  }\n}\n\n" : "";
+  $darkBlock & "[<attr>=\"<attr_value>\"] {\n" & $block & "\n}\n"
 )
 ```
 
