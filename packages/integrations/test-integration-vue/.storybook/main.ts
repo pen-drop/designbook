@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 /** @type { import('@storybook/html-vite').StorybookConfig } */
 const config = {
   stories: [
-    '../components/**/*.component.yml',
+    '../components/*/*.story.yml',
   ],
   addons: [
     '@storybook/addon-docs',

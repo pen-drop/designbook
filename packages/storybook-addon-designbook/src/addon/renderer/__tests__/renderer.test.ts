@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
-import { h } from 'vue';
-import { renderComponent, mountVueRoot } from '../renderer';
+import { h, createCommentVNode, Fragment, createApp } from 'vue';
+import { renderComponent, mountVueRoot, type VueMarkerHelpers } from '../renderer';
 import type { ComponentNode, ComponentModule } from '../../../scene-model/types';
+
+const vueHelpers = { h, createCommentVNode, Fragment } as unknown as VueMarkerHelpers;
 
 function makeModule(render: ComponentModule['render']): ComponentModule {
   return { render };
@@ -134,6 +136,42 @@ describe('renderComponent', () => {
     expect(result).toBeNull();
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('test:missing'));
     warnSpy.mockRestore();
+  });
+});
+
+describe('renderComponent — nested Vue VNode marker wrapping', () => {
+  it('wraps a nested Vue VNode result with db:s/db:e comment-VNode markers when vueHelpers is passed', async () => {
+    const imports = {
+      'test:child': makeModule(() => h('span', {}, 'child')),
+      'test:parent': makeModule((_props, slots) => h('div', {}, [slots.body as never])),
+    };
+
+    const node: ComponentNode = {
+      component: 'test:parent',
+      path: '0',
+      slots: { body: { component: 'test:child', path: '0.body' } },
+    };
+
+    const result = renderComponent(node, imports, vueHelpers);
+
+    const container = document.createElement('div');
+    const app = createApp({ render: () => result });
+    app.mount(container);
+
+    expect(container.innerHTML).toContain('<!--db:s:test:child@0.body-->');
+    expect(container.innerHTML).toContain('<!--db:e:test:child@0.body-->');
+    expect(container.textContent).toContain('child');
+
+    app.unmount();
+  });
+
+  it('does not wrap with markers when vueHelpers is omitted (SDC/string path unaffected)', () => {
+    const imports = { 'test:child': makeModule(() => h('span', {}, 'child')) };
+    const node: ComponentNode = { component: 'test:child', path: '0' };
+
+    const result = renderComponent(node, imports) as { __v_isVNode: boolean };
+
+    expect(result.__v_isVNode).toBe(true);
   });
 });
 

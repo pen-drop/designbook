@@ -339,12 +339,14 @@ describe('defaultVueResolver', () => {
 });
 
 describe('defaultVueWrapImport', () => {
-  it('generates a render wrapper expression calling h(alias.default, {...props}, slots)', () => {
+  it('generates a render wrapper expression calling h(alias.default, {...props}, thunked slots)', () => {
     const expr = defaultVueWrapImport('bookcard');
-    expect(expr).toBe('{ render: (p, s) => h(bookcard.default, {...p}, s) }');
+    expect(expr).toBe(
+      '{ render: (p, s) => h(bookcard.default, {...p}, Object.fromEntries(Object.entries(s).map(([k, v]) => [k, () => v]))) }',
+    );
   });
 
-  it('the generated expression, once evaluated with a stub h, forwards props and slots', () => {
+  it('the generated expression, once evaluated with a stub h, forwards props and wraps each slot in a thunk', () => {
     const expr = defaultVueWrapImport('bookcard');
     const h = vi.fn().mockReturnValue({ __v_isVNode: true });
     const bookcard = { default: { name: 'BookCard' } };
@@ -354,19 +356,20 @@ describe('defaultVueWrapImport', () => {
     };
 
     const props = { title: 'Dune' };
-    const slots = { default: () => 'child' };
+    const slots = { default: 'child' };
     mod.render(props, slots);
 
     expect(h).toHaveBeenCalledOnce();
-    const [type, calledProps, calledSlots] = h.mock.calls[0]!;
+    const [type, calledProps, calledSlots] = h.mock.calls[0]! as [unknown, unknown, Record<string, () => unknown>];
     expect(type).toBe(bookcard.default);
     expect(calledProps).toEqual(props);
-    expect(calledSlots).toBe(slots);
+    expect(typeof calledSlots.default).toBe('function');
+    expect(calledSlots.default!()).toBe('child');
   });
 });
 
 describe('defaultVueExtraImportLines', () => {
-  it('imports h from vue', () => {
-    expect(defaultVueExtraImportLines).toEqual(["import { h } from 'vue';"]);
+  it('imports h, createCommentVNode, and Fragment from vue', () => {
+    expect(defaultVueExtraImportLines).toEqual(["import { h, createCommentVNode, Fragment } from 'vue';"]);
   });
 });

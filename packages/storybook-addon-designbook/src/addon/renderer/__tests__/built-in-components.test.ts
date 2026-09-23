@@ -147,8 +147,25 @@ describe('vueBuiltInComponents', () => {
     delete (globalThis as { h?: unknown }).h;
   });
 
-  it('reuses the same placeholder render as the HTML variant', () => {
-    expect(vueBuiltInComponents['designbook:placeholder']).toBe(builtInComponents['designbook:placeholder']);
+  it('designbook:placeholder returns a vnode-like object, not a raw HTML string', () => {
+    const mod = vueBuiltInComponents['designbook:placeholder']!;
+    const result = mod.render({ message: 'missing expression' }, {}) as {
+      __v_isVNode: boolean;
+      type: string;
+      propsOrChildren: unknown;
+      children: unknown;
+    };
+
+    expect(result.__v_isVNode).toBe(true);
+    expect(result.type).toBe('div');
+    expect((result.propsOrChildren as { style: string }).style).toContain('dashed');
+    expect(result.children).toBe('missing expression');
+  });
+
+  it('designbook:placeholder uses default message when none provided', () => {
+    const mod = vueBuiltInComponents['designbook:placeholder']!;
+    const result = mod.render({}, {}) as { children: unknown };
+    expect(result.children).toBe('placeholder');
   });
 
   it('designbook:image provider mode returns a vnode-like object, not a string', () => {

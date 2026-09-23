@@ -11,8 +11,10 @@ import { withRoundTrip } from './withRoundTrip';
 import { withVisualCompare } from './withVisualCompare';
 import { withInspectOverlay } from './decorators/inspect-overlay';
 import { setActiveTheme } from './pages/theme-store';
-import { mountVueRoot, type VueMountHandle } from './renderer/renderer';
+import { mountVueRoot, isVueVNode, type VueMountHandle } from './renderer/renderer';
 import type { ComponentNode } from '../scene-model/types';
+
+export { isVueVNode };
 
 if (
   typeof document !== 'undefined' &&
@@ -22,16 +24,6 @@ if (
   link.rel = 'stylesheet';
   link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap';
   document.head.appendChild(link);
-}
-
-/**
- * True when `value` is a Vue 3 VNode. Vue stamps every vnode it creates with
- * `__v_isVNode: true` — checking that marker lets us detect Vue output
- * without a static (or even dynamic) `import 'vue'` here; SDC/React/Twig
- * consumers never load this branch's code path.
- */
-export function isVueVNode(value: unknown): boolean {
-  return !!value && typeof value === 'object' && (value as Record<string, unknown>).__v_isVNode === true;
 }
 
 /**

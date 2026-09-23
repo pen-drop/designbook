@@ -9,7 +9,11 @@ import type { SceneNodeBuilder, ComponentModule } from '../scene-model/types';
 import { buildSceneModule } from '../scene-model/scene-module-builder';
 import { buildEntityModule } from '../scene-model/entity-module-builder';
 import { matchHandler, defaultHandlers } from '../scene-model/scene-handlers';
-import { parseComponentStoryFileName, humanizeComponentName, componentStoryGroup } from '../scene-model/scene-metadata';
+import {
+  parseComponentStoryFileName,
+  componentStoryGroup,
+  resolveComponentStoryName,
+} from '../scene-model/scene-metadata';
 import { StoryMeta } from '../scene-model/story-entity';
 import { Reference } from '../tools/reference-entity';
 import { USES_WITH_SELECTOR_SOURCE } from './use-sync-with-selector-source';
@@ -783,8 +787,11 @@ async function loadEntityModule(
  * one-item scenes object and run through the same `buildSceneModule`
  * pipeline used for `*.scenes.yml` — no separate module builder needed.
  * `group`/scene-name are derived with the exact same helpers the indexer
- * uses (`componentStoryGroup`/`humanizeComponentName`), so the loaded
+ * uses (`componentStoryGroup`/`resolveComponentStoryName`), so the loaded
  * module's title/export name always match the index entry (R1 parity).
+ * `resolveComponentStoryName` honors an explicit top-level `name:` key in
+ * the story file when present, falling back to the humanized filename
+ * variant segment otherwise.
  */
 async function loadComponentStoryModule(
   id: string,
@@ -812,7 +819,7 @@ async function loadComponentStoryModule(
     }
     const parsed = raw as Record<string, unknown>;
 
-    const displayVariant = humanizeComponentName(parsedName.variant);
+    const displayVariant = resolveComponentStoryName(parsedName.variant, parsed.name);
     const group = componentStoryGroup(parsedName.name);
     const storyItem: Record<string, unknown> = { component: parsed.component };
     if (parsed.props !== undefined) storyItem.props = parsed.props;

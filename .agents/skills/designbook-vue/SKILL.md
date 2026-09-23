@@ -29,3 +29,17 @@ Rules, tasks, and schemas for creating Vue Single-File Components
 The Vue runtime (`vue`, `@vitejs/plugin-vue`) ships as an optional peer dependency of
 `storybook-addon-designbook`; a `frameworks.component: vue` project installs it
 alongside the addon.
+
+## Setup
+
+The addon does not auto-inject `@vitejs/plugin-vue` into Storybook's Vite config —
+register it in the project's own `.storybook/main.ts` `viteFinal`:
+
+```ts
+import vuePlugin from '@vitejs/plugin-vue';
+
+async viteFinal(config) {
+  const { mergeConfig } = await import('vite');
+  return mergeConfig(config, { plugins: [vuePlugin()] });
+},
+```

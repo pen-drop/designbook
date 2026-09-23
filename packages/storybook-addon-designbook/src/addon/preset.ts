@@ -7,8 +7,8 @@ import {
   fileBaseName,
   formExportName,
   parseComponentStoryFileName,
-  humanizeComponentName,
   componentStoryGroup,
+  resolveComponentStoryName,
 } from '../scene-model/scene-metadata';
 import { matchHandler, defaultHandlers } from '../scene-model/scene-handlers';
 import { entityStoryGroup } from '../scene-model/entity-module-builder';
@@ -154,7 +154,15 @@ export function indexComponentStory(fileName: string): any[] {
   if (!hasVue) return [];
 
   const relativePath = './' + relative(process.cwd(), fileName);
-  const displayVariant = humanizeComponentName(parsedName.variant);
+  let explicitName: unknown;
+  try {
+    const raw = parseYaml(readFileSync(fileName, 'utf-8'));
+    if (raw && typeof raw === 'object') explicitName = (raw as Record<string, unknown>).name;
+  } catch {
+    // Malformed YAML: fall through to the filename-derived name; the loader
+    // surfaces the real parse error when it loads the module.
+  }
+  const displayVariant = resolveComponentStoryName(parsedName.variant, explicitName);
 
   return [
     {

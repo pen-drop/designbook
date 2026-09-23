@@ -157,6 +157,7 @@ export function buildCsfModule(opts: CsfPrepOptions): string {
   ];
 
   const importsMap = `const __imports = {\n${importsMapEntries.join('\n')}\n};`;
+  const isVue = usesVueHelpers(opts.extraImportLines);
 
   // Default export
   const defaultExport = [
@@ -200,7 +201,7 @@ export function buildCsfModule(opts: CsfPrepOptions): string {
       '  args: {',
       `    __scene: ${nodesJson},`,
       '  },',
-      '  render: (args) => renderComponent(args.__scene, __imports),',
+      `  render: (args) => ${renderComponentCall('args.__scene', isVue)},`,
       '  play: (ctx) => attachDrupalBehaviors(ctx.canvasElement),',
       '};',
     ].join('\n');
@@ -267,6 +268,23 @@ export interface EntityCsfOptions {
   builtInComponents?: Record<string, ComponentModule>;
 }
 
+/**
+ * Whether `extraImportLines` pulls in Vue bindings — used to decide whether
+ * the generated `renderComponent(...)` call needs the `vueHelpers` argument
+ * (`{ h, createCommentVNode, Fragment }`, see `defaultVueExtraImportLines`)
+ * so nested Vue VNodes get `db:s:`/`db:e:` inspect-overlay markers too.
+ */
+function usesVueHelpers(extraImportLines: string[] | undefined): boolean {
+  return (extraImportLines ?? []).some((line) => line.includes("from 'vue';"));
+}
+
+/** Build the generated `render:` line's `renderComponent(...)` expression. */
+function renderComponentCall(sceneExpr: string, isVue: boolean): string {
+  return isVue
+    ? `renderComponent(${sceneExpr}, __imports, { h, createCommentVNode, Fragment })`
+    : `renderComponent(${sceneExpr}, __imports)`;
+}
+
 function fieldTableMarkdown(mappings: FieldMapping[]): string {
   if (!mappings.length) return '_No field mappings extracted._';
   const head = '| field | component | target | kind | conditional |\n|---|---|---|---|---|';
@@ -303,8 +321,10 @@ function emitEntityStory(params: {
   source: string;
   fieldMappings: FieldMapping[];
   tags?: string[];
+  isVue: boolean;
 }): string {
-  const { exportName, name, order, recordsNodes, recordsTrees, mappingFile, source, fieldMappings, tags } = params;
+  const { exportName, name, order, recordsNodes, recordsTrees, mappingFile, source, fieldMappings, tags, isVue } =
+    params;
   const recordsJson = JSON.stringify(recordsNodes);
   // Per-record scene IR — the Structure panel indexes into it by the `record`
   // arg to show the tree for the record currently on screen.
@@ -319,7 +339,7 @@ function emitEntityStory(params: {
     `  parameters: { designbook: { order: ${order} }, docs: { description: { story: ${description} } }, sceneTrees: ${treesJson} },`,
     `  argTypes: { record: { name: 'record', control: { type: 'select' }, options: [${options.join(', ')}] } },`,
     `  args: { record: 0, __records: ${recordsJson} },`,
-    '  render: (args) => renderComponent(args.__records[args.record], __imports),',
+    `  render: (args) => ${renderComponentCall('args.__records[args.record]', isVue)},`,
     '  play: (ctx) => attachDrupalBehaviors(ctx.canvasElement),',
     '};',
   );
@@ -353,6 +373,7 @@ export function buildEntityCsfModule(opts: EntityCsfOptions): string {
     ...componentImportLines,
   ];
   const importsMap = `const __imports = {\n${importsMapEntries.join('\n')}\n};`;
+  const isVue = usesVueHelpers(opts.extraImportLines);
 
   // `entity` parameter mirrors the scene module's `scene` param — it marks the
   // story as a designbook entity story so the visual-compare toolbar shows for
@@ -381,6 +402,7 @@ export function buildEntityCsfModule(opts: EntityCsfOptions): string {
       mappingFile: mappingBasename(vm.view_mode),
       source: vm.source,
       fieldMappings: vm.fieldMappings,
+      isVue,
     }),
   );
 
@@ -397,6 +419,7 @@ export function buildEntityCsfModule(opts: EntityCsfOptions): string {
       source: fm.source,
       fieldMappings: fm.fieldMappings,
       tags: ['form'],
+      isVue,
     }),
   );
 

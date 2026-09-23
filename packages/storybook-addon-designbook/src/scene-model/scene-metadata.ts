@@ -94,3 +94,17 @@ export function humanizeComponentName(name: string): string {
 export function componentStoryGroup(name: string): string {
   return `Components/${humanizeComponentName(name)}`;
 }
+
+/**
+ * Display name for a standalone component story (`<name>.<variant>.story.yml`).
+ * Honors an explicit top-level `name:` key when present (the documented
+ * contract in `designbook-vue`'s component rules/schema); falls back to the
+ * humanized filename variant segment otherwise. Shared by the indexer
+ * (preset.ts `indexComponentStory`) and the loader (vite-plugin.ts
+ * `loadComponentStoryModule`) so index names and loaded-story names never
+ * diverge (same parity guarantee as `componentStoryGroup`).
+ */
+export function resolveComponentStoryName(variant: string, explicitName?: unknown): string {
+  if (typeof explicitName === 'string' && explicitName.trim()) return explicitName;
+  return humanizeComponentName(variant);
+}

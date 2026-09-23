@@ -101,18 +101,25 @@ export function defaultVueResolver(componentId: string, designbookDir: string): 
 /**
  * Default `wrapImport` for Vue components: wraps the SFC's default export
  * into a `ComponentModule.render()` that produces a VNode via Vue's `h()`.
- * Slots are passed through as-is (a function map), not resolved to DOM
- * children — Vue slot-consuming SFCs read them as `$slots.<name>()`.
+ * Slots are resolved (strings/VNodes/arrays) by `resolveSlots`, but Vue SFCs
+ * read slots as `$slots.<name>()` — i.e. each slot must be a *function*
+ * returning children, not the raw resolved value. Wrap each entry in a
+ * thunk so `<slot name="...">` consumption works without Vue's "Non-function
+ * value encountered for slot" warning.
  */
 export function defaultVueWrapImport(alias: string): string {
-  return `{ render: (p, s) => h(${alias}.default, {...p}, s) }`;
+  return `{ render: (p, s) => h(${alias}.default, {...p}, Object.fromEntries(Object.entries(s).map(([k, v]) => [k, () => v]))) }`;
 }
 
 /**
- * Extra module-level import lines required by `defaultVueWrapImport` — the
- * `h` binding it calls. Pass as `extraImportLines` alongside the wrapper.
+ * Extra module-level import lines required by `defaultVueWrapImport` (the
+ * `h` binding it calls) and by `renderComponent`'s nested-VNode `db:s:`/
+ * `db:e:` marker wrapping (`createCommentVNode`, `Fragment` — see
+ * `VueMarkerHelpers` in renderer.ts). Pass as `extraImportLines` alongside
+ * the wrapper; csf-prep.ts also threads these three bindings into the
+ * generated `renderComponent(...)` call as its `vueHelpers` argument.
  */
-export const defaultVueExtraImportLines: string[] = ["import { h } from 'vue';"];
+export const defaultVueExtraImportLines: string[] = ["import { h, createCommentVNode, Fragment } from 'vue';"];
 
 // ── Data loading ────────────────────────────────────────────────────────
 

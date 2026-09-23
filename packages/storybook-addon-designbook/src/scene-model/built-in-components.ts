@@ -94,7 +94,19 @@ export const builtInComponents: Record<string, ComponentModule> = {
  * closure over this file's scope — which is why `h` is never imported here.
  */
 export const vueBuiltInComponents: Record<string, ComponentModule> = {
-  'designbook:placeholder': builtInComponents['designbook:placeholder']!,
+  'designbook:placeholder': {
+    render: (props) => {
+      const message = (props.message as string) ?? 'placeholder';
+      return h(
+        'div',
+        {
+          style:
+            'border:1px dashed #ccc;border-radius:4px;padding:8px 12px;color:#999;font-size:11px;font-family:monospace;',
+        },
+        message,
+      );
+    },
+  },
 
   'designbook:image': {
     render: (props) => {
