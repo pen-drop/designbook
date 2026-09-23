@@ -23,7 +23,7 @@ import { view } from './view';
 import { buildEntityCsfModule, type EntityCsfViewMode, type EntityCsfFormMode } from './csf-prep';
 import { extractFieldMappings } from './jsonata-mapping-analyzer';
 import { buildExportName, formExportName } from './scene-metadata';
-import type { SceneNode, SceneNodeBuilder, SceneTreeNode, ComponentNode } from './types';
+import type { SceneNode, SceneNodeBuilder, SceneTreeNode, ComponentNode, ComponentModule } from './types';
 import { entityStoryGroup, titleCaseBundle } from './story-address';
 
 export { entityStoryGroup, titleCaseBundle };
@@ -46,6 +46,8 @@ export async function buildEntityModule(
     resolveImportPath?: (componentId: string) => string | null;
     wrapImport?: (alias: string) => string;
     resolveScriptPath?: (componentId: string) => string | null;
+    extraImportLines?: string[];
+    builtInComponents?: Record<string, ComponentModule>;
   } = {},
 ): Promise<string> {
   const { entity_type, bundle } = parseMappingName(mappingFilePath);
@@ -179,5 +181,7 @@ export async function buildEntityModule(
     resolveImportPath,
     wrapImport,
     resolveScriptPath,
+    extraImportLines: options.extraImportLines,
+    builtInComponents: options.builtInComponents,
   });
 }

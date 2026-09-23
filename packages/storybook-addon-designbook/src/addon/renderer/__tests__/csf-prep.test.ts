@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCsfModule } from '../../../scene-model/csf-prep';
+import { buildCsfModule, buildEntityCsfModule } from '../../../scene-model/csf-prep';
 import type { ComponentNode } from '../../../scene-model/types';
 
 const scene = (name: string, exportName: string, nodes: ComponentNode[]) => ({ name, exportName, nodes });
@@ -55,5 +55,54 @@ describe('buildCsfModule — JS load + attach', () => {
       ],
     });
     expect(code.match(/import '\/abs\/toggle\.js';/g)?.length).toBe(1);
+  });
+});
+
+describe('buildCsfModule — extraImportLines', () => {
+  it('emits extraImportLines directly after the renderer import', () => {
+    const code = buildCsfModule({
+      ...baseOpts,
+      extraImportLines: ["import { h } from 'vue';"],
+      scenes: [scene('Default', 'Default', [{ component: 'test:card', props: {}, path: '0' }])],
+    });
+    const lines = code.split('\n');
+    const rendererIdx = lines.findIndex((l) => l.includes('storybook-addon-designbook/renderer'));
+    expect(rendererIdx).toBeGreaterThanOrEqual(0);
+    expect(lines[rendererIdx + 1]).toBe("import { h } from 'vue';");
+  });
+
+  it('emits no extra lines when extraImportLines is omitted', () => {
+    const code = buildCsfModule({
+      ...baseOpts,
+      scenes: [scene('Default', 'Default', [{ component: 'test:card', props: {}, path: '0' }])],
+    });
+    expect(code).not.toContain("import { h } from 'vue';");
+  });
+});
+
+describe('buildEntityCsfModule — extraImportLines', () => {
+  it('emits extraImportLines directly after the renderer import', () => {
+    const code = buildEntityCsfModule({
+      group: 'Content/Article',
+      source: 'article.entity.yml',
+      mappingBasename: (vm) => `article.${vm}.jsonata`,
+      resolveImportPath: (id) => `/abs/${id.split(':')[1]}.component.yml`,
+      wrapImport: (alias) => `{ render: (p, s) => ${alias}.default.component({...p, ...s}) }`,
+      extraImportLines: ["import { h } from 'vue';"],
+      viewModes: [
+        {
+          view_mode: 'teaser',
+          exportName: 'Teaser',
+          recordsNodes: [[{ component: 'test:card', props: {}, path: '0' }]],
+          recordsTrees: [[]],
+          source: 'article.teaser.jsonata',
+          fieldMappings: [],
+        },
+      ],
+    });
+    const lines = code.split('\n');
+    const rendererIdx = lines.findIndex((l) => l.includes('storybook-addon-designbook/renderer'));
+    expect(rendererIdx).toBeGreaterThanOrEqual(0);
+    expect(lines[rendererIdx + 1]).toBe("import { h } from 'vue';");
   });
 });

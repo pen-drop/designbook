@@ -5,10 +5,11 @@ import { resolve, join, basename, dirname, relative, sep } from 'node:path';
 import { createRequire } from 'node:module';
 import { load as parseYaml } from 'js-yaml';
 
-import type { SceneNodeBuilder } from '../scene-model/types';
+import type { SceneNodeBuilder, ComponentModule } from '../scene-model/types';
 import { buildSceneModule } from '../scene-model/scene-module-builder';
 import { buildEntityModule } from '../scene-model/entity-module-builder';
 import { matchHandler, defaultHandlers } from '../scene-model/scene-handlers';
+import { parseComponentStoryFileName, humanizeComponentName, componentStoryGroup } from '../scene-model/scene-metadata';
 import { StoryMeta } from '../scene-model/story-entity';
 import { Reference } from '../tools/reference-entity';
 import { USES_WITH_SELECTOR_SOURCE } from './use-sync-with-selector-source';
@@ -48,6 +49,15 @@ export function isFormMappingFile(id: string): boolean {
 }
 
 /**
+ * Matches a standalone component story file id:
+ * `components/<name>/<name>.<variant>.story.yml`. Mirrors the indexer's
+ * `test` regex in preset.ts (R1 indexer/loader parity).
+ */
+export function isComponentStoryFile(id: string): boolean {
+  return /(?:^|\/)components\/[^/]+\/[^/]+\.[^./]+\.story\.yml$/.test(id);
+}
+
+/**
  * Map a `form-mapping/<type>.<bundle>.<form_mode>.jsonata` id to the bundle's
  * canonical entity-mapping file (its first sorted view mapping, one directory
  * over). Form stories are appended to that entity-mapping module, so a directly
@@ -77,6 +87,8 @@ export function designbookLoadPlugin(
     builders?: SceneNodeBuilder[];
     resolveImportPath?: (componentId: string) => string | null;
     wrapImport?: (alias: string) => string;
+    extraImportLines?: string[];
+    builtInComponents?: Record<string, ComponentModule>;
   },
 ): Plugin {
   const designbookDir = resolve(baseDir, options.fsRoot || 'designbook');
@@ -235,7 +247,7 @@ export function designbookLoadPlugin(
         if (importer) return resolve(dirname(importer), cleanId);
         return cleanId;
       }
-      if (isEntityMappingFile(cleanId) || isFormMappingFile(cleanId)) {
+      if (isEntityMappingFile(cleanId) || isFormMappingFile(cleanId) || isComponentStoryFile(cleanId)) {
         if (importer) return resolve(dirname(importer), cleanId);
         return cleanId;
       }
@@ -269,6 +281,8 @@ export function designbookLoadPlugin(
           builders: options.builders,
           resolveImportPath: options.resolveImportPath,
           wrapImport: options.wrapImport,
+          extraImportLines: options.extraImportLines,
+          builtInComponents: options.builtInComponents,
         });
       }
 
@@ -283,8 +297,20 @@ export function designbookLoadPlugin(
             builders: options.builders,
             resolveImportPath: options.resolveImportPath,
             wrapImport: options.wrapImport,
+            extraImportLines: options.extraImportLines,
+            builtInComponents: options.builtInComponents,
           });
         }
+      }
+
+      if (isComponentStoryFile(id)) {
+        return loadComponentStoryModule(id, designbookDir, {
+          builders: options.builders,
+          resolveImportPath: options.resolveImportPath,
+          wrapImport: options.wrapImport,
+          extraImportLines: options.extraImportLines,
+          builtInComponents: options.builtInComponents,
+        });
       }
 
       const match = matchHandler(id, defaultHandlers);
@@ -294,6 +320,8 @@ export function designbookLoadPlugin(
         builders: options.builders,
         resolveImportPath: options.resolveImportPath,
         wrapImport: options.wrapImport,
+        extraImportLines: options.extraImportLines,
+        builtInComponents: options.builtInComponents,
       });
     },
 
@@ -733,6 +761,8 @@ async function loadEntityModule(
     builders?: SceneNodeBuilder[];
     resolveImportPath?: (componentId: string) => string | null;
     wrapImport?: (alias: string) => string;
+    extraImportLines?: string[];
+    builtInComponents?: Record<string, ComponentModule>;
   },
 ): Promise<string | null> {
   try {
@@ -745,6 +775,70 @@ async function loadEntityModule(
   }
 }
 
+/**
+ * Load a standalone component story file
+ * (`components/<name>/<name>.<variant>.story.yml`) as a one-export CSF
+ * module. The story file has the identical `{ component, props, slots }`
+ * shape as a single scene item, so it's wrapped into a synthetic one-scene,
+ * one-item scenes object and run through the same `buildSceneModule`
+ * pipeline used for `*.scenes.yml` — no separate module builder needed.
+ * `group`/scene-name are derived with the exact same helpers the indexer
+ * uses (`componentStoryGroup`/`humanizeComponentName`), so the loaded
+ * module's title/export name always match the index entry (R1 parity).
+ */
+async function loadComponentStoryModule(
+  id: string,
+  designbookDir: string,
+  options: {
+    builders?: SceneNodeBuilder[];
+    resolveImportPath?: (componentId: string) => string | null;
+    wrapImport?: (alias: string) => string;
+    extraImportLines?: string[];
+    builtInComponents?: Record<string, ComponentModule>;
+  },
+): Promise<string | null> {
+  try {
+    const parsedName = parseComponentStoryFileName(id);
+    if (!parsedName) {
+      console.warn('[Designbook] Component story file name does not match <name>.<variant>.story.yml:', id);
+      return null;
+    }
+
+    const content = readFileSync(id, 'utf-8');
+    const raw = parseYaml(content);
+    if (!raw || typeof raw !== 'object' || !('component' in raw)) {
+      console.warn('[Designbook] Component story file missing required `component` key:', id);
+      return null;
+    }
+    const parsed = raw as Record<string, unknown>;
+
+    const displayVariant = humanizeComponentName(parsedName.variant);
+    const group = componentStoryGroup(parsedName.name);
+    const storyItem: Record<string, unknown> = { component: parsed.component };
+    if (parsed.props !== undefined) storyItem.props = parsed.props;
+    if (parsed.slots !== undefined) storyItem.slots = parsed.slots;
+
+    const syntheticRaw: Record<string, unknown> = {
+      group,
+      scenes: [{ name: displayVariant, items: [storyItem] }],
+    };
+
+    const sceneCode = await buildSceneModule(id, syntheticRaw, designbookDir, {
+      builders: options.builders,
+      resolveImportPath: options.resolveImportPath,
+      wrapImport: options.wrapImport,
+      extraImportLines: options.extraImportLines,
+      builtInComponents: options.builtInComponents,
+    });
+
+    const result = await transformWithEsbuild(sceneCode, id + '.js', { loader: 'js' });
+    return result.code;
+  } catch (e: unknown) {
+    console.error('[Designbook] Error loading component story module:', id, e);
+    return buildErrorModule(id, e);
+  }
+}
+
 async function loadSceneModule(
   id: string,
   designbookDir: string,
@@ -753,6 +847,8 @@ async function loadSceneModule(
     builders?: SceneNodeBuilder[];
     resolveImportPath?: (componentId: string) => string | null;
     wrapImport?: (alias: string) => string;
+    extraImportLines?: string[];
+    builtInComponents?: Record<string, ComponentModule>;
   },
 ): Promise<string | null> {
   try {
@@ -781,6 +877,8 @@ async function loadSceneModule(
       builders: options.builders,
       resolveImportPath: options.resolveImportPath,
       wrapImport: options.wrapImport,
+      extraImportLines: options.extraImportLines,
+      builtInComponents: options.builtInComponents,
     });
 
     const codeWithOverview = prependOverviewToModule(sceneCode, sectionId, title);

@@ -1,5 +1,7 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
-import { renderComponent } from '../renderer';
+import { h } from 'vue';
+import { renderComponent, mountVueRoot } from '../renderer';
 import type { ComponentNode, ComponentModule } from '../../../scene-model/types';
 
 function makeModule(render: ComponentModule['render']): ComponentModule {
@@ -132,5 +134,67 @@ describe('renderComponent', () => {
     expect(result).toBeNull();
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('test:missing'));
     warnSpy.mockRestore();
+  });
+});
+
+describe('mountVueRoot', () => {
+  it('mounts the vnode into the container, wrapped in db:s/db:e comment markers', async () => {
+    const container = document.createElement('div');
+    const node: ComponentNode = { component: 'test:card', path: '0' };
+    const vnode = h('p', {}, 'Hello Vue');
+
+    const handle = await mountVueRoot(node, vnode, container);
+
+    expect(container.textContent).toContain('Hello Vue');
+    const comments = Array.from(container.childNodes).filter((n) => n.nodeType === Node.COMMENT_NODE);
+    expect(comments).toHaveLength(2);
+    expect(comments[0]!.textContent).toBe('db:s:test:card@0');
+    expect(comments[1]!.textContent).toBe('db:e:test:card@0');
+
+    handle.unmount();
+  });
+
+  it('unmount() removes the markers, the mount point, and disposes the app', async () => {
+    const container = document.createElement('div');
+    const node: ComponentNode = { component: 'test:card', path: '0' };
+    const vnode = h('p', {}, 'Hello Vue');
+
+    const handle = await mountVueRoot(node, vnode, container);
+    expect(container.childNodes.length).toBeGreaterThan(0);
+
+    handle.unmount();
+
+    expect(container.childNodes.length).toBe(0);
+  });
+
+  it('a second mount cleanly replaces the first (no leaked nodes)', async () => {
+    const container = document.createElement('div');
+    const node: ComponentNode = { component: 'test:card', path: '0' };
+
+    const first = await mountVueRoot(node, h('p', {}, 'First'), container);
+    expect(container.textContent).toContain('First');
+    first.unmount();
+
+    const second = await mountVueRoot(node, h('p', {}, 'Second'), container);
+    expect(container.textContent).toContain('Second');
+    expect(container.textContent).not.toContain('First');
+    // Exactly one mount's worth of nodes present (2 markers + 1 mount point)
+    expect(container.childNodes.length).toBe(3);
+
+    second.unmount();
+    expect(container.childNodes.length).toBe(0);
+  });
+
+  it('falls back to the bare component id when path is absent', async () => {
+    const container = document.createElement('div');
+    const node: ComponentNode = { component: 'test:card' };
+
+    const handle = await mountVueRoot(node, h('p', {}, 'No path'), container);
+
+    const comments = Array.from(container.childNodes).filter((n) => n.nodeType === Node.COMMENT_NODE);
+    expect(comments[0]!.textContent).toBe('db:s:test:card');
+    expect(comments[1]!.textContent).toBe('db:e:test:card');
+
+    handle.unmount();
   });
 });

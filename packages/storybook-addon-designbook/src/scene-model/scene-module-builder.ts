@@ -33,6 +33,7 @@ import type {
   SceneNodeBuilder,
   SceneTreeNode,
   ComponentNode,
+  ComponentModule,
 } from './types';
 
 // ── Default SDC import resolver ────────────────────────────────────────
@@ -70,6 +71,48 @@ export function defaultSdcScriptResolver(componentId: string, designbookDir: str
   const js = componentYml.replace(/\.component\.yml$/, '.js');
   return existsSync(js) ? js : null;
 }
+
+// ── Default Vue import resolver ────────────────────────────────────────
+
+/**
+ * Default import path resolver for Vue (`.vue`) components.
+ * Resolves 'provider:component' → absolute path to the `<name>.vue` SFC,
+ * mirroring `defaultSdcResolver`'s directory/naming conventions.
+ */
+export function defaultVueResolver(componentId: string, designbookDir: string): string | null {
+  const parts = componentId.split(':');
+  if (parts.length !== 2 || !parts[1]) return null;
+
+  const componentName = parts[1];
+  // Try both underscore and hyphen conventions (Drupal SDC uses hyphens in dirs)
+  const candidates = [componentName, componentName.replace(/_/g, '-')];
+
+  for (const dirName of candidates) {
+    // Try both underscore and hyphen for the .vue filename too
+    for (const fileName of [componentName, dirName]) {
+      const vueFile = join(resolve(designbookDir, '..', 'components', dirName), `${fileName}.vue`);
+      if (existsSync(vueFile)) return vueFile;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Default `wrapImport` for Vue components: wraps the SFC's default export
+ * into a `ComponentModule.render()` that produces a VNode via Vue's `h()`.
+ * Slots are passed through as-is (a function map), not resolved to DOM
+ * children — Vue slot-consuming SFCs read them as `$slots.<name>()`.
+ */
+export function defaultVueWrapImport(alias: string): string {
+  return `{ render: (p, s) => h(${alias}.default, {...p}, s) }`;
+}
+
+/**
+ * Extra module-level import lines required by `defaultVueWrapImport` — the
+ * `h` binding it calls. Pass as `extraImportLines` alongside the wrapper.
+ */
+export const defaultVueExtraImportLines: string[] = ["import { h } from 'vue';"];
 
 // ── Data loading ────────────────────────────────────────────────────────
 
@@ -169,6 +212,16 @@ export interface SceneModuleOptions {
    * Defaults to the SDC `defaultSdcScriptResolver`.
    */
   resolveScriptPath?: (componentId: string) => string | null;
+  /**
+   * Extra module-level import lines the custom `wrapImport` needs (e.g.
+   * `import { h } from 'vue';`). Ignored when `wrapImport` is not set.
+   */
+  extraImportLines?: string[];
+  /**
+   * Override for the `designbook:*` built-in component render functions
+   * (e.g. `vueBuiltInComponents`). Defaults to the HTML-string `builtInComponents`.
+   */
+  builtInComponents?: Record<string, ComponentModule>;
 }
 
 /**
@@ -258,5 +311,7 @@ export async function buildSceneModule(
     resolveImportPath,
     wrapImport,
     resolveScriptPath,
+    extraImportLines: options.extraImportLines,
+    builtInComponents: options.builtInComponents,
   });
 }

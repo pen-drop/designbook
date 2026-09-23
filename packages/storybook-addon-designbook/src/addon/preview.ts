@@ -1,7 +1,7 @@
 import type { ProjectAnnotations, Renderer, StoryContext } from 'storybook/internal/types';
 
 import React from 'react';
-import { useGlobals, addons } from 'storybook/preview-api';
+import { useGlobals, useEffect, useRef, addons } from 'storybook/preview-api';
 import { themes as sbThemes, ensure, ThemeProvider } from 'storybook/theming';
 import { withThemeByDataAttribute } from '@storybook/addon-themes';
 
@@ -11,6 +11,8 @@ import { withRoundTrip } from './withRoundTrip';
 import { withVisualCompare } from './withVisualCompare';
 import { withInspectOverlay } from './decorators/inspect-overlay';
 import { setActiveTheme } from './pages/theme-store';
+import { mountVueRoot, type VueMountHandle } from './renderer/renderer';
+import type { ComponentNode } from '../scene-model/types';
 
 if (
   typeof document !== 'undefined' &&
@@ -23,13 +25,58 @@ if (
 }
 
 /**
+ * True when `value` is a Vue 3 VNode. Vue stamps every vnode it creates with
+ * `__v_isVNode: true` — checking that marker lets us detect Vue output
+ * without a static (or even dynamic) `import 'vue'` here; SDC/React/Twig
+ * consumers never load this branch's code path.
+ */
+export function isVueVNode(value: unknown): boolean {
+  return !!value && typeof value === 'object' && (value as Record<string, unknown>).__v_isVNode === true;
+}
+
+/**
+ * `renderComponent()` returns a single vnode for one scene root, or an array
+ * when a scene has multiple roots — Vue's render function happily accepts an
+ * array too (implicit Fragment), so either shape is "Vue output".
+ */
+export function isVueRenderable(value: unknown): boolean {
+  return isVueVNode(value) || (Array.isArray(value) && value.some(isVueVNode));
+}
+
+/**
+ * Best-effort root `ComponentNode` for `mountVueRoot`'s marker naming — pulled
+ * from the same args the generated story's `render()` fed into `renderComponent()`
+ * (scene stories: `__scene`; entity/form stories: `__records[record]`). Falls
+ * back to a synthetic node keyed on the story id so marker emission never throws.
+ */
+function rootComponentNodeFor(context: StoryContext): ComponentNode {
+  const args = context.args as Record<string, unknown> | undefined;
+  const scene = args?.__scene as ComponentNode[] | undefined;
+  if (Array.isArray(scene) && scene[0]) return scene[0];
+  const records = args?.__records as ComponentNode[][] | undefined;
+  const record = typeof args?.record === 'number' ? (args.record as number) : 0;
+  if (Array.isArray(records) && records[record]?.[0]) return records[record][0]!;
+  return { component: context.id };
+}
+
+/**
  * Syncs the active Storybook theme into the shared theme store before each story renders.
  * mount-react.js reads from the store when creating React roots, so Debo* components
  * receive the correct theme via useTheme() from storybook/theming.
+ *
+ * Also owns the Vue mount/unmount lifecycle: `renderComponent()` (called by the
+ * generated story's `render()`) returns a raw VNode for `frameworks.component: vue`
+ * projects — this decorator swaps that VNode for a stable, live-mounted DOM
+ * container so the html-vite renderer's `instanceof Node` contract is satisfied,
+ * and re-mounts (after cleanly unmounting the previous app) whenever the story
+ * re-renders with new args or on story teardown.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function withDeboTheme(Story: any, context: StoryContext) {
   const [globals] = useGlobals();
+  const vueContainerRef = useRef<HTMLDivElement | null>(null);
+  const vueHandleRef = useRef<VueMountHandle | null>(null);
+
   const prefersDark =
     globals?.theme === 'dark' ||
     (globals?.theme == null &&
@@ -41,7 +88,46 @@ function withDeboTheme(Story: any, context: StoryContext) {
     document.body.style.backgroundColor = base.background.content;
     document.body.style.color = base.color.defaultText;
   }
-  const result = Story(context);
+  let result = Story(context);
+
+  const vueOutput = isVueRenderable(result) ? result : null;
+
+  // Unconditional hook call (rules-of-hooks) — the effect body no-ops when the
+  // current render isn't Vue output, and still tears down any stale mount.
+  useEffect(() => {
+    if (!vueOutput) {
+      vueHandleRef.current?.unmount();
+      vueHandleRef.current = null;
+      return;
+    }
+    if (!vueContainerRef.current) {
+      vueContainerRef.current = document.createElement('div');
+    }
+    let cancelled = false;
+    vueHandleRef.current?.unmount();
+    vueHandleRef.current = null;
+    const node = rootComponentNodeFor(context);
+    mountVueRoot(node, vueOutput, vueContainerRef.current).then((handle) => {
+      if (cancelled) {
+        handle.unmount();
+      } else {
+        vueHandleRef.current = handle;
+      }
+    });
+    return () => {
+      cancelled = true;
+      vueHandleRef.current?.unmount();
+      vueHandleRef.current = null;
+    };
+  }, [vueOutput, context.id]);
+
+  if (vueOutput) {
+    if (!vueContainerRef.current) {
+      vueContainerRef.current = document.createElement('div');
+    }
+    result = vueContainerRef.current;
+  }
+
   // HTML-framework stories return DOM nodes or strings — pass through as-is.
   // React-framework stories return React elements — wrap with ThemeProvider.
   if (result instanceof Node || typeof result === 'string') {

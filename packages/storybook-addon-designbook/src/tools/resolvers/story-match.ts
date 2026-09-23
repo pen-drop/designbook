@@ -32,12 +32,17 @@ function searchTerms(input: string): string[] {
 }
 
 /**
- * Reconstruct the Storybook entity-story id for a backend view-display config id.
+ * Reconstruct the Storybook entity-story id for a backend view-display or form-display
+ * config id.
  *
- * A config id is exactly `<entity_type>.<bundle>.<view_mode>`; its entity story lives under
- * the group `Entities/<entity_type>/<bundle>` with story name `<view_mode>`, which Storybook
- * sanitises to `entities-<entity_type>-<bundle>--<view_mode>` (lowercase, each non-alphanumeric
- * run → `-`). Reconstructing that id and matching it EXACTLY is what disambiguates sibling
+ * A config id is exactly `<entity_type>.<bundle>.<mode>`; its entity story lives under
+ * the group `Entities/<entity_type>/<bundle>`. A **view** mode's story name is `<mode>`,
+ * which Storybook sanitises to `entities-<entity_type>-<bundle>--<mode>`. A **form** mode's
+ * story is exported as `Form` + the mode's export name (see `formExportName`), which
+ * sanitises to `entities-<entity_type>-<bundle>--form-<mode>` instead — the two namespaces
+ * (`entity-mapping/` for view modes, `form-mapping/` for form modes) are how a config id's
+ * third segment is disambiguated, since both use the same `<et>.<bundle>.<mode>` shape.
+ * Reconstructing the exact id and matching it EXACTLY is what disambiguates sibling
  * bundles whose machine name is a prefix of another — `paragraph.signage.full` must map to
  * `entities-paragraph-signage--full`, never also to `entities-paragraph-signage-item--full`
  * (a per-term substring match collides on `signage` ⊂ `signage-item`).
@@ -45,7 +50,7 @@ function searchTerms(input: string): string[] {
  * Returns null for anything that is not a 3-segment dotted id (scene ids, `group:name` refs,
  * already-sanitised story ids), so those keep the term-matching path unchanged.
  */
-function configIdToStoryId(input: string): string | null {
+function configIdToStoryId(input: string, dataDir: string): string | null {
   const parts = input.split('.');
   if (parts.length !== 3 || parts.some((p) => p === '')) return null;
   const sanitize = (s: string) =>
@@ -53,9 +58,12 @@ function configIdToStoryId(input: string): string | null {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
-  const [entityType, bundle, viewMode] = parts.map(sanitize);
-  if (!entityType || !bundle || !viewMode) return null;
-  return `entities-${entityType}-${bundle}--${viewMode}`;
+  const [entityType, bundle, mode] = parts.map(sanitize);
+  if (!entityType || !bundle || !mode) return null;
+  const [rawEntityType, rawBundle, rawMode] = parts;
+  const isFormMode = existsSync(join(dataDir, 'form-mapping', `${rawEntityType}.${rawBundle}.${rawMode}.jsonata`));
+  const storyName = isFormMode ? `form-${mode}` : mode;
+  return `entities-${entityType}-${bundle}--${storyName}`;
 }
 
 /**
@@ -76,7 +84,7 @@ export function matchStoryId(input: string, dataDir: string): ResolverResult {
 
   // Backend config id (`<et>.<bundle>.<view_mode>`) → reconstruct the exact entity story id,
   // so sibling bundles (signage vs signage_item) never collide the way a substring match would.
-  const configStoryId = configIdToStoryId(input);
+  const configStoryId = configIdToStoryId(input, dataDir);
   if (configStoryId && storyIds.includes(configStoryId)) {
     return { resolved: true, value: configStoryId, input };
   }
@@ -118,6 +126,7 @@ async function matchStoryIdFromIndex(
   input: string,
   daemon: StorybookDaemon,
   config: DesignbookConfig,
+  dataDir: string,
 ): Promise<ResolverResult> {
   const origin = daemon.url;
   if (!origin) {
@@ -148,7 +157,7 @@ async function matchStoryIdFromIndex(
 
     // Backend config id (`<et>.<bundle>.<view_mode>`) → reconstruct the exact entity story id
     // and match it precisely, so sibling bundles (signage vs signage_item) never collide.
-    const configStoryId = configIdToStoryId(input);
+    const configStoryId = configIdToStoryId(input, dataDir);
     if (configStoryId && liveIds.includes(configStoryId)) {
       StoryMeta.loadOrCreate(config, configStoryId);
       return { resolved: true, value: configStoryId, input };
@@ -261,7 +270,7 @@ export async function resolveRunningIndexedStory(input: string, config: Designbo
   }
 
   // Fallback: query live /index.json and implicitly create story entity if found
-  const liveMatch = await matchStoryIdFromIndex(input, daemon, config);
+  const liveMatch = await matchStoryIdFromIndex(input, daemon, config, dataDir);
   if (!liveMatch.resolved || typeof liveMatch.value !== 'string') {
     return { ok: false, result: liveMatch };
   }

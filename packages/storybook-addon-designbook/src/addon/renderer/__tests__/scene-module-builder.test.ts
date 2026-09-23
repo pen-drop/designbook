@@ -7,10 +7,16 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { resolve } from 'node:path';
-import { buildSceneModule } from '../../../scene-model/scene-module-builder';
+import { resolve, join } from 'node:path';
+import {
+  buildSceneModule,
+  defaultVueResolver,
+  defaultVueWrapImport,
+  defaultVueExtraImportLines,
+} from '../../../scene-model/scene-module-builder';
 import { renderComponent } from '../renderer';
-import { readFileSync } from 'node:fs';
+import { readFileSync, mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { load as parseYaml } from 'js-yaml';
 import type { ComponentNode } from '../../../scene-model/types';
 
@@ -290,5 +296,77 @@ describe('buildSceneModule integration', () => {
 
     expect(treeSection).toContain('"component"');
     expect(treeSection).toContain('"test_provider:heading"');
+  });
+});
+
+describe('defaultVueResolver', () => {
+  function makeVueFixtureDir(componentDirName: string, fileName: string): string {
+    const root = mkdtempSync(join(tmpdir(), 'designbook-vue-resolver-'));
+    const designbookDir = join(root, '.designbook');
+    mkdirSync(designbookDir, { recursive: true });
+    const componentDir = join(root, 'components', componentDirName);
+    mkdirSync(componentDir, { recursive: true });
+    writeFileSync(join(componentDir, `${fileName}.vue`), '<template><div /></template>');
+    return designbookDir;
+  }
+
+  it('resolves provider:name to <name>.vue in a matching component directory', () => {
+    const designbookDir = makeVueFixtureDir('book-card', 'book-card');
+    const resolved = defaultVueResolver('test:book-card', designbookDir);
+    expect(resolved).toBe(join(designbookDir, '..', 'components', 'book-card', 'book-card.vue'));
+  });
+
+  it('resolves underscore component names against a hyphenated directory', () => {
+    const designbookDir = makeVueFixtureDir('book-card', 'book-card');
+    const resolved = defaultVueResolver('test:book_card', designbookDir);
+    expect(resolved).not.toBeNull();
+    expect(resolved).toContain('book-card.vue');
+  });
+
+  it('returns null when no matching .vue file exists', () => {
+    const root = mkdtempSync(join(tmpdir(), 'designbook-vue-resolver-'));
+    const designbookDir = join(root, '.designbook');
+    mkdirSync(designbookDir, { recursive: true });
+    expect(defaultVueResolver('test:missing', designbookDir)).toBeNull();
+  });
+
+  it('returns null for a malformed component ID (no provider:name split)', () => {
+    const root = mkdtempSync(join(tmpdir(), 'designbook-vue-resolver-'));
+    const designbookDir = join(root, '.designbook');
+    mkdirSync(designbookDir, { recursive: true });
+    expect(defaultVueResolver('no-colon-here', designbookDir)).toBeNull();
+  });
+});
+
+describe('defaultVueWrapImport', () => {
+  it('generates a render wrapper expression calling h(alias.default, {...props}, slots)', () => {
+    const expr = defaultVueWrapImport('bookcard');
+    expect(expr).toBe('{ render: (p, s) => h(bookcard.default, {...p}, s) }');
+  });
+
+  it('the generated expression, once evaluated with a stub h, forwards props and slots', () => {
+    const expr = defaultVueWrapImport('bookcard');
+    const h = vi.fn().mockReturnValue({ __v_isVNode: true });
+    const bookcard = { default: { name: 'BookCard' } };
+
+    const mod = new Function('h', 'bookcard', `return ${expr};`)(h, bookcard) as {
+      render: (p: unknown, s: unknown) => unknown;
+    };
+
+    const props = { title: 'Dune' };
+    const slots = { default: () => 'child' };
+    mod.render(props, slots);
+
+    expect(h).toHaveBeenCalledOnce();
+    const [type, calledProps, calledSlots] = h.mock.calls[0]!;
+    expect(type).toBe(bookcard.default);
+    expect(calledProps).toEqual(props);
+    expect(calledSlots).toBe(slots);
+  });
+});
+
+describe('defaultVueExtraImportLines', () => {
+  it('imports h from vue', () => {
+    expect(defaultVueExtraImportLines).toEqual(["import { h } from 'vue';"]);
   });
 });

@@ -74,6 +74,57 @@ export function attachDrupalBehaviors(root: HTMLElement | undefined): void {
   }
 }
 
+// ── Vue mount adapter ───────────────────────────────────────────────────
+
+/**
+ * Handle returned by `mountVueRoot`. Call `unmount()` on story teardown /
+ * re-render to dispose the Vue app instance and remove the marker/mount
+ * DOM nodes.
+ */
+export interface VueMountHandle {
+  unmount: () => void;
+}
+
+/**
+ * Mount a Vue VNode (as produced by the Vue `wrapImport`'s `h(...)` call) into
+ * `container`, wrapping the mounted root with the same `db:s:<marker>` /
+ * `db:e:<marker>` HTML-comment markers `renderNode` uses for string/HTML
+ * output — the inspect overlay locates a rendered root by walking these
+ * comment-node siblings regardless of framework.
+ *
+ * `vue` is imported dynamically so non-Vue projects (SDC, React) never need
+ * it installed — this function is only reachable when a Vue story actually
+ * renders.
+ */
+export async function mountVueRoot(
+  node: ComponentNode,
+  vnode: unknown,
+  container: HTMLElement,
+): Promise<VueMountHandle> {
+  const { createApp } = await import('vue');
+
+  const marker = node.path ? `${node.component}@${node.path}` : node.component;
+  const startMarker = document.createComment(`db:s:${marker}`);
+  const endMarker = document.createComment(`db:e:${marker}`);
+  const mountPoint = document.createElement('div');
+
+  container.appendChild(startMarker);
+  container.appendChild(mountPoint);
+  container.appendChild(endMarker);
+
+  const app = createApp({ render: () => vnode });
+  app.mount(mountPoint);
+
+  return {
+    unmount: () => {
+      app.unmount();
+      startMarker.remove();
+      mountPoint.remove();
+      endMarker.remove();
+    },
+  };
+}
+
 function resolveSlots(
   slots: Record<string, ComponentNode | ComponentNode[] | string | null | undefined>,
   imports: Record<string, ComponentModule>,
