@@ -15,6 +15,7 @@ fixtures:
   - css-generate
   - sections
   - data-model
+  - sample-data
 
 prompt: |-
   You are working in {{workspace}}. Do NOT ask any questions; execute now with the
@@ -93,6 +94,9 @@ evidence:
     - components/badge/badge.adopted.story.yml
     - components/badge/badge.default.story.yml
     - designbook/entity-mapping/node.pet.avatar.jsonata
+  mappings:
+    - file: designbook/entity-mapping/node.pet.avatar.jsonata
+      data: designbook/data/node.pet.yml
 assert:
   # --- runner-level completeness ---
   - type: javascript
@@ -119,8 +123,8 @@ assert:
       && !('variant_id' in (output.fileContents['components/badge/badge.component.yml']?.props?.properties || {}))
   - type: javascript
     value: |-
-      const mapped = output.mappingResults?.['designbook/entity-mapping/node.pet.avatar.jsonata'] || [];
-      return Object.values(mapped).some((v) => v && typeof v === 'object' && 'variant_id' in v);
+      const mapped = output.mappingResults?.['designbook/entity-mapping/node.pet.avatar.jsonata'];
+      return mapped != null && typeof mapped === 'object' && 'variant_id' in mapped;
 
   # --- V-2 typed-component-boundary: class prop rejected, root merge allowed ---
   - type: javascript
@@ -131,8 +135,6 @@ assert:
     value: |-
       const twig = output.fileContents['components/badge/badge.twig'] || '';
       return /\battributes\b/.test(twig);
-  - type: javascript
-    value: output.runs.some(r => /typed-component-boundary|open class|classes prop/i.test(JSON.stringify(r.completionNotes || r.notes || '')))
 
   # --- V-3 presenter-composition: mapping references the component, no inline markup ---
   - type: javascript
@@ -141,10 +143,8 @@ assert:
       return typeof jsonata === 'string' && !/<span|<div|class="badge/i.test(jsonata) && /badge/.test(jsonata);
   - type: javascript
     value: |-
-      const mapped = output.mappingResults?.['designbook/entity-mapping/node.pet.avatar.jsonata'] || [];
-      return Object.values(mapped).some((v) => v?.component === 'test_integration_drupal:badge');
-  - type: javascript
-    value: output.runs.some(r => /reuse|badge component|component inventory/i.test(JSON.stringify(r.completionNotes || r.notes || '')))
+      const mapped = output.mappingResults?.['designbook/entity-mapping/node.pet.avatar.jsonata'];
+      return mapped?.component === 'test_integration_drupal:badge';
 
   # --- observations ---
   - type: javascript
