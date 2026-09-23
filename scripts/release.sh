@@ -11,6 +11,13 @@
 #   pnpm release minor      # explicit bump type (patch|minor|major)
 set -euo pipefail
 
+# `auto` needs a GitHub token in the env. Fall back to the gh CLI's token when
+# GH_TOKEN isn't already exported.
+if [ -z "${GH_TOKEN:-}" ] && command -v gh >/dev/null 2>&1; then
+  GH_TOKEN="$(gh auth token 2>/dev/null || true)"
+  export GH_TOKEN
+fi
+
 PKG="storybook-addon-designbook"
 DIR="packages/${PKG}"
 
