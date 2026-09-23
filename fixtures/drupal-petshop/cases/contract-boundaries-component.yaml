@@ -1,0 +1,155 @@
+# DESIGNBOOK-65 Task 10 — F-5/F-6/F-7. Proves three Core rules at real component-authoring
+# enforcement boundaries in one /debo design-component + /debo design-screen run:
+#   - variant-transport.md (V-1): variant selection travels via the story's top-level
+#     `variant` field and via the backend's own `variant_id` field — `props.variant` never
+#     appears in any generated file for either path.
+#   - typed-component-boundary.md (V-2): an attempted open `classes` prop is rejected; the
+#     component's own root-element attribute/class merge (caller-supplied `attributes`)
+#     remains allowed and present in the twig.
+#   - presenter-composition.md (V-3): a mapping/scene node that would reconstruct the badge's
+#     own markup inline is rejected in favour of addressing the existing badge component,
+#     with the reuse decision recorded.
+fixtures:
+  - vision
+  - tokens
+  - css-generate
+  - sections
+  - data-model
+
+prompt: |-
+  You are working in {{workspace}}. Do NOT ask any questions; execute now with the
+  concrete values below.
+
+  PART A — create PetMatch's status badge component (test_integration_drupal:badge) via
+  /debo design-component. Top-level `variants: [available, adopted]`, one prop `label`
+  (string). The canonical variant is selected exclusively through the render-path matrix in
+  variant-transport.md:
+    - story files (`badge.available.story.yml`, `badge.adopted.story.yml`,
+      `badge.default.story.yml` = available) select their variant through the TOP-LEVEL
+      `variant` field only — never a `variant` key nested under `props`;
+    - the backend selection for a mapped pet's badge is carried through the mapping's own
+      `variant_id` field (a backend transport detail), resolved from the pet's `status`
+      field (`available` -> variant_id `available`, else `adopted`) — this is a DIFFERENT
+      channel from the story's top-level `variant` and MUST NOT be written as `props.variant`
+      anywhere.
+  `badge.component.yml`'s `props.properties` must declare only `label` — never a `variant` or
+  `*_variant` property alongside `variants:`.
+  Render each story and inspect the visible label text and the story's own top-level variant.
+
+  PART B — class boundary (typed-component-boundary.md), same badge component:
+  1. FIRST attempt to add an open `classes` string prop to `badge.component.yml` described as
+     "additional classes for color and spacing" that the twig would interpolate directly into
+     the root element's class attribute, so a caller could steer the badge's own color/size
+     through that prop's raw string value. This is FORBIDDEN — refuse to add it;
+     `badge.component.yml`'s `props.properties` must never contain a `classes` or `class`
+     property. Record in the run's completion notes why it was refused (cite
+     typed-component-boundary.md).
+  2. The badge's OWN root element MAY merge caller-supplied HTML attributes (including
+     `class`) via Twig's `attributes` mechanism, following this repo's own convention: see
+     e.g. `pet-card.twig`'s use of the `attributes` variable's `addClass` method with a list
+     of the component's own computed class names (never a caller-filled string). This
+     attribute/class MERGE at the badge's own root element is ALLOWED and must be present in
+     `badge.twig` — do not remove it while refusing step 1.
+
+  PART C — presenter composition (presenter-composition.md), map badge onto a pet:
+  1. Check the current component inventory (built/refreshed Storybook index) for a component
+     that already renders a pet-status badge before writing any new visible markup. The
+     `badge` component from PART A already satisfies this need.
+  2. Extend `designbook/entity-mapping/node.pet.avatar.jsonata` (or a new
+     `node.pet.status-badge.jsonata` mapping feeding the pet's card in scenes/sections) so
+     the pet's `status` field selects the badge's `variant_id` per PART A and routes `label`
+     from a human-readable status string. The FIRST, WRONG approach an author might reach for
+     is inlining a raw HTML span with an inline "badge" class directly inside a scene/mapping
+     node instead of addressing the badge component — do NOT do this; the
+     mapping/scene node must reference `component: test_integration_drupal:badge` with
+     `props.label` and the backend's own `variant_id`, never raw markup.
+  3. Record the reuse decision (badge component reused; no new component needed) in the
+     mapping's own completion notes / the run's evidence, per presenter-composition.md's
+     COMPOSE-03 check.
+  4. Render the pet scene/story that now includes the mapped badge and inspect the visible
+     badge label and its rendered variant class.
+
+  During intake freeze concrete story URLs, selectors and checks in the saved definition.
+  Plan actual `pnpm build-storybook` (theme cwd), artifact validation, and
+  `npx storybook-addon-designbook storybook check <story-url>` for every affected story. Run
+  browser observations at desktop 1280x800 and mobile 390x844 where applicable. A build is
+  separate from browser verification.
+  After execution save evidence JSON from actual command outputs and browser observations, as
+  specified by debo-test run's evidence contract. The required observation keys and exact
+  expected values are:
+    - badge.available.text: 'Available'
+    - badge.adopted.text: 'Adopted'
+    - badge.default.text: 'Available'
+    - pet.badge.text: 'Adopted'
+  Preserve the definition before execution and score this case; validate workflow: none.
+  Execute now without clarification; all requested targets and acceptance criteria are
+  supplied.
+validate: none
+evidence:
+  files:
+    - components/badge/badge.component.yml
+    - components/badge/badge.twig
+    - components/badge/badge.available.story.yml
+    - components/badge/badge.adopted.story.yml
+    - components/badge/badge.default.story.yml
+    - designbook/entity-mapping/node.pet.avatar.jsonata
+assert:
+  # --- runner-level completeness ---
+  - type: javascript
+    value: output.runs.length > 0 && output.runs.every(r => r.componentPrerequisites?.passed === true)
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0
+
+  # --- V-1 variant-transport: props.variant never appears anywhere generated ---
+  - type: javascript
+    value: |-
+      const hasPropsVariant = (obj) => {
+        if (!obj || typeof obj !== 'object') return false;
+        if (obj.props && typeof obj.props === 'object' && 'variant' in obj.props) return true;
+        return Object.values(obj).some(hasPropsVariant);
+      };
+      const files = Object.entries(output.fileContents).filter(([p]) => /\.(story|component|scenes)\.yml$/.test(p) || p.endsWith('.jsonata'));
+      const mappings = Object.values(output.mappingResults || {});
+      return !files.some(([, v]) => hasPropsVariant(v)) && !mappings.some((v) => hasPropsVariant(v));
+  - type: javascript
+    value: "['available','adopted','default'].every(v => output.fileContents[`components/badge/badge.${v}.story.yml`]?.variant === (v === 'default' ? 'available' : v))"
+  - type: javascript
+    value: |-
+      !('variant' in (output.fileContents['components/badge/badge.component.yml']?.props?.properties || {}))
+      && !('variant_id' in (output.fileContents['components/badge/badge.component.yml']?.props?.properties || {}))
+  - type: javascript
+    value: |-
+      const mapped = output.mappingResults?.['designbook/entity-mapping/node.pet.avatar.jsonata'] || [];
+      return Object.values(mapped).some((v) => v && typeof v === 'object' && 'variant_id' in v);
+
+  # --- V-2 typed-component-boundary: class prop rejected, root merge allowed ---
+  - type: javascript
+    value: |-
+      const props = output.fileContents['components/badge/badge.component.yml']?.props?.properties || {};
+      return !('classes' in props) && !('class' in props);
+  - type: javascript
+    value: |-
+      const twig = output.fileContents['components/badge/badge.twig'] || '';
+      return /\battributes\b/.test(twig);
+  - type: javascript
+    value: output.runs.some(r => /typed-component-boundary|open class|classes prop/i.test(JSON.stringify(r.completionNotes || r.notes || '')))
+
+  # --- V-3 presenter-composition: mapping references the component, no inline markup ---
+  - type: javascript
+    value: |-
+      const jsonata = output.fileContents['designbook/entity-mapping/node.pet.avatar.jsonata'] || '';
+      return typeof jsonata === 'string' && !/<span|<div|class="badge/i.test(jsonata) && /badge/.test(jsonata);
+  - type: javascript
+    value: |-
+      const mapped = output.mappingResults?.['designbook/entity-mapping/node.pet.avatar.jsonata'] || [];
+      return Object.values(mapped).some((v) => v?.component === 'test_integration_drupal:badge');
+  - type: javascript
+    value: output.runs.some(r => /reuse|badge component|component inventory/i.test(JSON.stringify(r.completionNotes || r.notes || '')))
+
+  # --- observations ---
+  - type: javascript
+    value: output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["badge.available.text"] === "Available"))
+  - type: javascript
+    value: output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["badge.adopted.text"] === "Adopted"))
+  - type: javascript
+    value: output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["pet.badge.text"] === "Adopted"))

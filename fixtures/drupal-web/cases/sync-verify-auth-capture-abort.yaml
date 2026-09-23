@@ -1,0 +1,107 @@
+# DESIGNBOOK-65 Task 10 — F-8. Proves authenticated-capture-parity.md (V-6) at the real
+# capture-abort boundary: a protected Drupal subject captured WITHOUT a confirmed session
+# must abort that capture and produce NO diff score; the SAME subject captured WITH a
+# confirmed session must produce a real ScoreReport. Both halves run in one workflow so the
+# abort and the success are directly comparable evidence from the same subject/run.
+#
+# Subject dispatch: story `paragraph.signage.full` (kind config, Entities/paragraph/Signage
+# story) is reused only to get a real, schema-valid config subject through sync-verify's
+# dispatch. See config-overrides/sync-verify-auth-capture-abort.yml: renderUrlCommand ignores
+# the resolved config/story id and always resolves Drupal's own `/admin/content` route (every
+# Drupal install ships this, gated by "access content overview") — that route, not the
+# signage entity's own render, is the protected subject this case exercises.
+config: sync-verify-auth-capture-abort.yml
+
+fixtures:
+  - vision
+  - data-model
+  - tokens
+  - css-generate
+  - design-entity
+
+prompt: |-
+  You are working in the directory {{workspace}}. Do NOT ask any questions; if a decision
+  cannot be made from the data model + fixtures, fail the run. Pick the largest available
+  breakpoint if asked, and use it consistently in both runs.
+
+  Subject: story `paragraph.signage.full` (kind config). Compare ONE element: id
+  "entity-paragraph-signage-full", selector "" (candidate is the backend render URL —
+  Drupal's own `/admin/content` route per the config override, not the signage entity),
+  reference_selector "" (same isolated signage story on the Storybook/reference side, used
+  only as a fixed reference target so the same ScoreReport machinery runs in both parts —
+  the visual similarity score itself is not the point of this case, whether a score is
+  produced at all is).
+
+  RUN 1 — no confirmed session (must abort, no score):
+  1. Run the "/debo sync-verify paragraph.signage.full" workflow with session: anonymous (the
+     reserved unauthenticated session name; do not create or load any storage state for this
+     run).
+  2. Per authenticated-capture-parity.md: before capturing, run a positive state-evidence
+     check for the expected state (the admin content listing UI — e.g. the "Content"
+     administration heading or the content table) — its absence is not itself a pass, a
+     login page still returns 200. Drupal's `/admin/content` route redirects an
+     unauthenticated request to `/user/login`; when the positive check instead finds that
+     login/sign-in page, ABORT this candidate capture. Do not emit a diff score for element
+     "entity-paragraph-signage-full" and do not treat the aborted capture as a pass or as a
+     measured deviation — record it as blocked, per screen-compare.md.
+  3. Record `ddev drush eval "print rtrim(\Drupal::request()->getSchemeAndHttpHost(), \"/\") .
+     \"/admin/content\";"`'s target fetched with `curl -s -o /dev/null -w "%{http_code}"` and
+     no cookies.
+
+  RUN 2 — confirmed session (must produce a real score):
+  1. Obtain a real authenticated Drupal session: run `ddev drush uli --name=admin` (or the
+     project's equivalent admin user) to get a one-time login link, follow it with
+     `playwright-cli` to reach an authenticated browser context, then
+     `playwright-cli state-save` to persist that authenticated storage state to a file.
+     Register that file as `sessions.admin` in the workspace's `designbook.config.yml` (the
+     existing session/capture abstraction) — never an ad hoc or inline authentication path.
+  2. Run the "/debo sync-verify paragraph.signage.full" workflow again with the SAME element
+     (id "entity-paragraph-signage-full"), session: admin.
+  3. Per authenticated-capture-parity.md: before capturing, positively confirm the admin
+     content listing UI is present, not merely the absence of a login page. Proceed to
+     capture and compare; this run must complete a real comparison and produce a ScoreReport
+     for element "entity-paragraph-signage-full".
+  4. Record the SAME `/admin/content` URL fetched with the admin session's cookie via
+     `curl -s -o /dev/null -w "%{http_code}"`.
+
+  WRITE THE EVIDENCE MARKER designbook/auth-capture-abort.yml with EXACTLY these keys and
+  real values:
+    anon_http_status: <integer HTTP status from RUN 1 step 3>
+    anon_aborted: <true if RUN 1's capture for "entity-paragraph-signage-full" was aborted, else false>
+    anon_score_emitted: <true if a diff score exists for RUN 1's element, else false>
+    auth_http_status: <integer HTTP status from RUN 2 step 4>
+    auth_score_avg_diff_percent: <number from RUN 2's ScoreReport>
+    auth_score_checks_total: <integer from RUN 2's ScoreReport>
+  Execute now.
+
+assert:
+  # The anonymous request really hits Drupal's login wall (real, not assumed).
+  - type: javascript
+    value: |-
+      const s = output.fileContents['designbook/auth-capture-abort.yml']?.anon_http_status;
+      return s === 200 || s === 302 || s === 303;
+  # RUN 1 aborted and produced no diff score.
+  - type: javascript
+    value: output.fileContents['designbook/auth-capture-abort.yml']?.anon_aborted === true
+  - type: javascript
+    value: output.fileContents['designbook/auth-capture-abort.yml']?.anon_score_emitted === false
+  # The authenticated pass really reached the page (200, not a redirect to login).
+  - type: javascript
+    value: output.fileContents['designbook/auth-capture-abort.yml']?.auth_http_status === 200
+  # RUN 2 produced a real ScoreReport.
+  - type: javascript
+    value: typeof output.fileContents['designbook/auth-capture-abort.yml']?.auth_score_avg_diff_percent === 'number'
+  - type: javascript
+    value: |-
+      Number.isInteger(output.fileContents['designbook/auth-capture-abort.yml']?.auth_score_checks_total)
+      && output.fileContents['designbook/auth-capture-abort.yml']?.auth_score_checks_total > 0
+  # The session came from the existing session/capture abstraction, not an ad hoc path.
+  - type: javascript
+    value: |-
+      const cfg = Object.entries(output.fileContents).find(([p]) => p.endsWith('designbook.config.yml'))?.[1];
+      const json = JSON.stringify(cfg || {});
+      return /sessions\.admin|"admin"/.test(json);
+  - type: javascript
+    value: output.completedWorkflows?.['sync-verify']?.state?.status === 'completed'
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0
