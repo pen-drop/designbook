@@ -1,0 +1,23 @@
+id: articles
+title: Articles
+description: >
+  A single screen whose sole route-bearing main content is the "articles" View (a paginated
+  listing of node.article entities in the teaser view-mode). No Layout Builder / Canvas page
+  participates — the view's own build form (view_modes.default.template: list-view) is NOT a
+  Display Builder form, so per the V-4 matrix sync-to generates a View-Presenter for the view
+  wrapper and a separate Pager-Presenter (V-5) for the pager region, which calls the Pager SDC.
+status: planned
+order: 1
+group: Designbook/Sections/Articles
+scenes:
+  - name: articles
+    section: articles
+    items:
+      - scene: design-system:shell
+        with:
+          content:
+            # The View is the page: it is the single main content in the shell's content slot.
+            # A View node is self-contained in its DATA — no `record`/`select` — so its mapping
+            # evaluates against {} and enumerates the row-bundle records itself.
+            - entity: view.articles
+              view_mode: default

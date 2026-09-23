@@ -1,0 +1,10 @@
+# DESIGNBOOK-65 Task 8 — render-side sample rows for the articles View (row bundle node.article,
+# teaser view-mode). Design-time only: this case is config-only (no content sync/provisioning),
+# so these records exist for entity-mapping resolution and the Storybook reference render, not
+# for seeding live Drupal content.
+- id: '1'
+  field_summary: Choosing the right pager configuration
+- id: '2'
+  field_summary: Composing a view wrapper as a presenter-template
+- id: '3'
+  field_summary: Binding row output through UI Patterns

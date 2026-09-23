@@ -1,0 +1,13 @@
+{#
+/**
+ * A single page-link entry. The current item renders without a link; an ellipsis entry (no
+ * href) renders as a static label.
+ */
+#}
+{% if is_current %}
+  <span{{ attributes.addClass(['pager-item', 'pager-item--current']) }} aria-current="page">{{ label }}</span>
+{% elseif href %}
+  <a{{ attributes.addClass(['pager-item']) }} href="{{ href }}">{{ label }}</a>
+{% else %}
+  <span{{ attributes.addClass(['pager-item', 'pager-item--ellipsis']) }}>{{ label }}</span>
+{% endif %}
