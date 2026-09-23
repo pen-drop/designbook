@@ -24,6 +24,12 @@ If either image is missing or unreadable, or the frozen query fails, block this
 task. A missing comparison cannot pass. Published source metadata and evidence
 remain unchanged.
 
+A capture that aborted under
+[authenticated-capture-parity.md](authenticated-capture-parity.md) leaves no
+image for that cell; treat it exactly as a missing image above — block the
+task, never derive `diff_percent` or `severity` from whatever file happens to
+exist at the declared path.
+
 ## Measurement
 
 Compare the declared files with:
