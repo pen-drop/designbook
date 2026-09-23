@@ -109,9 +109,21 @@ const workspace = resolve(
   repo,
   opts.workspace || `promptfoo/workspaces/${opts.suite}-${opts.case}`,
 );
+// Separate-step (planner + fresh-executor-per-step) mode only applies to a
+// nonrepeated design case without a case evidence manifest (see
+// debo-test-run/resources/run.md). A design-intake case that declares
+// `evidence` always uses the combined single-call path below, even though
+// designIntake itself stays true (it still selects the planner model role).
 const splitExecution =
-  designIntake || Boolean(opts["executor-provider"] || opts["executor-model"]);
-if (designIntake && !opts["executor-provider"] && !opts["executor-model"]) {
+  (designIntake && !caseDoc.repeat && !caseDoc.evidence) ||
+  Boolean(opts["executor-provider"] || opts["executor-model"]);
+if (
+  designIntake &&
+  !caseDoc.repeat &&
+  !caseDoc.evidence &&
+  !opts["executor-provider"] &&
+  !opts["executor-model"]
+) {
   opts["executor-provider"] = base.modelRoles.executor.provider;
   opts["executor-model"] = base.modelRoles.executor.model;
 }

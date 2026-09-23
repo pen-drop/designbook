@@ -1,0 +1,17 @@
+source:
+  url: https://leando.de/
+  origin: https://leando.de
+  screenId: leando-home-signage
+  hasMarkup: true
+elements:
+  - id: entity-paragraph-signage-full
+    selector: app-signage
+    states:
+      - name: rest
+        steps: []
+    breakpoints:
+      - sm
+      - md
+      - lg
+extract: extract.json
+assets_dir: assets/

@@ -1,0 +1,97 @@
+fixtures:
+  - vision
+  - data-model
+  - entity-update
+  - sections
+  - sample-data
+  - design-component
+prompt: |-
+  You are working in {{workspace}}. Invoke /debo design-component.
+  Create Prosaic Bookstore's price badge component (test_integration_vue:price-badge) with top-level
+  variants default and sale, props amount, currency and originalAmount. Select the canonical variant
+  through props.variant in stories. Render amount formatted as "{currency}{amount}"; when variant is
+  sale also render originalAmount struck through beside it. Author default and sale story files using
+  amount 18.50, currency "$", and for sale also originalAmount 24.00. Then wire book-card
+  (test_integration_vue:book-card) to render price-badge instead of its plain price text: pass the
+  book's own price as amount and currency "$", using the sale variant only when the book record has a
+  discount field, defaulting to the default variant otherwise. Update book-card's own default story
+  fixture data accordingly and keep its existing coverUrl/title/author/status props and its "actions"
+  slot untouched. Do not modify any other component.
+  During intake freeze concrete story URLs, selectors and checks in the saved definition. Plan actual
+  `pnpm build-storybook` (workspace root cwd, backend: none) and `npx storybook-addon-designbook storybook check <story-url>`
+  for price-badge.default, price-badge.sale, book-card.default and the catalog scene story (which nests
+  catalog-grid > book-card > price-badge). A build is separate from browser verification. Also plan a
+  live `npx storybook dev` verification: change price-badge's default story amount value and confirm HMR
+  updates the rendered text without a full page reload; confirm the book cover image in book-card and
+  catalog-grid renders as a real <img> element (not escaped HTML text); switch the active theme/mode in
+  the Storybook toolbar and confirm price-badge and book-card computed colors change; open the
+  Structure/Inspect panel for the catalog scene story and confirm it lists price-badge nested under
+  book-card under catalog-grid; navigate from price-badge.default to book-card.default to the catalog
+  scene story and confirm each navigation unmounts the previous story's Vue app (no leftover DOM from the
+  prior story, no console errors about duplicate root mounts) before the next story mounts. Run browser
+  observations at desktop 1280x800 and mobile 390x844 where applicable.
+  After execution save evidence JSON from actual command outputs and browser observations, as specified
+  by debo-test run's evidence contract. The required observation keys and exact expected values are:
+    - price_badge.default.text: '$18.50'
+    - price_badge.sale.text: '$18.50 $24.00'
+    - book_card.price.text: '$18.50'
+    - book_card.image.tag: 'IMG'
+    - hmr.price_updated: True
+    - theme_switch.color_changed: True
+    - structure.nesting_correct: True
+    - mount.clean_unmount: True
+  Preserve the definition before execution and score this case; validate workflow: none. Execute now
+  without clarification; all requested targets and acceptance criteria are supplied.
+validate: none
+evidence:
+  files:
+    - components/price-badge/price-badge.vue
+    - components/price-badge/price-badge.default.story.yml
+    - components/price-badge/price-badge.sale.story.yml
+    - components/book-card/book-card.vue
+    - components/book-card/book-card.default.story.yml
+assert:
+  - type: javascript
+    value: output.runs.length > 0 && output.runs.every(r => r.componentPrerequisites?.passed === true)
+  - type: javascript
+    value: output.runs.length === 1 && output.runs.every(r => r.complete && r.definitionUnchanged)
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0 && output.definitionUnchanged === true
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.build?.command === 'pnpm build-storybook' && r.evidence.build.exitCode === 0 && typeof r.evidence.build.stdout === 'string' && r.evidence.build.stdout.trim().length > 0 && Array.isArray(r.evidence.checks) && r.evidence.checks.length > 0 && r.evidence.checks.every(c => /^https?:/.test(c.url) && c.result?.ok === true))
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["price_badge.default.text"] === "$18.50"))
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["price_badge.sale.text"] === "$18.50 $24.00"))
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["book_card.price.text"] === "$18.50"))
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["book_card.image.tag"] === "IMG"))
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["hmr.price_updated"] === true))
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["theme_switch.color_changed"] === true))
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["structure.nesting_correct"] === true))
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["mount.clean_unmount"] === true))
+  - type: javascript
+    value: |-
+      const refs = []; const walk = value => { if (!value || typeof value !== 'object') return; if (typeof value.component === 'string') refs.push(value.component); Object.values(value).forEach(walk); }; Object.entries(output.fileContents).filter(([file]) => /\.(scenes|story)\.yml$/.test(file)).forEach(([,value]) => walk(value)); Object.values(output.mappingResults || {}).forEach(walk); return refs.length > 0 && refs.every(ref => ref.startsWith('test_integration_vue:') && output.componentIds.includes(ref.split(':')[1]));
+  - type: javascript
+    value: |-
+      ['default','sale'].every(v => output.fileContents['components/price-badge/price-badge.component.yml']?.variants?.[v] || output.fileContents['components/price-badge/price-badge.default.story.yml']?.props?.variant !== undefined)
+  - type: javascript
+    value: |-
+      output.fileContents['components/price-badge/price-badge.default.story.yml']?.component === 'test_integration_vue:price-badge' && output.fileContents['components/price-badge/price-badge.sale.story.yml']?.component === 'test_integration_vue:price-badge'
+  - type: javascript
+    value: output.runs.every(r => new Set(r.evidence.checks.map(c => c.url)).size >= 4)

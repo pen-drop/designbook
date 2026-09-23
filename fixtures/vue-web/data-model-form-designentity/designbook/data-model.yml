@@ -1,0 +1,27 @@
+content:
+  block_content:
+    hero:
+      title: Hero
+      description: >
+        A block_content bundle exercising BOTH halves of a bundle for the design-entity
+        form-mode fixture: a reading half (`view_modes.default`, written to entity-mapping/)
+        and an editing half (`form_modes.edit`, a non-default form mode written to
+        form-mapping/). The view sibling is pre-seeded so the form story anchors on the
+        bundle's canonical entity module.
+      fields:
+        field_title:
+          type: string
+          title: Title
+        field_content:
+          type: text_long
+          title: Content
+        field_action:
+          type: link
+          title: Action
+      view_modes:
+        default:
+          template: field-map
+      form_modes:
+        edit:
+          template: field-map
+          label: Edit

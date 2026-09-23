@@ -1,6 +1,10 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
-import { renderComponent } from '../renderer';
+import { h, createCommentVNode, Fragment, createApp } from 'vue';
+import { renderComponent, mountVueRoot, type VueMarkerHelpers } from '../renderer';
 import type { ComponentNode, ComponentModule } from '../../../scene-model/types';
+
+const vueHelpers = { h, createCommentVNode, Fragment } as unknown as VueMarkerHelpers;
 
 function makeModule(render: ComponentModule['render']): ComponentModule {
   return { render };
@@ -132,5 +136,103 @@ describe('renderComponent', () => {
     expect(result).toBeNull();
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('test:missing'));
     warnSpy.mockRestore();
+  });
+});
+
+describe('renderComponent — nested Vue VNode marker wrapping', () => {
+  it('wraps a nested Vue VNode result with db:s/db:e comment-VNode markers when vueHelpers is passed', async () => {
+    const imports = {
+      'test:child': makeModule(() => h('span', {}, 'child')),
+      'test:parent': makeModule((_props, slots) => h('div', {}, [slots.body as never])),
+    };
+
+    const node: ComponentNode = {
+      component: 'test:parent',
+      path: '0',
+      slots: { body: { component: 'test:child', path: '0.body' } },
+    };
+
+    const result = renderComponent(node, imports, vueHelpers);
+
+    const container = document.createElement('div');
+    const app = createApp({ render: () => result });
+    app.mount(container);
+
+    expect(container.innerHTML).toContain('<!--db:s:test:child@0.body-->');
+    expect(container.innerHTML).toContain('<!--db:e:test:child@0.body-->');
+    expect(container.textContent).toContain('child');
+
+    app.unmount();
+  });
+
+  it('does not wrap with markers when vueHelpers is omitted (SDC/string path unaffected)', () => {
+    const imports = { 'test:child': makeModule(() => h('span', {}, 'child')) };
+    const node: ComponentNode = { component: 'test:child', path: '0' };
+
+    const result = renderComponent(node, imports) as { __v_isVNode: boolean };
+
+    expect(result.__v_isVNode).toBe(true);
+  });
+});
+
+describe('mountVueRoot', () => {
+  it('mounts the vnode into the container, wrapped in db:s/db:e comment markers', async () => {
+    const container = document.createElement('div');
+    const node: ComponentNode = { component: 'test:card', path: '0' };
+    const vnode = h('p', {}, 'Hello Vue');
+
+    const handle = await mountVueRoot(node, vnode, container);
+
+    expect(container.textContent).toContain('Hello Vue');
+    const comments = Array.from(container.childNodes).filter((n) => n.nodeType === Node.COMMENT_NODE);
+    expect(comments).toHaveLength(2);
+    expect(comments[0]!.textContent).toBe('db:s:test:card@0');
+    expect(comments[1]!.textContent).toBe('db:e:test:card@0');
+
+    handle.unmount();
+  });
+
+  it('unmount() removes the markers, the mount point, and disposes the app', async () => {
+    const container = document.createElement('div');
+    const node: ComponentNode = { component: 'test:card', path: '0' };
+    const vnode = h('p', {}, 'Hello Vue');
+
+    const handle = await mountVueRoot(node, vnode, container);
+    expect(container.childNodes.length).toBeGreaterThan(0);
+
+    handle.unmount();
+
+    expect(container.childNodes.length).toBe(0);
+  });
+
+  it('a second mount cleanly replaces the first (no leaked nodes)', async () => {
+    const container = document.createElement('div');
+    const node: ComponentNode = { component: 'test:card', path: '0' };
+
+    const first = await mountVueRoot(node, h('p', {}, 'First'), container);
+    expect(container.textContent).toContain('First');
+    first.unmount();
+
+    const second = await mountVueRoot(node, h('p', {}, 'Second'), container);
+    expect(container.textContent).toContain('Second');
+    expect(container.textContent).not.toContain('First');
+    // Exactly one mount's worth of nodes present (2 markers + 1 mount point)
+    expect(container.childNodes.length).toBe(3);
+
+    second.unmount();
+    expect(container.childNodes.length).toBe(0);
+  });
+
+  it('falls back to the bare component id when path is absent', async () => {
+    const container = document.createElement('div');
+    const node: ComponentNode = { component: 'test:card' };
+
+    const handle = await mountVueRoot(node, h('p', {}, 'No path'), container);
+
+    const comments = Array.from(container.childNodes).filter((n) => n.nodeType === Node.COMMENT_NODE);
+    expect(comments[0]!.textContent).toBe('db:s:test:card');
+    expect(comments[1]!.textContent).toBe('db:e:test:card');
+
+    handle.unmount();
   });
 });

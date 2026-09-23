@@ -6,11 +6,20 @@ import {
   extractGroup,
   fileBaseName,
   formExportName,
+  parseComponentStoryFileName,
+  componentStoryGroup,
+  resolveComponentStoryName,
 } from '../scene-model/scene-metadata';
 import { matchHandler, defaultHandlers } from '../scene-model/scene-handlers';
 import { entityStoryGroup } from '../scene-model/entity-module-builder';
 import { formStoryName } from '../scene-model/story-address';
-import { loadDataModel } from '../scene-model/scene-module-builder';
+import {
+  loadDataModel,
+  defaultVueResolver,
+  defaultVueWrapImport,
+  defaultVueExtraImportLines,
+} from '../scene-model/scene-module-builder';
+import { vueBuiltInComponents } from '../scene-model/built-in-components';
 
 import { readFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs';
 import { resolve, dirname, relative, basename } from 'node:path';
@@ -127,6 +136,46 @@ export function indexForm(fileName: string): any[] {
   ];
 }
 
+// Indexes one standalone component story file (`<name>.<variant>.story.yml`,
+// living next to `<name>.vue` in `dirs.components`) as a single "Components/…"
+// story entry. Framework-neutral by data shape — the file is only indexed
+// when a sibling `<name>.vue` exists, since this indexer is only registered
+// for `frameworks.component: vue` (see `experimental_indexers`). SDC keeps
+// using the third-party `storybook-addon-sdc` indexer unchanged — enabling
+// this indexer for SDC too would double-index `.component.yml` pairs when
+// both addons are registered together (e.g. `test-integration-drupal`).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function indexComponentStory(fileName: string): any[] {
+  const parsedName = parseComponentStoryFileName(fileName);
+  if (!parsedName) return [];
+
+  const dir = dirname(fileName);
+  const hasVue = existsSync(resolve(dir, `${parsedName.name}.vue`));
+  if (!hasVue) return [];
+
+  const relativePath = './' + relative(process.cwd(), fileName);
+  let explicitName: unknown;
+  try {
+    const raw = parseYaml(readFileSync(fileName, 'utf-8'));
+    if (raw && typeof raw === 'object') explicitName = (raw as Record<string, unknown>).name;
+  } catch {
+    // Malformed YAML: fall through to the filename-derived name; the loader
+    // surfaces the real parse error when it loads the module.
+  }
+  const displayVariant = resolveComponentStoryName(parsedName.variant, explicitName);
+
+  return [
+    {
+      type: 'story' as const,
+      importPath: relativePath,
+      exportName: buildExportName(displayVariant),
+      title: componentStoryGroup(parsedName.name),
+      name: displayVariant,
+      tags: ['component', '!autodocs'],
+    },
+  ];
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const viteFinal = async (config: any, options: any) => {
   const { plugins = [] } = config;
@@ -148,10 +197,27 @@ export const viteFinal = async (config: any, options: any) => {
 
   const configPath = findConfig();
   const configDir = configPath ? dirname(configPath) : process.cwd();
+
+  // Select the component import resolver/wrapper per `frameworks.component`.
+  // Defaults (undefined) fall through to the SDC resolver in vite-plugin.ts —
+  // the Vue path is opt-in and never touches the SDC default.
+  const componentFramework = String(designbookConfig['frameworks.component'] ?? 'sdc');
+  const frameworkOptions =
+    componentFramework === 'vue'
+      ? {
+          resolveImportPath: (componentId: string) =>
+            defaultVueResolver(componentId, resolve(configDir, fsRoot || 'designbook')),
+          wrapImport: defaultVueWrapImport,
+          extraImportLines: defaultVueExtraImportLines,
+          builtInComponents: vueBuiltInComponents,
+        }
+      : {};
+
   plugins.push(
     designbookLoadPlugin(configDir, {
       fsRoot,
       provider,
+      ...frameworkOptions,
     }),
   );
   return {
@@ -196,6 +262,11 @@ export const stories = async (entry: string[] = [], options: any) => {
   const scenesGlob = resolve(distDir, '{sections,design-system}/**/*.scenes.yml');
   const entityGlob = resolve(distDir, 'entity-mapping/*.jsonata');
   const formGlob = resolve(distDir, 'form-mapping/*.jsonata');
+  // Standalone component stories — only globbed for `frameworks.component: vue`.
+  // See `indexComponentStory` for why SDC is excluded (storybook-addon-sdc parity).
+  const componentFramework = String(designbookConfig['frameworks.component'] ?? 'sdc');
+  const componentStoryGlob =
+    componentFramework === 'vue' ? resolve(distDir, '..', 'components', '*', '*.story.yml') : undefined;
 
   // Built-in pages listed explicitly in sidebar order: Foundation → Design System → Sections.
   // File-name order is Storybook 10's sort mechanism when no storySort is configured.
@@ -210,6 +281,7 @@ export const stories = async (entry: string[] = [], options: any) => {
     relative(configDir, scenesGlob),
     relative(configDir, entityGlob),
     relative(configDir, formGlob),
+    ...(componentStoryGlob ? [relative(configDir, componentStoryGlob)] : []),
     ...entry,
   ];
 };
@@ -289,7 +361,21 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
     createIndex: async (fileName: string) => indexForm(fileName),
   };
 
-  return [...existingIndexers, scenesIndexer, entityIndexer, formIndexer];
+  const indexers = [...existingIndexers, scenesIndexer, entityIndexer, formIndexer];
+
+  // Standalone component stories — only registered for `frameworks.component:
+  // vue` (see `indexComponentStory` for why SDC stays on the third-party
+  // `storybook-addon-sdc` indexer instead).
+  const designbookConfig = loadConfig();
+  const componentFramework = String(designbookConfig['frameworks.component'] ?? 'sdc');
+  if (componentFramework === 'vue') {
+    indexers.push({
+      test: /components\/[^/]+\/[^/]+\.[^./]+\.story\.yml$/,
+      createIndex: async (fileName: string) => indexComponentStory(fileName),
+    });
+  }
+
+  return indexers;
 };
 
 export const indexers = experimental_indexers;

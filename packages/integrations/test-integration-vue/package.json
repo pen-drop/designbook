@@ -1,0 +1,22 @@
+{
+    "name": "test-integration-vue",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "storybook": "storybook dev -p 6010",
+        "storybook:clean": "rm -rf node_modules/.cache/storybook",
+        "build-storybook": "storybook build"
+    },
+    "devDependencies": {
+        "@storybook/addon-docs": "^10.0.0",
+        "@storybook/html": "^10.0.0",
+        "@storybook/html-vite": "^10.0.0",
+        "@tailwindcss/vite": "^4.1.18",
+        "@vitejs/plugin-vue": "^5.0.0",
+        "storybook": "^10.0.0",
+        "storybook-addon-designbook": "workspace:*",
+        "tailwindcss": "^4.0.0-beta.9",
+        "vite": "^6.3.5",
+        "vue": "^3.5.0"
+    }
+}

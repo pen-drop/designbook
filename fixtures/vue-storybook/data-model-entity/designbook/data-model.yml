@@ -1,0 +1,58 @@
+content:
+  catalog:
+    book:
+      title: Book
+      description: A title available in the Prosaic catalog
+      view_modes:
+        teaser:
+          template: field-map
+          label: Card
+        full:
+          template: field-map
+          label: Detail
+      fields:
+        title:
+          type: string
+          title: Title
+          required: true
+        field_author:
+          type: string
+          title: Author
+        field_genre:
+          type: string
+          title: Genre
+        field_price:
+          type: string
+          title: Price
+        field_cover_url:
+          type: string
+          title: Cover Image URL
+        field_summary:
+          type: text
+          title: Summary
+        field_status:
+          type: string
+          title: Availability
+        field_publisher:
+          type: reference
+          title: Publisher
+          settings:
+            target_type: catalog
+            target_bundle: publisher
+    publisher:
+      title: Publisher
+      description: An independent publishing house featured in the Prosaic catalog
+      fields:
+        title:
+          type: string
+          title: Name
+          required: true
+        field_location:
+          type: string
+          title: Location
+        field_founded:
+          type: string
+          title: Founded
+        field_about:
+          type: text
+          title: About

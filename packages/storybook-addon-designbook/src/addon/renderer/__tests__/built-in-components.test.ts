@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { builtInComponents } from '../../../scene-model/built-in-components';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { builtInComponents, vueBuiltInComponents } from '../../../scene-model/built-in-components';
 import { buildCsfModule } from '../../../scene-model/csf-prep';
 import type { ComponentNode } from '../../../scene-model/types';
 
@@ -123,5 +123,105 @@ describe('csf-prep built-in resolution', () => {
     expect(code).toContain("import * as providercard from '/components/card/card.component.yml'");
     // Built-in does not
     expect(code).not.toMatch(/import.*designbookplaceholder/);
+  });
+});
+
+describe('vueBuiltInComponents', () => {
+  // The render functions reference a bare `h` — at runtime in the generated
+  // CSF module this resolves against that module's own top-level `import { h }
+  // from 'vue';` (see built-in-components.ts). Here we stub it as a global so
+  // the extracted function can be invoked directly, mirroring that contract.
+  let h: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    h = vi.fn((type: string, propsOrChildren?: unknown, children?: unknown) => ({
+      __v_isVNode: true,
+      type,
+      propsOrChildren,
+      children,
+    }));
+    (globalThis as unknown as { h: typeof h }).h = h;
+  });
+
+  afterEach(() => {
+    delete (globalThis as { h?: unknown }).h;
+  });
+
+  it('designbook:placeholder returns a vnode-like object, not a raw HTML string', () => {
+    const mod = vueBuiltInComponents['designbook:placeholder']!;
+    const result = mod.render({ message: 'missing expression' }, {}) as {
+      __v_isVNode: boolean;
+      type: string;
+      propsOrChildren: unknown;
+      children: unknown;
+    };
+
+    expect(result.__v_isVNode).toBe(true);
+    expect(result.type).toBe('div');
+    expect((result.propsOrChildren as { style: string }).style).toContain('dashed');
+    expect(result.children).toBe('missing expression');
+  });
+
+  it('designbook:placeholder uses default message when none provided', () => {
+    const mod = vueBuiltInComponents['designbook:placeholder']!;
+    const result = mod.render({}, {}) as { children: unknown };
+    expect(result.children).toBe('placeholder');
+  });
+
+  it('designbook:image provider mode returns a vnode-like object, not a string', () => {
+    const mod = vueBuiltInComponents['designbook:image']!;
+    const result = mod.render(
+      {
+        sources: [{ media: '(min-width: 768px)', src: 'https://picsum.photos/id/2/768/432' }],
+        fallback: { src: 'https://picsum.photos/id/3/480/360', alt: 'Image' },
+        style: { aspectRatio: '21/9', objectFit: 'cover' },
+      },
+      {},
+    );
+
+    expect(typeof result).not.toBe('string');
+    expect(h).toHaveBeenCalled();
+    const [pictureType, pictureChildren] = h.mock.calls[h.mock.calls.length - 1]!;
+    expect(pictureType).toBe('picture');
+    expect(Array.isArray(pictureChildren)).toBe(true);
+
+    const sourceCall = h.mock.calls.find((c) => c[0] === 'source');
+    expect(sourceCall?.[1]).toEqual({ media: '(min-width: 768px)', srcset: 'https://picsum.photos/id/2/768/432' });
+
+    const imgCall = h.mock.calls.find((c) => c[0] === 'img');
+    expect(imgCall?.[1]).toMatchObject({
+      src: 'https://picsum.photos/id/3/480/360',
+      alt: 'Image',
+    });
+  });
+
+  it('designbook:image CSS mode returns a plain img vnode', () => {
+    const mod = vueBuiltInComponents['designbook:image']!;
+    mod.render({ src: '/img/hero.jpg', alt: 'Hero', style: { aspectRatio: '21/9', objectFit: 'cover' } }, {});
+
+    const imgCall = h.mock.calls.find((c) => c[0] === 'img');
+    expect(imgCall?.[1]).toMatchObject({
+      src: '/img/hero.jpg',
+      alt: 'Hero',
+      style: 'aspect-ratio:21/9;object-fit:cover;width:100%',
+    });
+  });
+
+  it('designbook:image with responsiveStyles wraps a style + img vnode in a span', () => {
+    const mod = vueBuiltInComponents['designbook:image']!;
+    mod.render(
+      {
+        src: '/img/hero.jpg',
+        alt: 'Hero',
+        style: { aspectRatio: '21/9', objectFit: 'cover' },
+        responsiveStyles: [{ media: '(max-width: 768px)', aspectRatio: '16/9' }],
+      },
+      {},
+    );
+
+    const [spanType] = h.mock.calls[h.mock.calls.length - 1]!;
+    expect(spanType).toBe('span');
+    const styleCall = h.mock.calls.find((c) => c[0] === 'style');
+    expect(styleCall?.[1]).toContain('@media (max-width: 768px)');
   });
 });

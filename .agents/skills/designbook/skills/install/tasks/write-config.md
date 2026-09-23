@@ -35,3 +35,10 @@ Record the detected backend, the chosen component framework, the `css_framework`
 selection, the component namespace, and the active integration extensions. The config
 must not already exist — the workflow preconditions stop when one is found, so never
 overwrite an existing config without explicit user confirmation.
+
+`backend` and `frameworks.component` are independent axes: the component framework is
+never implied by the backend, and no backend may hard-require a specific component
+framework. When the installed component-framework integration skill (e.g.
+`designbook-vue`) offers a target-finding rule for the detected backend, use it; a
+backend's own target-finding rule must not assume its own default component framework
+(e.g. a Drupal theme directory) when a different `frameworks.component` was chosen.

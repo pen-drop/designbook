@@ -83,12 +83,13 @@ DesignbookConfig:
       $ref: "#/Backend"
     frameworks:
       type: object
-      description: Framework choices. `component` is the markup framework (e.g. sdc); `css` is the chosen CSS framework or `css` for plain CSS.
+      description: Framework choices. `component` is the markup framework; `css` is the chosen CSS framework or `css` for plain CSS. `backend` is an independent axis — no `component` value implies a specific backend, and no backend requires a specific `component` value.
       properties:
         component:
           type: string
-          description: Markup/component framework identifier.
-          examples: [sdc]
+          description: Markup/component framework identifier. Selects the integration skill (designbook-<component>) whose write-component task and blueprints drive component creation.
+          enum: [sdc, vue]
+          examples: [sdc, vue]
         css:
           type: string
           description: CSS framework identifier, or `css` for plain CSS.

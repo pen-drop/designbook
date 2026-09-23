@@ -1,0 +1,6 @@
+id: startseite
+title: Startseite
+description: Landing section whose screens each render exactly one route-bearing main content — a View listing, a single entity, or a reference-listing entity — beside supporting blocks
+status: planned
+order: 1
+scenes: []

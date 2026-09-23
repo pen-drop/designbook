@@ -8,8 +8,8 @@
  * 4. Emit CSF module: default export + story exports with args.__scene + renderComponent
  */
 
-import type { ComponentNode, SceneTreeNode, FieldMapping } from './types';
-import { builtInComponents } from './built-in-components';
+import type { ComponentNode, SceneTreeNode, FieldMapping, ComponentModule } from './types';
+import { builtInComponents as defaultBuiltInComponents } from './built-in-components';
 
 // ── Options ────────────────────────────────────────────────────────────
 
@@ -49,6 +49,19 @@ export interface CsfPrepOptions {
    * component's Drupal behavior is registered in the generated story's runtime.
    */
   resolveScriptPath?: (componentId: string) => string | null;
+  /**
+   * Extra module-level import lines emitted once, right after the renderer
+   * import (e.g. `import { h } from 'vue';` for the Vue `wrapImport`). Empty
+   * for frameworks whose `wrapImport` needs no additional module-scope
+   * bindings (e.g. SDC).
+   */
+  extraImportLines?: string[];
+  /**
+   * Override for the `designbook:*` built-in component render functions
+   * (e.g. `vueBuiltInComponents` — VNode output instead of HTML strings).
+   * Defaults to the HTML-string `builtInComponents` (SDC/React/Twig-safe).
+   */
+  builtInComponents?: Record<string, ComponentModule>;
 }
 
 // ── Import tracking ────────────────────────────────────────────────────
@@ -91,13 +104,14 @@ function emitComponentImports(
   resolveImportPath: (componentId: string) => string | null,
   resolveScriptPath: ((componentId: string) => string | null) | undefined,
   wrapImport: ((alias: string) => string) | undefined,
+  builtIns: Record<string, ComponentModule> = defaultBuiltInComponents,
 ): { importLines: string[]; importsMapEntries: string[] } {
   const importLines: string[] = [];
   const importsMapEntries: string[] = [];
   for (const componentId of allIds) {
     // Built-in components: emit inline render function, no external import
-    if (componentId.startsWith('designbook:') && builtInComponents[componentId]) {
-      importsMapEntries.push(`  '${componentId}': { render: ${builtInComponents[componentId].render.toString()} },`);
+    if (componentId.startsWith('designbook:') && builtIns[componentId]) {
+      importsMapEntries.push(`  '${componentId}': { render: ${builtIns[componentId].render.toString()} },`);
       continue;
     }
     const alias = toAlias(componentId);
@@ -134,13 +148,16 @@ export function buildCsfModule(opts: CsfPrepOptions): string {
     resolveImportPath,
     resolveScriptPath,
     wrapImport,
+    opts.builtInComponents,
   );
   const importLines: string[] = [
     "import { renderComponent, attachDrupalBehaviors } from 'storybook-addon-designbook/renderer';",
+    ...(opts.extraImportLines ?? []),
     ...componentImportLines,
   ];
 
   const importsMap = `const __imports = {\n${importsMapEntries.join('\n')}\n};`;
+  const isVue = usesVueHelpers(opts.extraImportLines);
 
   // Default export
   const defaultExport = [
@@ -184,7 +201,7 @@ export function buildCsfModule(opts: CsfPrepOptions): string {
       '  args: {',
       `    __scene: ${nodesJson},`,
       '  },',
-      '  render: (args) => renderComponent(args.__scene, __imports),',
+      `  render: (args) => ${renderComponentCall('args.__scene', isVue)},`,
       '  play: (ctx) => attachDrupalBehaviors(ctx.canvasElement),',
       '};',
     ].join('\n');
@@ -238,6 +255,34 @@ export interface EntityCsfOptions {
   resolveScriptPath?: (componentId: string) => string | null;
   /** Extra story tags appended to the default-export `['autodocs']` (e.g. `['config']`). */
   extraTags?: string[];
+  /**
+   * Extra module-level import lines emitted once, right after the renderer
+   * import (e.g. `import { h } from 'vue';` for the Vue `wrapImport`).
+   */
+  extraImportLines?: string[];
+  /**
+   * Override for the `designbook:*` built-in component render functions
+   * (e.g. `vueBuiltInComponents` — VNode output instead of HTML strings).
+   * Defaults to the HTML-string `builtInComponents` (SDC/React/Twig-safe).
+   */
+  builtInComponents?: Record<string, ComponentModule>;
+}
+
+/**
+ * Whether `extraImportLines` pulls in Vue bindings — used to decide whether
+ * the generated `renderComponent(...)` call needs the `vueHelpers` argument
+ * (`{ h, createCommentVNode, Fragment }`, see `defaultVueExtraImportLines`)
+ * so nested Vue VNodes get `db:s:`/`db:e:` inspect-overlay markers too.
+ */
+function usesVueHelpers(extraImportLines: string[] | undefined): boolean {
+  return (extraImportLines ?? []).some((line) => line.includes("from 'vue';"));
+}
+
+/** Build the generated `render:` line's `renderComponent(...)` expression. */
+function renderComponentCall(sceneExpr: string, isVue: boolean): string {
+  return isVue
+    ? `renderComponent(${sceneExpr}, __imports, { h, createCommentVNode, Fragment })`
+    : `renderComponent(${sceneExpr}, __imports)`;
 }
 
 function fieldTableMarkdown(mappings: FieldMapping[]): string {
@@ -276,8 +321,10 @@ function emitEntityStory(params: {
   source: string;
   fieldMappings: FieldMapping[];
   tags?: string[];
+  isVue: boolean;
 }): string {
-  const { exportName, name, order, recordsNodes, recordsTrees, mappingFile, source, fieldMappings, tags } = params;
+  const { exportName, name, order, recordsNodes, recordsTrees, mappingFile, source, fieldMappings, tags, isVue } =
+    params;
   const recordsJson = JSON.stringify(recordsNodes);
   // Per-record scene IR — the Structure panel indexes into it by the `record`
   // arg to show the tree for the record currently on screen.
@@ -292,7 +339,7 @@ function emitEntityStory(params: {
     `  parameters: { designbook: { order: ${order} }, docs: { description: { story: ${description} } }, sceneTrees: ${treesJson} },`,
     `  argTypes: { record: { name: 'record', control: { type: 'select' }, options: [${options.join(', ')}] } },`,
     `  args: { record: 0, __records: ${recordsJson} },`,
-    '  render: (args) => renderComponent(args.__records[args.record], __imports),',
+    `  render: (args) => ${renderComponentCall('args.__records[args.record]', isVue)},`,
     '  play: (ctx) => attachDrupalBehaviors(ctx.canvasElement),',
     '};',
   );
@@ -318,12 +365,15 @@ export function buildEntityCsfModule(opts: EntityCsfOptions): string {
     resolveImportPath,
     opts.resolveScriptPath,
     wrapImport,
+    opts.builtInComponents,
   );
   const importLines: string[] = [
     "import { renderComponent, attachDrupalBehaviors } from 'storybook-addon-designbook/renderer';",
+    ...(opts.extraImportLines ?? []),
     ...componentImportLines,
   ];
   const importsMap = `const __imports = {\n${importsMapEntries.join('\n')}\n};`;
+  const isVue = usesVueHelpers(opts.extraImportLines);
 
   // `entity` parameter mirrors the scene module's `scene` param — it marks the
   // story as a designbook entity story so the visual-compare toolbar shows for
@@ -352,6 +402,7 @@ export function buildEntityCsfModule(opts: EntityCsfOptions): string {
       mappingFile: mappingBasename(vm.view_mode),
       source: vm.source,
       fieldMappings: vm.fieldMappings,
+      isVue,
     }),
   );
 
@@ -368,6 +419,7 @@ export function buildEntityCsfModule(opts: EntityCsfOptions): string {
       source: fm.source,
       fieldMappings: fm.fieldMappings,
       tags: ['form'],
+      isVue,
     }),
   );
 

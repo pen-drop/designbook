@@ -1,0 +1,1 @@
+[{"component":"test_integration_vue:book-card","props":{"title":title,"author":field_author,"price":field_price,"cover_url":field_cover_url,"status":field_status}}]

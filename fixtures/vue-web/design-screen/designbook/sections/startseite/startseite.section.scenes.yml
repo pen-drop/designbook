@@ -1,0 +1,15 @@
+id: startseite
+title: Startseite
+description: Landing section whose screens each render exactly one route-bearing main content — a View listing, a single entity, or a reference-listing entity — beside supporting blocks
+status: in-progress
+order: 1
+scenes:
+  - name: landing
+    section: startseite
+    group: Designbook/Sections/Startseite
+    items:
+      - scene: design-system:shell
+        with:
+          content:
+            - entity: view.landing_teasers
+              view_mode: default

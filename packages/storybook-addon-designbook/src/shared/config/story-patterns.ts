@@ -12,6 +12,10 @@ export const DEFAULT_STORY_PATTERNS: Record<string, StoryPattern> = {
     import_path_pattern: /^\.\/components\/([^/]+)\/\1\.component\.yml$/,
     component_name_group: 1,
   },
+  vue: {
+    import_path_pattern: /^\.\/components\/([^/]+)\/\1\.vue$/,
+    component_name_group: 1,
+  },
 };
 
 /**

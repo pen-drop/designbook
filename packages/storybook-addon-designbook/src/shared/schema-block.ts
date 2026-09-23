@@ -135,9 +135,18 @@ async function resolveEntry(
     entry[dk] = dv;
   }
 
-  // Resolve path: expand env vars, check existence, read content
+  // Resolve path: expand env vars, check existence, read content. Only the env
+  // layer runs here — `{{ … }}` expressions belong to the task's params, which do
+  // not exist yet at intake time. Evaluating them against an empty scope would
+  // silently freeze the wrong branch of a param-dependent expression (e.g.
+  // `{{ mapping.mode_kind = 'form' ? 'form-mapping' : 'entity-mapping' }}`
+  // collapsing to `entity-mapping`); plan-build resolves them against the real params.
   if (typeof decl.path === 'string') {
-    const resolved = await interpolate(decl.path, {}, { envMap: input.envMap, lenient: true });
+    const resolved = await interpolate(
+      decl.path,
+      {},
+      { envMap: input.envMap, lenient: true, evaluateExpressions: false },
+    );
 
     // Pattern paths (containing [placeholder] or unresolved {{ param }}) — pass through unresolved
     if (/\[.+\]/.test(resolved) || /\{\{\s*\w+\s*\}\}/.test(resolved)) {

@@ -22,6 +22,27 @@ describe('DEFAULT_STORY_PATTERNS', () => {
   });
 });
 
+describe('DEFAULT_STORY_PATTERNS vue', () => {
+  it('exposes a vue entry with a regex and component name capture group', () => {
+    const vue = DEFAULT_STORY_PATTERNS.vue;
+    expect(vue).toBeDefined();
+    expect(vue!.import_path_pattern).toBeInstanceOf(RegExp);
+    expect(vue!.component_name_group).toBe(1);
+  });
+
+  it('matches a canonical vue import path and captures the component name', () => {
+    const vue = DEFAULT_STORY_PATTERNS.vue!;
+    const m = './components/book-card/book-card.vue'.match(vue.import_path_pattern);
+    expect(m?.[1]).toBe('book-card');
+  });
+
+  it('does not match non-vue import paths', () => {
+    const vue = DEFAULT_STORY_PATTERNS.vue!;
+    expect('./components/book-card/book-card.component.yml'.match(vue.import_path_pattern)).toBeNull();
+    expect('./components/book-card/book-card.stories.tsx'.match(vue.import_path_pattern)).toBeNull();
+  });
+});
+
 describe('resolveStoryPattern', () => {
   it('returns the user override verbatim when present', () => {
     const override = { import_path_pattern: /^foo$/, component_name_group: 2 };

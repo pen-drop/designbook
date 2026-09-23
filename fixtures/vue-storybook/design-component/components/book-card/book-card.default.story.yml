@@ -1,0 +1,15 @@
+component: "test_integration_vue:book-card"
+name: "Default"
+props:
+  title: "The Quiet Harbor"
+  author: "Mira Lindqvist"
+  price: "$18.50"
+  coverUrl: "https://placehold.co/400x600"
+  status: "in_stock"
+slots:
+  actions:
+    - type: "element"
+      tag: "button"
+      value: "Add to cart"
+      attributes:
+        class: "rounded bg-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-white"
