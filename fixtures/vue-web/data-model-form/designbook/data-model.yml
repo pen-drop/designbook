@@ -1,0 +1,22 @@
+content:
+  node:
+    editorial:
+      title: Editorial
+      description: >
+        A node bundle exercising the editing (form) half of a bundle via form_modes on
+        an edit route. form_modes declares the built-in `default` edit form plus a
+        non-default `compact` form mode, so sync-to emits both
+        core.entity_form_display.node.editorial.default /
+        core.entity_form_display.node.editorial.compact AND the
+        core.entity_form_mode.node.compact definition (the non-default mode carries a
+        required label). This is the form-side counterpart of the sync-node view-mode case.
+      fields:
+        field_body:
+          type: text_long
+          title: Body
+      form_modes:
+        default:
+          template: form
+        compact:
+          template: form
+          label: Compact

@@ -1,0 +1,9 @@
+(
+  $fields := $;
+  [
+    {
+      "component": "test_integration_vue:mode_probe",
+      "props": { "title": "Recent Articles" }
+    }
+  ]
+)

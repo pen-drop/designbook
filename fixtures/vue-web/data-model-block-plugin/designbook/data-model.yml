@@ -1,0 +1,153 @@
+config:
+  image_style:
+    ratio_16_9:
+      aspect_ratio: '16:9'
+    ratio_4_3:
+      aspect_ratio: '4:3'
+    ratio_1_1:
+      aspect_ratio: '1:1'
+  views.view.landing_teasers:
+    label: Landing teasers
+    purpose: >
+      A view that lists node.landing_page entities rendered in the teaser
+      view-mode, embedded on the article page. This is the view-mapping path
+      the sync eval exercises.
+    base_table: node_field_data
+    row:
+      entity_type: node
+      bundle: landing_page
+      view_mode: teaser
+    filters:
+      type: landing_page
+      status: 1
+    sort:
+      created: DESC
+  block_plugin:
+    # DESIGNBOOK-36 open-config probe. This entry is deliberately shaped to VIOLATE
+    # the DESIGNBOOK-30 `#/BlockPlugin` schema on every axis it enforced:
+    #   - no `component`   → old schema `required: [plugin, component]` would reject it
+    #   - `plugin` has a space + uppercase + `!` → old `plugin` pattern would reject it
+    #   - `layout: grid`   → old `layout` enum [default, inline, stacked] would reject it
+    # Under the open config model (`config.additionalProperties: true`) the entry is
+    # accepted verbatim, exactly like any other config type. Keep it byte-for-byte.
+    promo_grid:
+      plugin: "Promo Block!"
+      layout: grid
+      settings:
+        headline: Promo
+        arbitrary_setting: anything
+content:
+  node:
+    landing_page:
+      title: Landing Page
+      description: A landing page; surfaced as a teaser in the article listing view.
+      fields:
+        field_short_title:
+          type: string
+          title: Short title
+        field_landing_page_image:
+          type: entity_reference
+          title: Teaser image
+          settings:
+            target_type: media
+            handler: 'default:media'
+            target_bundles: [image]
+        field_landing_page_type:
+          type: entity_reference
+          title: Type
+          settings:
+            target_type: taxonomy_term
+            handler: 'default:taxonomy_term'
+            target_bundles: [landing_page_types]
+      view_modes:
+        teaser:
+          template: field-map
+        card:
+          template: field-map
+          label: Card
+    article:
+      title: Article
+      description: An editorial page that embeds the landing-page teaser listing view.
+      fields:
+        field_body:
+          type: text_long
+          title: Body
+      view_modes:
+        full:
+          template: field-map
+  taxonomy_term:
+    landing_page_types:
+      title: Seitentypen
+      description: Landing page type classification
+  media:
+    image:
+      title: Bild
+      description: Image media
+      view_modes:
+        ratio_16_9:
+          template: field-map
+        ratio_4_3:
+          template: field-map
+        ratio_1_1:
+          template: field-map
+  block_content:
+    hero:
+      title: Hero
+      description: >
+        A block_content component bundle rendered as a single UI-Patterns hero
+        section on the Layout Builder path — exercises the layout-builder-display
+        sync-to blueprint (string, formatted-text, and nested-SDC action slots).
+      fields:
+        field_title:
+          type: string
+          title: Title
+        field_content:
+          type: text_long
+          title: Content
+        field_action:
+          type: link
+          title: Action
+      view_modes:
+        default:
+          template: field-map
+  paragraph:
+    signage:
+      title: Wegweiser
+      description: Signpost / topic-navigation paragraph holding up to three navigation items
+      fields:
+        field_paragraph_style:
+          type: string
+          title: Stil
+        field_overlapping_top:
+          type: boolean
+          title: Überlappend
+        field_signage_item:
+          type: reference
+          title: Wegweiser Element
+          multiple: true
+          settings:
+            target_type: paragraph
+            target_bundle: signage_item
+    signage_item:
+      title: Wegweiser Element
+      description: One navigation item within a Wegweiser — icon, title, description, links, and CTA buttons
+      fields:
+        field_title:
+          type: string
+          title: Titel
+        field_description:
+          type: text
+          title: Beschreibung
+        field_icon:
+          type: string
+          title: Icon
+        field_links:
+          type: link
+          title: Links
+          multiple: true
+        field_button_anonymous:
+          type: link
+          title: Button anonym
+        field_button_authenticated:
+          type: link
+          title: Button angemeldet

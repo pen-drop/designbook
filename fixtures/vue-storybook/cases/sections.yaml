@@ -1,0 +1,32 @@
+fixtures:
+  - vision
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo sections workflow. Do NOT ask any questions.
+  The product is "Prosaic" — a boutique online bookstore. Read the product overview at designbook/vision.yml.
+  Create between 3 and 5 sections that cover the key areas of the product.
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: >
+      const sectionFiles = output.newFiles.filter(f =>
+      f.match(/^designbook\/sections\/[^/]+\/[^/]+\.section\.scenes\.yml$/));
+      return sectionFiles.length >= 3 && sectionFiles.length <= 5;
+  - type: javascript
+    value: output.completedWorkflows['sections']?.state?.status === 'completed'
+  - type: javascript
+    value: Object.values(output.completedWorkflows['sections']?.state?.tasks || {}).every(t => t.status === 'done')
+  - type: javascript
+    value: >
+      const sectionFiles = output.newFiles.filter(f =>
+      f.match(/^designbook\/sections\/[^/]+\/[^/]+\.section\.scenes\.yml$/));
+      return sectionFiles.every(f => {
+        const data = output.fileContents[f];
+        return data && data.id && data.title && data.description && data.status;
+      });
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0
+  - type: javascript
+    value: output.definitionUnchanged === true

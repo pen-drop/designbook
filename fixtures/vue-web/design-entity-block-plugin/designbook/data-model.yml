@@ -1,0 +1,41 @@
+# DESIGNBOOK-36 — Facette 2: the real leando.de Wegweiser (app-signage) region modelled as a
+# CONFIG entity (`config.block_plugin.signage`) instead of a content paragraph. Post-DESIGNBOOK-35
+# a config entity renders through the same renderer path as a content entity — it just lands under
+# `Config/block_plugin/signage` (+ `config` tag). design-verify scores this config-entity story
+# against the real `app-signage` region on https://leando.de/, proving config entities render and
+# verify exactly like normal entities against a real reference.
+#
+# The entry is deliberately open (no enforced #/BlockPlugin schema): it names only the render
+# `component` — no required prop set, no plugin pattern, no layout enum.
+config:
+  block_plugin:
+    signage:
+      component: signage
+content:
+  paragraph:
+    signage_item:
+      title: Wegweiser Element
+      description: One navigation item within a Wegweiser — icon, title, description, links, and CTA buttons
+      fields:
+        field_title:
+          type: string
+          title: Titel
+        field_description:
+          type: text
+          title: Beschreibung
+        field_icon:
+          type: string
+          title: Icon
+        field_links:
+          type: link
+          title: Links
+          multiple: true
+        field_button_anonymous:
+          type: link
+          title: Button anonym
+        field_button_authenticated:
+          type: link
+          title: Button angemeldet
+      view_modes:
+        full:
+          template: field-map

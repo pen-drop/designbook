@@ -1,0 +1,571 @@
+{
+  "source": "https://leando.de/",
+  "extracted": "2026-04-18",
+  "strategy": "playwright+vision",
+  "assets_dir": "assets",
+  "fonts": [
+    {
+      "family": "Reef",
+      "source": "self-hosted (woff2/woff, Reef-Bold)",
+      "weights": [
+        700
+      ],
+      "styles": [
+        "normal"
+      ]
+    },
+    {
+      "family": "Sarabun",
+      "source": "self-hosted (woff2/woff, Light/Regular/Medium/Bold/SemiBold + italic variants)",
+      "weights": [
+        300,
+        400,
+        700
+      ],
+      "styles": [
+        "normal",
+        "italic"
+      ]
+    },
+    {
+      "family": "Material Icons",
+      "source": "self-hosted (woff2, Angular-Material)",
+      "weights": [
+        400
+      ],
+      "styles": [
+        "normal"
+      ]
+    }
+  ],
+  "typography": [
+    {
+      "element": "h1",
+      "font_family": "Reef",
+      "font_size": "34px",
+      "line_height": "40.8px",
+      "letter_spacing": "normal",
+      "font_weight": 500,
+      "color": "#056336"
+    },
+    {
+      "element": "h2",
+      "font_family": "Reef",
+      "font_size": "40px",
+      "line_height": "52px",
+      "letter_spacing": "normal",
+      "font_weight": 100,
+      "color": "#000000"
+    },
+    {
+      "element": "h3",
+      "font_family": "Reef",
+      "font_size": "18px",
+      "line_height": "23.4px",
+      "letter_spacing": "normal",
+      "font_weight": 900,
+      "color": "#ffffff"
+    },
+    {
+      "element": "p",
+      "font_family": "Sarabun Regular",
+      "font_size": "16px",
+      "line_height": "24px",
+      "letter_spacing": "normal",
+      "font_weight": 400,
+      "color": "#212529"
+    },
+    {
+      "element": "a",
+      "font_family": "Sarabun Regular",
+      "font_size": "16px",
+      "line_height": "24px",
+      "letter_spacing": "normal",
+      "font_weight": 400,
+      "color": "#0d6efd"
+    },
+    {
+      "element": "button",
+      "font_family": "Reef",
+      "font_size": "22px",
+      "line_height": "33px",
+      "letter_spacing": "normal",
+      "font_weight": 400,
+      "color": "#00336a"
+    }
+  ],
+  "colors": [
+    {
+      "hex": "#00336a",
+      "usage": [
+        "text",
+        "background",
+        "border",
+        "primary-brand"
+      ]
+    },
+    {
+      "hex": "#124e9b",
+      "usage": [
+        "background",
+        "primary-medium"
+      ]
+    },
+    {
+      "hex": "#5a84c3",
+      "usage": [
+        "primary-light"
+      ]
+    },
+    {
+      "hex": "#056336",
+      "usage": [
+        "text",
+        "background",
+        "secondary-brand",
+        "heading-h1"
+      ]
+    },
+    {
+      "hex": "#95c11f",
+      "usage": [
+        "text",
+        "border",
+        "background",
+        "accent",
+        "cta"
+      ]
+    },
+    {
+      "hex": "#eaf3d2",
+      "usage": [
+        "accent-bright",
+        "background"
+      ]
+    },
+    {
+      "hex": "#6d4f9b",
+      "usage": [
+        "background",
+        "purple-accent"
+      ]
+    },
+    {
+      "hex": "#dd5234",
+      "usage": [
+        "text",
+        "error"
+      ]
+    },
+    {
+      "hex": "#0d6efd",
+      "usage": [
+        "text",
+        "link"
+      ]
+    },
+    {
+      "hex": "#212529",
+      "usage": [
+        "text",
+        "border",
+        "on-surface"
+      ]
+    },
+    {
+      "hex": "#6b6a6a",
+      "usage": [
+        "text",
+        "on-surface-muted"
+      ]
+    },
+    {
+      "hex": "#b2b2b2",
+      "usage": [
+        "medium-gray"
+      ]
+    },
+    {
+      "hex": "#ececec",
+      "usage": [
+        "background",
+        "surface-variant",
+        "header-bibb-bar"
+      ]
+    },
+    {
+      "hex": "#f7f7f7",
+      "usage": [
+        "surface-subtle"
+      ]
+    },
+    {
+      "hex": "#ffffff",
+      "usage": [
+        "background",
+        "text",
+        "surface"
+      ]
+    },
+    {
+      "hex": "#000000",
+      "usage": [
+        "text",
+        "border",
+        "shadow",
+        "background"
+      ]
+    }
+  ],
+  "css_variables": [
+    {
+      "name": "--color-blue",
+      "value": "#00336a"
+    },
+    {
+      "name": "--color-mediumblue",
+      "value": "#124e9b"
+    },
+    {
+      "name": "--color-lightblue",
+      "value": "#5a84c3"
+    },
+    {
+      "name": "--color-darkgreen",
+      "value": "#056336"
+    },
+    {
+      "name": "--color-green",
+      "value": "#95c11f"
+    },
+    {
+      "name": "--color-green-bright",
+      "value": "#eaf3d2"
+    },
+    {
+      "name": "--color-purple",
+      "value": "#6d4f9b"
+    },
+    {
+      "name": "--color-red",
+      "value": "#dd5234"
+    },
+    {
+      "name": "--color-black",
+      "value": "#000000"
+    },
+    {
+      "name": "--color-darkgray",
+      "value": "#6b6a6a"
+    },
+    {
+      "name": "--color-mediumgray",
+      "value": "#b2b2b2"
+    },
+    {
+      "name": "--color-lightgray",
+      "value": "#ececec"
+    },
+    {
+      "name": "--color-white",
+      "value": "#ffffff"
+    },
+    {
+      "name": "--font-reef",
+      "value": "\"Reef\", sans-serif"
+    },
+    {
+      "name": "--font-sarabun",
+      "value": "\"Sarabun Regular\", sans-serif"
+    },
+    {
+      "name": "--font-material-icons",
+      "value": "\"Material Icons\", sans-serif"
+    }
+  ],
+  "spacing": {
+    "container_max_width": "none",
+    "edge_padding": "80px",
+    "section_gap": "normal",
+    "values": [
+      "8px",
+      "10px",
+      "12px",
+      "15px",
+      "16px",
+      "20px",
+      "24px",
+      "32px",
+      "40px",
+      "48px",
+      "64px",
+      "80px"
+    ]
+  },
+  "breakpoints": [
+    {
+      "token": "sm",
+      "min_width": "640px",
+      "changes": [
+        "header: hamburger menu collapses primary navigation",
+        "header: logo reduces to short/mark form (leando_short_logo.png)",
+        "header: BIBB funding bar wraps label text or hides secondary line",
+        "footer: newsletter form stacks email input above submit button",
+        "footer: funding-logos row wraps to 2 columns",
+        "footer: legal links stack vertically"
+      ]
+    },
+    {
+      "token": "xl",
+      "min_width": "1280px",
+      "changes": [
+        "header: full horizontal navigation visible (Suche, Über uns, Anmelden) with hamburger menu",
+        "header: full word-mark logo (leando_logo.png)",
+        "header: BIBB funding bar on one line with full sponsor text",
+        "footer: newsletter form is inline — email input + submit button on one row",
+        "footer: funding-logos row horizontal with all sponsor marks visible",
+        "footer: social icons and legal links horizontal"
+      ]
+    }
+  ],
+  "landmarks": {
+    "header": {
+      "rows": [
+        {
+          "tag": "div",
+          "bg": "#ececec",
+          "height": "60px",
+          "padding": "8px 16px",
+          "content": "BIBB funding bar | left: 'Gefördert durch' label + BMBFSFJ ministry logo-text (bibb_logo.svg) | right: small utility links (optional)",
+          "layout": "flex row",
+          "gap": "16px"
+        },
+        {
+          "tag": "header",
+          "bg": "#ffffff",
+          "height": "102px",
+          "padding": "16px 80px",
+          "content": "logo (leando_logo.png) | nav: Suche-button, Über uns-link, Anmelden (primary button, bg #00336a), hamburger-menu-toggle",
+          "layout": "flex row space-between",
+          "gap": "16px"
+        }
+      ]
+    },
+    "footer": {
+      "rows": [
+        {
+          "tag": "section",
+          "bg": "linear-gradient(135deg, #056336 0%, #00336a 100%)",
+          "height": "auto",
+          "padding": "40px 80px",
+          "content": "Newsletter-Teaser | left: heading 'Newsletter abonnieren' + paragraph copy | right: email-input + 'Anmelden' submit-button + DSGVO consent checkbox",
+          "layout": "grid 2-col",
+          "gap": "24px"
+        },
+        {
+          "tag": "div",
+          "bg": "linear-gradient(135deg, #056336 0%, #00336a 100%)",
+          "height": "auto",
+          "padding": "20px 80px",
+          "content": "Social row | icons: YouTube, Instagram, LinkedIn (white on gradient)",
+          "layout": "flex row center",
+          "gap": "24px"
+        },
+        {
+          "tag": "div",
+          "bg": "#f7f7f7",
+          "height": "auto",
+          "padding": "24px 80px",
+          "content": "Funding logos | 'Gefördert von:' label + BMBFSFJ mark + Communitys mark + Toolbox mark + EU NextGenerationEU mark + BIBB mark",
+          "layout": "flex row space-around",
+          "gap": "32px"
+        },
+        {
+          "tag": "div",
+          "bg": "#ffffff",
+          "height": "auto",
+          "padding": "16px 80px",
+          "content": "Legal strip | left: 'English Intro' link + 'Glossar' link | right: 'Impressum' + 'Datenschutz' + 'Kontakt' + 'support@leando.de' email link",
+          "layout": "flex row space-between",
+          "gap": "16px"
+        }
+      ]
+    }
+  },
+  "interactive": [
+    {
+      "element": "Suche (search button)",
+      "selector": "button.site-header-navigation-menu-item-suche-button",
+      "bg": "transparent",
+      "color": "#00336a",
+      "border_radius": "7px",
+      "padding": "16px",
+      "font": "400 22px/33px Reef",
+      "box_shadow": "none",
+      "border": "none"
+    },
+    {
+      "element": "Über uns (nav link)",
+      "selector": "a.site-header-navigation-link",
+      "bg": "transparent",
+      "color": "#0d6efd",
+      "border_radius": "0px",
+      "padding": "0px",
+      "font": "400 16px/24px Sarabun",
+      "box_shadow": "none",
+      "border": "none"
+    },
+    {
+      "element": "Anmelden (primary login button)",
+      "selector": "button.site-header-navigation-menu-item-login",
+      "bg": "#00336a",
+      "color": "#ffffff",
+      "border_radius": "9px",
+      "padding": "8px 16px",
+      "font": "400 22px/33px Reef",
+      "box_shadow": "none",
+      "border": "1px solid #00336a"
+    },
+    {
+      "element": "Menü (hamburger toggle)",
+      "selector": "button.menu-toggle-button",
+      "bg": "transparent",
+      "color": "#00336a",
+      "border_radius": "7px",
+      "padding": "16px",
+      "font": "400 22px/33px Reef",
+      "box_shadow": "none",
+      "border": "none"
+    },
+    {
+      "element": "Newsletter Anmelden (footer CTA)",
+      "selector": "button.newsletter-submit",
+      "bg": "#95c11f",
+      "color": "#00336a",
+      "border_radius": "9px",
+      "padding": "12px 24px",
+      "font": "700 16px/24px Sarabun",
+      "box_shadow": "none",
+      "border": "none"
+    },
+    {
+      "element": "Footer legal link (Impressum/Datenschutz/Kontakt)",
+      "selector": "a.footer-legal-link",
+      "bg": "transparent",
+      "color": "#0d6efd",
+      "border_radius": "0px",
+      "padding": "0px",
+      "font": "400 14px/20px Sarabun",
+      "box_shadow": "none",
+      "border": "none"
+    }
+  ],
+  "forms": [
+    {
+      "name": "newsletter-subscribe",
+      "location": "footer.row[0]",
+      "fields": [
+        {
+          "type": "email",
+          "name": "email",
+          "placeholder": "E-Mail-Adresse",
+          "required": true
+        },
+        {
+          "type": "checkbox",
+          "name": "consent",
+          "label": "Ich stimme der Datenschutzerklärung zu (DSGVO).",
+          "required": true
+        }
+      ],
+      "submit": {
+        "label": "Anmelden",
+        "style": "accent"
+      }
+    }
+  ],
+  "images": [
+    {
+      "url": "https://leando.de/assets/img/leando_logo.png",
+      "role": "logo",
+      "alt": "LEANDO",
+      "location": "header",
+      "local_path": "/leando_logo.png",
+      "width": "auto",
+      "height": "48px"
+    },
+    {
+      "url": "https://leando.de/assets/img/leando_short_logo.png",
+      "role": "logo",
+      "alt": "LEANDO short",
+      "location": "header",
+      "local_path": "/leando_short_logo.png",
+      "width": "auto",
+      "height": "40px"
+    },
+    {
+      "url": "https://leando.de/assets/img/bibb_logo.svg",
+      "role": "logo",
+      "alt": "BIBB / BMBFSFJ",
+      "location": "header",
+      "local_path": "/bibb_logo.svg",
+      "width": "auto",
+      "height": "40px"
+    },
+    {
+      "url": "https://leando.de/assets/img/icons-defs.svg",
+      "role": "icon",
+      "alt": "Icon sprite (YouTube, Instagram, LinkedIn, close, menu)",
+      "location": "footer",
+      "local_path": "/icons-defs.svg",
+      "width": "n/a",
+      "height": "n/a"
+    }
+  ],
+  "sections": [],
+  "tokens": {
+    "colors": {
+      "primary": "#00336a",
+      "primary-medium": "#124e9b",
+      "primary-light": "#5a84c3",
+      "secondary": "#056336",
+      "accent": "#95c11f",
+      "accent-bright": "#eaf3d2",
+      "purple": "#6d4f9b",
+      "error": "#dd5234",
+      "surface": "#ffffff",
+      "surface-subtle": "#f7f7f7",
+      "surface-variant": "#ececec",
+      "on-surface": "#212529",
+      "on-surface-muted": "#6b6a6a",
+      "on-surface-disabled": "#b2b2b2",
+      "link": "#0d6efd"
+    },
+    "fonts": {
+      "heading": "Reef",
+      "body": "Sarabun",
+      "icon": "Material Icons"
+    },
+    "spacing": [
+      "8px",
+      "12px",
+      "16px",
+      "20px",
+      "24px",
+      "32px",
+      "40px",
+      "48px",
+      "64px",
+      "80px"
+    ],
+    "radii": [
+      "4px",
+      "7px",
+      "9px",
+      "24px",
+      "25px",
+      "40px",
+      "50%"
+    ]
+  }
+}

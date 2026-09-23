@@ -1,0 +1,28 @@
+id: debo-design-system
+title: Prosaic Shell
+description: Shared site chrome
+group: Designbook/Design System
+scenes:
+  - name: shell
+    docs: Canonical shell — header/content/footer are named slots; header nests a further named slot.
+    items:
+      - component: test_integration_vue:page
+        slots:
+          header:
+            - component: test_integration_vue:site-header
+              props:
+                store_name: Prosaic
+              slots:
+                nav:
+                  - component: test_integration_vue:site-nav
+                    props:
+                      links:
+                        - label: Catalog
+                          url: /catalog
+                        - label: Publishers
+                          url: /publishers
+          content: $content
+          footer:
+            - component: test_integration_vue:site-footer
+              props:
+                copyright: © Prosaic Books

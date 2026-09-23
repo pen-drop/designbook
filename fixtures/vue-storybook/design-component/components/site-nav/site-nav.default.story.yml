@@ -1,0 +1,10 @@
+component: "test_integration_vue:site-nav"
+name: "Default"
+props:
+  links:
+    - label: "Catalog"
+      url: "/catalog"
+    - label: "About"
+      url: "/about"
+    - label: "Contact"
+      url: "/contact"

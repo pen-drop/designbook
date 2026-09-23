@@ -1,0 +1,14 @@
+- id: publisher-1
+  title: Northwind Editions
+  field_location: Reykjavik, Iceland
+  field_founded: "2011"
+  field_about: A small press specializing in literary fiction and essay collections translated from Nordic languages.
+  __designbook:
+    section: "catalog"
+- id: publisher-2
+  title: Farlight Press
+  field_location: Vancouver, Canada
+  field_founded: "2016"
+  field_about: Independent speculative-fiction publisher focused on debut authors and translated works.
+  __designbook:
+    section: "catalog"

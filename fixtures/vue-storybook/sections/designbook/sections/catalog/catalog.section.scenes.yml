@@ -1,0 +1,29 @@
+id: catalog
+title: Catalog
+description: Book catalog browse and detail
+status: done
+order: 1
+group: Designbook/Sections/Catalog
+scenes:
+  - name: catalog
+    docs: Primary route /catalog; a nested card grid alongside one full book detail.
+    section: catalog
+    items:
+      - scene: design-system:shell
+        with:
+          content:
+            - component: test_integration_vue:catalog-grid
+              slots:
+                cards:
+                  - entity: catalog.book
+                    view_mode: teaser
+                    record: 0
+                  - entity: catalog.book
+                    view_mode: teaser
+                    record: 1
+                  - entity: catalog.book
+                    view_mode: teaser
+                    record: 2
+            - entity: catalog.book
+              view_mode: full
+              record: 0

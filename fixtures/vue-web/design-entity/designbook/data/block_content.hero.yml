@@ -1,0 +1,8 @@
+- id: '1'
+  __designbook:
+    section: hero
+  field_title: Ausbildung gestalten
+  field_content: <p>Leando bündelt Themenbeiträge, qualitätsgesicherte Informationen und Praxis-Tipps für die berufliche Bildung.</p>
+  field_action:
+    uri: /de/registrieren
+    title: Jetzt registrieren

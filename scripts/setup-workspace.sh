@@ -66,84 +66,127 @@ if [ -n "$WORKSPACE_DIR_OVERRIDE" ]; then
 fi
 WORKSPACE_KEY="$(printf '%s' "$WORKSPACE_KEY" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g; s/--*/-/g; s/^-//; s/-$//')"
 WORKSPACE_KEY="${WORKSPACE_KEY:-workspace}"
-THEME_REL="web/themes/custom/$THEME"
-THEME_DIR="$WORKSPACE_DIR/$THEME_REL"
+# Detect the backend from the suite fixture's designbook.config.yml, if the
+# workspace name matches a committed fixture suite (fixtures/<name>/…). Falls
+# back to the Drupal layout (the default/legacy behaviour) when no fixture
+# config declares otherwise — e.g. `./scripts/setup-workspace.sh` with no
+# suite, or a suite fixture with no `backend` key.
+BACKEND="drupal"
+FIXTURE_CFG="$REPO_ROOT/fixtures/$WORKSPACE_NAME/designbook.config.yml"
+if [ -f "$FIXTURE_CFG" ]; then
+  BACKEND="$(
+    FIXTURE_CFG="$FIXTURE_CFG" \
+    NODE_PATH="$REPO_ROOT/node_modules" \
+    node -e '
+      const fs = require("fs");
+      const yaml = require("js-yaml");
+      const cfg = yaml.load(fs.readFileSync(process.env.FIXTURE_CFG, "utf8")) || {};
+      process.stdout.write(String(cfg.backend || "drupal"));
+    '
+  )"
+fi
 
-echo "Setting up workspace: $WORKSPACE_DIR"
+if [ "$BACKEND" = "none" ]; then
+  # backend: none — no Drupal docroot/theme nesting. The workspace root itself
+  # is the Storybook app (analogous to $THEME_DIR in the Drupal layout).
+  THEME_REL=""
+  THEME_DIR="$WORKSPACE_DIR"
 
-# Verify fixture is committed.
-[ -d "$FIX" ] || { echo "Missing $FIX — fixture not committed" >&2; exit 1; }
+  echo "Setting up workspace: $WORKSPACE_DIR (backend: none)"
 
-# Ensure the fixture's gitignored composer tree is materialized (deterministic, once).
-"$REPO_ROOT/scripts/prepare-drupal-fixture.sh"
+  SRC_APP="$REPO_ROOT/packages/integrations/test-integration-vue"
+  [ -d "$SRC_APP" ] || { echo "Missing $SRC_APP — vue app fixture not committed" >&2; exit 1; }
 
-# Clone the committed Drupal fixture into a fresh workspace.
-rm -rf "$WORKSPACE_DIR"
-mkdir -p "$WORKSPACE_DIR"
-rsync -a --exclude='.git' "$FIX/" "$WORKSPACE_DIR/"
+  # Materialize the base Vue/Storybook app scaffold directly at the workspace
+  # root. No drupal-fixture clone, no prepare-drupal-fixture.sh, no composer/ddev.
+  rm -rf "$WORKSPACE_DIR"
+  mkdir -p "$WORKSPACE_DIR"
+  rsync -a --exclude='node_modules' --exclude='.git' "$SRC_APP/" "$WORKSPACE_DIR/"
 
-# Drop the (separate) fixture theme into the Drupal docroot.
-mkdir -p "$THEME_DIR"
-rsync -a --exclude='node_modules' --exclude='.git' \
-  "$REPO_ROOT/packages/integrations/test-integration-drupal/" \
-  "$THEME_DIR/"
+  # No workspace-root designbook.config.yml is written here: for backend:none
+  # the suite fixture's own config (fixtures/<suite>/designbook.config.yml) is
+  # merged directly onto the workspace root by setup-test.sh (THEME_REL="."),
+  # so there is nothing Drupal-shaped to rewrite paths against yet.
+else
+  THEME_REL="web/themes/custom/$THEME"
+  THEME_DIR="$WORKSPACE_DIR/$THEME_REL"
 
-# Generate the WORKSPACE-ROOT designbook.config.yml from the theme fixture's
-# config. The designbook CLI resolves everything from configDir (findConfig
-# walks UP from cwd), and sync-to targets the Drupal root (config/sync, drush,
-# ddev) — so the config must live at the workspace root, not the theme dir.
-# `designbook.home` stays pointed at the theme so DESIGNBOOK_DATA (data,
-# workflows, data-model) keeps its current physical location inside the theme.
-THEME_REL="$THEME_REL" \
-WORKSPACE_DIR="$WORKSPACE_DIR" \
-SRC_CONFIG="$REPO_ROOT/packages/integrations/test-integration-drupal/designbook.config.yml" \
-NODE_PATH="$REPO_ROOT/node_modules" \
-node -e '
-  const fs = require("fs");
-  const path = require("path");
-  const yaml = require("js-yaml");
-  const themeRel = process.env.THEME_REL;
-  const cfg = yaml.load(fs.readFileSync(process.env.SRC_CONFIG, "utf8")) || {};
+  echo "Setting up workspace: $WORKSPACE_DIR"
 
-  cfg.designbook = cfg.designbook || {};
-  cfg.designbook.home = themeRel;
+  # Verify fixture is committed.
+  [ -d "$FIX" ] || { echo "Missing $FIX — fixture not committed" >&2; exit 1; }
 
-  cfg.dirs = cfg.dirs || {};
-  if (cfg.dirs.components) cfg.dirs.components = path.join(themeRel, cfg.dirs.components);
-  cfg.dirs.css = cfg.dirs.css || {};
-  if (cfg.dirs.css.tokens) cfg.dirs.css.tokens = path.join(themeRel, cfg.dirs.css.tokens);
-  if (cfg.dirs.css.themes) cfg.dirs.css.themes = path.join(themeRel, cfg.dirs.css.themes);
+  # Ensure the fixture's gitignored composer tree is materialized (deterministic, once).
+  "$REPO_ROOT/scripts/prepare-drupal-fixture.sh"
 
-  cfg.css = cfg.css || {};
-  if (cfg.css.app) cfg.css.app = path.join(themeRel, cfg.css.app);
+  # Clone the committed Drupal fixture into a fresh workspace.
+  rm -rf "$WORKSPACE_DIR"
+  mkdir -p "$WORKSPACE_DIR"
+  rsync -a --exclude='.git' "$FIX/" "$WORKSPACE_DIR/"
 
-  cfg.component = cfg.component || {};
-  if (cfg.component.src) cfg.component.src = path.join(themeRel, cfg.component.src);
+  # Drop the (separate) fixture theme into the Drupal docroot.
+  mkdir -p "$THEME_DIR"
+  rsync -a --exclude='node_modules' --exclude='.git' \
+    "$REPO_ROOT/packages/integrations/test-integration-drupal/" \
+    "$THEME_DIR/"
 
-  fs.writeFileSync(
-    path.join(process.env.WORKSPACE_DIR, "designbook.config.yml"),
-    yaml.dump(cfg, { lineWidth: -1 })
-  );
-'
-# The theme dir must NOT keep its own config — findConfig walking up from the
-# theme would otherwise find this one first and shadow the root config.
-rm -f "$THEME_DIR/designbook.config.yml"
+  # Generate the WORKSPACE-ROOT designbook.config.yml from the theme fixture's
+  # config. The designbook CLI resolves everything from configDir (findConfig
+  # walks UP from cwd), and sync-to targets the Drupal root (config/sync, drush,
+  # ddev) — so the config must live at the workspace root, not the theme dir.
+  # `designbook.home` stays pointed at the theme so DESIGNBOOK_DATA (data,
+  # workflows, data-model) keeps its current physical location inside the theme.
+  THEME_REL="$THEME_REL" \
+  WORKSPACE_DIR="$WORKSPACE_DIR" \
+  SRC_CONFIG="$REPO_ROOT/packages/integrations/test-integration-drupal/designbook.config.yml" \
+  NODE_PATH="$REPO_ROOT/node_modules" \
+  node -e '
+    const fs = require("fs");
+    const path = require("path");
+    const yaml = require("js-yaml");
+    const themeRel = process.env.THEME_REL;
+    const cfg = yaml.load(fs.readFileSync(process.env.SRC_CONFIG, "utf8")) || {};
 
-# init-worktree: give this workspace its own ddev project via a gitignored
-# config.local.yaml overlay (worktree-namespaced), NOT by mutating the committed
-# .ddev/config.yaml with `ddev config`. config.local.yaml is ddev-gitignored and
-# merges OVER config.yaml, so it overrides only the project name while type
-# (drupal11) and docroot (web) stay as the copied fixture config declares them.
-#
-# Why an overlay, not `ddev config --project-name`: the workspace inherits the
-# fixture's committed name (designbook-drupal-fixture). Rewriting config.yaml in
-# place both dirties the copied fixture config and races ddev's global project
-# registry against the fixture dir (which prepare-drupal-fixture.sh registers
-# under dbfix-<WT_ID>), producing "name already used by another project" errors.
-# A per-worktree config.local.yaml keeps config.yaml pristine and gives each
-# worktree a distinct project so parallel worktrees never collide. DO NOT start it.
-mkdir -p "$WORKSPACE_DIR/.ddev"
-printf 'name: db-%s-%s\n' "$WT_ID" "$WORKSPACE_KEY" > "$WORKSPACE_DIR/.ddev/config.local.yaml"
+    cfg.designbook = cfg.designbook || {};
+    cfg.designbook.home = themeRel;
+
+    cfg.dirs = cfg.dirs || {};
+    if (cfg.dirs.components) cfg.dirs.components = path.join(themeRel, cfg.dirs.components);
+    cfg.dirs.css = cfg.dirs.css || {};
+    if (cfg.dirs.css.tokens) cfg.dirs.css.tokens = path.join(themeRel, cfg.dirs.css.tokens);
+    if (cfg.dirs.css.themes) cfg.dirs.css.themes = path.join(themeRel, cfg.dirs.css.themes);
+
+    cfg.css = cfg.css || {};
+    if (cfg.css.app) cfg.css.app = path.join(themeRel, cfg.css.app);
+
+    cfg.component = cfg.component || {};
+    if (cfg.component.src) cfg.component.src = path.join(themeRel, cfg.component.src);
+
+    fs.writeFileSync(
+      path.join(process.env.WORKSPACE_DIR, "designbook.config.yml"),
+      yaml.dump(cfg, { lineWidth: -1 })
+    );
+  '
+  # The theme dir must NOT keep its own config — findConfig walking up from the
+  # theme would otherwise find this one first and shadow the root config.
+  rm -f "$THEME_DIR/designbook.config.yml"
+
+  # init-worktree: give this workspace its own ddev project via a gitignored
+  # config.local.yaml overlay (worktree-namespaced), NOT by mutating the committed
+  # .ddev/config.yaml with `ddev config`. config.local.yaml is ddev-gitignored and
+  # merges OVER config.yaml, so it overrides only the project name while type
+  # (drupal11) and docroot (web) stay as the copied fixture config declares them.
+  #
+  # Why an overlay, not `ddev config --project-name`: the workspace inherits the
+  # fixture's committed name (designbook-drupal-fixture). Rewriting config.yaml in
+  # place both dirties the copied fixture config and races ddev's global project
+  # registry against the fixture dir (which prepare-drupal-fixture.sh registers
+  # under dbfix-<WT_ID>), producing "name already used by another project" errors.
+  # A per-worktree config.local.yaml keeps config.yaml pristine and gives each
+  # worktree a distinct project so parallel worktrees never collide. DO NOT start it.
+  mkdir -p "$WORKSPACE_DIR/.ddev"
+  printf 'name: db-%s-%s\n' "$WT_ID" "$WORKSPACE_KEY" > "$WORKSPACE_DIR/.ddev/config.local.yaml"
+fi
 
 # Apply feature-flag overrides into the workspace-root designbook.config.yml.
 # Note: this rewrites the YAML (comments are dropped) — only runs when flags
@@ -195,7 +238,7 @@ git init
 git config user.email "workspace@designbook.local"
 git config user.name "Designbook Workspace"
 git add .
-git commit -m "init: test_integration_drupal workspace"
+git commit -m "init: $(basename "$THEME_DIR") workspace"
 
 # Build the local addon so dist/ is current before the workspace install.
 # Always build (deterministic beats fast) — tsup is fast and avoids stale-dist
@@ -236,9 +279,14 @@ case "$WORKSPACE_DIR" in
     '
     # External workspaces are discovered as their own pnpm workspace. Explicitly
     # allow the native build steps needed by Storybook and its watcher.
-    cat > "$WORKSPACE_DIR/pnpm-workspace.yaml" <<'EOF'
+    if [ "$BACKEND" = "none" ]; then
+      PNPM_WS_PACKAGE="."
+    else
+      PNPM_WS_PACKAGE="web/themes/custom/test_integration_drupal"
+    fi
+    cat > "$WORKSPACE_DIR/pnpm-workspace.yaml" <<EOF
 packages:
-  - web/themes/custom/test_integration_drupal
+  - $PNPM_WS_PACKAGE
 allowBuilds:
   "@parcel/watcher": true
   esbuild: true
@@ -260,7 +308,30 @@ pnpm install --no-frozen-lockfile --config.confirmModulesPurge=false
 # every rebuild is picked up immediately (the build at the top of this script
 # keeps dist current; the vite watcher already ignores the symlinked tree).
 echo "Linking local storybook-addon-designbook..."
-pnpm add -D "link:$REPO_ROOT/packages/storybook-addon-designbook"
+# backend: none workspaces declare a single-package pnpm-workspace.yaml
+# ("packages: - .") so `allowBuilds` applies; that makes the workspace root
+# and the only package the same directory, and pnpm then treats `pnpm add`
+# there as "adding to the workspace root", which requires -w outside a TTY.
+ADD_FLAGS=()
+[ "$BACKEND" = "none" ] && ADD_FLAGS+=(-w)
+pnpm add -D "${ADD_FLAGS[@]}" "link:$REPO_ROOT/packages/storybook-addon-designbook"
+
+if [ "$BACKEND" = "none" ]; then
+  # backend: none has no separate driver/theme split — the workspace root IS
+  # the Storybook app, so its own package.json (already installed above) is
+  # the only one. No second driver package.json/pnpm install.
+  echo ""
+  echo "✓ Workspace ready (backend: none, no Drupal/ddev)"
+  echo ""
+  echo "  Workspace root : $WORKSPACE_DIR"
+  echo ""
+  echo "designbook.config.yml is written by setup-test.sh once a suite/case is"
+  echo "layered on top. Run designbook CLI commands and Storybook both from:"
+  echo "  cd $WORKSPACE_DIR"
+  echo "  npx storybook-addon-designbook <command>"
+  echo "  npx storybook dev"
+  exit 0
+fi
 
 # The driver runs from the workspace root containing designbook.config.yml.
 # Give that directory its own local CLI and delegate Storybook builds to the theme.

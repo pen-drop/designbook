@@ -1,0 +1,18 @@
+(
+  $node := $;
+  [
+    {
+      "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:landing_teaser",
+      "slots": {
+        "image": [
+          {
+            "entity": "media.image",
+            "view_mode": "ratio_16_9",
+            "record": $number($node.field_landing_page_image) - 1
+          }
+        ],
+        "title": $node.field_short_title
+      }
+    }
+  ]
+)
