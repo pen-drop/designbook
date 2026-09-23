@@ -1,0 +1,157 @@
+# Vue component schemas
+#
+# Single source of truth for `.vue` SFC constraints and `.story.yml` structure.
+# Tasks reference these via $ref; authoring constraints live in
+# rules/vue-components.md.
+
+VueComponent:
+  title: Vue Single-File Component
+  description: >
+    The `<component>.vue` file — a Single-File Component rendering the component for
+    Storybook and any consuming Vue app. Not JSON — this schema describes structural
+    constraints the AI must honour when generating the SFC.
+
+
+    NAMING — directory name equals file base name; always kebab-case
+    (`book-card/book-card.vue`). Components are visually descriptive, never
+    domain-specific: `card` ✅, `article-card` ❌.
+
+
+    NO SIDECAR METADATA FILE — component identity, props, and slots are declared
+    entirely inside the SFC itself (`defineProps`, named `<slot>` tags). There is no
+    `.component.yml` sibling for a Vue component.
+  type: string
+  format: vue
+
+VueStory:
+  title: Vue Story File
+  description: >
+    A `<component>.<story-name>.story.yml` file describing one visually distinct
+    rendering of a component. Same flat shape and node vocabulary as every other
+    designbook story file — framework-neutral at the engine level.
+
+
+    FLAT FORMAT — top-level keys are `component`, `name`, `props`, `slots`. There is
+    no `stories:` wrapper.
+
+
+    ONE STORY PER FILE — never combine multiple stories via `---` YAML document
+    separators. Each meaningful story gets its own file.
+
+
+    FILENAME PATTERN — `[component-name].[story-name].story.yml` with a mandatory
+    name segment. Use `default` as the story name for the primary/single story
+    (`book-card.default.story.yml`).
+
+
+    YAML QUOTING — always double quotes.
+  type: object
+  required: [component]
+  properties:
+    component:
+      type: string
+      description: >
+        Fully qualified component reference in `<namespace>:<component-name>` format.
+        Look up the concrete namespace from `designbook.config.yml` → `component.namespace`.
+      examples: ["test_integration_vue:book-card"]
+    name:
+      type: string
+      description: Story name shown in Storybook. Use `Default` for the primary story.
+    props:
+      type: object
+      description: Prop overrides for this story. Keys match the SFC's `defineProps` names (camelCase, no hyphens).
+      propertyNames:
+        pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+    slots:
+      type: object
+      description: >
+        Slot content for this story. Each key is a slot name matching a named `<slot name="...">`
+        in the SFC; each value is an array of `VueStoryNode` objects.
+      propertyNames:
+        pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+      additionalProperties:
+        type: array
+        items:
+          $ref: "#/VueStoryNode"
+
+VueStoryNode:
+  title: Vue Story Node
+  description: >
+    A single content item in a story slot. The `type` field (required) selects one of
+    three shapes below.
+
+
+    IMAGE URLS — images in story files MUST use placeholder service URLs
+    (e.g. `https://placehold.co/600x400`). Local file paths do not exist in Storybook
+    and will not render.
+  type: object
+  required: [type]
+  properties:
+    type:
+      type: string
+      enum: [element, component, image]
+      description: >
+        Discriminator — picks which shape applies (see `oneOf` below):
+
+        - `element` → renders inline HTML. Requires `value`. Optional: `tag`, `attributes`.
+
+        - `component` → nests another Vue component. Requires `component` (fully qualified
+          `<namespace>:<name>`). Optional: `props`, `slots`.
+
+        - `image` → embeds a placeholder image. Requires `uri`. Optional: `attributes`.
+  oneOf:
+    - title: Element Node
+      description: >
+        Renders inline HTML. MUST use `value:` for text — the key `content:` is NOT
+        supported.
+      required: [type, value]
+      properties:
+        type:
+          type: string
+          const: element
+        value:
+          type: string
+          description: "Text or HTML to render. Use `value:` — never `content:`."
+          examples: ["Hello World", "<strong>Bold text</strong>"]
+        tag:
+          type: string
+          description: HTML wrapper tag. Defaults to `div` when omitted.
+          examples: [p, h2, div, span, button]
+        attributes:
+          type: object
+          description: HTML attributes applied to the wrapper tag (e.g. `class`, `id`).
+    - title: Component Node
+      description: Nests another Vue component inside a slot.
+      required: [type, component]
+      properties:
+        type:
+          type: string
+          const: component
+        component:
+          type: string
+          description: Fully qualified component reference in `<namespace>:<component-name>` format.
+          examples: ["test_integration_vue:book-cover"]
+        props:
+          type: object
+          description: Prop overrides for the nested component.
+          propertyNames:
+            pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+        slots:
+          type: object
+          description: Slot content overrides for the nested component (same `VueStoryNode` array format).
+          propertyNames:
+            pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+    - title: Image Node
+      description: Embeds an image into a slot.
+      required: [type, uri]
+      properties:
+        type:
+          type: string
+          const: image
+        uri:
+          type: string
+          description: Placeholder image URL — MUST be an external placeholder service. Never a local path.
+          examples: ["https://placehold.co/600x400", "https://placehold.co/1200x630/png"]
+        attributes:
+          type: object
+          description: HTML attributes for the image element (e.g. `class`, `alt`).

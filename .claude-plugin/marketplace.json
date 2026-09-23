@@ -29,6 +29,16 @@
       ]
     },
     {
+      "name": "designbook-vue",
+      "source": "./.agents/skills/designbook-vue",
+      "strict": false,
+      "description": "Vue 3 integration for Designbook — backend-neutral Vue-framework component tasks, rules, and blueprints",
+      "category": "design",
+      "skills": [
+        "./"
+      ]
+    },
+    {
       "name": "designbook-css-tailwind",
       "source": "./.agents/skills/designbook-css-tailwind",
       "strict": false,
