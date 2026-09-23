@@ -1,0 +1,15 @@
+(
+  $node := $;
+  [
+    {
+      "component": "test_integration_drupal:card",
+      "variant": "default",
+      /* `published` is a non-field boolean control value → a prop.
+         `field_summary` is field-rendered content → the card's `content` slot
+         (reference-field-semantics: a single-value summary still renders through its
+         formatter, so it is a slot, never a scalar prop). */
+      "props": { "published": true },
+      "slots": { "content": $node.field_summary }
+    }
+  ]
+)

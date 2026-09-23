@@ -5,7 +5,7 @@
 import { readFileSync, readdirSync, existsSync, writeFileSync } from "node:fs";
 import { execSync, execFileSync } from "node:child_process";
 import vm from "node:vm";
-import { resolve, isAbsolute, relative } from "node:path";
+import { resolve, isAbsolute, relative, basename } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createHash } from "node:crypto";
 import { load as parseYaml } from "js-yaml";
@@ -371,7 +371,14 @@ export function collectRuns(entries, summarize = () => undefined) {
     const path = resolve(entry.workflow);
     if (paths.has(path)) throw new Error(`Repeated execution path: ${path}`);
     paths.add(path);
-    const document = parseYaml(readFileSync(path, "utf8"));
+    // MD-plan seals (durable `plan.md` or ephemeral `.ephemeral/<uuid>.md`) are
+    // Markdown, not YAML — they embed a `## Schemas` section with a fenced
+    // ```yaml``` block that a raw parseYaml() would choke on. Mirror
+    // savedWorkflows()'s dispatch: parse `.md` workflow paths as an MD-plan
+    // document, everything else (tasks.yml) as YAML.
+    const document = path.endsWith(".md")
+      ? planToDocument(readFileSync(path, "utf8"), basename(path).replace(/\.md$/, ""))
+      : parseYaml(readFileSync(path, "utf8"));
     const before = entry.definitionBefore
       ? parseYaml(readFileSync(entry.definitionBefore, "utf8"))
       : null;

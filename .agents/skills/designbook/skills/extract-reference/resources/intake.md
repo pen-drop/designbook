@@ -32,6 +32,13 @@ Order the resolution steps so each one has what it needs:
    <revision-dir> --url <source-identity> --state <name> --session <name>`
    stdout, once per declared state. Pass the prelude and state steps required
    by the selected source's observation rule so each dump shows that state.
+   Before trusting the dump, positively confirm the declared state is the one
+   that was actually observed, per
+   [authenticated-capture-parity.md](../../../design/rules/authenticated-capture-parity.md):
+   a login page, a same-status redirect to an unexpected page, or an empty/
+   access-guard placeholder means the save did not capture the declared state.
+   Abort saving that state — do not proceed to locator confirmation or
+   publication for it, and record no diff score for the cell.
 5. Confirm every selected locator against the saved dump with `_debo reference
    inspect --reference <revision-dir> --state <name> --locator <css>` in every
    state selected for its subject. Completion: every response has

@@ -136,7 +136,7 @@ SdcStory:
     A `<component>.<story-name>.story.yml` file describing one visually distinct rendering of a component.
 
 
-    FLAT FORMAT — top-level keys are `component`, `name`, `props`, `slots`. Select variants with `props.variant`. There is no `stories:` wrapper.
+    FLAT FORMAT — top-level keys are `component`, `name`, `variant`, `props`, `slots`. Select a declared variant via the top-level `variant` field — never `props.variant`. There is no `stories:` wrapper.
 
 
     ONE STORY PER FILE — never combine multiple stories via `---` YAML document separators. Each meaningful story gets its own file.
@@ -151,8 +151,6 @@ SdcStory:
     VISUAL DISTINCTNESS — every story should demonstrate a visually distinct state. Good candidates: one file per layout variant, content-length extremes, state variations (empty slots, missing optional props), context/page scenarios. Avoid stories that look identical but differ only in invisible props.
   type: object
   required: [component]
-  not:
-    required: [variant]
   properties:
     component:
       type: string
@@ -164,9 +162,12 @@ SdcStory:
     name:
       type: string
       description: Story name shown in Storybook. Use `Default` for the primary story.
+    variant:
+      type: string
+      description: Selects one of the component's declared `variants:` IDs for this story. This is the story's variant-selection channel — never re-declare the choice as `props.variant`.
     props:
       type: object
-      description: Prop overrides for this story. Keys match prop names declared in the component's `.component.yml` (snake_case or camelCase, no hyphens). When the component has a `variants:` block, set `props.variant` to the declared variant ID; the Storybook SDC loader reads story args from props.
+      description: Prop overrides for this story. Keys match prop names declared in the component's `.component.yml` (snake_case or camelCase, no hyphens). Never a `variant` key — variant selection uses the story's top-level `variant` field.
       propertyNames:
         pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
     slots:
