@@ -495,7 +495,7 @@ test("seeded update components have supported metadata, canonical variants and s
           readFileSync(new URL(`${name}.${variant}.story.yml`, dir), "utf8"),
         );
         assert.equal(story.component, `test_integration_drupal:${name}`);
-        if (schema.variants) assert.ok(story.props.variant in schema.variants);
+        if (schema.variants) assert.ok(story.variant in schema.variants);
       }
       if (schema.variants)
         assert.equal(schema.props?.properties?.variant, undefined);
