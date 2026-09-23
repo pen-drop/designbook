@@ -11,36 +11,36 @@ Unified skill root for all Drupal-specific and SDC-framework content. Sub-direct
 
 ## Data Model
 
-Rules and resources for Drupal-compatible data model creation (`when: backend: drupal`).
+Rules and resources for Drupal-compatible data model creation (`filter.backend: drupal`).
 
-- [data-model/rules/conventions.md](data-model/rules/conventions.md) — Entity mapping, `composition` per bundle, `field_` prefix convention
+- [Drupal config](data-model/rules/drupal-config.md) — backend configuration constraints
+- [Field types](data-model/rules/field-type-constraints.md) — backend field constraints
 - [data-model/rules/canvas.md](data-model/rules/canvas.md) — Canvas-specific data model rules
 - [data-model/rules/layout-builder.md](data-model/rules/layout-builder.md) — Layout Builder data model rules
 
 ## Data Mapping
 
-Rules and resources for mapping Drupal fields to component props in the `map-entity` stage (`when: backend: drupal`).
+Rules and resources for mapping Drupal fields to component props in the `map-entity` stage (`filter.backend: drupal`).
 
 - [data-mapping/blueprints/field-map.md](data-mapping/blueprints/field-map.md) — Blueprint for `template: field-map`; generates JSONata mapping Drupal fields to `ComponentNode[]`
 - [data-mapping/rules/image-fields.md](data-mapping/rules/image-fields.md) — Hard constraints for image and reference field mapping
 - [data-mapping/rules/field-cardinality.md](data-mapping/rules/field-cardinality.md) — Cardinality boundary: multi-value fields render as field-level collections; single-value fields may be unwrapped
 - [data-mapping/blueprints/canvas.md](data-mapping/blueprints/canvas.md) — Canvas-specific mapping blueprint
 - [data-mapping/blueprints/layout-builder.md](data-mapping/blueprints/layout-builder.md) — Layout Builder mapping blueprint
-- [data-mapping/resources/field-mapping.md](data-mapping/resources/field-mapping.md) — Drupal field type → component mapping guide
 
 ## Sample Data
 
-Rules for generating Drupal-compatible sample data (`when: backend: drupal`).
+Rules for generating Drupal-compatible sample data (`filter.backend: drupal`).
 
-- [sample-data/rules/sample-canvas.md](sample-data/rules/sample-canvas.md) — Sample data rules for Canvas
-- [sample-data/rules/sample-layout-builder.md](sample-data/rules/sample-layout-builder.md) — Sample data rules for Layout Builder
-- [sample-data/rules/sample-formatted-text.md](sample-data/rules/sample-formatted-text.md) — Sample formatted text field data
-- [sample-data/rules/sample-image.md](sample-data/rules/sample-image.md) — Sample image field data
-- [sample-data/rules/sample-link.md](sample-data/rules/sample-link.md) — Sample link field data
+- [sample-data/rules/canvas.md](sample-data/rules/canvas.md) — Sample data rules for Canvas
+- [sample-data/rules/layout-builder.md](sample-data/rules/layout-builder.md) — Sample data rules for Layout Builder
+- [sample-data/rules/formatted-text.md](sample-data/rules/formatted-text.md) — Sample formatted text field data
+- [sample-data/rules/image.md](sample-data/rules/image.md) — Sample image field data
+- [sample-data/rules/link.md](sample-data/rules/link.md) — Sample link field data
 
 ## Components
 
-Rules, tasks, and blueprints for creating Drupal SDC components (`when: frameworks.component: sdc`).
+Rules, tasks, and blueprints for creating Drupal SDC components (`filter.frameworks.component: sdc`).
 
 - [components/schemas.yml](components/schemas.yml) — `SdcComponent` / `SdcStory` / `SdcStoryNode` / `SdcTemplate` — naming, slot rules, YAML quoting, variants, placeholder images, Twig conventions (single source)
 - [components/tasks/write-component.md](components/tasks/write-component.md) — Complete SDC artifacts for a selected component and requested delta
@@ -50,11 +50,11 @@ Rules, tasks, and blueprints for creating Drupal SDC components (`when: framewor
 
 ## Blueprints
 
-Layout component blueprints with tokens, props/slots summary (`when: steps: [write-component]`).
+Layout component blueprints with tokens, props/slots summary (`trigger.steps: [write-component]`).
 
-- [blueprints/container.md](blueprints/container.md) — Universal structural wrapper (max-width, padding, header, background)
-- [blueprints/grid.md](blueprints/grid.md) — Responsive column grid layout
-- [blueprints/section.md](blueprints/section.md) — Layout Builder adapter (container + grid + column slots)
+- [blueprints/container.md](components/blueprints/container.md) — Universal structural wrapper (max-width, padding, header, background)
+- [blueprints/grid.md](components/blueprints/grid.md) — Responsive column grid layout
+- [blueprints/section.md](components/blueprints/section.md) — Layout Builder adapter (container + grid + column slots)
 
 ## Install
 
@@ -67,3 +67,9 @@ Backend-specific install rules and blueprints, loaded by the core install workfl
 - [install/blueprints/designbook-config.md](install/blueprints/designbook-config.md) — `write-config`: the designbook.config.yml YAML starting point
 - [install/blueprints/storybook-setup.md](install/blueprints/storybook-setup.md) — `setup-storybook`: fresh vs extend, deps, template copy
 - [install/templates/](install/templates/) — `.storybook/` file templates
+
+## Config export
+
+- [Config units](data-model/rules/config-units.md) — Drupal config names, dependencies and scene expansion.
+- [Image style export](data-model/blueprints/image-style-export.md) — Drupal image effects.
+- [Transform routing](data-mapping/rules/config-transform.md) — config-name blueprint selection.

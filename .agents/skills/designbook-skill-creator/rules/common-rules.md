@@ -57,7 +57,13 @@ Blueprints describe **structural patterns** (multi-row headers, multi-section fo
 
 ### Integration Skills (Part 3)
 
-Use a flat structure:
+Use root-level artifact directories for small integrations. Group artifacts under
+concern directories (for example `components/`, `data-model/`, `install/`) when
+they serve distinct domains. Both layouts use the same task/rule/blueprint contracts;
+the integration index links to each concern. GAIA workflow-step skills follow
+their own contract outside this content model.
+
+Root-level example:
 
 ```
 .agents/skills/[skill-name]/
@@ -121,7 +127,7 @@ The `description:` follows directly from the model axis:
 | Integration skills | `designbook-[backend]-[framework]` or `designbook-[concern]` | `designbook-drupal`, `designbook-css-tailwind` |
 | CSS skills | `designbook-css-[framework]` | `designbook-css-tailwind` |
 | Addon skills | `designbook-addon-[concern]` | `designbook-addon-skills` |
-| Workflow files | `<concern>/workflows/<workflow-id>.md` inside `designbook/` | `design/workflows/design-screen.md` |
+| Workflow files | `<concern>/workflows/<workflow-id>.md` inside `designbook/` | `skills/design-screen/workflows/design-screen.md` |
 
 Concern-first, framework-last.
 

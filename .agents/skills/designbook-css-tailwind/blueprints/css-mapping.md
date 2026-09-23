@@ -122,7 +122,7 @@ Tailwind v4 auto-generates utility classes for the standard namespaces
 `--color-*`, `--text-*`, `--font-*`, `--font-weight-*`, `--leading-*`,
 `--spacing-*`, `--radius-*`, `--shadow-*`, and `--container-*`. Non-standard
 prefixes (`--layout-spacing-*`, `--grid-*`) do not auto-generate utilities and
-must be referenced via `var()` in markup or `@utility` rules.
+can back named `@utility` rules using `var()` in their declarations. Include needed named utilities in the CSS plan before components consume them.
 
 ## Theme / Mode Overrides
 

@@ -72,7 +72,8 @@ scored, so soft signals do not swamp the existing scores.
 
 | Metric | Applies to | Description |
 |---|---|---|
-| `always_loaded_cost` | `CLAUDE.md` and every model-invocable `SKILL.md` `description:` | description word-count + `body_lines` — the permanent per-turn context load |
+| `always_loaded_words` | Repository instructions and model-invocable skill descriptions | Repository instruction word-count or description word-count; skill bodies are excluded |
+| `on_invocation_words` | Every `SKILL.md` | Body word-count, loaded when the skill is invoked |
 | `body_sprawl` | any body | advisory flag when `body_lines` exceeds a soft per-type reference (no hard cap) |
 
 ### Step 4b — Schema audit
@@ -105,7 +106,7 @@ Minimum: 0. Skill score = average of all file scores.
 
 `WRITE-01 .. WRITE-04` findings are all `warning`, so they weigh through the existing mapping
 (−10) with no new weight and no change to the contract. The Step-4 writing-layer metrics
-(`always_loaded_cost`, `body_sprawl`) are **report-only** and never deduct.
+(`always_loaded_words`, `on_invocation_words`, `body_sprawl`) are **report-only** and never deduct.
 
 ### Step 6 — Output report
 

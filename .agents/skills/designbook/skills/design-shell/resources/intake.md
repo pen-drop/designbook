@@ -11,13 +11,5 @@ Select the canonical `design-system:shell` target in `design-system/design-syste
 
 Record the requested delta, concrete desktop/mobile acceptance criteria, preserved structure and affected consumers. A clear text request is sufficient; a new visual reference is optional. Set `scene_scope: shell`; preserve exactly one content injection point and plan verification of consuming screens with their route-bearing content intact. Enumerate all required component/story/consumer edits. Reuse the existing file; include `create-scene-file` only when it is absent, with canonical shell metadata.
 
-Use the request, existing artifacts, and the saved intake context as input. For reference handling, preserved inputs, fixed dependencies and build/browser evidence, follow the [write planning contract](../../../design/resources/write-planning.md).
-
-Completion: all identities, requested deltas, preserved content, acceptance criteria, consumer targets, outputs, dependencies and applicable rules are fixed in the plan's task parameters. Clarify unresolved identity or scope before saving a runnable plan.
-
-Follow the [shared builder](../../../resources/workflow-building.md) for sealing and execution modes (caller override wins):
-
-- **create / rebuild** → default `ask`
-- **change** of an existing named target → may `ephemeral`; blockade when the work would add undeclared targets/tasks or widen scope
-
-When the plan depends on a published revision, complete the [reference intake](../../../design/resources/reference-intake.md) approval gate (`reference approval-check`) before `plan build`. A missing or unapproved revision is a `ReferenceNeed` blockade — stop; start `extract-reference` separately when capture is required.
+Follow the [shared write planning contract](../../../design/resources/write-planning.md)
+for reference approval, preservation, dependencies, completion and execution modes.

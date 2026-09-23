@@ -43,4 +43,4 @@ Primitive colors are a compact raw palette — not a mirror of semantic roles. F
 
 ## CSS Variable Namespaces
 
-Tailwind automatically generates utility classes for standard namespaces (`--color-*`, `--radius-*`, `--shadow-*`). Non-standard namespaces must always be used via `var()` in class values.
+Tailwind automatically generates utility classes for standard namespaces (`--color-*`, `--radius-*`, `--shadow-*`). Expose non-standard namespaces through named `@utility` definitions backed by the shared token variables.

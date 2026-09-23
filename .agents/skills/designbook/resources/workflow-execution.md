@@ -47,13 +47,15 @@ scope.
 Unresolved task defects live in a **problems sidecar beside the plan**, not in
 the sealed plan body (run state stays checkbox-only).
 
-**Path:** `problems.md` in the same per-initiative folder as `plan.md` (no
-suffix-derivation — the folder already disambiguates the initiative). Create
-the file on the first entry; append thereafter.
+**Path:** durable plans use `problems.md` beside `plan.md`. Ephemeral plans
+use `<plan-stem>.problems.json` beside `<plan-stem>.md`; the unique plan stem
+isolates concurrent runs and the `.json` extension keeps the log out of plan
+Markdown discovery. Create the log on the first defect; append entries thereafter.
 
 **Each entry** records: ISO-8601 time, step name, task name, task title, the
 **exact why**, and the in-scope correction attempted (or that none was possible
-inside the sealed plan). Prefer a single Markdown table:
+inside the sealed plan). Durable logs use a Markdown table; ephemeral logs use a JSON array of objects
+with keys `when`, `step`, `task`, `title`, `why`, and `attempted_correction`.
 
 ```markdown
 # Execution problems — <workflow>
@@ -75,10 +77,11 @@ task pending.
 ## Ephemeral plans
 
 An ephemeral plan path is a full sealed plan under
-`$DESIGNBOOK_DATA/plans/.ephemeral/` — a bare flat file, no per-initiative folder
-and no `problems.md` sidecar. Execute it with the same loop as a durable plan.
-After successful completion or explicit abandon, delete the ephemeral plan file
-after caller/tester inspection when scoring needs the sealed plan; result
+`$DESIGNBOOK_DATA/plans/.ephemeral/`. A uniquely named problems log accompanies
+it when needed (see Problems contract). Execute it with the same loop as a durable
+plan. After successful completion or explicit abandon, delete the ephemeral plan
+and its problems log after caller/tester inspection when scoring needs the sealed
+plan; result
 artifacts (`vision.yml`, scene files, …) remain for inspection when useful.
 Crash leftovers may be removed later; they are not a resume handoff —
 interrupted ephemeral work re-intakes (or the user switches to persist first).

@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest';
 import { resolve } from 'node:path';
 import { resolveIntakeContext } from '../workflow/intake-resolve.js';
 import type { DesignbookConfig } from '../shared/config.js';
+import Ajv from 'ajv';
 
 const agents = resolve(process.cwd(), '../../.agents');
 
@@ -23,6 +24,45 @@ const config = {
 } as unknown as DesignbookConfig;
 
 describe('resolveIntakeContext', () => {
+  it('loads Drupal config routing for planning and transforms only on the Drupal backend', async () => {
+    for (const backend of ['drupal', 'other']) {
+      const ctx = await resolveIntakeContext('sync-to', { agentsDir: agents, config: { ...config, backend } });
+      const sources = (step: string) =>
+        ctx.steps.find((s) => s.name === step)!.context.map((key) => ctx.context[key]!.source);
+      expect(sources('sync-to:intake').some((s) => s.endsWith('/rules/config-units.md'))).toBe(backend === 'drupal');
+      for (const step of ['sync-to:intake', 'transform']) {
+        expect(sources(step).some((s) => s.endsWith('/rules/config-transform.md'))).toBe(backend === 'drupal');
+        expect(sources(step).some((s) => s.endsWith('/blueprints/image-style-export.md'))).toBe(backend === 'drupal');
+      }
+    }
+  });
+
+  it('preserves nested CSS plan validation through shared schema references', async () => {
+    const ctx = await resolveIntakeContext('css-generate', { agentsDir: agents, config });
+    const validate = new Ajv({ strict: false }).compile({
+      $ref: '#/definitions/CssGenerationPlan',
+      definitions: ctx.definitions,
+    });
+    const plan = {
+      framework: 'tailwind',
+      mode: 'create',
+      reasons: [],
+      paths: {
+        jsonata_dir: 'generators',
+        tokens_dir: 'tokens',
+        fonts_dir: 'fonts',
+        font_css_path: 'fonts.css',
+        index_css_path: 'index.css',
+      },
+      jsonata: { strategy: 'create', artifacts: [] },
+      fonts: { strategy: 'skip', fonts_dir: 'fonts', font_css_path: 'fonts.css' },
+    };
+    expect(validate(plan), JSON.stringify(validate.errors)).toBe(true);
+    expect(validate({ ...plan, paths: {} })).toBe(false);
+    expect(validate({ ...plan, jsonata: { strategy: 'create', artifacts: [{}] } })).toBe(false);
+    expect(validate({ ...plan, fonts: { ...plan.fonts, strategy: 'invalid' } })).toBe(false);
+  });
+
   it('resolves rules tagged <wf>:intake into the shared registry, referenced per step', async () => {
     const ctx = await resolveIntakeContext('design-shell', { agentsDir: agents, config });
     const entry = Object.values(ctx.context).find((c) => c.source.endsWith('rules/entity-reference-rendering.md'));

@@ -9,21 +9,10 @@ filter:
 
 Apply captured-style derivations only when intake supplied `region_properties`; text-only changes use the saved criteria and preserved structure.
 
-Materialize `region_properties.style` as inline Tailwind utility classes on the
-element, following `component-styling.md`. Utilities are the styling surface —
-do not emit component CSS rules or `@apply` blocks in `${DESIGNBOOK_CSS_APP}`
-for region styling.
-
-- Map captured values to token-backed utilities: `bg-<token>`, `text-<token>`,
-  `py-[var(--layout-spacing-…)]`, `max-w-[var(--container-…)]`. Reuse design
-  tokens; add a token before falling back to an arbitrary value.
-- Arbitrary values (`bg-[#…]`, `min-h-[60px]`) are a last resort, only when the
-  design reference needs a value with no matching token.
-- Dimensional anchors derived from `bbox` (e.g. `min-h-[…]`) are allowed only
-  when no spacing/sizing token fits.
-- The sole case for an external rule is a complex effect Tailwind cannot express
-  (e.g. a multi-stop gradient) — and then per `component-styling.md`, not a
-  per-region `@apply` block in the shared app CSS.
+Map `region_properties.style` to named utilities under the
+[component styling policy](component-styling.md). Use captured dimensions to
+select the established sizing and spacing steps. Record a missing shared token
+or named utility for planning before component generation.
 
 ## Responsive utilities (mobile-first)
 

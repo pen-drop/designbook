@@ -38,4 +38,4 @@ pnpm check                                          # typecheck + lint + test
 
 ## Resources
 
-- [skill-authoring.md](resources/skill-authoring.md) — SKILL.md template, schema validation (ajv), JSONata transforms, @-references, config vars
+- [Skill authoring](../designbook-skill-creator/SKILL.md) — authoritative task, rule, blueprint, workflow and schema contracts.

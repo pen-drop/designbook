@@ -41,10 +41,10 @@ Read the `designTheme` from the **selected** source. Extract only fields that ex
 
 Map extracted values to design tokens using these rules:
 
-- **Brand overrides** → `primitive.color.<hue>-<step>` using hue detection from hex (HSL hue angle → Tailwind hue name, lightness → scale step)
-- **`overrideNeutralColor`** → always `primitive.color.gray-900`
+- **Brand overrides** → the primitive color palette using the active token naming conventions; preserve the source value
+- **`overrideNeutralColor`** → a neutral primitive named under the active token conventions
 - **Brand overrides win** — when both a brand override and a `namedColors` entry exist for the same role, the semantic token MUST reference the brand override primitive
-- **`namedColors`** → primitive colors grouped by hue family using the Tailwind scale (50–950). Never interpolate — only create primitives for values that exist in the data
+- **`namedColors`** → distinct primitive colors named under the active token conventions. Never interpolate — only create primitives for values that exist in the data
 - **namedColors → semantic** — map all entries except M3-specific roles (`*_fixed`, `*_fixed_dim`, `on_*_fixed`, `on_*_fixed_variant`, `surface_bright`, `surface_tint`, `surface_dim`)
 - **Delta-E approximation** — when a namedColor is within RGB euclidean distance < 8 of an existing primitive, the semantic token MAY reference that primitive instead (add a YAML comment noting the approximation). **Exception:** brand-aligned roles (`primary`, `secondary`, `tertiary` and their families — see mapping below) MUST always reference the brand override primitive, never a Delta-E approximation
 - **Brand-role-to-namedColor family mapping** — the following namedColor entries belong to each brand override and MUST derive from the corresponding brand override primitive:

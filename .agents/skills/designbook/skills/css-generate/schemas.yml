@@ -117,7 +117,7 @@ CssJsonataPlan:
       type: array
       description: Ordered list of JSONata/CSS outputs that downstream stages should manage.
       items:
-        $ref: '#/definitions/CssArtifactPlan'
+        $ref: '#/CssArtifactPlan'
 
 CssFontsPlan:
   type: object
@@ -171,114 +171,11 @@ CssGenerationPlan:
       items:
         type: string
     paths:
-      type: object
-      required: [jsonata_dir, tokens_dir, fonts_dir, font_css_path, index_css_path]
-      properties:
-        jsonata_dir:
-          type: string
-          description: Workspace-relative directory that stores generated JSONata files for the active CSS framework.
-          examples: [designbook/designbook-css-tailwind]
-        tokens_dir:
-          type: string
-          description: Workspace-relative directory for generated token CSS files.
-          examples: [css/tokens]
-        fonts_dir:
-          type: string
-          description: Workspace-relative directory that stores downloaded font binaries referenced by generated CSS.
-          examples: [css/fonts]
-        font_css_path:
-          type: string
-          description: Workspace-relative stylesheet path for generated @font-face declarations.
-          examples: [css/tokens/google-fonts.src.css]
-        index_css_path:
-          type: string
-          description: Workspace-relative stylesheet path for the token CSS barrel file.
-          examples: [css/tokens/index.src.css]
+      $ref: '#/CssPaths'
     jsonata:
-      type: object
-      required: [strategy, artifacts]
-      properties:
-        strategy:
-          type: string
-          description: Whether intake wants to create new JSONata files, reuse existing ones, or refresh them in place.
-          enum: [create, reuse, refresh]
-        existing_files:
-          type: array
-          description: Existing JSONata files discovered in the framework directory before intake made its decision.
-          items:
-            type: string
-        artifacts:
-          type: array
-          description: Ordered list of JSONata/CSS outputs that downstream stages should manage.
-          items:
-            type: object
-            required: [group, prefix, wrap, token_path, jsonata_path, css_path, config_output_path]
-            properties:
-              group:
-                type: string
-                description: Group identifier used in filenames and workflow task titles.
-                examples: [primitive-color, typography]
-              prefix:
-                type: string
-                description: CSS custom property prefix used when rendering declarations.
-                examples: [color, text, container]
-              wrap:
-                type: string
-                description: CSS wrapper construct emitted by the JSONata template.
-                examples: ["@theme", "@layer theme"]
-              token_path:
-                type: string
-                description: Dotted token path read from design-tokens.yml.
-                examples: [primitive.color, semantic.typography]
-              resolve:
-                type: string
-                description: Optional reference-resolution mode for the generated expression.
-                examples: [var]
-              expand:
-                type: string
-                description: Optional composite-expansion mode for the generated expression.
-                examples: [typography]
-              jsonata_path:
-                type: string
-                description: Workspace-relative path where the generated JSONata file is written.
-                examples: [designbook/designbook-css-tailwind/generate-color.jsonata]
-              css_path:
-                type: string
-                description: Workspace-relative CSS file produced when this JSONata expression runs.
-                examples: [css/tokens/color.src.css]
-              config_output_path:
-                type: string
-                description: Output path written into the JSONata @config block, relative to the JSONata file itself.
-                examples: ["../../css/tokens/color.src.css"]
+      $ref: '#/CssJsonataPlan'
     fonts:
-      type: object
-      required: [strategy, fonts_dir, font_css_path]
-      properties:
-        strategy:
-          type: string
-          description: Whether intake wants to create, reuse, refresh, or skip generated font assets.
-          enum: [create, reuse, refresh, skip]
-        existing:
-          type: boolean
-          description: True when intake detected existing font assets that may be reused.
-        fonts_dir:
-          type: string
-          description: Workspace-relative directory that stores downloaded font binaries.
-          examples: [css/fonts]
-        font_css_path:
-          type: string
-          description: Workspace-relative stylesheet path for generated @font-face declarations.
-          examples: [css/tokens/google-fonts.src.css]
-        detected_files:
-          type: array
-          description: Existing font files or stylesheets intake found while scanning the workspace.
-          items:
-            type: string
-        families:
-          type: array
-          description: Font-family names intake expects the prepare-fonts stage to manage.
-          items:
-            type: string
+      $ref: '#/CssFontsPlan'
 
 IndexCss:
   type: string

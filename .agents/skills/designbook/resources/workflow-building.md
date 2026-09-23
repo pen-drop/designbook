@@ -52,13 +52,11 @@ sealing. Every mode uses the same sealed-plan assembly and the same
    | `persist` | Yes (folder `plans_dir/<date>-<slug>/plan.md`, `--name` required) | No |
    | `ask` | After user choice | After user choice |
 
-   **Defaults when unset** (per-workflow intakes may restate; override still wins):
+   **Defaults when unset** (domain-specific defaults live in the linked intake contract):
 
    - `vision` and similarly simple foundation flows → `ephemeral`
-   - `design-*` **create / rebuild** with no override → `ask`
-   - `design-*` **change** of an existing named target → may `ephemeral`; blockade
-     if the work cannot stay bounded (would add undeclared targets/tasks or widen
-     scope)
+   - Component, screen, entity and shell writes → defaults in the
+     [write planning contract](../design/resources/write-planning.md#completion-and-handoff)
    - Explicit plan/save, GAIA handoff that must leave an executable plan, or caller
      persist → `persist`
    - `extract-reference` remains its own workflow; it does not silently chain into
@@ -74,10 +72,8 @@ sealing. Every mode uses the same sealed-plan assembly and the same
      CLI writes `$DESIGNBOOK_DATA/plans/.ephemeral/<unique>.md` and returns
      JSON with `ephemeral: true` and `plan`. Invoke
      `execute-workflow <ephemeral-plan-path>` in a separate execution invocation.
-     After successful completion or explicit abandon, delete that ephemeral plan
-     file after caller/tester inspection when scoring needs the sealed plan;
-     result artifacts remain. Interrupted ephemeral runs have no durable
-     resume — re-intake and rebuild, or switch to `persist` first.
+     Follow the executor's [ephemeral cleanup](workflow-execution.md#ephemeral-plans)
+     after inspection. Interrupted ephemeral runs re-intake or switch to `persist`.
    - **`ask`:** Before build/execute, present the three choices (run here /
      ephemeral, hand off / persist without execute, or cancel). Follow the chosen
      mode.

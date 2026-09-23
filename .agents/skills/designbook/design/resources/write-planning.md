@@ -12,3 +12,16 @@ description: Shared intake contract for creation and targeted artifact changes.
 5. Declare actual `pnpm build-storybook` evidence and `storybook check <story-url>` tasks for concrete affected URLs, with exact viewport, selector, interaction and semantic observations from the request. Cover preserved variants and affected consumers as well as changed output. Completion: successful command results and browser observations establish every acceptance criterion; transcript keywords or empty result collections are insufficient.
 
 Preservation uses the existing artifact as baseline; blueprint defaults guide new structure. Retain identities unless an explicit rename includes all reference changes. Missing requirements discovered in execution block the saved run; a new intake must resolve them before a new fixed definition can run.
+
+## Completion and handoff
+
+Use the request, existing artifacts and saved intake context to resolve all
+identities, deltas, preservation criteria, consumer targets, outputs, dependencies
+and applicable rules into concrete task parameters. Resolve missing identity or
+scope before saving a runnable plan. Step 2 owns the published-reference approval
+gate; a missing or unapproved revision requires a separate capture intake.
+
+Follow the [shared builder](../../resources/workflow-building.md) for sealing and
+execution. Caller-selected mode wins. Otherwise create/rebuild defaults to `ask`;
+a targeted change to an existing named artifact may use `ephemeral` while keeping
+all targets and tasks inside the declared scope.
