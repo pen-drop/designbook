@@ -1,5 +1,5 @@
 ---
-name: debo-test-verify
+name: verify
 user-invocable: true
 description: Verify the actual output of a debo-test design run through a separate Promptfoo design-verify evaluation, preserving its workspace and recording verification tokens and score.
 metadata:

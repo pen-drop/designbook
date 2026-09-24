@@ -1,5 +1,5 @@
 ---
-name: debo-test-run
+name: run
 user-invocable: true
 description: Set up a fresh fixture workspace and execute one Designbook case from a saved workflow document.
 metadata:

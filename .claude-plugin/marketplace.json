@@ -59,6 +59,16 @@
       ]
     },
     {
+      "name": "designbook-test",
+      "source": "./.agents/skills/designbook-test",
+      "strict": false,
+      "description": "Test harness for Designbook workflows — fresh fixture workspaces, saved-document execution, research scoring, planning-clarity audit, and experiment report/judge flows",
+      "category": "design",
+      "skills": [
+        "./"
+      ]
+    },
+    {
       "name": "designbook-gaia",
       "source": "./.agents/skills/designbook-gaia",
       "strict": false,

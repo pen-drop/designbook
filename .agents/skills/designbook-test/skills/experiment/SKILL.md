@@ -1,5 +1,5 @@
 ---
-name: debo-test-experiment
+name: experiment
 user-invocable: true
 description: >
   Validate experiment manifests, render Markdown comparison reports, and record

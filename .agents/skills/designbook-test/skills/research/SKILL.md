@@ -1,5 +1,5 @@
 ---
-name: debo-test-research
+name: research
 user-invocable: true
 description: Improve Designbook skill instructions through a scored train case and optional held-out validation cases.
 metadata:
