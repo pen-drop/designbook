@@ -1,3 +1,4 @@
+// @gaia-schema-version 1
 // Canonical GAIA conductor config — committed, ENGINE-ONLY. Identity comes from
 // your user-global machine context (~/.config/conductor/conductor.config.machine.js:
 // { machine_id, user_id }); machine_id is composed here as
@@ -32,14 +33,13 @@
 // this machine. Never committed.
 async function loadMachine() {
   try {
-    return (await import(`${process.env.HOME}/.gaia/machine.config.js`)).default ?? {};
+    return (await import("file:///home/cw/.gaia/machine.config.js")).default ?? {};
   } catch {}
   return {};
 }
 
 // OPTIONAL per-project override — create conductor.config.local.js beside this
-// file to override any field this module reads from it (machine_id, model,
-// project). It is loaded only if present and is NOT created by
+// file to override the conductor identity. It is loaded only if present and is NOT created by
 // `gaia conductor init`.
 async function loadLocal() {
   try { return (await import('./conductor.config.local.js')).default ?? {}; } catch {}
@@ -48,73 +48,29 @@ async function loadLocal() {
 
 const machine = await loadMachine();
 const local = await loadLocal();
-const project = local.project ?? 'designbook';
-const composedMachineId =
+const project = 'designbook';
+const composedConductorId =
   machine.user_id && machine.machine_id
     ? `${machine.user_id}-${machine.machine_id}-${project}`
     : undefined;
 
 export default {
-  project,
-  conductor_id: local.machine_id ?? composedMachineId,
+  schema_version: 1,
+  addons: [{ use: '@gaia-ai/addon-herdr' }],
+  gaia: { project: 'designbook' },
+
+  conductor_id: local.conductor_id ?? composedConductorId,
+  hooks: { after_create: 'pnpm install' },
   remote: { plugin: '@gaia-ai/addon-remote-drupal' },
   // No hard-wired diff pane for review: the review diff surface is hunk
   // (GAIA-55) — agent-driven + opt-in in the human's interactive pane, not an
   // executor-forced git-diff pane. Clicking a changed file in that hunk pane
   // opens it editable in a spiceedit overlay (see conductor/README.md).
   executor: { plugin: '@gaia-ai/addon-herdr' },
-  // Agent selection by static ticket assessment (GAIA-144): `agent` may be an
-  // ARRAY of `{ agent, priority?(ticket) }` candidates. The conductor calls each
-  // priority(ticket) at dispatch (ticket carries sideloaded `labels` +
-  // `environments`), sorts highest-first, and runs the top one; a candidate with
-  // no `priority` scores -Infinity. Claude Sonnet is the baseline at priority 0
-  // and stays last, so a ticket carrying no routing label always dispatches.
-  // Routing labels: `codex`, `grok`, `opus` — everything else gets Sonnet.
-  agent: [
-    {
-      agent: { plugin: '@gaia-ai/addon-codex' },
-      priority: (ticket) =>
-        ticket.labels?.includes('codex') ? 100 : -1000,
-    },
-    {
-      // Grok Build (xAI) — wins only on the `grok` label. The addon ships as a
-      // dependency of @gaia-ai/gaia, so the descriptor resolves without a
-      // separate install; it needs the `grok` CLI on PATH and an authenticated
-      // host, and reads no auth file itself. `grok models` reports grok-4.5 as
-      // the only available model.
-      agent: {
-        plugin: '@gaia-ai/addon-grok',
-        with: { model: 'grok-4.5' },
-      },
-      priority: (ticket) =>
-        ticket.labels?.includes('grok') ? 100 : -1000,
-    },
-    {
-      // Claude Opus — same addon as the baseline, only the model differs. Wins
-      // on the `opus` label when a ticket needs more headroom than the Sonnet
-      // baseline; must sort before that baseline to ever be picked.
-      agent: {
-        plugin: '@gaia-ai/addon-claude',
-        with: { model: 'claude-opus-5' },
-      },
-      priority: (ticket) =>
-        ticket.labels?.includes('opus') ? 100 : -1000,
-    },
-    {
-      agent: {
-        plugin: '@gaia-ai/addon-claude',
-        with: { model: local.model ?? 'claude-sonnet-5' },
-      },
-      priority: () => 0,
-    },
-  ],
+  // Agent catalog and routing are machine-owned under
+  // ~/.gaia/machine.config.js. Project configs contain engine wiring only.
   workspace: {
     plugin: '@gaia-ai/addon-herdr',
     export: 'herdrWorkspace',
-    with: {
-      // designbook is a pnpm monorepo, not a DDEV project — a fresh worktree only
-      // needs deps installed; the herdr-workspace plugin removes the worktree on done.
-      hooks: { after_create: 'pnpm install' },
-    },
   },
 };

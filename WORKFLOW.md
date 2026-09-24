@@ -1,71 +1,100 @@
 # designbook — WORKFLOW
 
-Per-state **policy overrides** for this repo, consumed by the `gaia` skill. Each `## State: <state>`
-section carries a YAML config object with **only the keys this project overrides**; every omitted
-key (and every empty section) takes the engine default.
+Read the complete ticket and its comments, then execute only the current state's section of its
+loaded GAIA owner. `@gaia/workflow-step` owns lifecycle matching and order; this file selects the
+project context.
 
-- **Schema, vocabularies, engine defaults, and the defaults-⊕-overrides merge rule** live in the
-  skill: `.claude/skills/gaia/reference/workflow-config.md`.
-- **Mechanics** (dispatch, auth, payload shapes, merge signature, phase-comment + acceptance→test→
-  .feature lifecycle) live in `.claude/skills/gaia/SKILL.md` + `reference/**`.
-- **No** general prose, decision tables, dropsh `--data` JSON, or step-by-step HOW belong in this
-  file — only this project's overrides. Validate with the `gaia` skill's `workflow:validate` workflow.
+## Loaded skills
 
-In practice the only project-specific content is the enabled **aspects** below (cross-cutting
-behaviour, ≥ 2 states) and the per-state **prose tooling bullets** (`- if …: …`, single-state
-build/verify tooling) under each `## State:` section.
+- @gaia/essential-skills
+- @gaia/method-context
+- @gaia/workflow-step
+- @gaia/ddev-drupal-bug
+- @gaia/ddev-drupal-feature
+- @gaia/docs-authoring
 
-## Aspects
+## Skill set
 
-```yaml
-# designbook IS the design surface: the `design` aspect drives every UI artifact through the
-# `debo` skill (design-entity | design-component | sections | design-screen) — scoped in spec, built through intake and executor in coding. No hand-coded components.
-aspects:
-  - name: design
-```
+- [Superpowers](.claude/skills/gaia/skills/method-context/references/superpowers.md)
 
-## State: triage
+## Skills
 
-```yaml
-# defaults suffice
-```
+Apply every matching row. Loading means reading the complete `SKILL.md` before the governed work
+starts and following it together with this file and `AGENTS.md`.
 
-## State: spec
+| When | Skill |
+|---|---|
+| Any Designbook design-system workflow or UI artifact | `debo` |
+| Creating or editing a task, rule, blueprint, workflow, or `schemas.yml` under `.agents/skills/designbook/`, `.agents/skills/designbook-*/`, or the skill creator's own guarded directories | `designbook-skill-creator` |
+| Changing the Storybook addon TypeScript package | `designbook-addon-skills` |
+| Changing Drupal integration behavior | `designbook-drupal` |
+| Verifying changed Designbook skill behavior | `debo-test` |
 
-```yaml
-# ui_or_design handled by the `design` aspect (describe intended UI artifacts without invoking an intake)
-# debo-test task-kind — a tester ticket records its target suite/case + validate workflow here; no design planning.
-```
+## Checks
 
-- if the ticket targets a debo-test suite/case (a designbook-test tester run, not a UI/design change): determine and record the target debo-test `<suite>` and `<case>`, plus which validate workflow to run after the main workflow (typically `design-verify`; "none" = no validate pass) — when unspecified, list options with `debo-test run <suite>` (no case arg) and confirm the pick. That recording is the whole spec — no design/component planning, and no BDD: the executable test IS `debo-test run <suite> <case>` (with `--validate <workflow>` when spec recorded one), so the `test` also-author comment just names that invocation (no Gherkin/`.feature`). Write `Task-Art: debo-test` into the spec comment so coding and review pick up the kind.
+Apply all matching rows to the plan and final diff. Run commands from the repository root unless a
+row says otherwise; deduplicate commands. Ticket-specific functional checks apply in addition.
 
-## State: diagnose
+| When | Command |
+|---|---|
+| `WORKFLOW.md` or GAIA workflow configuration | `gaia validate .` |
+| Before committing any repository change | `pnpm check` |
+| Addon, app, or conductor implementation | `pnpm check` |
+| A Designbook skill changes runtime behavior | `debo-test run <suite> <case>` using the matching fixture; add `--validate <workflow>` when the approved spec names a validation workflow |
+| A `debo-test` task ticket | `debo-test run <suite> <case>` using the suite and case recorded in the ticket; add `--validate <workflow>` only when recorded |
+| A scored audit is explicitly required | `debo-test research <suite> <case> --baseline-only` |
 
-```yaml
-# defaults suffice
-```
+### Setup
 
-## State: coding
+| When | Setup |
+|---|---|
+| Integration testing | Rebuild a standalone workspace with `./scripts/setup-workspace.sh <name>` from the current repository or worktree. |
+| A Drupal `sync-*` fixture needs a live target | Let the selected `debo-test` fixture provision it through `start-drupal-workspace.sh`; do not replace the fixture with an ad-hoc run. |
+| Parallel runs of the same suite | Give every invocation its own `--workspace <path>`. |
 
-```yaml
-# ui_or_design handled by the `design` aspect (invoke the matching `debo` intake with the specified task).
-# The verify tooling below is designbook-specific. Any change to a designbook skill
-# (workflow/task/rule/blueprint/schema) is verified through the matching `debo-test`
-# tester — never ad-hoc — over the suite/case whose fixture exercises the change.
-tasks:
-  - when: the ticket's Task-Art is debo-test
-    reasoning: []   # the work is running one fixed tester command, not writing code — TDD does not apply
-```
+If no fixture exercises changed skill behavior, author the fixture first. Run `debo-test` from the
+ticket's git worktree. Its setup may reset and clean only the workspace theme repository after
+asserting that directory is its own git toplevel; it must never reset the enclosing checkout.
 
-- if the ticket's Task-Art is debo-test: run `debo-test run <suite> <case> --validate <workflow>` for the suite+case and validate workflow recorded by spec (append `--validate` only when spec recorded one) — never ad-hoc — and capture the tester output (the `workflow summary --json` block). Do not hand-edit skill files. Run the tester from **inside the ticket's git worktree**. For parallel same-suite runs (e.g. an A/B across agents on the same case), pass a distinct `--workspace <path>` to each invocation so setup rebuilds separate trees and ddev projects. The setup `git reset --hard`/`git clean -fd` targets only the workspace theme dir (its own git repo) and is fenced by a git-toplevel assert in `setup-test.sh`, so it never reaches the enclosing worktree.
-- if the change has a runtime surface: verify it end-to-end through the matching `debo-test` tester (never ad-hoc) — pick the suite/case whose fixture exercises the changed skill and run `debo-test run <suite> <case>` for a single functional pass, or `debo-test research <suite> <case> --baseline-only` for a scored audit; pass a distinct `--workspace <path>` for concurrent runs. The tester provisions the test workspace (and, for a Drupal `sync-*` case, the live Drupal target via `start-drupal-workspace.sh`) and exercises the changed workflow. If no fixture exercises the change yet, author it first. Run `pnpm check` (typecheck → lint → test) in addition when the change touches the addon/TS. NOTE: run the tester from inside the ticket's git worktree. `debo-test`'s setup `git reset --hard`/`git clean -fd` targets only the workspace theme dir (its own git repo) and `setup-test.sh` asserts that dir is its own git toplevel before resetting, so it is safe inside a worktree and never touches the enclosing checkout.
-- on app change: run `pnpm check` (typecheck → lint → test, fail-fast) from the repo root.
-- on conductor change: run `pnpm check` (typecheck → lint → test, fail-fast) from the repo root.
+For a `debo-test` task ticket, the recorded tester invocation is the executable test. Its spec
+records `Task-Art: debo-test`, the exact `<suite>` and `<case>`, and the optional validation
+workflow. It needs no separate BDD feature. Review gates on the tester result even when the ticket
+has no merge request or diff, and records whether an additional scored research run was warranted.
 
-## State: review
+## Required skills
 
-```yaml
-# defaults suffice for non-debo-test tickets (green_pipeline gate, confirm-gate, ok→done / not_ok→coding)
-```
+The selected skill-set entry, every matching `Skills` row, and any skill input values are binding.
+Load each required skill before doing the work it governs and announce the load. If an identifier
+cannot be resolved or its complete instructions cannot be read, stop before editing, publishing,
+requesting approval, or transitioning; report the exact missing identifier rather than substituting
+another method.
 
-- if the ticket's Task-Art is debo-test: decide — and document the decision in the summary — whether an additional `debo-test research <suite> <case> --baseline-only` (scored audit) pass is warranted beyond coding's `run`. Post the `summary` comment holding the tester/workflow results (run outcome + any research score); that comment is the write-back to the ticket. A debo-test ticket may have no MR/diff — gate on the tester result, not a pipeline.
+## Standards
+
+- **`AGENTS.md` is the primary project-policy source and every rule in it binds.** In particular,
+  existing generated/on-disk artifacts are disposable across format changes; never add migrations,
+  backward compatibility, or legacy-artifact repair. Run `pnpm check` before committing.
+- **Designbook is the design surface.** UI artifacts go through the applicable `debo` workflow
+  (`design-entity`, `design-component`, `sections`, or `design-screen`); do not hand-code a parallel
+  component implementation outside that workflow.
+- **Skill architecture is four-level.** Core and integration skills separate workflow → stage →
+  task/blueprint/rule. Tasks state WHAT, blueprints provide overridable HOW-shaped starting points,
+  and rules are non-overridable constraints. `designbook-gaia` remains outside this model and ships
+  GAIA workflow-step prose only.
+- **Guarded skill authoring uses `designbook-skill-creator`.** Load it before editing the guarded
+  files named in the `Skills` table; keep HOW out of tasks, parameters out of rules, and shared
+  schemas referenced rather than duplicated inline.
+- **Runtime skill changes need real fixture evidence.** Use the matching `debo-test` suite/case,
+  never an ad-hoc substitute. The handoff records the command, observed result, and immutable tested
+  revision. Add a fixture first when none covers the change.
+- **Test workspaces are disposable standalone directories, not git worktrees.** Re-run
+  `./scripts/setup-workspace.sh <name>` to pick up changes; in a git worktree it copies that
+  worktree's `.agents` and `.claude` trees.
+- **Git and delivery.** Preserve unrelated worktree changes. Work lands through a merge request
+  targeting the ticket's computed `base_branch`; enable squash and source-branch deletion only for
+  the ticket's short-lived branch. A commit uses a conventional type, an optional origin scope when
+  a real origin exists, and ends with `ref:<identifier>`. A ticket without an origin omits the
+  scope. Merge-request titles and descriptions carry no GAIA identifier.
+- **Transient evidence lives under `assets-ai/<identifier>/`.** Keep it gitignored and organize it
+  by the tool that produced the evidence. Durable evidence is the command, its observed result, and
+  the immutable commit tested.
