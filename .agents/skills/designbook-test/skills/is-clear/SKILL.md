@@ -1,5 +1,5 @@
 ---
-name: debo-test-is-clear
+name: is-clear
 user-invocable: true
 description: Audit whether a Designbook planning catalogue explicitly answers a task question.
 metadata:
