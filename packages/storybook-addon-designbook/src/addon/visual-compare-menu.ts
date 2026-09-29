@@ -26,12 +26,12 @@ export type MenuModel =
 
 /** Map a `/__designbook/story/{id}` response (status 0 = network failure) to what the menu shows. */
 export function menuModel(status: number, body: unknown): MenuModel {
-  const data = (body ?? {}) as VisualCompareStory & { error?: string };
-  if (status === 404) return { kind: 'hidden' };
+  const data = (body ?? {}) as VisualCompareStory & { error?: string; meta?: boolean };
   if (status === 409) return { kind: 'error', text: `Bound reference ${data.reference} is not a published revision` };
   if (status === 500) return { kind: 'error', text: `Reference could not be loaded: ${data.error ?? 'unknown error'}` };
   if (status === 0) return { kind: 'error', text: 'Story metadata request failed (network error)' };
   if (status !== 200) return { kind: 'error', text: `Story metadata request failed (HTTP ${status})` };
+  if (data.meta === false) return { kind: 'hidden' };
   if (!data.reference) return { kind: 'message', text: 'No reference bound' };
 
   const sizes = new Map<string, { width: number; height: number }>();

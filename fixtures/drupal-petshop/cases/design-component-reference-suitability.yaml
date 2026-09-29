@@ -23,6 +23,8 @@ evidence:
     - components/nav-header/nav-header.component.yml
     - components/nav-header/nav-header.twig
     - components/nav-header/nav-header.default.story.yml
+    # Collected so the approval-gate assertion below can compare it against the baseline.
+    - designbook/references/9710f2819b47e1ac/85fa2c97919940e1/approval.yml
 assert:
   - type: javascript
     value: output.runs.length > 0 && output.runs.every(r => r.componentPrerequisites?.passed === true)

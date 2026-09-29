@@ -38,7 +38,8 @@ describe('menuModel', () => {
   });
 
   it('distinguishes missing meta, unbound, unpublished, read errors and request failures', () => {
-    expect(menuModel(404, { error: 'Story not found' })).toEqual({ kind: 'hidden' });
+    // No story meta answers 200 so the manager logs no failed request (storybook check scans console errors).
+    expect(menuModel(200, { storyId: 'x', meta: false })).toEqual({ kind: 'hidden' });
     expect(menuModel(200, { ...story, reference: null })).toEqual({ kind: 'message', text: 'No reference bound' });
     expect(menuModel(409, { error: 'x', reference: story.reference })).toEqual({
       kind: 'error',

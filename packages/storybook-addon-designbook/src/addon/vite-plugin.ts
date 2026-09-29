@@ -647,9 +647,11 @@ export function designbookLoadPlugin(
           const story = StoryMeta.load(config, storyId);
 
           if (!story) {
-            res.statusCode = 404;
+            // 200, not 404: every story is asked, and a failed request would be a console
+            // error that `storybook check` counts against the story.
+            res.statusCode = 200;
             res.setHeader('Content-Type', 'application/json');
-            res.end(JSON.stringify({ error: `Story not found: ${storyId}` }));
+            res.end(JSON.stringify({ storyId, meta: false, reference: null }));
             return;
           }
 
