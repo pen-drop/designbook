@@ -1,8 +1,8 @@
-# Designbook skill map
+# Designbook skill set
 
-Use for Designbook components, screens, scenes, tokens and their Drupal config.
+> Use for Designbook components, screens, scenes, tokens and their Drupal config.
 Load upstream skills from the agent environment under `@gaia/method-context`.
-The [GAIA step-skills](../SKILL.md) own lifecycle and handoff requirements.
+The [Designbook step-skills](../SKILL.md) add domain handoffs to GAIA’s shared lifecycle.
 
 | Step / condition | Skill and required result |
 |---|---|
@@ -17,3 +17,7 @@ Prepare and approve required references before dependent planning. Spec hands
 off reference paths, approval evidence, the executable plan path and acceptance
 checks; coding executes the saved plan. Diagnosis prepares the same handoff for
 repairs after reproducing the defect. Each invocation stays in its GAIA step.
+
+The ticket holds the complete spec, implementation plan and test plan. The saved
+Designbook plan is a separate executable artifact. GAIA owns coding/review gates
+and publication; verification in diagnosis/review stops before automatic repair.
