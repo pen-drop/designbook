@@ -20,6 +20,7 @@ import {
   defaultVueExtraImportLines,
 } from '../scene-model/scene-module-builder';
 import { vueBuiltInComponents } from '../scene-model/built-in-components';
+import { referenceIndexEntries } from '../tools/reference-library';
 
 import { readFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs';
 import { resolve, dirname, relative, basename } from 'node:path';
@@ -252,6 +253,7 @@ export const stories = async (entry: string[] = [], options: any) => {
   mkdirSync(resolve(distDir, 'sections'), { recursive: true });
   mkdirSync(resolve(distDir, 'entity-mapping'), { recursive: true });
   mkdirSync(resolve(distDir, 'form-mapping'), { recursive: true });
+  mkdirSync(resolve(distDir, 'references'), { recursive: true });
 
   // Storybook resolves story globs relative to configDir (.storybook/).
   // The storybookTest() vitest plugin also uses configDir as base.
@@ -262,25 +264,29 @@ export const stories = async (entry: string[] = [], options: any) => {
   const scenesGlob = resolve(distDir, '{sections,design-system}/**/*.scenes.yml');
   const entityGlob = resolve(distDir, 'entity-mapping/*.jsonata');
   const formGlob = resolve(distDir, 'form-mapping/*.jsonata');
+  const referenceGlob = resolve(distDir, 'references/*/*/publication.json');
   // Standalone component stories — only globbed for `frameworks.component: vue`.
   // See `indexComponentStory` for why SDC is excluded (storybook-addon-sdc parity).
   const componentFramework = String(designbookConfig['frameworks.component'] ?? 'sdc');
   const componentStoryGlob =
     componentFramework === 'vue' ? resolve(distDir, '..', 'components', '*', '*.story.yml') : undefined;
 
-  // Built-in pages listed explicitly in sidebar order: Foundation → Design System → Sections.
+  // Built-in pages listed explicitly in sidebar order: Foundation → Design System → Sections → References.
   // File-name order is Storybook 10's sort mechanism when no storySort is configured.
   const foundationGlob = resolve(__dirname, 'pages/foundation.stories.js');
   const designSystemGlob = resolve(__dirname, 'pages/design-system.stories.js');
   const sectionsGlob = resolve(__dirname, 'pages/sections.stories.js');
+  const referencesGlob = resolve(__dirname, 'pages/references.stories.js');
 
   return [
     foundationGlob,
     designSystemGlob,
     sectionsGlob,
+    referencesGlob,
     relative(configDir, scenesGlob),
     relative(configDir, entityGlob),
     relative(configDir, formGlob),
+    relative(configDir, referenceGlob),
     ...(componentStoryGlob ? [relative(configDir, componentStoryGlob)] : []),
     ...entry,
   ];
@@ -361,7 +367,24 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
     createIndex: async (fileName: string) => indexForm(fileName),
   };
 
-  const indexers = [...existingIndexers, scenesIndexer, entityIndexer, formIndexer];
+  // One story per captured tuple of a healthy published role-reference revision.
+  // Invalid or unpublished revisions index nothing; the References overview reports them.
+  const referenceIndexer = {
+    test: /references\/[a-f0-9]{16}\/[a-f0-9]{16}\/publication\.json$/,
+    createIndex: async (fileName: string) => {
+      const importPath = './' + relative(process.cwd(), fileName);
+      return referenceIndexEntries(loadConfig().data, fileName).map((entry) => ({
+        type: 'story' as const,
+        importPath,
+        exportName: entry.exportName,
+        title: entry.title,
+        name: entry.name,
+        tags: ['reference', '!autodocs'],
+      }));
+    },
+  };
+
+  const indexers = [...existingIndexers, scenesIndexer, entityIndexer, formIndexer, referenceIndexer];
 
   // Standalone component stories — only registered for `frameworks.component:
   // vue` (see `indexComponentStory` for why SDC stays on the third-party

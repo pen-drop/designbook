@@ -220,6 +220,15 @@ for FIXTURE in $FIXTURES; do
   # Fixture trees must not reintroduce a shadowing theme-local config
   # (skipped for THEME_REL="." — that would be the just-merged root config).
   [[ "$THEME_REL" != "." ]] && rm -f "$TARGET_DIR/$THEME_REL/designbook.config.yml"; true
+  # A fixture can seed data that cannot be committed statically (e.g. a published
+  # reference revision, whose publication.json binds its absolute directory).
+  # `fixture-seed.ts <designbook data dir>` runs instead of being copied.
+  if [[ -f "$FIXTURE_DIR/fixture-seed.ts" ]]; then
+    rm -f "$TARGET_DIR/$THEME_REL/fixture-seed.ts"
+    echo "  Seeding fixture: $FIXTURE"
+    (cd "$REPO_ROOT/packages/storybook-addon-designbook" &&
+      npx tsx "$FIXTURE_DIR/fixture-seed.ts" "$TARGET_DIR/$THEME_REL/designbook")
+  fi
 done
 
 # 4. Commit fixture layer as baseline for diff tracking

@@ -16,6 +16,7 @@ import {
 } from '../scene-model/scene-metadata';
 import { StoryMeta } from '../scene-model/story-entity';
 import { Reference } from '../tools/reference-entity';
+import { buildReferenceModule, listReferences, loadReferenceEntry } from '../tools/reference-library';
 import { USES_WITH_SELECTOR_SOURCE } from './use-sync-with-selector-source';
 
 /** Minimal glob matcher — supports * (no slash) and **-slash (zero or more dirs). */
@@ -57,6 +58,13 @@ export function isFormMappingFile(id: string): boolean {
  * `components/<name>/<name>.<variant>.story.yml`. Mirrors the indexer's
  * `test` regex in preset.ts (R1 indexer/loader parity).
  */
+/** A published reference revision's `publication.json` — served as a virtual CSF module. */
+export function isReferencePublicationFile(id: string): boolean {
+  return /(?:^|\/)references\/[a-f0-9]{16}\/[a-f0-9]{16}\/publication\.json$/.test(id);
+}
+// The `.js` suffix keeps Vite's JSON plugin from parsing the generated module as JSON.
+const REFERENCE_MODULE_PREFIX = '\0designbook-reference:';
+
 export function isComponentStoryFile(id: string): boolean {
   return /(?:^|\/)components\/[^/]+\/[^/]+\.[^./]+\.story\.yml$/.test(id);
 }
@@ -251,6 +259,9 @@ export function designbookLoadPlugin(
         if (importer) return resolve(dirname(importer), cleanId);
         return cleanId;
       }
+      if (isReferencePublicationFile(cleanId)) {
+        return `${REFERENCE_MODULE_PREFIX}${importer ? resolve(dirname(importer), cleanId) : resolve(cleanId)}.js`;
+      }
       if (isEntityMappingFile(cleanId) || isFormMappingFile(cleanId) || isComponentStoryFile(cleanId)) {
         if (importer) return resolve(dirname(importer), cleanId);
         return cleanId;
@@ -278,6 +289,10 @@ export function designbookLoadPlugin(
 
       if (id === RESOLVED_VIRTUAL_THEMES) {
         return buildThemesModule(designbookDir);
+      }
+
+      if (id.startsWith(REFERENCE_MODULE_PREFIX)) {
+        return buildReferenceModule(designbookDir, id.slice(REFERENCE_MODULE_PREFIX.length, -'.js'.length));
       }
 
       if (isEntityMappingFile(id)) {
@@ -586,6 +601,27 @@ export function designbookLoadPlugin(
         }
       });
 
+      // HTTP endpoint: published reference inventory (`/__designbook/references`) or one
+      // revision (`/__designbook/references/{id}/{revision}`), including unpublished/invalid entries.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      server.middlewares.use('/__designbook/references', (req: IncomingMessage, res: any) => {
+        res.setHeader('Content-Type', 'application/json');
+        try {
+          const parts = new URL(req.url || '', 'http://localhost').pathname.split('/').filter(Boolean);
+          if (parts.length === 0) {
+            res.statusCode = 200;
+            res.end(JSON.stringify({ references: listReferences(designbookDir) }));
+            return;
+          }
+          const found = parts.length === 2 ? loadReferenceEntry(designbookDir, parts[0]!, parts[1]!) : null;
+          res.statusCode = found ? 200 : 404;
+          res.end(JSON.stringify(found ?? { error: `Reference revision not found: ${parts.join('/')}` }));
+        } catch (err: unknown) {
+          res.statusCode = 500;
+          res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }));
+        }
+      });
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       server.middlewares.use('/__designbook/story', (req: IncomingMessage, res: any) => {
         if (req.method !== 'GET') {
@@ -619,6 +655,17 @@ export function designbookLoadPlugin(
 
           const storyJson = story.toJSON();
           const ref = storyJson.reference ? Reference.load(config, storyJson.reference) : null;
+          if (storyJson.reference && !ref) {
+            res.statusCode = 409;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(
+              JSON.stringify({
+                error: `Bound reference is not a published revision: ${storyJson.reference}`,
+                reference: storyJson.reference,
+              }),
+            );
+            return;
+          }
           const referenceJson = ref?.toJSON();
           const payload = {
             ...storyJson,

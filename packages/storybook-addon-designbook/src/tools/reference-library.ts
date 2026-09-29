@@ -1,0 +1,197 @@
+/**
+ * Browsable inventory of published reference revisions under `<data>/references/<id>/<revision>/`.
+ * One source for the Storybook indexer, the generated CSF module and the `/__designbook/references` endpoint.
+ */
+import { existsSync, readdirSync } from 'node:fs';
+import { basename, dirname, join, resolve } from 'node:path';
+import { Reference, isReferenceBinding } from './reference-entity.js';
+import { readApproval, publicationFilesFingerprint } from './reference-approval.js';
+import { readPublishedCapture } from './reference-capture.js';
+import { toId, storyNameFromExport } from 'storybook/internal/csf';
+import { StoryMeta } from '../scene-model/story-entity.js';
+import { buildExportName } from '../scene-model/scene-metadata.js';
+
+export type ReferenceEntryStatus = 'ok' | 'unpublished' | 'invalid';
+export type ReferenceApprovalState = 'approved' | 'pending' | 'rejected' | 'stale' | 'none';
+
+export interface ReferenceCaptureEntry {
+  subject: string;
+  view: string;
+  state: string;
+  session: string;
+  path: string;
+  width: number;
+  height: number;
+  exportName: string;
+  name: string;
+  storyId: string;
+}
+
+export interface ReferenceLibraryEntry {
+  id: string;
+  revision: string;
+  binding: string;
+  dir: string;
+  status: ReferenceEntryStatus;
+  error?: string;
+  title?: string;
+  source: { kind: string; identity: string; revision: string | null };
+  views: Array<{ id: string; width: number; height: number; breakpoint?: string }>;
+  captures: ReferenceCaptureEntry[];
+  approval: ReferenceApprovalState;
+  boundStories: string[];
+}
+
+const EMPTY_SOURCE = { kind: 'unknown', identity: '', revision: null };
+
+function sidebarTitle(source: ReferenceLibraryEntry['source'], revision: string): string {
+  // One sidebar level per source: a `/` in the identity would open extra groups.
+  const identity = source.identity.replace(/^[a-z]+:\/\//i, '').replace(/\/+/g, ' | ');
+  return `Designbook/References/${source.kind}: ${identity}/${revision.slice(0, 12)}`;
+}
+
+function approvalState(directory: string): ReferenceApprovalState {
+  const approval = readApproval(directory);
+  if (!approval) return 'none';
+  const current = publicationFilesFingerprint(readPublishedCapture(directory).files);
+  return approval.fingerprint === current ? approval.status : 'stale';
+}
+
+function entry(data: string, id: string, revision: string, boundStories: string[]): ReferenceLibraryEntry | null {
+  const binding = `${id}/${revision}`;
+  const directory = join(resolve(data, 'references'), binding);
+  const base = {
+    id,
+    revision,
+    binding,
+    dir: `references/${binding}`,
+    source: EMPTY_SOURCE,
+    views: [],
+    captures: [],
+    approval: 'none' as const,
+    boundStories,
+  };
+  if (!existsSync(join(directory, 'publication.json'))) return { ...base, status: 'unpublished' };
+  try {
+    const reference = Reference.load({ data, technology: 'html' }, binding);
+    if (!reference) return { ...base, status: 'invalid', error: 'Revision directory is outside references/' };
+    const json = reference.toJSON();
+    if (json.role !== 'reference') return null;
+    const title = sidebarTitle(json.source, revision);
+    const views = new Map(json.elements.flatMap((el) => el.views.map((view) => [view.id, view] as const)));
+    const sessions = new Map(
+      json.elements.flatMap((el) => el.states.map((state) => [`${el.id}\0${state.name}`, state.session] as const)),
+    );
+    const captures = json.captures.map((capture) => {
+      const name = `${capture.subject} · ${capture.view} · ${capture.state}`;
+      const exportName = buildExportName(`${capture.subject} ${capture.view} ${capture.state}`);
+      return {
+        ...capture,
+        session: sessions.get(`${capture.subject}\0${capture.state}`) ?? '',
+        name,
+        exportName,
+        // Storybook's own id derivation, so links match the index exactly.
+        storyId: toId(title, storyNameFromExport(exportName)),
+      };
+    });
+    return {
+      ...base,
+      status: 'ok',
+      title,
+      source: json.source,
+      views: [...views.values()],
+      captures,
+      approval: approvalState(directory),
+    };
+  } catch (error) {
+    return { ...base, status: 'invalid', error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+function boundStoriesByBinding(data: string): Map<string, string[]> {
+  const bound = new Map<string, string[]>();
+  for (const story of StoryMeta.list({ data, technology: 'html' })) {
+    const reference = story.toJSON().reference;
+    if (reference) bound.set(reference, [...(bound.get(reference) ?? []), story.storyId]);
+  }
+  return bound;
+}
+
+export function listReferences(data: string): ReferenceLibraryEntry[] {
+  const root = resolve(data, 'references');
+  if (!existsSync(root)) return [];
+  const bound = boundStoriesByBinding(data);
+  const entries: ReferenceLibraryEntry[] = [];
+  for (const id of readdirSync(root, { withFileTypes: true })) {
+    if (!id.isDirectory()) continue;
+    for (const revision of readdirSync(join(root, id.name), { withFileTypes: true })) {
+      if (!revision.isDirectory() || !isReferenceBinding(`${id.name}/${revision.name}`)) continue;
+      const binding = `${id.name}/${revision.name}`;
+      const item = entry(data, id.name, revision.name, bound.get(binding) ?? []);
+      if (item) entries.push(item);
+    }
+  }
+  return entries;
+}
+
+export function loadReferenceEntry(data: string, id: string, revision: string): ReferenceLibraryEntry | null {
+  if (!isReferenceBinding(`${id}/${revision}`)) return null;
+  if (!existsSync(join(resolve(data, 'references'), id, revision))) return null;
+  return entry(data, id, revision, boundStoriesByBinding(data).get(`${id}/${revision}`) ?? []);
+}
+
+/** A `publication.json` path → the healthy role-reference entry it publishes, or null. */
+function entryForPublication(data: string, file: string): ReferenceLibraryEntry | null {
+  const revisionDir = dirname(file);
+  if (basename(file) !== 'publication.json') return null;
+  const found = loadReferenceEntry(data, basename(dirname(revisionDir)), basename(revisionDir));
+  return found?.status === 'ok' ? found : null;
+}
+
+export function referenceIndexEntries(
+  data: string,
+  file: string,
+): Array<{ title: string; name: string; exportName: string; storyId: string }> {
+  const found = entryForPublication(data, file);
+  if (!found) return [];
+  return found.captures.map((c) => ({
+    title: found.title!,
+    name: c.name,
+    exportName: c.exportName,
+    storyId: c.storyId,
+  }));
+}
+
+const MOUNT_REACT_IMPORT = "import { mountReact } from 'storybook-addon-designbook/dist/pages/mount-react.js';";
+const REFERENCE_PAGE_IMPORT =
+  "import { DeboReferencePage } from 'storybook-addon-designbook/dist/components/pages/DeboReferencePage.js';";
+
+/** CSF module for one revision: one story per captured tuple, each rendering the frozen detail page. */
+export function buildReferenceModule(data: string, file: string): string {
+  const found = entryForPublication(data, file);
+  if (!found) return "export default { title: 'Designbook/References/Unavailable', tags: ['!autodocs'] };\n";
+  const lines = [
+    MOUNT_REACT_IMPORT,
+    REFERENCE_PAGE_IMPORT,
+    '',
+    `export default { title: ${JSON.stringify(found.title)}, tags: ['!autodocs'], parameters: { layout: 'fullscreen' } };`,
+    '',
+  ];
+  for (const capture of found.captures) {
+    const props = {
+      id: found.id,
+      revision: found.revision,
+      subject: capture.subject,
+      view: capture.view,
+      state: capture.state,
+    };
+    lines.push(
+      `export const ${capture.exportName} = {`,
+      `  name: ${JSON.stringify(capture.name)},`,
+      `  render: () => mountReact(DeboReferencePage, ${JSON.stringify(props)}),`,
+      '};',
+      '',
+    );
+  }
+  return lines.join('\n');
+}

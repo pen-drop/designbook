@@ -18,4 +18,4 @@ Follow the [shared builder](../../../resources/workflow-building.md) for sealing
 - **create / rebuild** → default `ask`
 - **change** of an existing named target → may `ephemeral`; blockade when the work would add undeclared targets/tasks or widen scope
 
-When the plan depends on a published revision, complete the [reference intake](../../../design/resources/reference-intake.md) approval gate (`reference approval-check`) before `plan build`. A missing or unapproved revision is a `ReferenceNeed` blockade — stop; start `extract-reference` separately when capture is required.
+When the plan depends on a published revision, complete the [reference intake](../../../design/resources/reference-intake.md) suitability confirmation and approval gate (`reference approval-check`) before `plan build`. A missing or unapproved revision is a `ReferenceNeed` blockade — stop; start `extract-reference` separately when capture is required.
