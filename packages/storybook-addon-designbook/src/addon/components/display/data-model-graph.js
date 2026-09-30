@@ -38,3 +38,37 @@ export function buildDataModelGraph(data) {
   }
   return { nodes, links, unresolved };
 }
+
+/**
+ * Visible subgraph for the selected entity types: nodes of those types, links whose both
+ * endpoints stay visible, and unresolved references of visible sources. A link to a hidden
+ * node is dropped, not reported as unresolved. Returns fresh arrays; the graph is not mutated.
+ * @param {ReturnType<typeof buildDataModelGraph>} graph
+ * @param {string[]} selectedTypes
+ */
+export function filterDataModelGraph(graph, selectedTypes) {
+  const types = new Set(selectedTypes);
+  const nodes = graph.nodes.filter((n) => types.has(n.type));
+  const ids = new Set(nodes.map((n) => n.id));
+  return {
+    nodes,
+    links: graph.links.filter((l) => ids.has(l.source) && ids.has(l.target)),
+    unresolved: graph.unresolved.filter((u) => ids.has(u.source)),
+  };
+}
+
+/**
+ * Ids of the focused node and its direct neighbors, incoming and outgoing, within `graph`;
+ * `null` when nothing (or a node absent from the graph) is focused.
+ * @param {ReturnType<typeof buildDataModelGraph>} graph
+ * @param {string | null} focusedId
+ */
+export function directNeighborIds(graph, focusedId) {
+  if (!focusedId || !graph.nodes.some((n) => n.id === focusedId)) return null;
+  const ids = new Set([focusedId]);
+  for (const link of graph.links) {
+    if (link.source === focusedId) ids.add(link.target);
+    if (link.target === focusedId) ids.add(link.source);
+  }
+  return ids;
+}

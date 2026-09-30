@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { DeboProductOverview } from '../display/DeboProductOverview.jsx';
 import { DeboSection } from '../DeboSection.jsx';
-import { DeboDataModel } from '../display/DeboDataModel.jsx';
+import { DeboDataModel, resetDataModelLayout } from '../display/DeboDataModel.jsx';
 import { load as parseYaml } from 'js-yaml';
 import { useUrlState } from '../../hooks/useUrlState.js';
 import { DeboTabs } from '../ui/DeboTabs.jsx';
@@ -10,6 +10,8 @@ export function DeboFoundationPage() {
   const [entity, setEntity] = useUrlState('debo-entity', null);
   // Held here: the tab content remounts whenever this page re-renders.
   const [dataModelView, setDataModelView] = useState('cards');
+  // Filter, layout and graph focus; a ref so graph interaction never re-renders (and remounts) the tabs.
+  const dataModelSession = useRef(null);
 
   return (
     <DeboTabs
@@ -30,6 +32,7 @@ export function DeboFoundationPage() {
               title="Data Model"
               dataPath="data-model.yml"
               parser={(content) => parseYaml(content)}
+              onReload={() => resetDataModelLayout(dataModelSession)}
               command="/debo data-model"
               emptyMessage="No data model defined yet"
               renderContent={(data) => (
@@ -39,6 +42,7 @@ export function DeboFoundationPage() {
                   onSelectEntity={setEntity}
                   view={dataModelView}
                   onViewChange={setDataModelView}
+                  session={dataModelSession}
                 />
               )}
             />

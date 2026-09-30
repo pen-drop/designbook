@@ -16,7 +16,7 @@ const SectionHeading = styled.h2(({ theme }) => ({
   marginBottom: 16,
 }));
 
-export function DeboSection({ dataPath, parser, command, emptyMessage, renderContent, title, filePath, bare = false }) {
+export function DeboSection({ dataPath, parser, command, emptyMessage, renderContent, title, filePath, bare = false, onReload }) {
   const { data, loading, error, reload } = useDesignbookData(dataPath, parser);
   const displayPath = filePath || `designbook/${dataPath}`;
 
@@ -51,7 +51,14 @@ export function DeboSection({ dataPath, parser, command, emptyMessage, renderCon
     <DeboPageLayout>
       {heading}
       {renderContent(data)}
-      <DeboSourceFooter path={displayPath} command={command} onReload={reload} />
+      <DeboSourceFooter
+        path={displayPath}
+        command={command}
+        onReload={() => {
+          onReload?.();
+          reload();
+        }}
+      />
     </DeboPageLayout>
   );
 }
