@@ -41,6 +41,7 @@ const NodeButton = styled.button(({ theme }) => ({
   fontSize: 13,
   fontWeight: 600,
   cursor: 'grab',
+  '&:active': { cursor: 'grabbing' },
   touchAction: 'none',
   textAlign: 'left',
   '&[aria-pressed="true"]': { borderColor: theme.color.secondary, boxShadow: `0 0 0 1px ${theme.color.secondary}` },
@@ -313,7 +314,6 @@ export function DeboDataModelGraph({ data, selectedTypes, session = {}, onSelect
                   aria-label={n.id}
                   aria-pressed={focusedId === n.id}
                   title={n.id}
-                  style={gesture.current?.dragging && gesture.current.id === n.id ? { cursor: 'grabbing' } : undefined}
                   onPointerDown={(event) => onPointerDown(event, n.id)}
                   onPointerMove={onPointerMove}
                   onPointerUp={endGesture}

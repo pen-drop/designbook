@@ -268,6 +268,20 @@ describe('DeboDataModel entity-type filter', () => {
     act(() => typeToggle('user').click());
     expect(nodeIds()).toEqual(['user.user']);
   });
+
+  it('drops a graph focus whose type is filtered out, also when the type returns', async () => {
+    await render({ data: model(), selectedEntity: null, onSelectEntity: vi.fn(), view: 'graph' });
+    click(node('node.article'));
+    expect(node('node.article').getAttribute('aria-pressed')).toBe('true');
+    act(() => typeToggle('node').click());
+    act(() => typeToggle('node').click());
+    expect(nodeButtons().every((b) => b.getAttribute('aria-pressed') === 'false')).toBe(true);
+
+    // Hiding another type keeps the focus.
+    click(node('node.article'));
+    act(() => typeToggle('user').click());
+    expect(node('node.article').getAttribute('aria-pressed')).toBe('true');
+  });
 });
 
 describe('DeboDataModel graph interaction', () => {
@@ -287,6 +301,7 @@ describe('DeboDataModel graph interaction', () => {
     expect(container.querySelector('svg')!.getAttribute('viewBox')).toBe(viewBox);
     expect(node('node.article').getAttribute('aria-pressed')).toBe('false');
     expect(onSelectEntity).not.toHaveBeenCalled();
+    expect(node('node.article').style.cursor).toBe('');
 
     click(node('node.article'));
     expect(node('node.article').getAttribute('aria-pressed')).toBe('true');

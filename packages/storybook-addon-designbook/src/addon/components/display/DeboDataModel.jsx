@@ -197,6 +197,8 @@ export function DeboDataModel({ data, selectedEntity, onSelectEntity, view: view
   const toggleType = (type) => {
     session.selectedTypes = entityTypes(data).filter((t) => (t === type ? !selected.has(t) : selected.has(t)));
     session.layout = null;
+    // Node ids are `${type}.${bundle}`: a focus hidden by this toggle is dropped, not restored later.
+    if (selected.has(type) && session.focusedId?.startsWith(`${type}.`)) session.focusedId = null;
     rerender();
   };
   const hasBundles = ([type, bundles]) => selected.has(type) && Object.keys(bundles || {}).length > 0;
