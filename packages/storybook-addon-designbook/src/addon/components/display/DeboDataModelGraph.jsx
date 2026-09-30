@@ -208,7 +208,12 @@ export function DeboDataModelGraph({ data, selectedTypes, session = {}, onSelect
     if (gesture.current || !event.isPrimary || event.button !== 0) return;
     const inverse = svgRef.current?.getScreenCTM()?.inverse();
     if (!inverse || ![inverse.a, inverse.d, inverse.e, inverse.f].every(Number.isFinite)) return;
+    // Clamp to the visible SVG area, which exceeds the viewBox when the aspect ratios differ.
+    const rect = svgRef.current.getBoundingClientRect();
+    const tl = rect.width && rect.height ? toSvg(inverse, rect.left, rect.top) : { x: minX, y: minY };
+    const br = rect.width && rect.height ? toSvg(inverse, rect.right, rect.bottom) : { x: minX + width, y: minY + height };
     gesture.current = {
+      bounds: { minX: Math.min(tl.x, minX), minY: Math.min(tl.y, minY), maxX: Math.max(br.x, minX + width), maxY: Math.max(br.y, minY + height) },
       pointerId: event.pointerId,
       id,
       client: { x: event.clientX, y: event.clientY },
@@ -226,10 +231,11 @@ export function DeboDataModelGraph({ data, selectedTypes, session = {}, onSelect
     if (!g.dragging && Math.hypot(event.clientX - g.client.x, event.clientY - g.client.y) <= DRAG_THRESHOLD) return;
     g.dragging = true;
     const p = toSvg(g.inverse, event.clientX, event.clientY);
-    // The whole node box stays inside the fixed viewBox, so a release can never strand it.
+    // The whole node box stays inside the visible area, so a release can never strand it.
+    const { bounds } = g;
     g.last = {
-      x: Math.min(minX + width - HW, Math.max(minX + HW, g.node.x + p.x - g.start.x)),
-      y: Math.min(minY + height - HH, Math.max(minY + HH, g.node.y + p.y - g.start.y)),
+      x: Math.min(bounds.maxX - HW, Math.max(bounds.minX + HW, g.node.x + p.x - g.start.x)),
+      y: Math.min(bounds.maxY - HH, Math.max(bounds.minY + HH, g.node.y + p.y - g.start.y)),
     };
     setPositions((prev) => new Map(prev).set(g.id, g.last));
   };

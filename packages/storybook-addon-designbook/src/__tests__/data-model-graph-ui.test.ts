@@ -313,6 +313,15 @@ describe('DeboDataModel graph interaction', () => {
     expect(box('user.user')).toMatchObject({ x: minX, y: minY });
     pointer(target, 'pointermove', 50, 50);
     expect(box('user.user')).toMatchObject({ x: minX, y: minY });
+
+    // With a layout box the visible area (client 0..1000 → user 0..2000) bounds the drag, not the viewBox.
+    const svg = container.querySelector('svg')!;
+    svg.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, right: 1000, bottom: 1000, width: 1000, height: 1000 }) as DOMRect;
+    pointer(target, 'pointerdown', 0, 0);
+    pointer(target, 'pointermove', 100000, 100000);
+    pointer(target, 'pointerup', 100000, 100000);
+    expect(box('user.user')).toMatchObject({ x: 2000 - 180, y: 2000 - 56 });
   });
 
   it('highlights the clicked node and its direct neighbors without moving anything', async () => {
