@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useReducer, useRef, useState } from 'react';
 import { styled } from 'storybook/theming';
 import { DeboCollapsible } from '../ui/DeboCollapsible.jsx';
 import { DeboCard } from '../ui/DeboCard.jsx';
@@ -25,6 +25,46 @@ const SectionHeading = styled.h3(({ theme }) => ({
 }));
 
 const ViewSwitch = styled.div({ display: 'flex', gap: 4 });
+
+const Toolbar = styled.div({ display: 'flex', flexDirection: 'column', gap: 12 });
+
+const FilterGroup = styled.div({
+  display: 'flex',
+  flexWrap: 'wrap',
+  alignItems: 'center',
+  justifyContent: 'flex-end',
+  gap: 6,
+});
+
+const FilterLabel = styled.span(({ theme }) => ({
+  fontSize: 11,
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  color: theme.textMutedColor,
+  marginRight: 2,
+}));
+
+const FilterChip = styled.button(({ theme }) => ({
+  padding: '2px 10px',
+  border: `1px solid ${theme.appBorderColor}`,
+  borderRadius: 999,
+  background: 'transparent',
+  color: theme.textMutedColor,
+  fontFamily: theme.typography.fonts.base,
+  fontSize: 12,
+  lineHeight: '18px',
+  cursor: 'pointer',
+  '&[aria-pressed="true"]': {
+    borderColor: theme.color.secondary,
+    background: theme.background.hoverable,
+    color: theme.color.defaultText,
+    fontWeight: 600,
+  },
+  '&:focus-visible': { outline: `2px solid ${theme.color.secondary}`, outlineOffset: 2 },
+}));
+
+const Muted = styled.p(({ theme }) => ({ color: theme.textMutedColor, fontSize: 13 }));
 
 const ViewButton = styled.button(({ theme }) => ({
   padding: '4px 12px',
@@ -87,8 +127,35 @@ function EntityGroup({ type, bundles, onSelect, dataModel, mappings }) {
   );
 }
 
-export function DeboDataModel({ data, selectedEntity, onSelectEntity, view: viewProp, onViewChange }) {
+/** Distinct entity type keys in declaration order, content before config. */
+function entityTypes(data) {
+  return [...new Set([...Object.keys(data?.content || {}), ...Object.keys(data?.config || {})])];
+}
+
+/**
+ * Transient overview state `{ modelKey, selectedTypes, layout, focusedId, resets }`, reset when
+ * the model contents change. Lives in a ref so pointer moves never re-render the owning page.
+ */
+function syncSession(session, data) {
+  const modelKey = JSON.stringify(data);
+  if (session.current?.modelKey !== modelKey) {
+    session.current = { modelKey, selectedTypes: entityTypes(data), layout: null, focusedId: null, resets: 0 };
+  }
+  return session.current;
+}
+
+/** Restore the computed graph layout and clear the graph focus; the type filter stays. */
+export function resetDataModelLayout(session) {
+  if (!session.current) return;
+  Object.assign(session.current, { layout: null, focusedId: null, resets: session.current.resets + 1 });
+}
+
+export function DeboDataModel({ data, selectedEntity, onSelectEntity, view: viewProp, onViewChange, session: sessionProp }) {
   const [mappings, setMappings] = useState(null); // null = pending
+  // Parents that remount this component (DeboFoundationPage) pass a session ref that outlives it.
+  const localSession = useRef(null);
+  const sessionRef = sessionProp ?? localSession;
+  const [, rerender] = useReducer((n) => n + 1, 0);
   // Parents that remount this component on selection (DeboFoundationPage) own the view choice.
   const [localView, setLocalView] = useState('cards');
   const view = viewProp ?? localView;
@@ -125,8 +192,31 @@ export function DeboDataModel({ data, selectedEntity, onSelectEntity, view: view
     );
   }
 
-  const contentTypes = Object.entries(data.content || {});
-  const configTypes = Object.entries(data.config || {});
+  const session = syncSession(sessionRef, data);
+  const selected = new Set(session.selectedTypes);
+  const toggleType = (type) => {
+    session.selectedTypes = entityTypes(data).filter((t) => (t === type ? !selected.has(t) : selected.has(t)));
+    session.layout = null;
+    // Node ids are `${type}.${bundle}`: a focus hidden by this toggle is dropped, not restored later.
+    if (selected.has(type) && session.focusedId?.startsWith(`${type}.`)) session.focusedId = null;
+    rerender();
+  };
+  const hasBundles = ([type, bundles]) => selected.has(type) && Object.keys(bundles || {}).length > 0;
+  const contentTypes = Object.entries(data.content || {}).filter(hasBundles);
+  const configTypes = Object.entries(data.config || {}).filter(hasBundles);
+
+  const typeFilter = (
+    <FilterGroup role="group" aria-label="Entity types">
+      <FilterLabel aria-hidden="true">Filter</FilterLabel>
+      {entityTypes(data).map((type) => (
+        <FilterChip key={type} type="button" aria-pressed={selected.has(type)} onClick={() => toggleType(type)}>
+          {type}
+        </FilterChip>
+      ))}
+    </FilterGroup>
+  );
+  const noneSelected = selected.size === 0 && entityTypes(data).length > 0;
+  const empty = noneSelected ? 'No entity types selected' : 'No bundles defined';
 
   const viewSwitch = (
     <ViewSwitch role="group" aria-label="Data model view">
@@ -141,15 +231,33 @@ export function DeboDataModel({ data, selectedEntity, onSelectEntity, view: view
   if (view === 'graph') {
     return (
       <DeboGrid gap="lg">
-        {viewSwitch}
-        <DeboDataModelGraph data={data} onSelect={(path) => onSelectEntity?.(path)} />
+        <Toolbar>
+          {typeFilter}
+          {viewSwitch}
+        </Toolbar>
+        {noneSelected ? (
+          <Muted>{empty}</Muted>
+        ) : (
+          <DeboDataModelGraph
+            // A new model or type selection starts a fresh graph with a freshly computed layout.
+            key={`${session.modelKey}|${session.selectedTypes}|${session.resets}`}
+            data={data}
+            selectedTypes={session.selectedTypes}
+            session={session}
+            onSelect={(path) => onSelectEntity?.(path)}
+          />
+        )}
       </DeboGrid>
     );
   }
 
   return (
     <DeboGrid gap="lg">
-      {viewSwitch}
+      <Toolbar>
+        {typeFilter}
+        {viewSwitch}
+      </Toolbar>
+      {contentTypes.length + configTypes.length === 0 && <Muted>{empty}</Muted>}
       {contentTypes.map(([type, bundles]) => (
         <EntityGroup
           key={type}

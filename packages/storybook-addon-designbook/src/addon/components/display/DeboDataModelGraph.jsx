@@ -1,9 +1,9 @@
-import React, { useId, useMemo } from 'react';
+import React, { useId, useMemo, useRef, useState } from 'react';
 import { styled } from 'storybook/theming';
 import { forceSimulation, forceLink, forceManyBody, forceCenter, forceCollide, forceX, forceY } from 'd3-force';
 import { DeboBadge } from '../ui/DeboBadge.jsx';
 import { ENTITY_BADGE_COLORS } from './entityColors.js';
-import { buildDataModelGraph } from './data-model-graph.js';
+import { buildDataModelGraph, directNeighborIds, filterDataModelGraph } from './data-model-graph.js';
 
 const NODE_W = 180;
 const NODE_H = 56;
@@ -11,6 +11,8 @@ const HW = NODE_W / 2;
 const HH = NODE_H / 2;
 const PADDING = 40;
 const CURVE_SPREAD = 40;
+const DRAG_THRESHOLD = 5;
+const DIM_OPACITY = 0.3;
 
 const Viewport = styled.div(({ theme }) => ({
   border: `1px solid ${theme.appBorderColor}`,
@@ -38,8 +40,11 @@ const NodeButton = styled.button(({ theme }) => ({
   fontFamily: theme.typography.fonts.base,
   fontSize: 13,
   fontWeight: 600,
-  cursor: 'pointer',
+  cursor: 'grab',
+  '&:active': { cursor: 'grabbing' },
+  touchAction: 'none',
   textAlign: 'left',
+  '&[aria-pressed="true"]': { borderColor: theme.color.secondary, boxShadow: `0 0 0 1px ${theme.color.secondary}` },
   '&:hover': { borderColor: theme.color.secondary },
   '&:focus-visible': { outline: `2px solid ${theme.color.secondary}`, outlineOffset: 2 },
 }));
@@ -50,6 +55,28 @@ const NodeTitle = styled.span({
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
 });
+
+const DetailsBar = styled.div(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  minHeight: 28,
+  marginTop: 8,
+  fontSize: 13,
+  color: theme.textMutedColor,
+}));
+
+const DetailsButton = styled.button(({ theme }) => ({
+  padding: '4px 12px',
+  border: `1px solid ${theme.appBorderColor}`,
+  borderRadius: theme.appBorderRadius,
+  background: 'transparent',
+  color: theme.color.defaultText,
+  fontFamily: theme.typography.fonts.base,
+  fontSize: 13,
+  cursor: 'pointer',
+  '&:focus-visible': { outline: `2px solid ${theme.color.secondary}`, outlineOffset: 2 },
+}));
 
 const Muted = styled.p(({ theme }) => ({ color: theme.textMutedColor, fontSize: 13 }));
 
@@ -76,8 +103,8 @@ function boxBorderPoint(to, from) {
   return { x: to.x + dx * t, y: to.y + dy * t };
 }
 
-/** Static layout: a stopped simulation advanced a fixed number of ticks on fresh objects. */
-function layout(graph) {
+/** Force positions: a stopped simulation advanced a fixed number of ticks on fresh objects. */
+function positionNodes(graph) {
   const nodes = graph.nodes.map((n) => ({ ...n }));
   const links = graph.links.map((l) => ({ ...l }));
   forceSimulation(nodes)
@@ -90,22 +117,25 @@ function layout(graph) {
     .force('y', forceY(0).strength(0.1))
     .stop()
     .tick(300);
-  const byId = new Map(nodes.map((n) => [n.id, n]));
+  return nodes.map(({ id, x, y }) => ({ id, x, y }));
+}
 
+/** Edge paths for the current node positions; `positions` maps node id to `{ x, y }`. */
+function edgeGeometry(links, positions) {
   // Parallel and reciprocal links share an unordered pair; spread them over distinct curves.
   const pairs = new Map();
-  for (const l of graph.links) {
+  for (const l of links) {
     const key = [l.source, l.target].sort().join('|');
     pairs.set(key, [...(pairs.get(key) || []), l]);
   }
 
-  const edges = graph.links.map((l) => {
-    const s = byId.get(l.source);
-    const t = byId.get(l.target);
+  return links.map((l) => {
+    const s = positions.get(l.source);
+    const t = positions.get(l.target);
     const key = [l.source, l.target].sort().join('|');
     const group = pairs.get(key);
     const index = group.indexOf(l);
-    if (s === t) {
+    if (l.source === l.target) {
       const k = index * 20;
       const start = { x: s.x + HW - 30, y: s.y - HH };
       const end = { x: s.x + HW, y: s.y - HH + 15 };
@@ -123,57 +153,192 @@ function layout(graph) {
     const end = boxBorderPoint(t, c);
     return { ...l, d: `M${start.x},${start.y} Q${c.x},${c.y} ${end.x},${end.y}`, points: [start, c, end] };
   });
+}
 
+/** Initial layout `{ nodes, viewBox }`, viewBox as `[minX, minY, width, height]` around nodes and edges. */
+function layout(graph) {
+  const nodes = positionNodes(graph);
+  const edges = edgeGeometry(graph.links, new Map(nodes.map((n) => [n.id, n])));
   const xs = [...nodes.flatMap((n) => [n.x - HW, n.x + HW]), ...edges.flatMap((e) => e.points.map((p) => p.x))];
   const ys = [...nodes.flatMap((n) => [n.y - HH, n.y + HH]), ...edges.flatMap((e) => e.points.map((p) => p.y))];
   const minX = Math.min(...xs) - PADDING;
   const minY = Math.min(...ys) - PADDING;
-  const viewBox = [minX, minY, Math.max(...xs) + PADDING - minX, Math.max(...ys) + PADDING - minY].join(' ');
-  return { nodes, edges, viewBox };
+  return { nodes, viewBox: [minX, minY, Math.max(...xs) + PADDING - minX, Math.max(...ys) + PADDING - minY] };
 }
 
-export function DeboDataModelGraph({ data, onSelect }) {
+/** Client point to SVG user space through the inverse screen matrix. */
+function toSvg(m, x, y) {
+  return { x: m.a * x + m.c * y + m.e, y: m.b * x + m.d * y + m.f };
+}
+
+/**
+ * Graph of the visible entity types. Layout, drag positions and the focused node are kept in
+ * `session` (see DeboDataModel) so they survive remounts; the parent remounts this component
+ * with a new key whenever the model or the type selection changes.
+ */
+export function DeboDataModelGraph({ data, selectedTypes, session = {}, onSelect }) {
   const markerId = `debo-arrow-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
-  const graph = useMemo(() => buildDataModelGraph(data), [data]);
-  const view = useMemo(() => (graph.nodes.length ? layout(graph) : null), [graph]);
+  const svgRef = useRef(null);
+  const gesture = useRef(null);
+  const suppressClick = useRef(false);
+  const graph = useMemo(() => {
+    const full = buildDataModelGraph(data);
+    return selectedTypes ? filterDataModelGraph(full, selectedTypes) : full;
+  }, [data, selectedTypes]);
+  const [view] = useState(() => {
+    if (!graph.nodes.length) return null;
+    if (!session.layout) session.layout = layout(graph);
+    return session.layout;
+  });
+  const [positions, setPositions] = useState(() => new Map(view?.nodes.map((n) => [n.id, { x: n.x, y: n.y }])));
+  const [focusedId, setFocusedIdState] = useState(() =>
+    graph.nodes.some((n) => n.id === session.focusedId) ? session.focusedId : null,
+  );
+  const setFocusedId = (id) => {
+    session.focusedId = id;
+    setFocusedIdState(id);
+  };
+  const edges = useMemo(() => edgeGeometry(graph.links, positions), [graph, positions]);
+  const neighbors = useMemo(() => directNeighborIds(graph, focusedId), [graph, focusedId]);
 
   if (!view) return <Muted>No bundles defined</Muted>;
+  const [minX, minY, width, height] = view.viewBox;
+
+  const onPointerDown = (event, id) => {
+    suppressClick.current = false;
+    if (gesture.current || !event.isPrimary || event.button !== 0) return;
+    const inverse = svgRef.current?.getScreenCTM()?.inverse();
+    if (!inverse || ![inverse.a, inverse.d, inverse.e, inverse.f].every(Number.isFinite)) return;
+    // Clamp to the visible SVG area, which exceeds the viewBox when the aspect ratios differ.
+    const rect = svgRef.current.getBoundingClientRect();
+    const tl = rect.width && rect.height ? toSvg(inverse, rect.left, rect.top) : { x: minX, y: minY };
+    const br = rect.width && rect.height ? toSvg(inverse, rect.right, rect.bottom) : { x: minX + width, y: minY + height };
+    gesture.current = {
+      bounds: { minX: Math.min(tl.x, minX), minY: Math.min(tl.y, minY), maxX: Math.max(br.x, minX + width), maxY: Math.max(br.y, minY + height) },
+      pointerId: event.pointerId,
+      id,
+      client: { x: event.clientX, y: event.clientY },
+      start: toSvg(inverse, event.clientX, event.clientY),
+      node: positions.get(id),
+      inverse,
+      dragging: false,
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+
+  const onPointerMove = (event) => {
+    const g = gesture.current;
+    if (!g || event.pointerId !== g.pointerId) return;
+    if (!g.dragging && Math.hypot(event.clientX - g.client.x, event.clientY - g.client.y) <= DRAG_THRESHOLD) return;
+    g.dragging = true;
+    const p = toSvg(g.inverse, event.clientX, event.clientY);
+    // The whole node box stays inside the visible area, so a release can never strand it.
+    const { bounds } = g;
+    g.last = {
+      x: Math.min(bounds.maxX - HW, Math.max(bounds.minX + HW, g.node.x + p.x - g.start.x)),
+      y: Math.min(bounds.maxY - HH, Math.max(bounds.minY + HH, g.node.y + p.y - g.start.y)),
+    };
+    setPositions((prev) => new Map(prev).set(g.id, g.last));
+  };
+
+  const endGesture = (event) => {
+    const g = gesture.current;
+    if (!g || event.pointerId !== g.pointerId) return;
+    gesture.current = null;
+    if (event.currentTarget.hasPointerCapture?.(g.pointerId)) event.currentTarget.releasePointerCapture(g.pointerId);
+    if (!g.dragging) return;
+    suppressClick.current = true;
+    if (g.last) view.nodes = view.nodes.map((n) => (n.id === g.id ? { id: n.id, ...g.last } : n));
+  };
+
+  const onNodeClick = (event, id) => {
+    event.stopPropagation();
+    // Keyboard activation (detail 0) is never the tail of a drag.
+    if (suppressClick.current && event.detail !== 0) {
+      suppressClick.current = false;
+      return;
+    }
+    setFocusedId(id);
+  };
+
+  const dim = (id) => (neighbors && !neighbors.has(id) ? DIM_OPACITY : 1);
+  const focused = graph.nodes.find((n) => n.id === focusedId);
 
   return (
-    <div>
+    <div
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') setFocusedId(null);
+      }}
+    >
       <Viewport>
-        <svg width="100%" height="100%" viewBox={view.viewBox} role="img" aria-label="Data model graph">
+        <svg
+          ref={svgRef}
+          width="100%"
+          height="100%"
+          viewBox={view.viewBox.join(' ')}
+          role="img"
+          aria-label="Data model graph"
+          onClick={() => setFocusedId(null)}
+        >
           <defs>
             <marker id={markerId} viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
               <path d="M0,0 L10,5 L0,10 z" fill="currentColor" />
             </marker>
           </defs>
           <g>
-            {view.edges.map((e) => (
-              <path
-                key={e.id}
-                data-edge-id={e.id}
-                d={e.d}
-                fill="none"
-                stroke="currentColor"
-                strokeOpacity={0.6}
-                strokeWidth={1.5}
-                markerEnd={`url(#${markerId})`}
-              >
-                <title>{`${e.source} → ${e.target} (${e.field})`}</title>
-              </path>
-            ))}
+            {edges.map((e) => {
+              const incident = focusedId != null && (e.source === focusedId || e.target === focusedId);
+              return (
+                <path
+                  key={e.id}
+                  data-edge-id={e.id}
+                  d={e.d}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeOpacity={incident ? 0.9 : neighbors ? 0.6 * DIM_OPACITY : 0.6}
+                  strokeWidth={incident ? 2 : 1.5}
+                  markerEnd={`url(#${markerId})`}
+                >
+                  <title>{`${e.source} → ${e.target} (${e.field})`}</title>
+                </path>
+              );
+            })}
           </g>
-          {view.nodes.map((n) => (
-            <foreignObject key={n.id} x={n.x - HW} y={n.y - HH} width={NODE_W} height={NODE_H}>
-              <NodeButton type="button" data-node-id={n.id} aria-label={n.id} title={n.id} onClick={() => onSelect?.(n.id)}>
-                <NodeTitle>{n.title}</NodeTitle>
-                <DeboBadge color={ENTITY_BADGE_COLORS[n.type] || 'red'}>{n.type}</DeboBadge>
-              </NodeButton>
-            </foreignObject>
-          ))}
+          {graph.nodes.map((n) => {
+            const { x, y } = positions.get(n.id);
+            return (
+              <foreignObject key={n.id} x={x - HW} y={y - HH} width={NODE_W} height={NODE_H} opacity={dim(n.id)}>
+                <NodeButton
+                  type="button"
+                  data-node-id={n.id}
+                  aria-label={n.id}
+                  aria-pressed={focusedId === n.id}
+                  title={n.id}
+                  onPointerDown={(event) => onPointerDown(event, n.id)}
+                  onPointerMove={onPointerMove}
+                  onPointerUp={endGesture}
+                  onPointerCancel={endGesture}
+                  onLostPointerCapture={endGesture}
+                  onClick={(event) => onNodeClick(event, n.id)}
+                  onDoubleClick={() => onSelect?.(n.id)}
+                >
+                  <NodeTitle>{n.title}</NodeTitle>
+                  <DeboBadge color={ENTITY_BADGE_COLORS[n.type] || 'red'}>{n.type}</DeboBadge>
+                </NodeButton>
+              </foreignObject>
+            );
+          })}
         </svg>
       </Viewport>
+      <DetailsBar>
+        {focused ? (
+          <DetailsButton type="button" onClick={() => onSelect?.(focused.id)}>
+            {`Details: ${focused.id}`}
+          </DetailsButton>
+        ) : (
+          'Click a bundle to highlight its neighbors, double-click to open it.'
+        )}
+      </DetailsBar>
       {graph.unresolved.length > 0 && (
         <>
           <UnresolvedHeading>Unresolved references</UnresolvedHeading>
