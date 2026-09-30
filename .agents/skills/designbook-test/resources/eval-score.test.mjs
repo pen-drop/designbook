@@ -14,6 +14,7 @@ import {
   artifactIntegrity,
   savedWorkflows,
   planToDocument,
+  loadWorkflowDocument,
 } from "./eval-score.mjs";
 
 test("bounded baseline evidence includes unchanged files and detects damage/deletion", () => {
@@ -1012,5 +1013,25 @@ test("affected cases reject a completed graph with only a final build", () => {
     assert.equal(evalAssertions([assertion], { runs: [run] }).passed, 0, name);
     run.componentPrerequisites = componentPrerequisites(graphDocument());
     assert.equal(evalAssertions([assertion], { runs: [run] }).passed, 1, name);
+  }
+});
+test("a fully checked MD plan counts as complete; an unchecked task does not", () => {
+  const done = planToDocument(
+    "# Plan: nav\n\n### Step: write\n- [x] write-component — nav-header\n### Step: check\n- [x] check — story\n",
+    "nav",
+  );
+  assert.equal(executionComplete(done), true);
+  const open = planToDocument(
+    "# Plan: nav\n\n### Step: write\n- [x] write-component — nav-header\n- [ ] check — story\n",
+    "nav",
+  );
+  assert.equal(executionComplete(open), false);
+  const dir = mkdtempSync(join(tmpdir(), "eval-md-"));
+  try {
+    const path = join(dir, "nav.md");
+    writeFileSync(path, "# Plan: nav\n\n### Step: write\n- [x] write-component — nav-header\n");
+    assert.equal(executionComplete(loadWorkflowDocument(path)), true);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 });

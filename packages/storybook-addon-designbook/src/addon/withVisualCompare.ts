@@ -3,67 +3,35 @@ import type { DecoratorFunction } from 'storybook/internal/types';
 
 import { VISUAL_COMPARE_KEY } from '../shared/constants';
 import { referenceImagePath } from '../tools/visual-compare-path';
+import { capturesFor, type CaptureOverlay, type VisualCompareStory } from './visual-compare-menu';
 
 interface VisualCompareState {
   breakpoint: string | null;
+  state: string | null;
   region: string | null; // null = all regions, specific name = single region
   opacity: number;
 }
 
-interface ElementDef {
-  name: string;
-  selector: string;
-  path: string;
-}
-
-interface StoryJSON {
-  referenceDir?: string | null;
-  reference?: string | null;
-  elements?: Array<{ id: string; selector: string }>;
-  referenceElements?: Array<{ id: string; views: Array<{ id: string }>; states: Array<{ name: string }> }>;
-  referenceCaptures?: Array<{ subject: string; view: string; state: string; path: string }>;
-}
-
 // Cache the full story fetch to avoid multiple requests per breakpoint
-const storyCache = new Map<string, Promise<StoryJSON | null>>();
+const storyCache = new Map<string, Promise<VisualCompareStory | null>>();
 
-function fetchStory(storyId: string): Promise<StoryJSON | null> {
+function fetchStory(storyId: string): Promise<VisualCompareStory | null> {
   const cached = storyCache.get(storyId);
   if (cached) return cached;
 
   const promise = fetch(`/__designbook/story/${encodeURIComponent(storyId)}`)
-    .then((res) => (res.ok ? (res.json() as Promise<StoryJSON>) : null))
+    .then((res) => (res.ok ? (res.json() as Promise<VisualCompareStory>) : null))
     .catch(() => null);
 
   storyCache.set(storyId, promise);
   return promise;
 }
 
-function regionsFor(story: StoryJSON, breakpoint: string): ElementDef[] {
-  const refElements = story.referenceElements;
-  if (!refElements || refElements.length === 0) return [];
-
-  // Build a map of element id → story selector for overlay positioning
-  const storyElements: Record<string, string> = {};
-  for (const el of story.elements ?? []) {
-    storyElements[el.id] = el.selector;
-  }
-
-  return refElements.flatMap((element) => {
-    if (!element.views.some((view) => view.id === breakpoint)) return [];
-    const state = element.states.find((state) => state.name === 'rest')?.name ?? element.states[0]?.name;
-    const capture = story.referenceCaptures?.find(
-      (capture) => capture.subject === element.id && capture.view === breakpoint && capture.state === state,
-    );
-    return capture ? [{ name: element.id, selector: storyElements[element.id] ?? '', path: capture.path }] : [];
-  });
-}
-
 function applyOverlays(
   canvasElement: HTMLElement,
   referenceDir: string,
   state: VisualCompareState,
-  regions: ElementDef[],
+  regions: CaptureOverlay[],
 ) {
   if (!canvasElement.isConnected) return;
 
@@ -126,10 +94,11 @@ function createOverlayImg(parent: HTMLElement, src: string, opacity: number, pos
 
 export const withVisualCompare: DecoratorFunction = (storyFn, context) => {
   const [globals] = useGlobals();
-  const raw = globals[VISUAL_COMPARE_KEY] ?? { breakpoint: null, region: null, opacity: 50 };
+  const raw = globals[VISUAL_COMPARE_KEY] ?? { breakpoint: null, state: null, region: null, opacity: 50 };
   const rawOpacity = Number(raw.opacity);
   const state: VisualCompareState = {
     breakpoint: raw.breakpoint || null,
+    state: raw.state || null,
     region: raw.region || null,
     opacity: Number.isFinite(rawOpacity) ? rawOpacity : 50,
   };
@@ -149,7 +118,7 @@ export const withVisualCompare: DecoratorFunction = (storyFn, context) => {
       // Clean again in case of race
       canvasElement.querySelectorAll('[data-visual-compare-overlay]').forEach((el) => el.remove());
       if (!story?.referenceDir) return;
-      const regions = regionsFor(story, state.breakpoint!);
+      const regions = capturesFor(story, state.breakpoint!, state.state);
       applyOverlays(canvasElement, story.referenceDir, state, regions);
     });
   });

@@ -132,7 +132,9 @@ export function executionComplete(document) {
       .map(([key]) => key);
     return (
       current?.status === "done" &&
-      Object.keys(results).length > 0 &&
+      // MD-plan seals carry no per-task results; there the checkbox is the done-state.
+      (Object.keys(task.outputs ?? {}).length === 0 ||
+        Object.keys(results).length > 0) &&
       required.every(
         (key) =>
           results[key]?.valid === true &&
@@ -365,6 +367,13 @@ export function artifactIntegrity(document, hashes) {
   return { passed: failures.length === 0, failures };
 }
 
+/** A sealed MD plan (`.md`) or a YAML workflow document. */
+export function loadWorkflowDocument(path) {
+  return path.endsWith(".md")
+    ? planToDocument(readFileSync(path, "utf8"), basename(path).replace(/\.md$/, ""))
+    : parseYaml(readFileSync(path, "utf8"));
+}
+
 export function collectRuns(entries, summarize = () => undefined) {
   const paths = new Set();
   const runs = entries.map((entry, index) => {
@@ -376,9 +385,7 @@ export function collectRuns(entries, summarize = () => undefined) {
     // ```yaml``` block that a raw parseYaml() would choke on. Mirror
     // savedWorkflows()'s dispatch: parse `.md` workflow paths as an MD-plan
     // document, everything else (tasks.yml) as YAML.
-    const document = path.endsWith(".md")
-      ? planToDocument(readFileSync(path, "utf8"), basename(path).replace(/\.md$/, ""))
-      : parseYaml(readFileSync(path, "utf8"));
+    const document = loadWorkflowDocument(path);
     const before = entry.definitionBefore
       ? parseYaml(readFileSync(entry.definitionBefore, "utf8"))
       : null;
@@ -483,7 +490,7 @@ export async function collectCaseArtifacts(
 async function main() {
   const summaryCmd = arg(
     "summary-cmd",
-    "npx storybook-addon-designbook workflow summary",
+    "npx storybook-addon-designbook plan summary",
   );
   const workflow = arg("workflow");
   const caseFile = arg("case");
@@ -517,7 +524,7 @@ async function main() {
     arg("baseline", "HEAD"),
   );
   artifacts.outputHashes = collectOutputHashes(
-    parseYaml(readFileSync(workflow, "utf8")),
+    loadWorkflowDocument(workflow),
   );
   if (arg("snapshot"))
     writeFileSync(arg("snapshot"), JSON.stringify(artifacts, null, 2));
@@ -537,7 +544,7 @@ async function main() {
     if (run.path === resolve(workflow) && !run.artifacts)
       run.artifacts = artifacts;
   const before = arg("definition-before");
-  const document = parseYaml(readFileSync(workflow, "utf8"));
+  const document = loadWorkflowDocument(workflow);
   const definitionUnchanged = before
     ? JSON.stringify(document.definition) ===
       JSON.stringify(parseYaml(readFileSync(before, "utf8")))

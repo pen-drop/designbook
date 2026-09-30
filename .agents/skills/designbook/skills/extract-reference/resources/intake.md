@@ -78,10 +78,18 @@ After publish succeeds, close out **screenshot approval** before ending the run:
    --scope <json>` (scope = subjects/states and views/breakpoints as needed), then
    update it to `approved` or `rejected` with the user's decision (optional
    `--note`). See [CLI workflow](../../../resources/cli-workflow.md).
-4. Stop after the approval record is written. Dependent design planning is a
-   later start that runs `reference approval-check`; this closeout does not
-   invoke a design workflow.
+4. Link the published revision's entries and ask the purpose question separately
+   from the screenshot approval, per the
+   [reference intake](../../../design/resources/reference-intake.md) suitability
+   step (links and question). Screenshot approval says the capture is correct;
+   the suitability answer says it fits the intended use case. Report the answer
+   with its revision and scope in the closeout; a resumed design intake reuses it
+   as the explicit answer for that revision and scope.
+5. Stop after the approval record is written and the suitability answer reported.
+   Dependent design planning is a later start that runs `reference approval-check`;
+   this closeout does not invoke a design workflow.
 
 Completion: the user has the revision directory, a per-subject account of its
-states, views, screenshots and asset files, and an `approval.yml` reflecting
-pending→approved/rejected.
+states, views, screenshots and asset files, one Storybook link per capture tuple,
+an `approval.yml` reflecting pending→approved/rejected, and a reported suitability
+answer with its scope.
