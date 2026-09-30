@@ -23,5 +23,6 @@ autoresearch-results.tsv
 .gaia/conductor.config.local.js
 .gaia/*.bak
 .gaia/log.txt
+.gaia/ports-tunnels.json
 .gaia-worktrees
 /assets-ai/

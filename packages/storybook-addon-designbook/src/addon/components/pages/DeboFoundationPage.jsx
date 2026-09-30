@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { DeboProductOverview } from '../display/DeboProductOverview.jsx';
 import { DeboSection } from '../DeboSection.jsx';
 import { DeboDataModel } from '../display/DeboDataModel.jsx';
@@ -8,6 +8,8 @@ import { DeboTabs } from '../ui/DeboTabs.jsx';
 
 export function DeboFoundationPage() {
   const [entity, setEntity] = useUrlState('debo-entity', null);
+  // Held here: the tab content remounts whenever this page re-renders.
+  const [dataModelView, setDataModelView] = useState('cards');
 
   return (
     <DeboTabs
@@ -31,7 +33,13 @@ export function DeboFoundationPage() {
               command="/debo data-model"
               emptyMessage="No data model defined yet"
               renderContent={(data) => (
-                <DeboDataModel data={data} selectedEntity={entity} onSelectEntity={setEntity} />
+                <DeboDataModel
+                  data={data}
+                  selectedEntity={entity}
+                  onSelectEntity={setEntity}
+                  view={dataModelView}
+                  onViewChange={setDataModelView}
+                />
               )}
             />
           ),

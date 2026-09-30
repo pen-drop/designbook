@@ -5,6 +5,7 @@ import { DeboCard } from '../ui/DeboCard.jsx';
 import { DeboGrid } from '../ui/DeboGrid.jsx';
 import { DeboModeBadges } from '../ui/DeboModeBadges.jsx';
 import { DeboDataModelDetail } from './DeboDataModelDetail.jsx';
+import { DeboDataModelGraph } from './DeboDataModelGraph.jsx';
 import { ENTITY_BADGE_COLORS } from './entityColors.js';
 import { listDesignbookFiles } from '../designbookApi.js';
 
@@ -21,6 +22,21 @@ const SectionHeading = styled.h3(({ theme }) => ({
   color: theme.textMutedColor,
   margin: 0,
   paddingTop: '8px',
+}));
+
+const ViewSwitch = styled.div({ display: 'flex', gap: 4 });
+
+const ViewButton = styled.button(({ theme }) => ({
+  padding: '4px 12px',
+  border: `1px solid ${theme.appBorderColor}`,
+  borderRadius: theme.appBorderRadius,
+  background: 'transparent',
+  color: theme.color.defaultText,
+  fontFamily: theme.typography.fonts.base,
+  fontSize: 13,
+  cursor: 'pointer',
+  '&[aria-pressed="true"]': { background: theme.background.hoverable, fontWeight: 600 },
+  '&:focus-visible': { outline: `2px solid ${theme.color.secondary}`, outlineOffset: 2 },
 }));
 
 function EntityGroup({ type, bundles, onSelect, dataModel, mappings }) {
@@ -71,8 +87,12 @@ function EntityGroup({ type, bundles, onSelect, dataModel, mappings }) {
   );
 }
 
-export function DeboDataModel({ data, selectedEntity, onSelectEntity }) {
+export function DeboDataModel({ data, selectedEntity, onSelectEntity, view: viewProp, onViewChange }) {
   const [mappings, setMappings] = useState(null); // null = pending
+  // Parents that remount this component on selection (DeboFoundationPage) own the view choice.
+  const [localView, setLocalView] = useState('cards');
+  const view = viewProp ?? localView;
+  const setView = onViewChange ?? setLocalView;
   useEffect(() => {
     let alive = true;
     Promise.all([
@@ -108,8 +128,28 @@ export function DeboDataModel({ data, selectedEntity, onSelectEntity }) {
   const contentTypes = Object.entries(data.content || {});
   const configTypes = Object.entries(data.config || {});
 
+  const viewSwitch = (
+    <ViewSwitch role="group" aria-label="Data model view">
+      {['cards', 'graph'].map((id) => (
+        <ViewButton key={id} type="button" aria-pressed={view === id} onClick={() => setView(id)}>
+          {id === 'cards' ? 'Cards' : 'Graph'}
+        </ViewButton>
+      ))}
+    </ViewSwitch>
+  );
+
+  if (view === 'graph') {
+    return (
+      <DeboGrid gap="lg">
+        {viewSwitch}
+        <DeboDataModelGraph data={data} onSelect={(path) => onSelectEntity?.(path)} />
+      </DeboGrid>
+    );
+  }
+
   return (
     <DeboGrid gap="lg">
+      {viewSwitch}
       {contentTypes.map(([type, bundles]) => (
         <EntityGroup
           key={type}
