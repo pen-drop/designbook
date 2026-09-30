@@ -24,7 +24,45 @@ const SectionHeading = styled.h3(({ theme }) => ({
   paddingTop: '8px',
 }));
 
-const ViewSwitch = styled.div({ display: 'flex', flexWrap: 'wrap', gap: 4 });
+const ViewSwitch = styled.div({ display: 'flex', gap: 4 });
+
+const Toolbar = styled.div({
+  display: 'flex',
+  flexWrap: 'wrap',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 12,
+});
+
+const FilterGroup = styled.div({ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 });
+
+const FilterLabel = styled.span(({ theme }) => ({
+  fontSize: 11,
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  color: theme.textMutedColor,
+  marginRight: 2,
+}));
+
+const FilterChip = styled.button(({ theme }) => ({
+  padding: '2px 10px',
+  border: `1px solid ${theme.appBorderColor}`,
+  borderRadius: 999,
+  background: 'transparent',
+  color: theme.textMutedColor,
+  fontFamily: theme.typography.fonts.base,
+  fontSize: 12,
+  lineHeight: '18px',
+  cursor: 'pointer',
+  '&[aria-pressed="true"]': {
+    borderColor: theme.color.secondary,
+    background: theme.background.hoverable,
+    color: theme.color.defaultText,
+    fontWeight: 600,
+  },
+  '&:focus-visible': { outline: `2px solid ${theme.color.secondary}`, outlineOffset: 2 },
+}));
 
 const Muted = styled.p(({ theme }) => ({ color: theme.textMutedColor, fontSize: 13 }));
 
@@ -166,13 +204,14 @@ export function DeboDataModel({ data, selectedEntity, onSelectEntity, view: view
   const configTypes = Object.entries(data.config || {}).filter(hasBundles);
 
   const typeFilter = (
-    <ViewSwitch role="group" aria-label="Entity types">
+    <FilterGroup role="group" aria-label="Entity types">
+      <FilterLabel aria-hidden="true">Filter</FilterLabel>
       {entityTypes(data).map((type) => (
-        <ViewButton key={type} type="button" aria-pressed={selected.has(type)} onClick={() => toggleType(type)}>
+        <FilterChip key={type} type="button" aria-pressed={selected.has(type)} onClick={() => toggleType(type)}>
           {type}
-        </ViewButton>
+        </FilterChip>
       ))}
-    </ViewSwitch>
+    </FilterGroup>
   );
   const noneSelected = selected.size === 0 && entityTypes(data).length > 0;
   const empty = noneSelected ? 'No entity types selected' : 'No bundles defined';
@@ -190,8 +229,10 @@ export function DeboDataModel({ data, selectedEntity, onSelectEntity, view: view
   if (view === 'graph') {
     return (
       <DeboGrid gap="lg">
-        {typeFilter}
-        {viewSwitch}
+        <Toolbar>
+          {viewSwitch}
+          {typeFilter}
+        </Toolbar>
         {noneSelected ? (
           <Muted>{empty}</Muted>
         ) : (
@@ -210,8 +251,10 @@ export function DeboDataModel({ data, selectedEntity, onSelectEntity, view: view
 
   return (
     <DeboGrid gap="lg">
-      {typeFilter}
-      {viewSwitch}
+      <Toolbar>
+        {viewSwitch}
+        {typeFilter}
+      </Toolbar>
       {contentTypes.length + configTypes.length === 0 && <Muted>{empty}</Muted>}
       {contentTypes.map(([type, bundles]) => (
         <EntityGroup
