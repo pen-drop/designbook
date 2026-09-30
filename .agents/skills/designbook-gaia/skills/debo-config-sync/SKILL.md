@@ -18,9 +18,6 @@ inputs:
   validate.prompt:
     description: verification skill for the acceptance criteria
     default: "@designbook/sync-verify"
-  provision.command:
-    description: command that brings up the test environment
-    default: ddev init
   reference.prompt:
     description: preparation of the reference used by planning and verification
     default: >
@@ -33,8 +30,8 @@ inputs:
 
 Read and apply `@gaia/method-context` and `@gaia/workflow-step` for the current
 step. They own scope approval, checks, handoff publication, multi-work ordering,
-authorization and transitions. Provision through `@gaia/provision-ddev` with
-`provision.command` only when reference capture or a selected check needs it.
+authorization and transitions. Storybook is the render environment for planning
+and verification — no separate test-environment provisioning is used.
 Resolve typed inputs from project overrides or defaults under the workflow-step
 contract; preserve the reference → saved plan → execution handoff.
 

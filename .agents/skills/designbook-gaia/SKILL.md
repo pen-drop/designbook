@@ -24,16 +24,14 @@ and the merge gate.
 
 The step-skills follow `@gaia/workflow-step`. Preserve their `when` triples for
 GAIA's coverage/collision validation. Project `WORKFLOW.md` input overrides
-use `<role>.prompt` or `<role>.command` keys and replace defaults while preserving
+use `<role>.prompt` keys and replace defaults while preserving
 the reference → plan → execute contract.
 
 ```markdown
 ## Loaded skills
 
 - @designbook-gaia/debo-designbook-design
-    provision.command: ddev init --provider recipe-test
 - @designbook-gaia/debo-config-sync
-    provision.command: ddev init --provider recipe-test
 ```
 
 GAIA owns lifecycle helpers and recording configured measurements. The step-skills
