@@ -23,9 +23,9 @@ and the merge gate.
 ## Project configuration
 
 The step-skills follow `@gaia/workflow-step`. Preserve their `when` triples for
-GAIA's coverage/collision validation. Project `WORKFLOW.md` input overrides
-use `<role>.prompt` keys and replace defaults while preserving
-the reference → plan → execute contract.
+GAIA's coverage/collision validation. Per-step skill selection resolves through
+`@gaia/method-context` and the [skill map](references/designbook.md) — not through
+per-step inputs — while preserving the reference → plan → execute contract.
 
 ```markdown
 ## Loaded skills

@@ -8,22 +8,6 @@ when:
 work_type_term:
   name: "work:designbook-to-config"
   description: "Sub-work: export Designbook display to Drupal config via sync-to; validate via sync-verify."
-inputs:
-  spec.prompt:
-    description: intake that creates the executable plan during spec
-    default: "Invoke @designbook/sync-to in persist mode."
-  build.prompt:
-    description: executor for the persisted plan from the handoff
-    default: "Invoke @designbook/execute-workflow with the exact saved plan path."
-  validate.prompt:
-    description: verification skill for the acceptance criteria
-    default: "@designbook/sync-verify"
-  reference.prompt:
-    description: preparation of the reference used by planning and verification
-    default: >
-      Prepare the Designbook baseline for the selected config scope. Reuse upstream
-      reference revisions; capture missing visual evidence in a separate
-      @designbook/extract-reference run when needed.
 ---
 
 # designbook-to-config
@@ -32,8 +16,8 @@ Read and apply `@gaia/method-context` and `@gaia/workflow-step` for the current
 step. They own scope approval, checks, handoff publication, multi-work ordering,
 authorization and transitions. Storybook is the render environment for planning
 and verification — no separate test-environment provisioning is used.
-Resolve typed inputs from project overrides or defaults under the workflow-step
-contract; preserve the reference → saved plan → execution handoff.
+Per-step skill selection follows the [skill map](../../references/designbook.md)
+under `@gaia/method-context`; preserve the reference → saved plan → execution handoff.
 
 ## spec
 
@@ -59,11 +43,14 @@ contract; preserve the reference → saved plan → execution handoff.
 
 Apply in spec, or after RED diagnosis for a repair:
 
-1. Follow `reference.prompt`. Complete required screenshot approval before
-   dependent planning. Capture runs separately through `extract-reference`;
-   resume planning after its closeout. When new visual capture is unnecessary,
-   record `not_required` with a reason and identify the existing source artifacts.
-2. Follow `spec.prompt` with explicit `persist` mode under the Designbook
+1. Prepare the Designbook baseline for the selected config scope, reusing upstream
+   reference revisions. `@designbook/extract-reference` runs as a separate capture,
+   loaded only when a reference source is named in the ticket or `vision.md`
+   (see the [skill map](../../references/designbook.md)). Complete required screenshot
+   approval before dependent planning; resume planning after its closeout. When new
+   visual capture is unnecessary, record `not_required` with a reason and identify
+   the existing source artifacts.
+2. Invoke `@designbook/sync-to` in explicit `persist` mode under the Designbook
    [builder](../../../designbook/resources/workflow-building.md). Resolve all
    targets, task parameters and any `ReferenceNeed`. Completion: `plan build`
    returns `ok` and the exact path of a sealed durable plan; execution has not
@@ -79,7 +66,7 @@ Apply in spec, or after RED diagnosis for a repair:
    `qualified`. Frame RED with `@gaia/run-intake`.
 2. Invoke `@gaia/diagnose-ticket` with the selected method. Record acceptance
    criteria and the actual failing check through the configured checks and
-   `validate.prompt`. Diagnose without executing repairs: **RED** means the
+   `@designbook/sync-verify`. Diagnose without executing repairs: **RED** means the
    reported defect still reproduces.
 3. Apply *Designbook planning* for the repair. Publish the diagnosis, RED evidence,
    complete repair plan and verification plan under `@gaia/method-context`.
@@ -91,14 +78,14 @@ Apply in spec, or after RED diagnosis for a repair:
 ## coding
 
 Follow `@gaia/method-context` → *Coding flow*, ending at *Coding gate*, with
-these domain inputs:
+these domain steps:
 
 - Before implementation, resolve the confirmed handoff's executable plan and
   reference. Check required reference approvals. Missing artifacts or unresolved
   references block execution; publish the incomplete handoff instead of re-intake.
-- At the implementation step, the owner follows `build.prompt` directly with
-  the exact saved plan path and approved scope. Apply the shared pre-build check.
-- Run `validate.prompt` as functional verification alongside every applicable
+- At the implementation step, the owner invokes `@designbook/execute-workflow`
+  directly with the exact saved plan path and approved scope. Apply the shared pre-build check.
+- Run `@designbook/sync-verify` as functional verification alongside every applicable
   project check. Fix within approved scope and require GREEN for every applicable
   acceptance criterion. A repair that expands scope follows `@gaia/scope-change`.
 - Include the verification report, config diff and the evidence below in the
@@ -109,7 +96,7 @@ these domain inputs:
 
 Follow `@gaia/method-context` → *Review flow*, including evidence reuse, the
 parent's closed repair list, cause-dependent `Not OK` routing and the merge gate.
-Use `validate.prompt` for Designbook functional evidence; rerun when the shared
+Use `@designbook/sync-verify` for Designbook functional evidence; rerun when the shared
 flow requires it. A verification run in diagnosis or review stops at its findings,
 before Designbook's automatic repair handoff; review repairs remain governed by
 GAIA's closed list. Review is mandatory for features; bug/chore destination
