@@ -18,6 +18,10 @@ const Heading = styled.h3(({ theme }) => ({
   borderBottom: `1px solid ${theme.appBorderColor}`,
 }));
 
+/** Publication time in the viewer's locale, e.g. `28.09.2026, 15:30`. */
+export const formatPublished = (iso) =>
+  iso ? new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '';
+
 export const APPROVAL_COLORS = { approved: 'green', pending: 'yellow', rejected: 'red', stale: 'red', none: 'gray' };
 
 export function DeboReferencesOverview() {
@@ -47,10 +51,11 @@ export function DeboReferencesOverview() {
               </DeboTable.Td>
               <DeboTable.Td>
                 {ref.status === 'ok' && ref.captures[0] ? (
-                  <DeboLink storyId={ref.captures[0].storyId}>{ref.label}</DeboLink>
-                ) : (
-                  ref.label
-                )}
+                  <DeboLink storyId={ref.captures[0].storyId}>Revision {ref.number}</DeboLink>
+                ) : ref.number ? (
+                  `Revision ${ref.number}`
+                ) : null}
+                <div>{[formatPublished(ref.publishedAt), ref.label].filter(Boolean).join(' · ')}</div>
                 <div>
                   <DeboTable.Mono>{ref.binding}</DeboTable.Mono>
                 </div>

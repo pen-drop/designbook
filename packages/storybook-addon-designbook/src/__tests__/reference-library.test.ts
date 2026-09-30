@@ -1,5 +1,5 @@
 import { afterEach, describe, it, expect } from 'vitest';
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync, utimesSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -104,14 +104,15 @@ describe('reference index and module', () => {
     const file = join(f.folder, 'publication.json');
     const entries = referenceIndexEntries(data, file);
     expect(entries).toHaveLength(4);
-    expect(entries[0]!.title).toBe('Designbook/References/website: example.test | header/capture-one');
+    expect(entries[0]!.title).toBe('Designbook/References/website: example.test | header/Revision 1');
     expect(entries.map((e) => e.name)).toContain('header · desktop · open');
     expect(entries.map((e) => e.storyId)).toContain(
-      'designbook-references-website-example-test-header-capture-one--header-desktop-open',
+      `designbook-references-${f.location.id}-${f.location.revision}--header-desktop-open`,
     );
     const module = buildReferenceModule(data, file);
     for (const entry of entries) expect(module).toContain(`export const ${entry.exportName} = {`);
     expect(module).toContain(JSON.stringify(entries[0]!.title));
+    expect(module).toContain(JSON.stringify(entries[0]!.metaId));
     const entry = listReferences(data)[0]!;
     expect(entries.map((e) => e.storyId).sort()).toEqual(entry.captures.map((c) => c.storyId).sort());
   });
@@ -131,5 +132,32 @@ describe('revisionLabel', () => {
     expect(revisionLabel('/w/designbook/plans/2026-09-29-homepage-hero/plan.md')).toBe('2026-09-29-homepage-hero');
     expect(revisionLabel('/w/designbook/capture-one.plan.md')).toBe('capture-one');
     expect(revisionLabel('/w/designbook/plans/.ephemeral/hero-capture.md')).toBe('hero-capture');
+  });
+});
+
+describe('revision numbering', () => {
+  it('numbers published revisions of one reference by publication time and keeps ids stable', async () => {
+    const data = root();
+    const older = await published(data, 'capture-two');
+    const newer = await published(data, 'capture-one');
+    utimesSync(
+      join(older.folder, 'publication.json'),
+      new Date('2026-09-28T09:00:00Z'),
+      new Date('2026-09-28T09:00:00Z'),
+    );
+    utimesSync(
+      join(newer.folder, 'publication.json'),
+      new Date('2026-09-28T15:30:00Z'),
+      new Date('2026-09-28T15:30:00Z'),
+    );
+    const byBinding = new Map(listReferences(data).map((e) => [e.binding, e]));
+    expect(byBinding.get(older.binding)!.number).toBe(1);
+    expect(byBinding.get(newer.binding)!.number).toBe(2);
+    expect(byBinding.get(newer.binding)!.publishedAt).toBe('2026-09-28T15:30:00.000Z');
+    expect(byBinding.get(newer.binding)!.title).toMatch(/\/Revision 2$/);
+    expect(loadReferenceEntry(data, newer.location.id, newer.location.revision)!.number).toBe(2);
+    expect(byBinding.get(newer.binding)!.captures[0]!.storyId).toMatch(
+      new RegExp(`^designbook-references-${newer.location.id}-${newer.location.revision}--`),
+    );
   });
 });

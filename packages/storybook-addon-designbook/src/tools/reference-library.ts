@@ -2,7 +2,7 @@
  * Browsable inventory of published reference revisions under `<data>/references/<id>/<revision>/`.
  * One source for the Storybook indexer, the generated CSF module and the `/__designbook/references` endpoint.
  */
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { Reference, isReferenceBinding } from './reference-entity.js';
 import { readApproval, publicationFilesFingerprint } from './reference-approval.js';
@@ -34,9 +34,15 @@ export interface ReferenceLibraryEntry {
   dir: string;
   status: ReferenceEntryStatus;
   error?: string;
-  /** Readable revision name (capture plan); `id/revision` stays the identity. */
+  /** Capture plan that produced the revision; `id/revision` stays the identity. */
   label: string;
+  /** 1-based position among this reference's published revisions, by publication time. */
+  number?: number;
+  /** ISO time `publication.json` was written (publication is write-once). */
+  publishedAt?: string;
   title?: string;
+  /** Storybook meta id, bound to the immutable id/revision so URLs survive renumbering. */
+  metaId?: string;
   source: { kind: string; identity: string; revision: string | null };
   views: Array<{ id: string; width: number; height: number; breakpoint?: string }>;
   captures: ReferenceCaptureEntry[];
@@ -52,10 +58,20 @@ export function revisionLabel(workflow: string): string {
   return file === 'plan.md' ? basename(dirname(workflow)) : file.replace(/(\.plan)?\.md$/, '');
 }
 
-function sidebarTitle(source: ReferenceLibraryEntry['source'], label: string): string {
-  // One sidebar level per source and per revision: a `/` would open extra groups.
+function sidebarTitle(source: ReferenceLibraryEntry['source'], number: number): string {
+  // One sidebar level per source: a `/` in the identity would open extra groups.
   const identity = source.identity.replace(/^[a-z]+:\/\//i, '').replace(/\/+/g, ' | ');
-  return `Designbook/References/${source.kind}: ${identity}/${label.replace(/\//g, ' | ')}`;
+  return `Designbook/References/${source.kind}: ${identity}/Revision ${number}`;
+}
+
+/** Published revisions of one reference id → their 1-based number by publication time. */
+function revisionNumbers(root: string, id: string): Map<string, number> {
+  // ponytail: publication time is the file mtime (write-once `wx`); a copy that resets mtimes reorders numbers.
+  const published = readdirSync(join(root, id))
+    .filter((revision) => existsSync(join(root, id, revision, 'publication.json')))
+    .map((revision) => ({ revision, time: statSync(join(root, id, revision, 'publication.json')).mtimeMs }))
+    .sort((a, b) => a.time - b.time || a.revision.localeCompare(b.revision));
+  return new Map(published.map((p, index) => [p.revision, index + 1]));
 }
 
 function approvalState(directory: string, files: Record<string, string>): ReferenceApprovalState {
@@ -65,7 +81,13 @@ function approvalState(directory: string, files: Record<string, string>): Refere
   return approval.fingerprint === current ? approval.status : 'stale';
 }
 
-function entry(data: string, id: string, revision: string, boundStories: string[]): ReferenceLibraryEntry | null {
+function entry(
+  data: string,
+  id: string,
+  revision: string,
+  boundStories: string[],
+  number: number | undefined,
+): ReferenceLibraryEntry | null {
   const binding = `${id}/${revision}`;
   const directory = join(resolve(data, 'references'), binding);
   // The capture owner (reserved before any file is written) names the revision in every status.
@@ -86,13 +108,16 @@ function entry(data: string, id: string, revision: string, boundStories: string[
     boundStories,
   };
   if (!existsSync(join(directory, 'publication.json'))) return { ...base, status: 'unpublished' };
+  const publishedAt = statSync(join(directory, 'publication.json')).mtime.toISOString();
   try {
     const reference = Reference.load({ data, technology: 'html' }, binding);
-    if (!reference) return { ...base, status: 'invalid', error: 'Revision directory is outside references/' };
+    if (!reference)
+      return { ...base, status: 'invalid', number, publishedAt, error: 'Revision directory is outside references/' };
     const json = reference.toJSON();
     if (json.role !== 'reference') return null;
     const published = readPublishedCapture(directory);
-    const title = sidebarTitle(json.source, label);
+    const title = sidebarTitle(json.source, number!);
+    const metaId = `designbook-references-${id}-${revision}`;
     const views = new Map(json.elements.flatMap((el) => el.views.map((view) => [view.id, view] as const)));
     const sessions = new Map(
       json.elements.flatMap((el) => el.states.map((state) => [`${el.id}\0${state.name}`, state.session] as const)),
@@ -105,21 +130,30 @@ function entry(data: string, id: string, revision: string, boundStories: string[
         session: sessions.get(`${capture.subject}\0${capture.state}`) ?? '',
         name,
         exportName,
-        // Storybook's own id derivation, so links match the index exactly.
-        storyId: toId(title, storyNameFromExport(exportName)),
+        // Storybook's own id derivation from the meta id, so links match the index exactly.
+        storyId: toId(metaId, storyNameFromExport(exportName)),
       };
     });
     return {
       ...base,
       status: 'ok',
+      number,
+      publishedAt,
       title,
+      metaId,
       source: json.source,
       views: [...views.values()],
       captures,
       approval: approvalState(directory, published.files),
     };
   } catch (error) {
-    return { ...base, status: 'invalid', error: error instanceof Error ? error.message : String(error) };
+    return {
+      ...base,
+      status: 'invalid',
+      number,
+      publishedAt,
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }
 
@@ -139,20 +173,23 @@ export function listReferences(data: string): ReferenceLibraryEntry[] {
   const entries: ReferenceLibraryEntry[] = [];
   for (const id of readdirSync(root, { withFileTypes: true })) {
     if (!id.isDirectory()) continue;
+    const numbers = revisionNumbers(root, id.name);
     for (const revision of readdirSync(join(root, id.name), { withFileTypes: true })) {
       if (!revision.isDirectory() || !isReferenceBinding(`${id.name}/${revision.name}`)) continue;
       const binding = `${id.name}/${revision.name}`;
-      const item = entry(data, id.name, revision.name, bound.get(binding) ?? []);
+      const item = entry(data, id.name, revision.name, bound.get(binding) ?? [], numbers.get(revision.name));
       if (item) entries.push(item);
     }
   }
-  return entries;
+  return entries.sort((a, b) => a.id.localeCompare(b.id) || (a.number ?? Infinity) - (b.number ?? Infinity));
 }
 
 export function loadReferenceEntry(data: string, id: string, revision: string): ReferenceLibraryEntry | null {
   if (!isReferenceBinding(`${id}/${revision}`)) return null;
-  if (!existsSync(join(resolve(data, 'references'), id, revision))) return null;
-  return entry(data, id, revision, boundStoriesByBinding(data).get(`${id}/${revision}`) ?? []);
+  const root = resolve(data, 'references');
+  if (!existsSync(join(root, id, revision))) return null;
+  const number = revisionNumbers(root, id).get(revision);
+  return entry(data, id, revision, boundStoriesByBinding(data).get(`${id}/${revision}`) ?? [], number);
 }
 
 /** A `publication.json` path → the healthy role-reference entry it publishes, or null. */
@@ -166,11 +203,12 @@ function entryForPublication(data: string, file: string): ReferenceLibraryEntry 
 export function referenceIndexEntries(
   data: string,
   file: string,
-): Array<{ title: string; name: string; exportName: string; storyId: string }> {
+): Array<{ title: string; metaId: string; name: string; exportName: string; storyId: string }> {
   const found = entryForPublication(data, file);
   if (!found) return [];
   return found.captures.map((c) => ({
     title: found.title!,
+    metaId: found.metaId!,
     name: c.name,
     exportName: c.exportName,
     storyId: c.storyId,
@@ -189,7 +227,7 @@ export function buildReferenceModule(data: string, file: string): string {
     MOUNT_REACT_IMPORT,
     REFERENCE_PAGE_IMPORT,
     '',
-    `export default { title: ${JSON.stringify(found.title)}, tags: ['!autodocs'], parameters: { layout: 'fullscreen' } };`,
+    `export default { id: ${JSON.stringify(found.metaId)}, title: ${JSON.stringify(found.title)}, tags: ['!autodocs'], parameters: { layout: 'fullscreen' } };`,
     '',
   ];
   for (const capture of found.captures) {

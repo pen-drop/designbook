@@ -44,7 +44,7 @@ assert:
   # Suitability: exact revision, recorded answer and a link to the D-2 reference entry of the tuple.
   - type: javascript
     value: |-
-      output.runs.every(r => r.evidence?.checks?.some(c => c.observations?.["reference.binding"] === '9710f2819b47e1ac/85fa2c97919940e1' && c.observations?.["reference.suitability"] === 'yes' && /\?path=\/story\/designbook-references-website-example-test-header-capture-one--header-desktop-rest$/.test(String(c.observations?.["reference.link"]))))
+      output.runs.every(r => r.evidence?.checks?.some(c => c.observations?.["reference.binding"] === '9710f2819b47e1ac/85fa2c97919940e1' && c.observations?.["reference.suitability"] === 'yes' && /\?path=\/story\/designbook-references-9710f2819b47e1ac-85fa2c97919940e1--header-desktop-rest$/.test(String(c.observations?.["reference.link"]))))
   # The approval gate stays intact: the seeded approval is untouched.
   - type: javascript
     value: output.unchangedFiles.includes('designbook/references/9710f2819b47e1ac/85fa2c97919940e1/approval.yml')

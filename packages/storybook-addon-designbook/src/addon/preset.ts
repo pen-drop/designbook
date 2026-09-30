@@ -378,6 +378,7 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
         importPath,
         exportName: entry.exportName,
         title: entry.title,
+        metaId: entry.metaId,
         name: entry.name,
         tags: ['reference', '!autodocs'],
       }));

@@ -8,7 +8,7 @@ import { DeboPageLayout } from '../ui/DeboPageLayout.jsx';
 import { DeboTable } from '../ui/DeboTable.jsx';
 import { useReferences } from '../../hooks/useReferences.js';
 import { referenceImagePath } from '../../../tools/visual-compare-path';
-import { APPROVAL_COLORS } from './DeboReferencesOverview.jsx';
+import { APPROVAL_COLORS, formatPublished } from './DeboReferencesOverview.jsx';
 
 const Heading = styled.h3(({ theme }) => ({
   fontSize: theme.typography.size.l1,
@@ -78,7 +78,8 @@ export function DeboReferencePage({ id, revision, subject, view, state }) {
   };
 
   const facts = [
-    ['Revision', ref.label],
+    ['Revision', `Revision ${ref.number} — published ${formatPublished(ref.publishedAt)}`],
+    ['Capture plan', ref.label],
     ['Reference', `${ref.id}/${ref.revision}`],
     ['Source', `${ref.source.kind}: ${ref.source.identity}${ref.source.revision ? ` @ ${ref.source.revision}` : ''}`],
     ['Subject', capture.subject],
