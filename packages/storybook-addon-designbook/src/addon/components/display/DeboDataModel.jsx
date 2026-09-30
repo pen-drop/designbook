@@ -26,15 +26,15 @@ const SectionHeading = styled.h3(({ theme }) => ({
 
 const ViewSwitch = styled.div({ display: 'flex', gap: 4 });
 
-const Toolbar = styled.div({
+const Toolbar = styled.div({ display: 'flex', flexDirection: 'column', gap: 12 });
+
+const FilterGroup = styled.div({
   display: 'flex',
   flexWrap: 'wrap',
   alignItems: 'center',
-  justifyContent: 'space-between',
-  gap: 12,
+  justifyContent: 'flex-end',
+  gap: 6,
 });
-
-const FilterGroup = styled.div({ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 });
 
 const FilterLabel = styled.span(({ theme }) => ({
   fontSize: 11,
@@ -230,8 +230,8 @@ export function DeboDataModel({ data, selectedEntity, onSelectEntity, view: view
     return (
       <DeboGrid gap="lg">
         <Toolbar>
-          {viewSwitch}
           {typeFilter}
+          {viewSwitch}
         </Toolbar>
         {noneSelected ? (
           <Muted>{empty}</Muted>
@@ -252,8 +252,8 @@ export function DeboDataModel({ data, selectedEntity, onSelectEntity, view: view
   return (
     <DeboGrid gap="lg">
       <Toolbar>
-        {viewSwitch}
         {typeFilter}
+        {viewSwitch}
       </Toolbar>
       {contentTypes.length + configTypes.length === 0 && <Muted>{empty}</Muted>}
       {contentTypes.map(([type, bundles]) => (
