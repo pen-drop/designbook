@@ -1,6 +1,6 @@
 ---
 name: debo-designbook-design
-description: Handle the GAIA workflow step for this Designbook work type. Use only for the matching work_type and current step.
+description: Run GAIA diagnose, spec, coding or review for design-to-designbook.
 when:
   work_type: design-to-designbook
   workflow: [gaia_feature, gaia_bug, gaia_chore]
@@ -8,161 +8,114 @@ when:
 work_type_term:
   name: "work:design-to-designbook"
   description: "Sub-work: build or fix the Designbook/SDC component; acceptance in Storybook, validated via design-verify."
-inputs:
-  spec:
-    description: domain scope to record during spec without executing an intake
-    default: describe intended artifacts, targets, references and acceptance checks
-  build:
-    description: how to build the design autonomously from the spec plan
-    default: >
-      Prefer @designbook/execute-workflow on a durable persisted-plan path from a
-      persist handoff (the exact `plan` field `plan build` returned) when present.
-      If references are pending or unapproved
-      (approval-check fails or ReferenceNeed unresolved), surface the blockade
-      and do not start design execute. Otherwise, when no durable plan exists yet
-      and the mode allows, invoke the matching Designbook intake with the
-      specified domain task — intakes honor ephemeral|persist|ask (not
-      unconditional auto-execute).
-  validate:
-    description: command that validates the Designbook artifacts
-    default: "@designbook/design-verify"
-  provision:
-    description: command that brings up the test environment
-    default: ddev init
-  reference_capture:
-    description: how the spec step surfaces the design reference in the ticket — which reference images/screenshots to list and link
-    default: |
-      List existing reference images or capture the supplied reference independently of any
-      Designbook intake. Pass resolved links with options.gaia.kind: reference to run-outtake
-      and transition-ticket. If no reference is needed, record not_required.
-
 ---
 
-# Designing to Designbook (work:design-to-designbook)
+# design-to-designbook
 
-Work only the ticket's current step, then stop. In spec, describe intended artifacts,
-references, targets, acceptance checks, intended execution mode
-(`ephemeral` | `persist` | `ask`), and any `ReferenceNeed` without invoking a Designbook
-intake. In coding, prefer `@designbook/execute-workflow` on a durable plan from a persist
-handoff; otherwise use the matching intake under shared builder modes. Validate with the
-configured verification skill. Project overrides replace the corresponding input defaults.
-
-**Shared start.** Invoke `@gaia/read-ticket` (all comments + latest handoff). For `spec`,
-`diagnose`, and `coding` also invoke `@gaia/ensure-qualification` — STOP on
-`returned_to_qualification` (the guard already published findings, transitioned to `qualification`,
-and published origin status); continue only on `qualified`. Bring up the test environment by
-running `provision` via `@gaia/provision-ddev`, and frame the run with `@gaia/run-intake`. `review`
-starts the same way **without** `@gaia/ensure-qualification`.
+Read and apply `@gaia/method-context` and `@gaia/workflow-step` for the current
+step. They own scope approval, checks, handoff publication, multi-work ordering,
+authorization and transitions. Storybook is the render environment for planning
+and verification — no separate test-environment provisioning is used.
+Per-step skill selection follows the [skill map](../../references/designbook.md)
+under `@gaia/method-context`; preserve the reference → saved plan → execution handoff.
 
 ## spec
 
-1. Shared start.
-2. Describe the intended domain work: artifact types, exact target scope, references,
-   dependencies and acceptance checks. Record the matching Designbook intake for coding,
-   the intended execution mode (`ephemeral` | `persist` | `ask`), any `ReferenceNeed`, and
-   whether coding should consume a pre-persisted durable plan. Do **not** invoke a Designbook
-   intake during spec — intakes now honor modes, but spec still only records intent; coding
-   owns build/execute. When capture is needed, point at `extract-reference` as a **separate**
-   start (GAIA may assign a different agent); do not chain design execute from extract.
-3. Publish the gaia `spec` + `test` handoff (design decision, alternatives, risks, `Task-Art`, the
-   written plan path, intended mode / ReferenceNeed / persist handoff notes, and the
-   AC↔evidence matrix mapping each acceptance criterion to the
-   `@designbook/design-verify` evidence). Commit the plan.
-4. Surface the design reference using `reference_capture`. Include the resolved links in
-   run-outtake and transition-ticket; record not_required when no reference is needed.
-5. Invoke `@gaia/run-outtake`, leading with the design decision and the plan head, and displaying the
-   reference links from step 4.
-6. Ask the human to confirm the design plan.
-7. After confirmation, invoke `@gaia/transition-ticket` with destination `coding` and the reference
-   resolved links from step 4, then `@gaia/publish-origin-status` with `coding`.
-8. Stop. Do not start or prepare coding work.
+1. Read the ticket and all comments with `@gaia/read-ticket`; invoke
+   `@gaia/ensure-qualification` and continue only on `qualified`. Resolve the
+   selected method and project standards under `@gaia/method-context`.
+2. Resolve scope, dependencies and acceptance criteria, then prepare the
+   reference and executable plan under *Designbook planning* below.
+3. Publish complete `spec`, `plan` and `test` comments through
+   `@gaia/publish-comment`. Record decisions and risks, reference revisions and
+   approval evidence, the executable plan path and commit, and the AC↔evidence
+   mapping. Separate project checks from functional validation. The ticket's
+   `plan` explains the implementation; the sealed Designbook plan is its
+   executable artifact. Publish both the full explanation and artifact location.
+4. The last matching work type obtains or reuses one approval for the complete
+   proposal and records the confirmed comment IDs. Unresolved references or a
+   missing executable plan block coding.
+5. Render `@gaia/run-outtake` and persist its summary. Complete the
+   `@gaia/workflow-step` publication order, with any authorized origin messages
+   before the final transition to `coding`. Respect state restrictions and stop.
+
+## Designbook planning
+
+Apply in spec, or after RED diagnosis for a repair:
+
+1. Prepare the required published design reference with screenshot approval.
+   `@designbook/extract-reference` runs as a separate capture, loaded only when a
+   reference source is named in the ticket or `vision.md` (see the [skill map](../../references/designbook.md)).
+   Complete required screenshot approval before dependent planning; resume planning
+   after its closeout. When new visual capture is unnecessary, record `not_required`
+   with a reason and identify the existing source artifacts.
+2. Invoke the matching Designbook design intake in explicit `persist` mode under the Designbook
+   [builder](../../../designbook/resources/workflow-building.md). Resolve all
+   targets, task parameters and any `ReferenceNeed`. Completion: `plan build`
+   returns `ok` and the exact path of a sealed durable plan; execution has not
+   started.
+3. Commit the executable plan and required reference artifacts so coding can
+   load them from its checkout. Hand off their exact paths, revision and approval
+   evidence. Keep GAIA process narrative in ticket comments; this saved plan is
+   the Designbook executor's input, not a replacement for those comments.
 
 ## diagnose
 
-1. Shared start (RED target gate).
-2. Invoke `@gaia/diagnose-ticket`; diagnose only, do not implement the fix.
-3. Author the QA artifacts: `@gaia/acceptance` → `@gaia/scenario` → the concrete check →
-   `@gaia/verify` with `validate` (`@designbook/design-verify`). **RED gate:** the reported design
-   defect still reproduces and the new check fails.
-4. Invoke `@gaia/run-outtake`, leading with the confirmed cause, the RED evidence, and the
-   `@designbook/design-verify` verdict.
-5. Invoke `@gaia/transition-ticket` with destination `coding`, then `@gaia/publish-origin-status`
-   with `coding`.
-6. Stop. Do not start or prepare coding work.
+1. Read the ticket, invoke `@gaia/ensure-qualification`, and continue only on
+   `qualified`. Frame RED with `@gaia/run-intake`.
+2. Invoke `@gaia/diagnose-ticket` with the selected method. Record acceptance
+   criteria and the actual failing check through the configured checks and
+   `@designbook/design-verify`. Diagnose without executing repairs: **RED** means the
+   reported defect still reproduces.
+3. Apply *Designbook planning* for the repair. Publish the diagnosis, RED evidence,
+   complete repair plan and verification plan under `@gaia/method-context`.
+4. Render and persist the outtake. The last matching work type obtains or reuses
+   approval of the diagnosis, fix direction and verification plan. Complete the
+   `@gaia/workflow-step` publication order, then transition once to `coding`
+   unless state-restricted. Stop before implementation.
 
 ## coding
 
-1. Shared start (GREEN target gate). The guard protects `coding` even when entered through a manual
-   state change or an import.
-2. Invoke `@gaia/implement-ticket` with `build`:
-   - If a durable persisted-plan path exists from a persist handoff / spec artifact
-     (the exact `plan` field `plan build` returned) → run
-     `@designbook/execute-workflow` on that path only; do **not** re-intake into a path that
-     would rebuild and auto-start execute.
-   - If references are pending or unapproved (`reference approval-check` fails or a
-     `ReferenceNeed` is unresolved) → do not start design execute; surface the blockade.
-     Capture and screenshot approval remain a separate `extract-reference` start (GAIA routes;
-     Designbook presents the PNGs).
-   - When no durable plan yet and the mode allows, may invoke the matching Designbook intake
-     with the specified domain task and reference inputs — the intake follows shared builder
-     modes (`ephemeral` | `persist` | `ask`), not unconditional auto-execute. Reuse decisions
-     already answered by the spec.
-   The implementation subagent returns artifacts and evidence; this parent owns confirmation,
-   transitions and notifications.
-3. Drive the acceptance criteria to GREEN. For a feature or chore author the QA artifacts now
-   (`@gaia/acceptance` → `@gaia/scenario` → the concrete check) if `spec` did not; a bug reuses the
-   `diagnose` artifacts. Then invoke `@gaia/verify` with `validate` (`@designbook/design-verify`) and
-   fix until every applicable criterion reports GREEN. **GREEN gate:** do not proceed until the
-   `@designbook/design-verify` verdict is green; include the component paths and the verdict in the
-   handoff.
-4. **Record the measurement.** From the `@designbook/design-verify` `ScoreReport`, record the
-   `design_verify` measurement (`measurements/definitions/design-verify.json`: `score`, `delta`,
-   `avg_diff_percent`, `max_diff_percent`, `checks_passed`, `checks_total` — the `final`
-   `VerifyResult` plus the report `delta`) into `gaia_ticket.metrics` with **one `session` PATCH
-   before the transition** (footprint-before-transition; a retired run loses its write scope), per
-   `review-ticket/measurements/README.md`.
-5. Invoke `@gaia/run-outtake`, leading with the `@designbook/design-verify` verdict and its
-   statistics. Lead the **Storybook preview link** (`kind: storybook`) **only when the build changed
-   Designbook artifacts** (scene/component files); if it did not, omit it with a one-line documented
-   reason. Lead the **Drupal preview link** (`kind: drupal-preview`) **only when the build changed
-   Drupal config**; a `work:design-to-designbook` build normally changes no config, so record it
-   explicitly as `not_applicable` with a one-line reason otherwise.
-6. Ask the human to confirm the implementation summary and MR.
-7. After confirmation, invoke `@gaia/transition-ticket` with destination `review` and resolved
-   links — the **Storybook preview link** (when Designbook artifacts changed) and the **Drupal
-   preview link** (when Drupal config changed; else omitted as `not_applicable`), each carrying its
-   `options.gaia.kind`, plus Designbook, MR, pipeline, and report links. Both preview links appear
-   here **and** in the `run-outtake` (step 5).
-8. Invoke `@gaia/publish-origin-status` with `review`, then `@gaia/publish-origin-feedback` with an
-   interim note.
-9. Stop. Do not start or prepare review work.
+Follow `@gaia/method-context` → *Coding flow*, ending at *Coding gate*, with
+these domain steps:
+
+- Before implementation, resolve the confirmed handoff's executable plan and
+  reference. Check required reference approvals. Missing artifacts or unresolved
+  references block execution; publish the incomplete handoff instead of re-intake.
+- At the implementation step, the owner invokes `@designbook/execute-workflow`
+  directly with the exact saved plan path and approved scope. Apply the shared pre-build check.
+- Run `@designbook/design-verify` as functional verification alongside every applicable
+  project check. Fix within approved scope and require GREEN for every applicable
+  acceptance criterion. A repair that expands scope follows `@gaia/scope-change`.
+- Include the verification report, component paths and the evidence below in the
+  typed coding handoff and summary. The shared Coding gate owns destination
+  choice and re-entry; confirming the summary alone does not choose a transition.
 
 ## review
 
-1. Shared start **without** the qualification guard (the OK/Not OK decision this run must reach).
-2. Invoke `@gaia/review-ticket` in a review subagent: run `@gaia/verify` with `validate`
-   (`@designbook/design-verify`) **fresh**, re-validating each acceptance criterion from its abstract
-   scenario. Any criterion reporting `fail` or `red`, or left uncovered without written
-   justification, forces `Not OK`. The result is exactly `OK` or `Not OK`. Re-record the
-   `design_verify` measurement from this fresh `@designbook/design-verify` `ScoreReport` (session
-   PATCH, before the transition).
-3. Invoke `@gaia/run-outtake`, leading with the verdict, the `@designbook/design-verify` statistics,
-   and the final Storybook link; for `Not OK` the failing criterion.
-4. Ask the human to confirm the verdict.
-5. After confirmation, on `OK` **run the merge gate in this parent before transitioning** — invoke
-   `@gaia/merge-mr` with the resolved MR link (gates: MR present, pipeline green incl. required
-   manual jobs, no conflict, merge succeeds). Only after a **verified-successful merge** invoke
-   `@gaia/transition-ticket` with destination `done`; on any gate failure render the actionable
-   failure and do **not** transition to `done`. On `Not OK` invoke `@gaia/transition-ticket` with
-   destination `coding` and **perform no merge** (every non-`done` destination leaves the MR
-   unmerged). Supply only resolved additive links, including the final Storybook link.
-6. Invoke `@gaia/publish-origin-status` with the chosen destination and `@gaia/publish-origin-feedback`
-   with the delivery summary (`OK`) or a findings note (`Not OK`).
-7. Stop. Do not start or prepare another state.
+Follow `@gaia/method-context` → *Review flow*, including evidence reuse, the
+parent's closed repair list, cause-dependent `Not OK` routing and the merge gate.
+Use `@designbook/design-verify` for Designbook functional evidence; rerun when the shared
+flow requires it. A verification run in diagnosis or review stops at its findings,
+before Designbook's automatic repair handoff; review repairs remain governed by
+GAIA's closed list. Review is mandatory for features; bug/chore destination
+choices belong to the shared Coding gate.
 
-## Multi-work single transition
+## Evidence
 
-When the ticket carries more than one `work:*` sub-work, one skill matches per work type and each
-runs its own build+validate body in `WORKFLOW.md` load order; the **last matching skill in load
-order** performs the single confirmation, transition, and origin-status, gated on all sub-works
-reaching this step's gate. Every other part of the flow is per-skill.
+Persist complete verification findings, checked scope, tested revision and report
+links in the typed handoff. Include reference screenshot links with
+`options.gaia.kind: reference`. Use the same applicable previews in the outtake
+and transition:
+
+- Changed Designbook artifacts: `options.gaia.kind: storybook`; otherwise omit
+  with a one-line reason.
+- Changed Drupal config: `options.gaia.kind: drupal-preview`; otherwise record
+  `not_applicable` with a one-line reason.
+
+For a measurement supplied by the project or review method, pass its definition
+and actual reported values to `@gaia/record-measurement` before transition. Keep
+verification reports as evidence regardless of whether a metric is configured;
+missing required metric definitions or values block that measurement, never
+justify fabricated values. `@gaia/workflow-step` owns the final publication order;
+no workflow work follows the transition.

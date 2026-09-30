@@ -1,69 +1,41 @@
 ---
 name: designbook-gaia
 description: >
-  Use for GAIA design-to-designbook and designbook-to-config work types.
-  Do not use without the GAIA plugin or for unrelated workflow steps.
+  Use for GAIA design-to-designbook and designbook-to-config workflow steps.
+  Requires the GAIA plugin.
 ---
 
-# designbook-gaia — GAIA step-skills for the Designbook work-types
+# Designbook GAIA integration
 
-This integration skill is the **home** of the two GAIA workflow-step skills that carry Designbook
-domain knowledge. Designbook is the source of that knowledge (Designbook intake and execution, `design-verify` /
-`sync-verify`, the Storybook and Drupal preview-module links, the `design_verify` /
-`config_verify` measurements), so the skills live here rather than in the gaia plugin.
+Load the step-skill matching the ticket's work type:
 
-| Sub-skill | `work_type` | Steps | Validate | Load as |
-|---|---|---|---|---|
-| `debo-designbook-design` | `design-to-designbook` | `diagnose`, `spec`, `coding`, `review` | `debo design-verify` | `@designbook-gaia/debo-designbook-design` |
-| `debo-config-sync` | `designbook-to-config` | `diagnose`, `spec`, `coding`, `review` | `debo sync-verify` | `@designbook-gaia/debo-config-sync` |
+| Work type | Skill | Default verification |
+|---|---|---|
+| `design-to-designbook` | [debo-designbook-design](skills/debo-designbook-design/SKILL.md) | `@designbook/design-verify` |
+| `designbook-to-config` | [debo-config-sync](skills/debo-config-sync/SKILL.md) | `@designbook/sync-verify` |
 
-Both use scope specification in GAIA spec and Designbook build/execute in coding.
-`debo-designbook-design` may record intended mode (`ephemeral` | `persist` | `ask`) and any
-`ReferenceNeed` in spec without invoking intake; coding prefers `@designbook/execute-workflow`
-on a pre-persisted durable plan when present, otherwise a mode-aware intake. Intakes follow
-shared builder modes — they do **not** unconditionally auto-invoke the executor.
-`extract-reference` stays a separate start from design execute. Validation uses the matching
-verification intake after artifact production.
+Both handle `diagnose`, `spec`, `coding` and `review` for `gaia_feature`,
+`gaia_bug` and `gaia_chore`. **Spec creates the reference and a sealed durable
+plan; coding executes that plan.** Reference capture and approval finish before
+dependent design planning. GAIA owns review evidence reuse, destination choice
+and the merge gate.
 
-## Contract
+## Project configuration
 
-Both sub-skills follow the GAIA `@gaia/workflow-step` contract: frontmatter carries a `when:` triple
-over `(work_type, workflow, step)` plus `inputs:` (each with a `description` + `default`); a
-consuming project overrides any input inline under the skill's bullet in its `WORKFLOW.md`
-(effective = override ?? default). The `when:` triples are fixed — the load-time coverage/collision
-validator of `@gaia/initialize-project` / `@gaia/upgrade-project` requires every producible triple
-exactly once, so do not change them.
+The step-skills follow `@gaia/workflow-step`. Preserve their `when` triples for
+GAIA's coverage/collision validation. Per-step skill selection resolves through
+`@gaia/method-context` and the [skill map](references/designbook.md) — not through
+per-step inputs — while preserving the reference → plan → execute contract.
 
-## Cross-plugin dependency (intended)
-
-The step bodies invoke **only** gaia helper skills — `@gaia/read-ticket`,
-`@gaia/ensure-qualification`, `@gaia/provision-ddev`, `@gaia/run-intake`, `@gaia/implement-ticket`,
-`@gaia/acceptance`, `@gaia/scenario`, `@gaia/verify`, `@gaia/diagnose-ticket`,
-`@gaia/review-ticket`, `@gaia/run-outtake`, `@gaia/transition-ticket`,
-`@gaia/publish-origin-status`, `@gaia/publish-origin-feedback`, `@gaia/merge-mr`. Those helpers stay
-in the gaia plugin; `designbook-gaia` copies **none** of them. As a result this skill is
-**deliberately non-runnable without the gaia plugin loaded** — that is by design, not a defect.
-
-The `design_verify` / `config_verify` measurement definitions likewise stay in gaia
-(`review-ticket/measurements/definitions/{design-verify,config-verify}.json`): they are gaia
-measurement-subsystem artifacts consumed by the `@gaia/implement-ticket` / `@gaia/review-ticket`
-machinery via that exact path. The ported bodies keep the reference verbatim.
-
-## Consuming this skill from a project `WORKFLOW.md`
-
-A project that runs designbook-to-config or design-to-designbook sub-works loads the two step-skills
-and (optionally) overrides their inputs inline. Copyable block:
-
-```yaml
+```markdown
 ## Loaded skills
 
 - @designbook-gaia/debo-designbook-design
-    provision: ddev init --provider recipe-test
 - @designbook-gaia/debo-config-sync
-    provision: ddev init --provider recipe-test
 ```
 
-The `spec` input defaults to a written domain scope (mode + ReferenceNeed allowed for design).
-The `build` input for design prefers execute-from-plan when a durable handoff exists; otherwise
-a mode-aware Designbook intake. `validate` invokes `debo design-verify` or `debo sync-verify`.
-Override an input only when the project requires a different implementation or verification task.
+GAIA owns lifecycle helpers and recording configured measurements. The step-skills
+reuse `@gaia/method-context` Coding and Review flows and `@gaia/workflow-step`
+publication order. Designbook owns reference capture, planning,
+execution and visual verification. For engineering-method selection through
+`@gaia/method-context`, use [the skill map](references/designbook.md).
