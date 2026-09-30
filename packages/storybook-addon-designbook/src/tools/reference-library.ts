@@ -2,7 +2,7 @@
  * Browsable inventory of published reference revisions under `<data>/references/<id>/<revision>/`.
  * One source for the Storybook indexer, the generated CSF module and the `/__designbook/references` endpoint.
  */
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { Reference, isReferenceBinding } from './reference-entity.js';
 import { readApproval, publicationFilesFingerprint } from './reference-approval.js';
@@ -35,7 +35,7 @@ export interface ReferenceLibraryEntry {
   status: ReferenceEntryStatus;
   error?: string;
   /** Readable revision name (capture plan); `id/revision` stays the identity. */
-  label?: string;
+  label: string;
   title?: string;
   source: { kind: string; identity: string; revision: string | null };
   views: Array<{ id: string; width: number; height: number; breakpoint?: string }>;
@@ -68,10 +68,16 @@ function approvalState(directory: string, files: Record<string, string>): Refere
 function entry(data: string, id: string, revision: string, boundStories: string[]): ReferenceLibraryEntry | null {
   const binding = `${id}/${revision}`;
   const directory = join(resolve(data, 'references'), binding);
+  // The capture owner (reserved before any file is written) names the revision in every status.
+  const ownerFile = join(directory, '.capture-owner.json');
+  const label = existsSync(ownerFile)
+    ? revisionLabel((JSON.parse(readFileSync(ownerFile, 'utf8')) as { workflow: string }).workflow)
+    : revision;
   const base = {
     id,
     revision,
     binding,
+    label,
     dir: `references/${binding}`,
     source: EMPTY_SOURCE,
     views: [],
@@ -86,7 +92,6 @@ function entry(data: string, id: string, revision: string, boundStories: string[
     const json = reference.toJSON();
     if (json.role !== 'reference') return null;
     const published = readPublishedCapture(directory);
-    const label = revisionLabel(published.workflow);
     const title = sidebarTitle(json.source, label);
     const views = new Map(json.elements.flatMap((el) => el.views.map((view) => [view.id, view] as const)));
     const sessions = new Map(
@@ -107,7 +112,6 @@ function entry(data: string, id: string, revision: string, boundStories: string[
     return {
       ...base,
       status: 'ok',
-      label,
       title,
       source: json.source,
       views: [...views.values()],

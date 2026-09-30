@@ -78,6 +78,8 @@ describe('listReferences', () => {
     expect(byBinding.get(broken.binding)!.status).toBe('invalid');
     expect(byBinding.get(broken.binding)!.error).toMatch(/fingerprint/i);
     expect(byBinding.get(`${pending.location.id}/${pending.location.revision}`)!.status).toBe('unpublished');
+    expect(byBinding.get(`${pending.location.id}/${pending.location.revision}`)!.label).toBe('capture-three');
+    expect(byBinding.get(broken.binding)!.label).toBe('capture-two');
     expect(loadReferenceEntry(data, broken.location.id, broken.location.revision)!.status).toBe('invalid');
     expect(loadReferenceEntry(data, '../x', 'y')).toBeNull();
   });
