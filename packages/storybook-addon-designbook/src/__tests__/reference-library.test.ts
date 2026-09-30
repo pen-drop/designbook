@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   buildReferenceModule,
+  revisionLabel,
   listReferences,
   loadReferenceEntry,
   referenceIndexEntries,
@@ -50,6 +51,8 @@ describe('listReferences', () => {
     );
     const one = entries.find((e) => e.binding === first.binding)!;
     expect(one.approval).toBe('approved');
+    expect(one.label).toBe('capture-one');
+    expect(entries.find((e) => e.binding === second.binding)!.label).toBe('capture-two');
     expect(one.boundStories).toEqual(['designbook-header--default']);
     expect(one.source.identity).toBe('https://example.test/header');
     expect(one.captures.map((c) => `${c.view}/${c.state}`).sort()).toEqual(
@@ -99,12 +102,10 @@ describe('reference index and module', () => {
     const file = join(f.folder, 'publication.json');
     const entries = referenceIndexEntries(data, file);
     expect(entries).toHaveLength(4);
-    expect(entries[0]!.title).toBe(
-      `Designbook/References/website: example.test | header/${f.location.revision.slice(0, 12)}`,
-    );
+    expect(entries[0]!.title).toBe('Designbook/References/website: example.test | header/capture-one');
     expect(entries.map((e) => e.name)).toContain('header · desktop · open');
     expect(entries.map((e) => e.storyId)).toContain(
-      `designbook-references-website-example-test-header-${f.location.revision.slice(0, 12)}--header-desktop-open`,
+      'designbook-references-website-example-test-header-capture-one--header-desktop-open',
     );
     const module = buildReferenceModule(data, file);
     for (const entry of entries) expect(module).toContain(`export const ${entry.exportName} = {`);
@@ -120,5 +121,13 @@ describe('reference index and module', () => {
     const broken = await published(data, 'capture-two');
     writeFileSync(join(broken.folder, 'extract--rest.json'), '{}');
     expect(referenceIndexEntries(data, join(broken.folder, 'publication.json'))).toEqual([]);
+  });
+});
+
+describe('revisionLabel', () => {
+  it('names a revision after the capture plan that produced it', () => {
+    expect(revisionLabel('/w/designbook/plans/2026-09-29-homepage-hero/plan.md')).toBe('2026-09-29-homepage-hero');
+    expect(revisionLabel('/w/designbook/capture-one.plan.md')).toBe('capture-one');
+    expect(revisionLabel('/w/designbook/plans/.ephemeral/hero-capture.md')).toBe('hero-capture');
   });
 });

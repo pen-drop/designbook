@@ -78,6 +78,7 @@ export function DeboReferencePage({ id, revision, subject, view, state }) {
   };
 
   const facts = [
+    ['Revision', ref.label],
     ['Reference', `${ref.id}/${ref.revision}`],
     ['Source', `${ref.source.kind}: ${ref.source.identity}${ref.source.revision ? ` @ ${ref.source.revision}` : ''}`],
     ['Subject', capture.subject],

@@ -47,12 +47,11 @@ export function DeboReferencesOverview() {
               </DeboTable.Td>
               <DeboTable.Td>
                 {ref.status === 'ok' && ref.captures[0] ? (
-                  <DeboLink storyId={ref.captures[0].storyId}>
-                    <DeboTable.Mono>{ref.revision}</DeboTable.Mono>
-                  </DeboLink>
-                ) : (
-                  <DeboTable.Mono>{ref.revision}</DeboTable.Mono>
-                )}
+                  <DeboLink storyId={ref.captures[0].storyId}>{ref.label}</DeboLink>
+                ) : null}
+                <div>
+                  <DeboTable.Mono>{ref.binding}</DeboTable.Mono>
+                </div>
               </DeboTable.Td>
               <DeboTable.Td>
                 {ref.status === 'ok' ? (

@@ -34,6 +34,8 @@ export interface ReferenceLibraryEntry {
   dir: string;
   status: ReferenceEntryStatus;
   error?: string;
+  /** Readable revision name (capture plan); `id/revision` stays the identity. */
+  label?: string;
   title?: string;
   source: { kind: string; identity: string; revision: string | null };
   views: Array<{ id: string; width: number; height: number; breakpoint?: string }>;
@@ -44,16 +46,22 @@ export interface ReferenceLibraryEntry {
 
 const EMPTY_SOURCE = { kind: 'unknown', identity: '', revision: null };
 
-function sidebarTitle(source: ReferenceLibraryEntry['source'], revision: string): string {
-  // One sidebar level per source: a `/` in the identity would open extra groups.
-  const identity = source.identity.replace(/^[a-z]+:\/\//i, '').replace(/\/+/g, ' | ');
-  return `Designbook/References/${source.kind}: ${identity}/${revision.slice(0, 12)}`;
+/** Readable revision name: the capture plan's folder (`plans/<name>/plan.md`) or file name. */
+export function revisionLabel(workflow: string): string {
+  const file = basename(workflow);
+  return file === 'plan.md' ? basename(dirname(workflow)) : file.replace(/(\.plan)?\.md$/, '');
 }
 
-function approvalState(directory: string): ReferenceApprovalState {
+function sidebarTitle(source: ReferenceLibraryEntry['source'], label: string): string {
+  // One sidebar level per source and per revision: a `/` would open extra groups.
+  const identity = source.identity.replace(/^[a-z]+:\/\//i, '').replace(/\/+/g, ' | ');
+  return `Designbook/References/${source.kind}: ${identity}/${label.replace(/\//g, ' | ')}`;
+}
+
+function approvalState(directory: string, files: Record<string, string>): ReferenceApprovalState {
   const approval = readApproval(directory);
   if (!approval) return 'none';
-  const current = publicationFilesFingerprint(readPublishedCapture(directory).files);
+  const current = publicationFilesFingerprint(files);
   return approval.fingerprint === current ? approval.status : 'stale';
 }
 
@@ -77,7 +85,9 @@ function entry(data: string, id: string, revision: string, boundStories: string[
     if (!reference) return { ...base, status: 'invalid', error: 'Revision directory is outside references/' };
     const json = reference.toJSON();
     if (json.role !== 'reference') return null;
-    const title = sidebarTitle(json.source, revision);
+    const published = readPublishedCapture(directory);
+    const label = revisionLabel(published.workflow);
+    const title = sidebarTitle(json.source, label);
     const views = new Map(json.elements.flatMap((el) => el.views.map((view) => [view.id, view] as const)));
     const sessions = new Map(
       json.elements.flatMap((el) => el.states.map((state) => [`${el.id}\0${state.name}`, state.session] as const)),
@@ -97,11 +107,12 @@ function entry(data: string, id: string, revision: string, boundStories: string[
     return {
       ...base,
       status: 'ok',
+      label,
       title,
       source: json.source,
       views: [...views.values()],
       captures,
-      approval: approvalState(directory),
+      approval: approvalState(directory, published.files),
     };
   } catch (error) {
     return { ...base, status: 'invalid', error: error instanceof Error ? error.message : String(error) };
