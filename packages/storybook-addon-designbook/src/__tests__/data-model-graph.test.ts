@@ -124,6 +124,87 @@ describe('buildDataModelGraph', () => {
     expect(buildDataModelGraph(undefined)).toEqual({ nodes: [], links: [], unresolved: [] });
     expect(buildDataModelGraph({ content: { node: { page: {} } } }).nodes).toHaveLength(1);
   });
+
+  it('emits one link for entity_reference with a single target_bundles entry', () => {
+    const graph = buildDataModelGraph({
+      content: {
+        node: {
+          landing_page: {
+            fields: {
+              image: {
+                type: 'entity_reference',
+                settings: { target_type: 'media', target_bundles: ['image'] },
+              },
+            },
+          },
+        },
+        media: { image: {} },
+      },
+    });
+    expect(graph.links).toEqual([
+      {
+        id: 'node.landing_page:image',
+        source: 'node.landing_page',
+        target: 'media.image',
+        field: 'image',
+      },
+    ]);
+    expect(graph.unresolved).toEqual([]);
+  });
+
+  it('emits a distinct link per target_bundles entry on a reference field', () => {
+    const graph = buildDataModelGraph({
+      content: {
+        node: {
+          article: {
+            fields: {
+              related: {
+                type: 'reference',
+                settings: { target_type: 'node', target_bundles: ['page', 'article'] },
+              },
+            },
+          },
+          page: {},
+        },
+      },
+    });
+    expect(graph.links).toEqual([
+      { id: 'node.article:related:page', source: 'node.article', target: 'node.page', field: 'related' },
+      {
+        id: 'node.article:related:article',
+        source: 'node.article',
+        target: 'node.article',
+        field: 'related',
+      },
+    ]);
+    expect(graph.unresolved).toEqual([]);
+  });
+
+  it('reports an undeclared target_bundles entry as unresolved and never as a link', () => {
+    const graph = buildDataModelGraph({
+      content: {
+        node: {
+          article: {
+            fields: {
+              image: {
+                type: 'entity_reference',
+                settings: { target_type: 'media', target_bundles: ['missing'] },
+              },
+            },
+          },
+        },
+      },
+    });
+    expect(graph.links).toEqual([]);
+    expect(graph.unresolved).toEqual([
+      expect.objectContaining({
+        source: 'node.article',
+        field: 'image',
+        target: 'media.missing',
+        reason: 'undeclared target',
+      }),
+    ]);
+  });
 });
 
 describe('filterDataModelGraph', () => {

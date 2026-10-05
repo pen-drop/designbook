@@ -430,3 +430,80 @@ describe('DeboDataModel graph interaction', () => {
     expect(node('node.article').getAttribute('aria-pressed')).toBe('false');
   });
 });
+
+describe('DeboDataModel graph zoom', () => {
+  type Box = [number, number, number, number];
+  const viewBox = (): Box => {
+    const parts = (container.querySelector('svg')!.getAttribute('viewBox') ?? '').split(' ').map(Number);
+    return [parts[0] ?? 0, parts[1] ?? 0, parts[2] ?? 0, parts[3] ?? 0];
+  };
+
+  it('zooms the viewBox around the pointer, via +/−/Fit, and still drags a node afterwards', async () => {
+    await render({ data: model(), selectedEntity: null, onSelectEntity: vi.fn(), view: 'graph' });
+    const svg = container.querySelector('svg')!;
+    const original = viewBox();
+    // Mock CTM maps client (100, 100) → user (200, 200).
+    const userX = 200;
+    const userY = 200;
+    const ratioX = (box: Box) => (userX - box[0]) / box[2];
+    const ratioY = (box: Box) => (userY - box[1]) / box[3];
+
+    act(() => {
+      svg.dispatchEvent(
+        new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: -100, clientX: 100, clientY: 100 }),
+      );
+    });
+    const zoomedIn = viewBox();
+    expect(zoomedIn[2]).toBeLessThan(original[2]);
+    expect(zoomedIn[3]).toBeLessThan(original[3]);
+    expect(ratioX(zoomedIn)).toBeCloseTo(ratioX(original));
+    expect(ratioY(zoomedIn)).toBeCloseTo(ratioY(original));
+
+    act(() => {
+      svg.dispatchEvent(
+        new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 100, clientX: 100, clientY: 100 }),
+      );
+    });
+    const afterWheelOut = viewBox();
+    expect(afterWheelOut[2]).toBeGreaterThan(zoomedIn[2]);
+    expect(afterWheelOut[3]).toBeGreaterThan(zoomedIn[3]);
+
+    click(button('+'));
+    const afterPlus = viewBox();
+    expect(afterPlus[2]).toBeLessThan(afterWheelOut[2]);
+    expect(afterPlus[3]).toBeLessThan(afterWheelOut[3]);
+    click(button('−'));
+    expect(viewBox()[2]).toBeGreaterThan(afterPlus[2]);
+    click(button('Fit'));
+    expect(viewBox()).toEqual(original);
+
+    click(button('+'));
+    const article = box('node.article');
+    const rows = edgeD('view.recent:rows');
+    drag('node.article', 10, 5);
+    expect(box('node.article').x).toBeCloseTo(article.x + 20);
+    expect(box('node.article').y).toBeCloseTo(article.y + 10);
+    expect(edgeD('view.recent:rows')).not.toBe(rows);
+  });
+
+  it('pans the viewBox when dragging empty background and still unfocuses on a click', async () => {
+    await render({ data: model(), selectedEntity: null, onSelectEntity: vi.fn(), view: 'graph' });
+    const svg = container.querySelector('svg')!;
+    click(node('node.article'));
+    expect(node('node.article').getAttribute('aria-pressed')).toBe('true');
+    const before = viewBox();
+    pointer(svg, 'pointerdown', 100, 100);
+    pointer(svg, 'pointermove', 110, 100);
+    pointer(svg, 'pointerup', 110, 100);
+    act(() => svg.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 })));
+    const panned = viewBox();
+    expect(panned[0]).toBeCloseTo(before[0] - 20);
+    expect(panned[1]).toBeCloseTo(before[1]);
+    expect(panned[2]).toBeCloseTo(before[2]);
+    expect(panned[3]).toBeCloseTo(before[3]);
+    expect(node('node.article').getAttribute('aria-pressed')).toBe('true');
+
+    click(svg);
+    expect(nodeButtons().every((b) => b.getAttribute('aria-pressed') === 'false')).toBe(true);
+  });
+});
