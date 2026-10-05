@@ -16,21 +16,19 @@ function targetBundlesOf(settings) {
 }
 
 /**
- * Derive a graph from a data model: one node per declared `<entity_type>.<bundle>`
- * (content before config, first wins) and one directed link per `type: reference`
+ * Derive a graph from a data model: one node per declared content
+ * `<entity_type>.<bundle>` and one directed link per `type: reference`
  * or `type: entity_reference` field, for each of `settings.target_bundle` and
  * `settings.target_bundles`, whose `settings.target_type`.<bundle> is a declared node.
- * References that cannot be resolved are returned in `unresolved`, never as links.
+ * Config entities are omitted. References that cannot be resolved (including
+ * targets that exist only under config) are returned in `unresolved`, never as links.
  * Returns fresh objects; the input is not mutated.
  */
 export function buildDataModelGraph(data) {
   const bundles = new Map();
-  for (const section of [data?.content, data?.config]) {
-    for (const [type, typeBundles] of Object.entries(section || {})) {
-      for (const [bundle, def] of Object.entries(typeBundles || {})) {
-        const id = `${type}.${bundle}`;
-        if (!bundles.has(id)) bundles.set(id, { type, bundle, def: def || {} });
-      }
+  for (const [type, typeBundles] of Object.entries(data?.content || {})) {
+    for (const [bundle, def] of Object.entries(typeBundles || {})) {
+      bundles.set(`${type}.${bundle}`, { type, bundle, def: def || {} });
     }
   }
 

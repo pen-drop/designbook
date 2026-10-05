@@ -151,6 +151,12 @@ describe('DeboDataModel graph view', () => {
     expect(button('Cards').getAttribute('aria-pressed')).toBe('true');
     expect(button('Graph').getAttribute('aria-pressed')).toBe('false');
     expect(nodeButtons()).toHaveLength(0);
+    expect(container.textContent).not.toContain('Config Entities');
+    expect(
+      [...container.querySelectorAll<HTMLButtonElement>('[aria-label="Entity types"] button')].map(
+        (b) => b.textContent,
+      ),
+    ).toEqual(['node', 'media', 'user']);
 
     act(() => button('Graph').click());
     expect(button('Graph').getAttribute('aria-pressed')).toBe('true');
@@ -158,7 +164,6 @@ describe('DeboDataModel graph view', () => {
       'node.article',
       'media.image',
       'user.user',
-      'view.recent',
     ]);
 
     const edges = edgePaths();
@@ -167,7 +172,6 @@ describe('DeboDataModel graph view', () => {
       'node.article:teaser',
       'node.article:related',
       'media.image:used_in',
-      'view.recent:rows',
     ]);
     const d = edges.map((p) => p.getAttribute('d'));
     expect(new Set(d).size).toBe(d.length);
@@ -196,7 +200,7 @@ describe('DeboDataModel graph view', () => {
 
     await render({ data, selectedEntity: null, onSelectEntity });
     expect(button('Graph').getAttribute('aria-pressed')).toBe('true');
-    expect(nodeButtons()).toHaveLength(4);
+    expect(nodeButtons()).toHaveLength(3);
 
     act(() => button('Cards').click());
     expect(nodeButtons()).toHaveLength(0);
@@ -205,11 +209,11 @@ describe('DeboDataModel graph view', () => {
   it('follows a parent-owned view choice when one is supplied', async () => {
     const onViewChange = vi.fn();
     await render({ data: model(), selectedEntity: null, onSelectEntity: vi.fn(), view: 'graph', onViewChange });
-    expect(nodeButtons()).toHaveLength(4);
+    expect(nodeButtons()).toHaveLength(3);
 
     act(() => button('Cards').click());
     expect(onViewChange).toHaveBeenCalledWith('cards');
-    expect(nodeButtons()).toHaveLength(4);
+    expect(nodeButtons()).toHaveLength(3);
   });
 
   it('recomputes on data replacement, including singleton and empty models', async () => {
@@ -231,36 +235,38 @@ describe('DeboDataModel graph view', () => {
 });
 
 describe('DeboDataModel entity-type filter', () => {
-  it('offers every type once, initially active, and filters cards and graph alike', async () => {
+  it('offers every content type once, initially active, and never surfaces config', async () => {
     const data = {
       ...model(),
       config: { node: { page: {} }, view: { recent: { fields: { rows: ref('node', 'article') } } } },
     };
     await render({ data, selectedEntity: null, onSelectEntity: vi.fn() });
     const toggles = [...container.querySelectorAll<HTMLButtonElement>('[aria-label="Entity types"] button')];
-    expect(toggles.map((b) => b.textContent)).toEqual(['node', 'media', 'user', 'view']);
+    expect(toggles.map((b) => b.textContent)).toEqual(['node', 'media', 'user']);
     expect(toggles.every((b) => b.type === 'button' && b.getAttribute('aria-pressed') === 'true')).toBe(true);
+    expect(container.textContent).not.toContain('Config Entities');
+    expect(typeToggle('view')).toBeUndefined();
 
     act(() => typeToggle('media').click());
     expect(typeToggle('media').getAttribute('aria-pressed')).toBe('false');
     expect(container.textContent).not.toContain('Media');
-    expect(container.textContent).toContain('Config Entities');
+    expect(container.textContent).not.toContain('Config Entities');
 
     act(() => button('Graph').click());
-    expect(nodeIds()).toEqual(['node.article', 'user.user', 'node.page', 'view.recent']);
-    expect(edgePaths().map((p) => p.dataset['edgeId'])).toEqual(['node.article:related', 'view.recent:rows']);
+    expect(nodeIds()).toEqual(['node.article', 'user.user']);
+    expect(edgePaths().map((p) => p.dataset['edgeId'])).toEqual(['node.article:related']);
     // Hidden resolved targets never become unresolved; the genuinely missing one stays.
     expect(container.textContent).toContain('media.video');
     expect(container.textContent).not.toContain('undeclared target — media.image');
+    expect(nodeIds()).not.toContain('view.recent');
+    expect(nodeIds()).not.toContain('node.page');
 
     act(() => typeToggle('node').click());
-    expect(nodeIds()).toEqual(['user.user', 'view.recent']); // node.page is a node too
+    expect(nodeIds()).toEqual(['user.user']);
     expect(edgePaths()).toHaveLength(0);
     expect(container.textContent).not.toContain('Unresolved references');
 
     act(() => button('Cards').click());
-    act(() => typeToggle('view').click());
-    expect(container.textContent).not.toContain('Config Entities');
     act(() => typeToggle('user').click());
     expect(container.textContent).toContain('No entity types selected');
     act(() => button('Graph').click());
@@ -291,12 +297,12 @@ describe('DeboDataModel graph interaction', () => {
     const viewBox = container.querySelector('svg')!.getAttribute('viewBox');
     const article = box('node.article');
     const user = box('user.user');
-    const rows = edgeD('view.recent:rows');
+    const usedIn = edgeD('media.image:used_in');
 
     drag('node.article', 10, 5);
     expect(box('node.article').x).toBeCloseTo(article.x + 20);
     expect(box('node.article').y).toBeCloseTo(article.y + 10);
-    expect(edgeD('view.recent:rows')).not.toBe(rows);
+    expect(edgeD('media.image:used_in')).not.toBe(usedIn);
     expect(box('user.user')).toEqual(user);
     expect(container.querySelector('svg')!.getAttribute('viewBox')).toBe(viewBox);
     expect(node('node.article').getAttribute('aria-pressed')).toBe('false');
@@ -349,19 +355,19 @@ describe('DeboDataModel graph interaction', () => {
     const before = geometry();
 
     click(node('node.article'));
-    expect(nodeIds().map((id) => box(id!).opacity)).toEqual(['1', '1', '0.3', '1']);
-    expect(edgePaths().map((p) => p.getAttribute('stroke-width'))).toEqual(['2', '2', '2', '2', '2']);
+    expect(nodeIds().map((id) => box(id!).opacity)).toEqual(['1', '1', '0.3']);
+    expect(edgePaths().map((p) => p.getAttribute('stroke-width'))).toEqual(['2', '2', '2', '2']);
     expect(geometry()).toEqual(before);
 
     click(node('user.user'), 0); // keyboard activation
-    expect(nodeIds().map((id) => box(id!).opacity)).toEqual(['0.3', '0.3', '1', '0.3']);
+    expect(nodeIds().map((id) => box(id!).opacity)).toEqual(['0.3', '0.3', '1']);
     act(() => button('Details: user.user').click());
     expect(onSelectEntity).toHaveBeenCalledWith('user.user');
 
     act(() => {
       node('user.user').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     });
-    expect(nodeIds().map((id) => box(id!).opacity)).toEqual(['1', '1', '1', '1']);
+    expect(nodeIds().map((id) => box(id!).opacity)).toEqual(['1', '1', '1']);
     click(node('media.image'));
     click(container.querySelector('svg')!);
     expect(nodeButtons().every((b) => b.getAttribute('aria-pressed') === 'false')).toBe(true);
@@ -479,11 +485,11 @@ describe('DeboDataModel graph zoom', () => {
 
     click(button('+'));
     const article = box('node.article');
-    const rows = edgeD('view.recent:rows');
+    const usedIn = edgeD('media.image:used_in');
     drag('node.article', 10, 5);
     expect(box('node.article').x).toBeCloseTo(article.x + 20);
     expect(box('node.article').y).toBeCloseTo(article.y + 10);
-    expect(edgeD('view.recent:rows')).not.toBe(rows);
+    expect(edgeD('media.image:used_in')).not.toBe(usedIn);
   });
 
   it('pans the viewBox when dragging empty background and still unfocuses on a click', async () => {

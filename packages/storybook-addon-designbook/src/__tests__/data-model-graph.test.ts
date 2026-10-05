@@ -39,7 +39,7 @@ describe('buildDataModelGraph', () => {
     const before = structuredClone(model);
     const graph = buildDataModelGraph(deepFreeze(model));
 
-    expect(graph.nodes.map((n) => n.id).sort()).toEqual(['media.image', 'node.article', 'view.recent']);
+    expect(graph.nodes.map((n) => n.id).sort()).toEqual(['media.image', 'node.article']);
     expect(graph.nodes.find((n) => n.id === 'node.article')).toEqual({
       id: 'node.article',
       type: 'node',
@@ -56,7 +56,7 @@ describe('buildDataModelGraph', () => {
     expect(model).toEqual(before);
   });
 
-  it('keeps parallel, self and config-origin edges with distinct ids', () => {
+  it('keeps parallel and self edges with distinct ids and ignores config-origin edges', () => {
     const graph = buildDataModelGraph({
       content: {
         node: {
@@ -73,13 +73,7 @@ describe('buildDataModelGraph', () => {
       config: { view: { recent: { fields: { rows: ref('node', 'article') } } } },
     });
     const ids = graph.links.map((l) => l.id);
-    expect(ids).toEqual([
-      'node.article:hero',
-      'node.article:teaser',
-      'node.article:related',
-      'media.image:used_in',
-      'view.recent:rows',
-    ]);
+    expect(ids).toEqual(['node.article:hero', 'node.article:teaser', 'node.article:related', 'media.image:used_in']);
     expect(new Set(ids).size).toBe(ids.length);
     expect(graph.links.find((l) => l.field === 'related')).toMatchObject({
       source: 'node.article',
@@ -110,13 +104,23 @@ describe('buildDataModelGraph', () => {
     expect(graph.unresolved.every((u) => u.source === 'node.article' && u.reason)).toBe(true);
   });
 
-  it('counts a duplicate content/config path once, content first', () => {
+  it('never emits nodes or edges from the config section', () => {
     const graph = buildDataModelGraph({
-      content: { node: { page: { title: 'Content page', fields: { a: ref('node', 'page') } } } },
-      config: { node: { page: { title: 'Config page', fields: { b: ref('node', 'page') } } } },
+      content: {
+        node: {
+          article: { title: 'Article', fields: { rows: ref('view', 'recent') } },
+        },
+      },
+      config: {
+        view: { recent: { title: 'Recent', fields: { source: ref('node', 'article') } } },
+        node: { page: { title: 'Config page', fields: { b: ref('node', 'article') } } },
+      },
     });
-    expect(graph.nodes).toEqual([{ id: 'node.page', type: 'node', bundle: 'page', title: 'Content page' }]);
-    expect(graph.links.map((l) => l.field)).toEqual(['a']);
+    expect(graph.nodes).toEqual([{ id: 'node.article', type: 'node', bundle: 'article', title: 'Article' }]);
+    expect(graph.links).toEqual([]);
+    expect(graph.unresolved).toEqual([
+      expect.objectContaining({ source: 'node.article', field: 'rows', target: 'view.recent' }),
+    ]);
   });
 
   it('handles empty and missing inputs', () => {
@@ -224,8 +228,8 @@ describe('filterDataModelGraph', () => {
     const graph = buildDataModelGraph(model);
     const before = structuredClone(graph);
     const visible = filterDataModelGraph(deepFreeze(graph), ['node', 'view']);
-    expect(visible.nodes.map((n) => n.id)).toEqual(['node.article', 'view.recent']);
-    expect(visible.links.map((l) => l.id)).toEqual(['node.article:related', 'view.recent:rows']);
+    expect(visible.nodes.map((n) => n.id)).toEqual(['node.article']);
+    expect(visible.links.map((l) => l.id)).toEqual(['node.article:related']);
     // A resolved edge to a hidden node is dropped, never reported as unresolved.
     expect(visible.unresolved).toEqual([expect.objectContaining({ source: 'node.article', field: 'missing' })]);
     expect(graph).toEqual(before);
