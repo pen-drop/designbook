@@ -1,18 +1,34 @@
+const REFERENCE_TYPES = new Set(['reference', 'entity_reference']);
+
+/** Non-empty string entries from `target_bundle` and each `target_bundles` item, unique, in order. */
+function targetBundlesOf(settings) {
+  const seen = new Set();
+  const bundles = [];
+  const add = (value) => {
+    if (typeof value === 'string' && value !== '' && !seen.has(value)) {
+      seen.add(value);
+      bundles.push(value);
+    }
+  };
+  add(settings?.target_bundle);
+  if (Array.isArray(settings?.target_bundles)) settings.target_bundles.forEach(add);
+  return bundles;
+}
+
 /**
- * Derive a graph from a data model: one node per declared `<entity_type>.<bundle>`
- * (content before config, first wins) and one directed link per `type: reference`
- * field whose `settings.target_type`.`settings.target_bundle` is a declared node.
- * References that cannot be resolved are returned in `unresolved`, never as links.
+ * Derive a graph from a data model: one node per declared content
+ * `<entity_type>.<bundle>` and one directed link per `type: reference`
+ * or `type: entity_reference` field, for each of `settings.target_bundle` and
+ * `settings.target_bundles`, whose `settings.target_type`.<bundle> is a declared node.
+ * Config entities are omitted. References that cannot be resolved (including
+ * targets that exist only under config) are returned in `unresolved`, never as links.
  * Returns fresh objects; the input is not mutated.
  */
 export function buildDataModelGraph(data) {
   const bundles = new Map();
-  for (const section of [data?.content, data?.config]) {
-    for (const [type, typeBundles] of Object.entries(section || {})) {
-      for (const [bundle, def] of Object.entries(typeBundles || {})) {
-        const id = `${type}.${bundle}`;
-        if (!bundles.has(id)) bundles.set(id, { type, bundle, def: def || {} });
-      }
+  for (const [type, typeBundles] of Object.entries(data?.content || {})) {
+    for (const [bundle, def] of Object.entries(typeBundles || {})) {
+      bundles.set(`${type}.${bundle}`, { type, bundle, def: def || {} });
     }
   }
 
@@ -22,17 +38,28 @@ export function buildDataModelGraph(data) {
   for (const [id, { type, bundle, def }] of bundles) {
     nodes.push({ id, type, bundle, title: def.title || bundle });
     for (const [field, fieldDef] of Object.entries(def.fields || {})) {
-      if (fieldDef?.type !== 'reference') continue;
+      if (!REFERENCE_TYPES.has(fieldDef?.type)) continue;
       const targetType = fieldDef.settings?.target_type;
-      const targetBundle = fieldDef.settings?.target_bundle;
-      const complete = [targetType, targetBundle].every((part) => typeof part === 'string' && part !== '');
-      const target = complete ? `${targetType}.${targetBundle}` : [targetType, targetBundle].filter(Boolean).join('.');
-      if (!complete) {
+      const targetBundles = targetBundlesOf(fieldDef.settings);
+      const typeOk = typeof targetType === 'string' && targetType !== '';
+      if (!typeOk || targetBundles.length === 0) {
+        const target = [targetType, fieldDef.settings?.target_bundle].filter(Boolean).join('.');
         unresolved.push({ source: id, field, target, reason: 'incomplete target' });
-      } else if (!bundles.has(target)) {
-        unresolved.push({ source: id, field, target, reason: 'undeclared target' });
-      } else {
-        links.push({ id: `${id}:${field}`, source: id, target, field });
+        continue;
+      }
+      const suffix = targetBundles.length > 1;
+      for (const targetBundle of targetBundles) {
+        const target = `${targetType}.${targetBundle}`;
+        if (!bundles.has(target)) {
+          unresolved.push({ source: id, field, target, reason: 'undeclared target' });
+        } else {
+          links.push({
+            id: suffix ? `${id}:${field}:${targetBundle}` : `${id}:${field}`,
+            source: id,
+            target,
+            field,
+          });
+        }
       }
     }
   }

@@ -14,16 +14,6 @@ const ClickableCard = styled.div({
   '&:hover': { opacity: 0.85 },
 });
 
-const SectionHeading = styled.h3(({ theme }) => ({
-  fontSize: '13px',
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-  color: theme.textMutedColor,
-  margin: 0,
-  paddingTop: '8px',
-}));
-
 const ViewSwitch = styled.div({ display: 'flex', gap: 4 });
 
 const Toolbar = styled.div({ display: 'flex', flexDirection: 'column', gap: 12 });
@@ -127,9 +117,9 @@ function EntityGroup({ type, bundles, onSelect, dataModel, mappings }) {
   );
 }
 
-/** Distinct entity type keys in declaration order, content before config. */
+/** Distinct content entity type keys in declaration order. Config types are omitted. */
 function entityTypes(data) {
-  return [...new Set([...Object.keys(data?.content || {}), ...Object.keys(data?.config || {})])];
+  return Object.keys(data?.content || {});
 }
 
 /**
@@ -173,11 +163,11 @@ export function DeboDataModel({ data, selectedEntity, onSelectEntity, view: view
     };
   }, []);
 
-  if (!data || (!data.content && !data.config)) return null;
+  if (!data || !data.content) return null;
 
   if (selectedEntity) {
     const [type, bundle] = selectedEntity.split('.');
-    const bundleDef = data.content?.[type]?.[bundle] ?? data.config?.[type]?.[bundle];
+    const bundleDef = data.content?.[type]?.[bundle];
     if (!bundleDef) {
       onSelectEntity?.(null);
       return null;
@@ -203,7 +193,6 @@ export function DeboDataModel({ data, selectedEntity, onSelectEntity, view: view
   };
   const hasBundles = ([type, bundles]) => selected.has(type) && Object.keys(bundles || {}).length > 0;
   const contentTypes = Object.entries(data.content || {}).filter(hasBundles);
-  const configTypes = Object.entries(data.config || {}).filter(hasBundles);
 
   const typeFilter = (
     <FilterGroup role="group" aria-label="Entity types">
@@ -257,7 +246,7 @@ export function DeboDataModel({ data, selectedEntity, onSelectEntity, view: view
         {typeFilter}
         {viewSwitch}
       </Toolbar>
-      {contentTypes.length + configTypes.length === 0 && <Muted>{empty}</Muted>}
+      {contentTypes.length === 0 && <Muted>{empty}</Muted>}
       {contentTypes.map(([type, bundles]) => (
         <EntityGroup
           key={type}
@@ -268,21 +257,6 @@ export function DeboDataModel({ data, selectedEntity, onSelectEntity, view: view
           mappings={mappings}
         />
       ))}
-      {configTypes.length > 0 && (
-        <>
-          <SectionHeading>Config Entities</SectionHeading>
-          {configTypes.map(([type, bundles]) => (
-            <EntityGroup
-              key={`config-${type}`}
-              type={type}
-              bundles={bundles}
-              onSelect={(path) => onSelectEntity?.(path)}
-              dataModel={data}
-              mappings={mappings}
-            />
-          ))}
-        </>
-      )}
     </DeboGrid>
   );
 }
