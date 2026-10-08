@@ -161,7 +161,7 @@ unresolved braces produce invalid CSS:
     $substring($k, 0, 1) != "$" and $v."$type" = "typography" ? (
       $val := $v."$value";
       "  --<prefix>-" & $k & ": " & $resolve($val.fontSize) & ";\n" &
-      "  --<prefix>-" & $k & "--weight: " & $resolve($val.fontWeight) & ";\n" &
+      "  --<prefix>-" & $k & "--font-weight: " & $resolve($val.fontWeight) & ";\n" &
       "  --<prefix>-" & $k & "--line-height: " & $resolve($val.lineHeight) & ";"
     )
   });

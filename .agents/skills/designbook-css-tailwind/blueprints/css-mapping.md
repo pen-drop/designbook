@@ -114,7 +114,7 @@ levels separate it from the root.
 | Field           | Effect |
 |-----------------|--------|
 | `resolve: var`  | DTCG references (`{primitive.color.blue.900}`) are emitted as `var(--<prefix>-<flattened-ref>)` instead of being expanded to the final value. Use for the semantic layer when it should re-reference primitives at runtime. |
-| `expand: typography` | Each composite `$type: typography` token expands into three CSS custom properties: `--<prefix>-<role>`, `--<prefix>-<role>--weight`, `--<prefix>-<role>--line-height`. The `fontFamily` sub-value is omitted (it is already covered by the `primitive-font` group). |
+| `expand: typography` | Each composite `$type: typography` token expands into three CSS custom properties: `--<prefix>-<role>`, `--<prefix>-<role>--font-weight`, `--<prefix>-<role>--line-height`. The `fontFamily` sub-value is omitted (it is already covered by the `primitive-font` group). |
 
 ## Tailwind v4 Namespace Compatibility
 
