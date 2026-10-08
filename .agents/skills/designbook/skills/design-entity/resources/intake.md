@@ -22,9 +22,9 @@ Follow the [shared builder](../../../resources/workflow-building.md) for sealing
 
 When the plan depends on a published revision, complete the [reference intake](../../../design/resources/reference-intake.md) suitability confirmation and approval gate (`reference approval-check`) before `plan build`. A missing or unapproved revision is a `ReferenceNeed` blockade — stop; start `extract-reference` separately when capture is required.
 
-When a required font face or font token is missing (no `@font-face` coverage, no
-resolvable typography token), emit a named prerequisite blockade and stop; start
-`css-generate` separately. Shape:
+When a required font family has no `@font-face` coverage in project CSS, emit a
+named prerequisite blockade and stop; start `css-generate` separately. A
+typography token name is not coverage. Shape:
 
 ```yaml
 kind: PrerequisiteNeed

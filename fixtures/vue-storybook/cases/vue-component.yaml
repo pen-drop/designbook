@@ -86,10 +86,10 @@ assert:
       output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["mount.clean_unmount"] === true))
   - type: javascript
     value: |-
-      const refs = []; const walk = value => { if (!value || typeof value !== 'object') return; if (typeof value.component === 'string') refs.push(value.component); Object.values(value).forEach(walk); }; Object.entries(output.fileContents).filter(([file]) => /\.(scenes|story)\.yml$/.test(file)).forEach(([,value]) => walk(value)); Object.values(output.mappingResults || {}).forEach(walk); return refs.length > 0 && refs.every(ref => ref.startsWith('test_integration_vue:') && output.componentIds.includes(ref.split(':')[1]));
+      const refs = []; const walk = value => { if (!value || typeof value !== 'object') return; if (typeof value.component === 'string') refs.push(value.component); Object.values(value).forEach(walk); }; Object.entries(output.fileContents).filter(([file]) => /\.(scenes|story)\.yml$/.test(file)).forEach(([,value]) => walk(value)); Object.values(output.mappingResults || {}).forEach(walk); const ids = new Set([...(output.componentIds || []), ...Object.keys(output.fileContents).flatMap(f => { const m = /^components\/([^/]+)\//.exec(f); return m ? [m[1]] : []; })]); return refs.length > 0 && refs.every(ref => ref.startsWith('test_integration_vue:') && ids.has(ref.split(':')[1]));
   - type: javascript
     value: |-
-      ['default','sale'].every(v => output.fileContents['components/price-badge/price-badge.component.yml']?.variants?.[v] || output.fileContents['components/price-badge/price-badge.default.story.yml']?.props?.variant !== undefined)
+      ['default','sale'].every(v => output.fileContents[`components/price-badge/price-badge.${v}.story.yml`]?.variant === v)
   - type: javascript
     value: |-
       output.fileContents['components/price-badge/price-badge.default.story.yml']?.component === 'test_integration_vue:price-badge' && output.fileContents['components/price-badge/price-badge.sale.story.yml']?.component === 'test_integration_vue:price-badge'
