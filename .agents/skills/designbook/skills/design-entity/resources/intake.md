@@ -21,3 +21,27 @@ Follow the [shared builder](../../../resources/workflow-building.md) for sealing
 - **change** of an existing named target → may `ephemeral`; blockade when the work would add undeclared targets/tasks or widen scope
 
 When the plan depends on a published revision, complete the [reference intake](../../../design/resources/reference-intake.md) suitability confirmation and approval gate (`reference approval-check`) before `plan build`. A missing or unapproved revision is a `ReferenceNeed` blockade — stop; start `extract-reference` separately when capture is required.
+
+When a required font face or font token is missing (no `@font-face` coverage, no
+resolvable typography token), emit a named prerequisite blockade and stop; start
+`css-generate` separately. Shape:
+
+```yaml
+kind: PrerequisiteNeed
+workflow: design-entity
+need:
+  workflow: css-generate
+  reason: missing font face or font token
+```
+
+When a required image style is missing (`config.image_style` has no bundle the
+mapping's ImageNode can name), emit a named prerequisite blockade and stop; start
+`data-model` separately. Shape:
+
+```yaml
+kind: PrerequisiteNeed
+workflow: design-entity
+need:
+  workflow: data-model
+  reason: missing config.image_style bundle required by image-fields
+```

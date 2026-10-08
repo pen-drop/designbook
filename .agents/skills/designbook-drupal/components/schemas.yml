@@ -294,4 +294,3 @@ SdcTemplate:
 
     NO HARDCODED COLORS — never hardcode color values in Twig. Use design-token CSS custom properties (`color: var(--color-primary)`, `background: var(--color-surface)`) or utility classes derived from them.
   type: string
-  format: twig

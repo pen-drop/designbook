@@ -13,15 +13,30 @@ SceneId:
 StoryId:
   type: string
   description: >
-    CSF story id (`sanitize(title)--sanitize(exportName)`). For SDC component
-    stories, derive from frozen identity namespace + group + component + variant
-    (see designbook-drupal `sdc-components` story-address rule), e.g.
-    `test-integration-drupal-shell-header--default`. Scene and entity stories use
-    their own title prefixes; copy retained ids from the live index when unchanged.
+    CSF story id (`sanitize(title)--sanitize(name)`). `sanitize` lowercases and
+    turns spaces, slashes and other non-alphanumerics into `-` (CSF `toId`).
+
+
+    SDC component stories: derive from frozen identity namespace + group +
+    component + variant (see designbook-drupal `sdc-components` story-address
+    rule). Example: `test-integration-drupal-shell-header--default`.
+
+
+    Scene files (`*.scenes.yml`): each scene export uses title `<group>/Scenes`
+    and the scene display name, so the id is `sanitize(<group>/Scenes)--sanitize(<scene>)`.
+    The overview entry (section files only) uses title `<group>` and name
+    `Overview`, so the id is `sanitize(<group>)--overview`. Example: group
+    `Designbook/Design System`, scene `Shell` → `designbook-design-system-scenes--shell`;
+    overview → `designbook-design-system--overview`.
+
+
+    Entity stories use their own title prefixes. Copy retained ids from the live
+    index when unchanged.
   examples:
     - test-integration-drupal-shell-header--default
     - test-integration-drupal-action-button--primary
-    - design-system--shell
+    - designbook-design-system-scenes--shell
+    - designbook-design-system--overview
 
 SceneFile:
   type: object

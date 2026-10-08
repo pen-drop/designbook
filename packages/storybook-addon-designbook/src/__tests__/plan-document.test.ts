@@ -3,7 +3,10 @@
  * shared context + schema registries referenced per step, and a results-excluded
  * digest that freezes the definition. Parse/serialize must round-trip losslessly.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { load as parseYaml } from 'js-yaml';
 import {
   parsePlan,
   serializePlan,
@@ -163,5 +166,57 @@ describe('plan-document', () => {
   it('completeness survives a plan round-trip through markdown', () => {
     const md = serializePlan(planWithObligation([]));
     expect(validatePlanCompleteness(parsePlan(md)).ok).toBe(false);
+  });
+
+  it('compiling VueComponent and SdcTemplate skill schemas emits no unknown-format warnings', () => {
+    const repoRoot = resolve(import.meta.dirname, '../../../../');
+    const vueSchemas = parseYaml(
+      readFileSync(resolve(repoRoot, '.agents/skills/designbook-vue/components/schemas.yml'), 'utf8'),
+    ) as Record<string, unknown>;
+    const drupalSchemas = parseYaml(
+      readFileSync(resolve(repoRoot, '.agents/skills/designbook-drupal/components/schemas.yml'), 'utf8'),
+    ) as Record<string, unknown>;
+
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      const vueTask: PlanTask = {
+        name: 'write-component',
+        title: 't',
+        done: false,
+        params: {},
+        contract: {
+          outputs: {
+            component: {
+              required: true,
+              submission: 'data',
+              schema: { $ref: '#/definitions/VueComponent' },
+            },
+          },
+        },
+        results: null,
+      };
+      const twigTask: PlanTask = {
+        name: 'write-component',
+        title: 't',
+        done: false,
+        params: {},
+        contract: {
+          outputs: {
+            component: {
+              required: true,
+              submission: 'data',
+              schema: { $ref: '#/definitions/SdcTemplate' },
+            },
+          },
+        },
+        results: null,
+      };
+
+      expect(validateTaskResult(vueTask, { component: '<template></template>' }, vueSchemas).ok).toBe(true);
+      expect(validateTaskResult(twigTask, { component: '<div></div>' }, drupalSchemas).ok).toBe(true);
+      expect(warn.mock.calls.flat().join('\n')).not.toMatch(/unknown format/i);
+    } finally {
+      warn.mockRestore();
+    }
   });
 });

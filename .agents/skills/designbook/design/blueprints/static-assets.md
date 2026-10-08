@@ -11,7 +11,10 @@ Describes how static assets (logos, icons, SVGs, favicons) from the design refer
 
 ## Storage Location
 
-Place assets in the Storybook `public/` directory. Storybook serves this directory automatically at the root path — no `staticDirs` configuration needed.
+Place assets in the Storybook `public/` directory. Vite's default `publicDir`
+serves that folder at the root path in both `storybook dev` and
+`build-storybook`. Use `staticDirs` only for extra directories outside `public/`;
+listing `public/` there duplicates Vite's copy.
 
 ```
 public/

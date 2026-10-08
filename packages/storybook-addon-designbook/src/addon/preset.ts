@@ -293,6 +293,68 @@ export const stories = async (entry: string[] = [], options: any) => {
 };
 
 /**
+ * Index one `*.scenes.yml` file as canvas story entries (overview + per-scene).
+ * Shared by `experimental_indexers` so tests can derive CSF ids without loading
+ * the rest of the preset (which needs a live designbook.config.yml).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function indexScenesFile(fileName: string): any[] {
+  const raw = readFileSync(fileName, 'utf-8');
+  let parsed: unknown;
+  try {
+    parsed = parseYaml(raw);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`Scene file is not valid YAML: ${fileName}\n  ${msg}`);
+  }
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error(`Scene file is empty or not a YAML object: ${fileName}`);
+  }
+
+  const typedParsed = parsed as Record<string, unknown>;
+  const relativePath = './' + relative(process.cwd(), fileName);
+  // Use the same group derivation as the loader (scene-module-builder) so
+  // indexer titles and loaded-story titles always match — a divergence
+  // (e.g. missing `group` → "undefined/Scenes") makes Storybook fail with
+  // "couldn't find story matching index entry".
+  const group = extractGroup(typedParsed, fileBaseName(fileName));
+  const match = matchHandler(fileName, defaultHandlers);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const entries: any[] = [];
+
+  // Every scenes file gets a canvas Overview entry (rendered via mountReact + DeboSectionPage)
+  if (match && match.handler.hasOverview) {
+    entries.push({
+      type: 'story' as const,
+      importPath: relativePath,
+      exportName: 'overview',
+      title: group,
+      name: 'Overview',
+      tags: ['!autodocs'],
+    });
+  }
+
+  // Add scene story entries
+  const scenes = extractScenes(typedParsed);
+  for (let idx = 0; idx < scenes.length; idx++) {
+    const scene = scenes[idx];
+    if (!scene) continue;
+    const name = (scene.name as string) || `Scene ${idx + 1}`;
+    const exportName = buildExportName(name);
+
+    entries.push({
+      type: 'story' as const,
+      importPath: relativePath,
+      exportName: exportName,
+      title: group + '/Scenes',
+      tags: ['scene', '!autodocs'],
+    });
+  }
+
+  return entries;
+}
+
+/**
  * Unified indexer for all *.scenes.yml files.
  * All scene files produce canvas story entries only — no docs entries.
  */
@@ -300,61 +362,7 @@ export const stories = async (entry: string[] = [], options: any) => {
 export const experimental_indexers = async (existingIndexers: any[]) => {
   const scenesIndexer = {
     test: /\.scenes\.yml$/,
-    createIndex: async (fileName: string) => {
-      const raw = readFileSync(fileName, 'utf-8');
-      let parsed: unknown;
-      try {
-        parsed = parseYaml(raw);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        throw new Error(`Scene file is not valid YAML: ${fileName}\n  ${msg}`);
-      }
-      if (!parsed || typeof parsed !== 'object') {
-        throw new Error(`Scene file is empty or not a YAML object: ${fileName}`);
-      }
-
-      const typedParsed = parsed as Record<string, unknown>;
-      const relativePath = './' + relative(process.cwd(), fileName);
-      // Use the same group derivation as the loader (scene-module-builder) so
-      // indexer titles and loaded-story titles always match — a divergence
-      // (e.g. missing `group` → "undefined/Scenes") makes Storybook fail with
-      // "couldn't find story matching index entry".
-      const group = extractGroup(typedParsed, fileBaseName(fileName));
-      const match = matchHandler(fileName, defaultHandlers);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const entries: any[] = [];
-
-      // Every scenes file gets a canvas Overview entry (rendered via mountReact + DeboSectionPage)
-      if (match && match.handler.hasOverview) {
-        entries.push({
-          type: 'story' as const,
-          importPath: relativePath,
-          exportName: 'overview',
-          title: group,
-          name: 'Overview',
-          tags: ['!autodocs'],
-        });
-      }
-
-      // Add scene story entries
-      const scenes = extractScenes(typedParsed);
-      for (let idx = 0; idx < scenes.length; idx++) {
-        const scene = scenes[idx];
-        if (!scene) continue;
-        const name = (scene.name as string) || `Scene ${idx + 1}`;
-        const exportName = buildExportName(name);
-
-        entries.push({
-          type: 'story' as const,
-          importPath: relativePath,
-          exportName: exportName,
-          title: group + '/Scenes',
-          tags: ['scene', '!autodocs'],
-        });
-      }
-
-      return entries;
-    },
+    createIndex: async (fileName: string) => indexScenesFile(fileName),
   };
 
   const entityIndexer = {

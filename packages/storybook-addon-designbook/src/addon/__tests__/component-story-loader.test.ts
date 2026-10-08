@@ -49,4 +49,29 @@ describe('designbookLoadPlugin — component story loading', () => {
     expect(code).toContain('title: "Components/Book Card"');
     expect(code).toContain('export const Default');
   });
+
+  it('forwards top-level variant onto the rendered item props', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'debo-component-variant-'));
+    mkdirSync(resolve(root, 'designbook'), { recursive: true });
+    const componentsDir = resolve(root, 'components', 'button');
+    mkdirSync(componentsDir, { recursive: true });
+    writeFileSync(join(componentsDir, 'button.vue'), '<template><button /></template>');
+    const outlineStory = join(componentsDir, 'button.outline.story.yml');
+    writeFileSync(
+      outlineStory,
+      'component: "test:button"\nname: Outline\nvariant: "outline"\nprops:\n  label: "Click me"\n',
+    );
+
+    const plugin = designbookLoadPlugin(root, {
+      fsRoot: 'designbook',
+      resolveImportPath: (componentId) => `./components/${componentId.split(':')[1]}.js`,
+      wrapImport: (alias) => `{ render: (p, s) => ({ component: '${alias}', props: p, slots: s }) }`,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any;
+
+    const code: string | null = await plugin.load(outlineStory);
+    expect(code).toBeTruthy();
+    expect(code).toContain('"variant": "outline"');
+    expect(code).toContain('"label": "Click me"');
+  });
 });

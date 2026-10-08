@@ -73,13 +73,15 @@ Always double quotes (`"`) in every YAML file.
 
 - **One file per variant**: `<name>.<variant>.story.yml`. Default story is
   `<name>.default.story.yml`. The name segment is mandatory — never `<name>.story.yml`.
-- **Flat format** — top-level keys are `component`, `name`, `props`, `slots`. No
-  `stories:` wrapper.
+- **Flat format** — top-level keys are `component`, `name`, `variant`, `props`,
+  `slots`. A story file selects its variant through the top-level `variant` field.
+  No `stories:` wrapper.
 - **One story per file** — never combine multiple stories using `---` YAML document
   separators.
 - **Story node `type:`** ∈ `element`, `component`, `image`.
-- **Placeholder images** use service URLs (`https://placehold.co/600x400`). Local file
-  paths are not served by Storybook.
+- **Images** use root-relative paths to committed local assets under `public/`
+  (`/images/cover.png`). Same local-asset contract as every other designbook story
+  file (`local-image-assets`).
 - **Component refs include the namespace prefix**: `<namespace>:<name>`, matching
   `designbook.config.yml` → `component.namespace`.
 - **Visually distinct states** — every story file must show a meaningful visual

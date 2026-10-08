@@ -9,7 +9,7 @@ prompt: |-
   You are working in {{workspace}}. Invoke /debo design-component.
   Create Prosaic Bookstore's price badge component (test_integration_vue:price-badge) with top-level
   variants default and sale, props amount, currency and originalAmount. Select the canonical variant
-  through props.variant in stories. Render amount formatted as "{currency}{amount}"; when variant is
+  through the story file's top-level `variant` field. Render amount formatted as "{currency}{amount}"; when variant is
   sale also render originalAmount struck through beside it. Author default and sale story files using
   amount 18.50, currency "$", and for sale also originalAmount 24.00. Then wire book-card
   (test_integration_vue:book-card) to render price-badge instead of its plain price text: pass the

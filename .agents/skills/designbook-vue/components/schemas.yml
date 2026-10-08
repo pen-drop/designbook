@@ -21,7 +21,6 @@ VueComponent:
     entirely inside the SFC itself (`defineProps`, named `<slot>` tags). There is no
     `.component.yml` sibling for a Vue component.
   type: string
-  format: vue
 
 VueStory:
   title: Vue Story File
@@ -31,8 +30,8 @@ VueStory:
     designbook story file — framework-neutral at the engine level.
 
 
-    FLAT FORMAT — top-level keys are `component`, `name`, `props`, `slots`. There is
-    no `stories:` wrapper.
+    FLAT FORMAT — top-level keys are `component`, `name`, `variant`, `props`, `slots`.
+    There is no `stories:` wrapper.
 
 
     ONE STORY PER FILE — never combine multiple stories via `---` YAML document
@@ -57,6 +56,13 @@ VueStory:
     name:
       type: string
       description: Story name shown in Storybook. Use `Default` for the primary story.
+    variant:
+      type: string
+      description: >
+        Variant id this story file selects. The single selection channel for a
+        `.story.yml` file (VARIANT-02). The addon copies it onto the rendered
+        node's `props.variant`. Keep `variant` at the top level of the file.
+      examples: [default, outline, sale]
     props:
       type: object
       description: Prop overrides for this story. Keys match the SFC's `defineProps` names (camelCase, no hyphens).
@@ -81,9 +87,9 @@ VueStoryNode:
     three shapes below.
 
 
-    IMAGE URLS — images in story files MUST use placeholder service URLs
-    (e.g. `https://placehold.co/600x400`). Local file paths do not exist in Storybook
-    and will not render.
+    IMAGE URLS — images in story files use root-relative paths to committed local
+    assets under the preview server's static root (`/images/cover.png`). The same
+    local-asset contract as every other designbook story file.
   type: object
   required: [type]
   properties:
@@ -98,7 +104,7 @@ VueStoryNode:
         - `component` → nests another Vue component. Requires `component` (fully qualified
           `<namespace>:<name>`). Optional: `props`, `slots`.
 
-        - `image` → embeds a placeholder image. Requires `uri`. Optional: `attributes`.
+        - `image` → embeds a local image. Requires `uri`. Optional: `attributes`.
   oneOf:
     - title: Element Node
       description: >
@@ -150,8 +156,10 @@ VueStoryNode:
           const: image
         uri:
           type: string
-          description: Placeholder image URL — MUST be an external placeholder service. Never a local path.
-          examples: ["https://placehold.co/600x400", "https://placehold.co/1200x630/png"]
+          description: >
+            Root-relative path to a committed local image under the preview
+            server's static root.
+          examples: ["/images/cover.png", "/media/hero.jpg"]
         attributes:
           type: object
           description: HTML attributes for the image element (e.g. `class`, `alt`).
