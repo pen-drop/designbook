@@ -1,5 +1,5 @@
 import { afterEach, describe, it, expect, vi } from 'vitest';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,7 +10,8 @@ import { matrixCellsFromMeta, planCaptureMatrix, ensureCellsPlanned, type Matrix
 import { isStorybookStale } from '../check-story.js';
 import { parseStepsArg } from '../capture-screenshot.js';
 import { register } from '../inspect-register.js';
-import { png } from '../../__tests__/capture-fixture.js';
+import { captureFixture, png } from '../../__tests__/capture-fixture.js';
+import { loadConfig } from '../../shared/config.js';
 import type { CapturedSource, PropertyNode } from '../../tools/inspect/element-walker.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -306,5 +307,80 @@ describe('reference CLI surface', () => {
     await program.parseAsync(['reference', 'image', '--reference', dir, '--path', 'shot.png'], { from: 'user' });
     expect(JSON.parse(log.mock.calls[0]![0] as string)).toEqual({ path: 'shot.png', width: 1, height: 1 });
     log.mockRestore();
+  });
+
+  async function runPublish(f: ReturnType<typeof captureFixture>) {
+    const capturePath = join(f.root, 'capture.json');
+    const contractPath = join(f.root, 'contract.json');
+    writeFileSync(capturePath, JSON.stringify(f.capture));
+    writeFileSync(contractPath, JSON.stringify(f.contract));
+    const cwd = process.cwd();
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      process.chdir(f.root);
+      const program = new Command();
+      register(program);
+      await program.parseAsync(
+        [
+          'reference',
+          'publish',
+          '--capture',
+          capturePath,
+          '--workflow-id',
+          'capture-one',
+          '--owner',
+          f.workflow,
+          '--contract',
+          contractPath,
+        ],
+        { from: 'user' },
+      );
+    } finally {
+      process.chdir(cwd);
+    }
+    return { log, error };
+  }
+
+  it('reference publish refuses a revision without meta.yml', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'reference-publish-'));
+    dirs.push(root);
+    writeFileSync(join(root, 'designbook.config.yml'), 'designbook:\n  data: .\n');
+    const f = captureFixture(root, 'website', 'capture-one');
+    f.reserve();
+    process.exitCode = 0;
+    const { error } = await runPublish(f);
+    expect(process.exitCode).toBe(1);
+    expect(error.mock.calls.flat().join('\n')).toMatch(/meta\.yml/);
+    expect(existsSync(join(f.folder, 'publication.json'))).toBe(false);
+    error.mockRestore();
+  });
+
+  it('reference publish seals meta.yml, drops location paths, and removes the owner file', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'reference-publish-'));
+    dirs.push(root);
+    writeFileSync(join(root, 'designbook.config.yml'), 'designbook:\n  data: .\n');
+    const f = captureFixture(root, 'website', 'capture-one');
+    await f.prepare();
+    expect(loadConfig(root).data).toBe(root);
+    process.exitCode = 0;
+    const { log, error } = await runPublish(f);
+    expect(process.exitCode ?? 0).toBe(0);
+    expect(error).not.toHaveBeenCalled();
+    const binding = JSON.parse(log.mock.calls[0]![0] as string) as {
+      files: Record<string, string>;
+      directory?: string;
+      workflow?: string;
+    };
+    expect(binding.files).toHaveProperty('meta.yml');
+    expect(binding).not.toHaveProperty('directory');
+    expect(binding).not.toHaveProperty('workflow');
+    const publication = JSON.parse(readFileSync(join(f.folder, 'publication.json'), 'utf8')) as typeof binding;
+    expect(publication.files).toHaveProperty('meta.yml');
+    expect(publication).not.toHaveProperty('directory');
+    expect(publication).not.toHaveProperty('workflow');
+    expect(existsSync(join(f.folder, '.capture-owner.json'))).toBe(false);
+    log.mockRestore();
+    error.mockRestore();
   });
 });

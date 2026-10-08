@@ -53,13 +53,15 @@ Order the resolution steps so each one has what it needs:
    plan's `## Schemas`: later design workflows derive the published revision's
    query contract from the publication. Follow the
    [shared builder](../../../resources/workflow-building.md) to write and seal
-   the plan. The publish-capture step runs `_debo reference publish --capture
+   the plan. The publish-capture step writes the selected-scope metadata to the
+   `reference` result path first, then runs `_debo reference publish --capture
    <capture.json> --workflow-id <id> --owner <plan-path> --contract
    <contract.json>` (contract = `{ referenceSchema: <Reference>, definitions }`)
-   to validate the observations and write the self-contained binding, then
-   records that result with `plan done`. Completion: the sealed plan carries the
+   to seal every revision file including that metadata, then records the already
+   written result with `plan done`. Completion: the sealed plan carries the
    capture block in the publish task params, matching output paths, and the
-   query schemas.
+   query schemas. The published `publication.json` names `id`, `revision`,
+   `files` and `contract` only.
 
 After sealing, run [execute-workflow](../../execute-workflow/SKILL.md) for this
 capture plan per the builder's chosen mode. This workflow stays a separate start

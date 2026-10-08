@@ -1,0 +1,16 @@
+decided_at: '2026-10-08T22:16:24.292Z'
+fingerprint: ce0591c97a4764c773243fd19c2ad079d67982ff5be2d75f2e9f69dcda9c4500
+note: simulated fixture approval
+scope:
+  breakpoints:
+    - sm
+    - xl
+  states:
+    - rest
+  subjects:
+    - header
+    - footer
+  views:
+    - sm
+    - xl
+status: approved

@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { dump as dumpYaml, load as parseYaml } from 'js-yaml';
+import { readPublishedCapture } from './reference-capture.js';
 
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
 
@@ -118,12 +119,18 @@ export function writeApproval(revisionDir: string, input: WriteApprovalInput): R
 
 export function checkApproval(revisionDir: string, needScope: NeedScope): ApprovalCheckResult {
   assertScope(needScope, 'need.scope');
+  let files: Record<string, string>;
+  try {
+    files = readPublishedCapture(revisionDir).files;
+  } catch (error) {
+    return { ok: false, reason: (error as Error).message };
+  }
   const approval = readApproval(revisionDir);
   if (!approval) return { ok: false, reason: 'approval.yml missing' };
   if (approval.status !== 'approved') return { ok: false, reason: `status: ${approval.status}` };
   let expected: string;
   try {
-    expected = publicationFilesFingerprint(readPublicationFiles(revisionDir));
+    expected = publicationFilesFingerprint(files);
   } catch (error) {
     return { ok: false, reason: (error as Error).message };
   }

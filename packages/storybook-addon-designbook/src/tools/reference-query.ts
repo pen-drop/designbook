@@ -126,10 +126,13 @@ function scopedContract(contract: ReferenceQueryContract): ReferenceQueryContrac
 }
 export function publishedReferenceContract(reference: string): ReferenceQueryContract {
   const binding = readPublishedCapture(reference);
+  const definitions = binding.contract.definitions;
   return {
     referenceSchema: binding.contract.referenceSchema as object,
-    extractSchema: { $ref: '#/definitions/DesignReference' },
-    definitions: binding.contract.definitions,
+    extractSchema: definitions.DesignReference
+      ? { $ref: '#/definitions/DesignReference' }
+      : { type: 'object', required: ['subjects'] },
+    definitions,
   };
 }
 function loadReference(reference: string, suppliedContract: ReferenceQueryContract) {
@@ -281,8 +284,6 @@ function evaluate(request: ReferenceQueryRequest, suppliedContract: ReferenceQue
   const compactBinding = {
     id: binding.id,
     revision: binding.revision,
-    directory: binding.directory,
-    workflow: binding.workflow,
   };
   const result: ReferenceQueryResult = {
     package: request.package,
