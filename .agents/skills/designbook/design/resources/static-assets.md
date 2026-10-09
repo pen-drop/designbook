@@ -29,7 +29,7 @@ Assets to download:
 - Static images that are part of the shell (not content images)
 
 Assets to skip:
-- Content images (use placeholder service or `src` field in data.yml)
+- Content images (committed local assets per `local-image-assets`)
 - Icons from icon fonts (FontAwesome, Material Icons, etc.)
 - CSS-only decorations (gradients, borders, box-shadows)
 

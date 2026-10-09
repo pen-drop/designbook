@@ -15,9 +15,6 @@ prompt: |
   named image style.
   A data model already exists at designbook/data-model.yml (paragraph.signage is present).
   It does not yet define config.image_style bundles.
-  If the data model is missing or incomplete, emit a PrerequisiteNeed blockade
-  that starts `data-model` to create or extend it, then STOP.
-  Do not seal a design-entity plan. Do not start the data-model workflow in this run.
   Execute the workflow now.
 assert:
   - type: javascript

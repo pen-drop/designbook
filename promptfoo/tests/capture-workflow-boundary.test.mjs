@@ -20,7 +20,7 @@ test("planning checks its target, not historical capture attempts", () => {
 
 test("planning accepts a named PrerequisiteNeed blockade instead of a sealed plan", () => {
   const output = {
-    text: "kind: PrerequisiteNeed\nworkflow: design-entity\nneed:\n  workflow: tokens\n  reason: missing or incomplete design tokens\n",
+    text: "kind: PrerequisiteNeed\nworkflow: design-entity\nneed:\n  workflow: css-generate\n  reason: missing font face\n",
     pendingWorkflows: {},
     completedWorkflows: {},
     fileContents: {},
@@ -29,7 +29,7 @@ test("planning accepts a named PrerequisiteNeed blockade instead of a sealed pla
     vars: {
       plan_contract: {
         workflow: "design-entity",
-        blockade: { workflow: "tokens" },
+        blockade: { workflow: "css-generate" },
       },
     },
   };

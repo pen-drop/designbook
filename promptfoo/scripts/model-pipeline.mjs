@@ -85,18 +85,18 @@ export function runModelPipeline({
     },
   }));
   const blockade = base.tests[0].vars.blockade;
+  const intakeSetup =
+    `Set up the CLI once: \`_debo() { npx storybook-addon-designbook "$@"; }\` then \`eval "$(_debo config)"\`.\n` +
+    `Read the intake handoff at ${JSON.stringify(intakeHandoff)} — it records the workspace and any published reference from the completed capture phase. Reuse those exact bindings; do not recapture.\n` +
+    `Follow the installed ${JSON.stringify(workflowId)} domain intake and \`.agents/skills/designbook/resources/workflow-building.md\`: run \`_debo intake ${workflowId} --palette\` and read the applicable intake rules.`;
   plan.prompts = [
     blockade
       ? `You are the planning model, already inside Promptfoo. Do NOT execute tasks in this invocation.\n` +
         `Goal:\n${requestPrompt}\n\n` +
-        `Set up the CLI once: \`_debo() { npx storybook-addon-designbook "$@"; }\` then \`eval "$(_debo config)"\`.\n` +
-        `Read the intake handoff at ${JSON.stringify(intakeHandoff)} — it records the workspace and any published reference from the completed capture phase. Reuse those exact bindings; do not recapture.\n` +
-        `Follow the installed ${JSON.stringify(workflowId)} domain intake and \`.agents/skills/designbook/resources/workflow-building.md\`: run \`_debo intake ${workflowId} --palette\` and read the applicable intake rules. This case expects a named PrerequisiteNeed for ${JSON.stringify(blockade.workflow)} when that prerequisite is missing or incomplete. Emit that YAML (kind: PrerequisiteNeed, need.workflow: ${JSON.stringify(blockade.workflow)}) and STOP. Do not author tasks.json, do not run plan build, and do not start ${JSON.stringify(blockade.workflow)} in this invocation.\n`
+        `${intakeSetup}\n`
       : `You are the planning model, already inside Promptfoo. Produce a complete, sealed MD plan for a separate simple executor. Do NOT execute its tasks in this invocation.\n` +
         `Goal for the executor:\n${requestPrompt}\n\n` +
-        `Set up the CLI once: \`_debo() { npx storybook-addon-designbook "$@"; }\` then \`eval "$(_debo config)"\`.\n` +
-        `Read the intake handoff at ${JSON.stringify(intakeHandoff)} — it records the workspace and the published reference from the completed capture phase. Reuse those exact reference bindings, subjects and selectors; do not recapture. Its reference files are frozen inputs.\n` +
-        `Follow the installed planning skill (the ${JSON.stringify(workflowId)} domain intake and \`.agents/skills/designbook/resources/workflow-building.md\`): run \`_debo intake ${workflowId} --palette\`, read the applicable intake rules, and author the COMPLETE \`tasks.json\` — one entry per concrete task covering every step, each \`params\` satisfying that task's \`params_schema\`, and every open selector resolved.\n` +
+        `${intakeSetup} Author the COMPLETE \`tasks.json\` — one entry per concrete task covering every step, each \`params\` satisfying that task's \`params_schema\`, and every open selector resolved.\n` +
         `Then run \`_debo plan build ${workflowId} --tasks <tasks.json> --name ${JSON.stringify(workflowId)}\`. It validates each task's params, embeds every body once, freezes the contracts and definitions, computes the digest (auto-sealed), and writes the plan to exactly ${JSON.stringify(workflowPath)}. Fix any reported unmet param or missing step in \`tasks.json\` and re-run until it returns ok.\n` +
         `End after \`plan build\` returns ok and the sealed plan exists at ${JSON.stringify(workflowPath)}. Do NOT run \`plan done\`, write component/scene output files, invoke execute-workflow, or provision fixtures. The following executor invocation executes it.\n`,
   ];

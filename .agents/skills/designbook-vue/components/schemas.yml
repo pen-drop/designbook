@@ -60,8 +60,7 @@ VueStory:
       type: string
       description: >
         Variant id this story file selects. The single selection channel for a
-        `.story.yml` file (VARIANT-02). The addon copies it onto the rendered
-        node's `props.variant`. Keep `variant` at the top level of the file.
+        `.story.yml` file (VARIANT-02). Keep `variant` at the top level of the file.
       examples: [default, outline, sale]
     props:
       type: object

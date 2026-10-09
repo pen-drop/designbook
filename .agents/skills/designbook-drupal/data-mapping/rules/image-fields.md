@@ -44,7 +44,7 @@ When the data-model field type is `image`, the image data lives directly on the 
 { "image": "<style_name>", "alt": <field>.alt }
 ```
 
-The `<style_name>` MUST reference a bundle defined under `config.image_style` in `data-model.yml`. No image without an image style. Image styles are produced by the `data-model` workflow (`image-style-config`). When a required bundle is missing, design-entity intake emits a `PrerequisiteNeed` that starts `data-model` to create or extend the model.
+The `<style_name>` MUST reference a bundle defined under `config.image_style` in `data-model.yml`. No image without an image style. Image styles are produced by the `data-model` workflow (`image-style-config`).
 
 ### 3. `type: reference` fields emit EntityNode
 

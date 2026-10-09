@@ -274,18 +274,13 @@ const config = {
   evaluateOptions: { ...base.evaluateOptions, maxConcurrency: 1 },
   tests: [
     {
-      vars:
-        opts.phase === "main" && !opts["prepared-workspace"]
-          ? {
-              suite: opts.suite,
-              case: opts.case,
-              workspace,
-              ...(caseDoc.blockade ? { blockade: caseDoc.blockade } : {}),
-            }
-          : {
-              workspace,
-              ...(caseDoc.blockade ? { blockade: caseDoc.blockade } : {}),
-            },
+      vars: {
+        workspace,
+        ...(caseDoc.blockade ? { blockade: caseDoc.blockade } : {}),
+        ...(opts.phase === "main" && !opts["prepared-workspace"]
+          ? { suite: opts.suite, case: opts.case }
+          : {}),
+      },
       assert: assertions,
     },
   ],

@@ -14,9 +14,6 @@ prompt: |
   The signage component uses heading and body typefaces from the design tokens.
   Design tokens already exist at designbook/design-system/design-tokens.yml (colors, spacing, radius).
   They do not yet include typography or font families.
-  If required design tokens are missing or incomplete, emit a PrerequisiteNeed
-  blockade that starts `tokens` to create or extend them, then STOP.
-  Do not seal a design-entity plan. Do not start the tokens workflow in this run.
   Execute the workflow now.
 assert:
   - type: javascript

@@ -22,26 +22,37 @@ Follow the [shared builder](../../../resources/workflow-building.md) for sealing
 
 When the plan depends on a published revision, complete the [reference intake](../../../design/resources/reference-intake.md) suitability confirmation and approval gate (`reference approval-check`) before `plan build`. A missing or unapproved revision is a `ReferenceNeed` blockade — stop; start `extract-reference` separately when capture is required.
 
-When this entity work requires design tokens the project does not yet have,
-emit a named prerequisite blockade and stop; start `tokens` to create or extend
-them. Shape:
+When this entity work requires typography tokens the project does not yet have,
+emit a named prerequisite blockade and stop; start `tokens` separately. Shape:
 
 ```yaml
 kind: PrerequisiteNeed
 workflow: design-entity
 need:
   workflow: tokens
-  reason: missing or incomplete design tokens
+  reason: missing typography tokens
 ```
 
-When this entity work requires a data model the project does not yet have,
-emit a named prerequisite blockade and stop; start `data-model` to create or
-extend it. Shape:
+When a required font family has no `@font-face` coverage in project CSS, emit a
+named prerequisite blockade and stop; start `css-generate` separately. A
+typography token name is not coverage. Shape:
+
+```yaml
+kind: PrerequisiteNeed
+workflow: design-entity
+need:
+  workflow: css-generate
+  reason: missing font face
+```
+
+When a required image style is missing (`config.image_style` has no bundle the
+mapping's ImageNode can name), emit a named prerequisite blockade and stop; start
+`data-model` separately. Shape:
 
 ```yaml
 kind: PrerequisiteNeed
 workflow: design-entity
 need:
   workflow: data-model
-  reason: missing or incomplete data model
+  reason: missing config.image_style bundle required by image-fields
 ```
