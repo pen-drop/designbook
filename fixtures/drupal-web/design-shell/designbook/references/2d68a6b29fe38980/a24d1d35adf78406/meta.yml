@@ -1,0 +1,29 @@
+source:
+  kind: website
+  identity: https://leando.de/
+  revision: null
+role: reference
+elements:
+  - id: header
+    locator:
+      kind: css
+      value: app-site-header
+    states: &ref_0
+      - name: rest
+        session: anonymous
+    views: &ref_1
+      - id: sm
+        width: 640
+        height: 844
+        breakpoint: sm
+      - id: xl
+        width: 1280
+        height: 900
+        breakpoint: xl
+  - id: footer
+    locator:
+      kind: css
+      value: app-footer
+    states: *ref_0
+    views: *ref_1
+assets_dir: assets

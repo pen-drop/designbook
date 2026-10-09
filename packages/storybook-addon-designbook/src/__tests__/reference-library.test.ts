@@ -51,8 +51,8 @@ describe('listReferences', () => {
     );
     const one = entries.find((e) => e.binding === first.binding)!;
     expect(one.approval).toBe('approved');
-    expect(one.label).toBe('capture-one');
-    expect(entries.find((e) => e.binding === second.binding)!.label).toBe('capture-two');
+    expect(one.label).toBe(first.location.revision);
+    expect(entries.find((e) => e.binding === second.binding)!.label).toBe(second.location.revision);
     expect(one.boundStories).toEqual(['designbook-header--default']);
     expect(one.source.identity).toBe('https://example.test/header');
     expect(one.captures.map((c) => `${c.view}/${c.state}`).sort()).toEqual(
@@ -79,7 +79,7 @@ describe('listReferences', () => {
     expect(byBinding.get(broken.binding)!.error).toMatch(/fingerprint/i);
     expect(byBinding.get(`${pending.location.id}/${pending.location.revision}`)!.status).toBe('unpublished');
     expect(byBinding.get(`${pending.location.id}/${pending.location.revision}`)!.label).toBe('capture-three');
-    expect(byBinding.get(broken.binding)!.label).toBe('capture-two');
+    expect(byBinding.get(broken.binding)!.label).toBe(broken.location.revision);
     expect(loadReferenceEntry(data, broken.location.id, broken.location.revision)!.status).toBe('invalid');
     expect(loadReferenceEntry(data, '../x', 'y')).toBeNull();
   });

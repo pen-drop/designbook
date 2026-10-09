@@ -90,6 +90,12 @@ describe('reference approval.yml gate', () => {
     expect(result.reason).toMatch(/missing|approval/i);
   });
 
+  it('writeApproval refuses a tampered published revision', async () => {
+    const f = await publishedRevision();
+    writeFileSync(join(f.folder, 'meta.yml'), `${readFileSync(join(f.folder, 'meta.yml'), 'utf8')}\n# tampered\n`);
+    expect(() => writeApproval(f.folder, { status: 'approved', scope: coveringScope })).toThrow(/fingerprint changed/);
+  });
+
   it('writeApproval seals fingerprint from publication.json files and sets decided_at on decisions', async () => {
     const f = await publishedRevision();
     const publication = JSON.parse(readFileSync(join(f.folder, 'publication.json'), 'utf8')) as {
