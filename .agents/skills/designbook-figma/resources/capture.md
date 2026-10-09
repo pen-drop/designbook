@@ -7,4 +7,6 @@ Follow the [shared capture intake](../../designbook/skills/extract-reference/res
 Every intake's first command is `intake <id>`.
 This integration's rules match `observe-figma` when extension `figma`
 is configured. Execution uses the catalogue `observe-figma` block. Shared
-intake owns scope, paths and completion.
+intake owns scope, paths and completion. The
+[capture-observations rule](../rules/capture-observations.md) owns
+unavailable Figma capability, native locators, and revision null.
