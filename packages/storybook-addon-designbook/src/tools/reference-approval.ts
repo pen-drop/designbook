@@ -38,7 +38,6 @@ export interface WriteApprovalInput {
 }
 
 const APPROVAL_FILE = 'approval.yml';
-const PUBLICATION_FILE = 'publication.json';
 
 function sortedFilesMap(files: Record<string, string>): Record<string, string> {
   return Object.fromEntries(Object.entries(files).sort(([a], [b]) => a.localeCompare(b)));
@@ -49,15 +48,6 @@ export function publicationFilesFingerprint(files: Record<string, string>): stri
   return createHash('sha256')
     .update(JSON.stringify(sortedFilesMap(files)))
     .digest('hex');
-}
-
-function readPublicationFiles(revisionDir: string): Record<string, string> {
-  const publicationPath = join(revisionDir, PUBLICATION_FILE);
-  if (!existsSync(publicationPath)) throw new Error(`Missing ${PUBLICATION_FILE} in ${revisionDir}`);
-  const publication = JSON.parse(readFileSync(publicationPath, 'utf8')) as { files?: unknown };
-  if (!publication.files || typeof publication.files !== 'object' || Array.isArray(publication.files))
-    throw new Error(`${PUBLICATION_FILE}: expected a files map`);
-  return publication.files as Record<string, string>;
 }
 
 function assertScope(scope: ApprovalScope, label: string): void {
@@ -100,7 +90,7 @@ export function writeApproval(revisionDir: string, input: WriteApprovalInput): R
   assertScope(input.scope, 'approval.scope');
   if (input.status !== 'pending' && input.status !== 'approved' && input.status !== 'rejected')
     throw new Error(`approval.status: expected pending|approved|rejected`);
-  const fingerprint = publicationFilesFingerprint(readPublicationFiles(revisionDir));
+  const fingerprint = publicationFilesFingerprint(readPublishedCapture(revisionDir).files);
   const record: ReferenceApproval = {
     status: input.status,
     fingerprint,

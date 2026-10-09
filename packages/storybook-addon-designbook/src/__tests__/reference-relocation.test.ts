@@ -5,12 +5,7 @@ import { join, relative } from 'node:path';
 import { captureFixture, png } from './capture-fixture.js';
 import { readPublishedCapture } from '../tools/reference-capture.js';
 import { checkApproval, writeApproval } from '../tools/reference-approval.js';
-import {
-  prepareReferenceQuery,
-  publishedReferenceContract,
-  queryReference,
-  validateReferenceIntake,
-} from '../tools/reference-query.js';
+import { prepareReferenceQuery, queryReference, validateReferenceIntake } from '../tools/reference-query.js';
 
 const dirs: string[] = [];
 afterEach(() => dirs.splice(0).forEach((dir) => rmSync(dir, { recursive: true, force: true })));
@@ -70,32 +65,6 @@ describe('published revision moved to another checkout', () => {
     expect(validateReferenceIntake(moved, f.contract).pass).toBe(true);
     const frozen = prepareReferenceQuery(request, f.contract);
     expect(queryReference(frozen, f.contract).checks.scope).toBe(true);
-  });
-
-  it('validates and queries after relocate when the sealed contract omitted DesignReference', async () => {
-    const f = captureFixture(temp(), 'website', 'capture-one', 'reference', {});
-    await f.complete();
-    const publicationPath = join(f.folder, 'publication.json');
-    const binding = JSON.parse(readFileSync(publicationPath, 'utf8')) as {
-      contract: { definitions: Record<string, object> };
-    };
-    delete binding.contract.definitions.DesignReference;
-    writeFileSync(publicationPath, `${JSON.stringify(binding, null, 2)}\n`);
-    const moved = join(temp(), relative(f.root, f.folder));
-    cpSync(f.folder, moved, { recursive: true });
-    const contract = publishedReferenceContract(moved);
-    expect(validateReferenceIntake(moved, contract).pass).toBe(true);
-    const frozen = prepareReferenceQuery(
-      {
-        reference: moved,
-        package: 'component',
-        subjects: ['header'],
-        states: ['rest'],
-        views: ['mobile'],
-      },
-      contract,
-    );
-    expect(queryReference(frozen, contract).checks.scope).toBe(true);
   });
 });
 

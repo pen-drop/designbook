@@ -90,7 +90,7 @@ function entry(
 ): ReferenceLibraryEntry | null {
   const binding = `${id}/${revision}`;
   const directory = join(resolve(data, 'references'), binding);
-  // The capture owner (reserved before any file is written) names the revision in every status.
+  // Unpublished revisions take their label from .capture-owner.json. Publish deletes that file, so published revisions show the revision id.
   const ownerFile = join(directory, '.capture-owner.json');
   const label = existsSync(ownerFile)
     ? revisionLabel((JSON.parse(readFileSync(ownerFile, 'utf8')) as { workflow: string }).workflow)
