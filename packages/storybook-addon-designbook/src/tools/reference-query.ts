@@ -281,8 +281,6 @@ function evaluate(request: ReferenceQueryRequest, suppliedContract: ReferenceQue
   const compactBinding = {
     id: binding.id,
     revision: binding.revision,
-    directory: binding.directory,
-    workflow: binding.workflow,
   };
   const result: ReferenceQueryResult = {
     package: request.package,

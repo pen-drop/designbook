@@ -64,6 +64,13 @@ describe('capture publication onto the MD plan result', () => {
     symlinkSync(f.folder, alias, 'dir');
     expect(() => assertUnpublishedTarget(join(alias, 'nested/new.json'))).toThrow('read-only');
   });
+  it('removes the capture owner at publish and still refuses writers', async () => {
+    const f = fixture();
+    await f.complete();
+    expect(existsSync(join(f.folder, '.capture-owner.json'))).toBe(false);
+    expect(() => assertUnpublishedTarget(join(f.folder, 'meta.yml'))).toThrow('read-only');
+    expect(() => reserveCapture(f.folder, join(f.root, 'other.plan.md'))).toThrow('read-only');
+  });
   it('binds a Storybook reference and backend actual revision through explicit native comparison identities', async () => {
     const story = fixture('storybook', 'capture-story-reference');
     await story.complete();

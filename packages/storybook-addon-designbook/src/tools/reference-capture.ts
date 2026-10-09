@@ -1,7 +1,7 @@
 /** Source-neutral publication of observations produced by ordinary workflow tasks. */
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, realpathSync, statSync, writeFileSync, unlinkSync, mkdirSync } from 'node:fs';
-import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { validateImage } from '../validation/image.js';
 import { declaredStates, sourceDumpName } from './reference-project.js';
 
@@ -46,11 +46,10 @@ export interface ReferenceContract {
   referenceSchema: unknown;
   definitions: Record<string, object>;
 }
+/** Published revision seal. Identity is the folder names `references/<id>/<revision>/`. */
 export interface CaptureBinding {
   id: string;
   revision: string;
-  directory: string;
-  workflow: string;
   files: Record<string, string>;
   contract: ReferenceContract;
 }
@@ -171,6 +170,8 @@ export function captureLocation(data: string, capture: CaptureIdentity, workflow
 }
 /** Reserve a revision directory for one fixed owner before any result file may be written. */
 export function reserveCapture(directory: string, ownerWorkflow: string): () => void {
+  if (existsSync(join(directory, 'publication.json')))
+    throw new Error(`Published reference is read-only: ${directory}`);
   mkdirSync(directory, { recursive: true });
   const owner = join(directory, '.capture-owner.json');
   try {
@@ -405,30 +406,43 @@ export interface PublishInput {
  * workflow runs synchronously, so when it finishes the revision is done — publish
  * just freezes it. The human decides whether the screenshots are right; the machine
  * only records a fingerprint (sha256 of every revision file) plus the query contract,
- * so a later query can detect drift.
+ * so a later query can detect drift. Location lives in the folder names, not the seal.
  */
 export function publishCapture(input: PublishInput): CaptureBinding {
   const location = captureLocation(input.data, input.capture, input.workflowId);
+  if (!input.declaredFiles['meta.yml']) throw new Error('Publication requires meta.yml');
+  const ownerFile = join(location.directory, '.capture-owner.json');
+  if (existsSync(ownerFile)) {
+    const owner = JSON.parse(readFileSync(ownerFile, 'utf8')) as { workflow: string };
+    if (owner.workflow !== resolve(input.ownerWorkflow))
+      throw new Error('Capture revision belongs to a different workflow');
+  }
   const binding: CaptureBinding = {
-    ...location,
-    workflow: resolve(input.ownerWorkflow),
+    id: location.id,
+    revision: location.revision,
     files: input.declaredFiles,
     contract: input.contract,
   };
   writeFileSync(join(location.directory, 'publication.json'), JSON.stringify(binding, null, 2) + '\n', { flag: 'wx' });
+  if (existsSync(ownerFile)) unlinkSync(ownerFile);
   return binding;
 }
-export function discardPublication(binding: CaptureBinding): void {
-  unlinkSync(join(binding.directory, 'publication.json'));
+export function discardPublication(directory: string): void {
+  unlinkSync(join(directory, 'publication.json'));
 }
 export function readPublishedCapture(directory: string): CaptureBinding {
   const publication = join(directory, 'publication.json');
   if (!existsSync(publication))
     throw new Error('Reference revision is incomplete: finish its capture workflow before planning');
-  const binding = JSON.parse(readFileSync(publication, 'utf8')) as CaptureBinding;
-  if (binding.directory !== resolve(directory)) throw new Error('Publication directory differs from binding');
-  const owner = JSON.parse(readFileSync(join(directory, '.capture-owner.json'), 'utf8')) as { workflow: string };
-  if (owner.workflow !== binding.workflow) throw new Error('Capture revision belongs to a different workflow');
+  const binding = JSON.parse(readFileSync(publication, 'utf8')) as CaptureBinding & {
+    directory?: unknown;
+    workflow?: unknown;
+  };
+  if ('directory' in binding || 'workflow' in binding) throw new Error('Publication binding contains a location path');
+  const resolved = resolve(directory);
+  if (binding.revision !== basename(resolved) || binding.id !== basename(dirname(resolved)))
+    throw new Error('Publication identity differs from directory');
+  if (!binding.files?.['meta.yml']) throw new Error('Publication is missing meta.yml');
   for (const [file, digest] of Object.entries(binding.files))
     if (digestBytes(readCaptureFile(directory, file)) !== digest)
       throw new Error(`Reference fingerprint changed: ${file}`);

@@ -15,10 +15,11 @@ result:
   properties:
     reference:
       path: "{{ reference_folder }}/meta.yml"
+      submission: direct
       $ref: ../schemas.yml#/Reference
 ---
 
 # Publish captured observations
 
-Selected-scope metadata for the capture revision. The CLI projects observations
-from the source dump, this metadata and declared PNG/asset files at publication.
+Selected-scope metadata for the capture revision. Publication fingerprints this
+metadata together with the source dump and declared PNG/asset files.
