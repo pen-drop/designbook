@@ -206,6 +206,8 @@ test("blockade planning prompt follows intake without naming the expected need",
     },
   });
   assert.match(planPrompt, /_debo intake design-shell --palette/);
+  assert.match(planPrompt, /Complete domain intake in this invocation/);
+  assert.match(planPrompt, /ReferenceNeed` or `PrerequisiteNeed/);
   assert.doesNotMatch(planPrompt, /This case expects a named PrerequisiteNeed/);
   assert.doesNotMatch(planPrompt, /need\.workflow:\s*css-generate/);
   assert.doesNotMatch(planPrompt, /Emit that YAML/);

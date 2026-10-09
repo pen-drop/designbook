@@ -18,7 +18,7 @@ prompt: |
 assert:
   - type: javascript
     value: |
-      const blob = [output.text, JSON.stringify(output.fileContents || {})].join('\n');
+      const blob = String(output.text || '');
       return /kind:\s*PrerequisiteNeed/.test(blob) && /need:[\s\S]*workflow:\s*css-generate/.test(blob);
   - type: javascript
     value: output.completedWorkflows['design-entity'] == null

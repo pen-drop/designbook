@@ -23,7 +23,7 @@ Follow the [shared builder](../../../resources/workflow-building.md) for sealing
 When the plan depends on a published revision, complete the [reference intake](../../../design/resources/reference-intake.md) suitability confirmation and approval gate (`reference approval-check`) before `plan build`. A missing or unapproved revision is a `ReferenceNeed` blockade — stop; start `extract-reference` separately when capture is required.
 
 When this entity work requires typography tokens the project does not yet have,
-emit a named prerequisite blockade and stop; start `tokens` separately. Shape:
+the planning output is this YAML and the design-entity plan stays unsealed; start `tokens` separately. Shape:
 
 ```yaml
 kind: PrerequisiteNeed
@@ -33,9 +33,9 @@ need:
   reason: missing typography tokens
 ```
 
-When a required font family has no `@font-face` coverage in project CSS, emit a
-named prerequisite blockade and stop; start `css-generate` separately. A
-typography token name is not coverage. Shape:
+When a required font family has no `@font-face` coverage in project CSS, the
+planning output is this YAML and the design-entity plan stays unsealed; start
+`css-generate` separately. A typography token name is not coverage. Shape:
 
 ```yaml
 kind: PrerequisiteNeed
@@ -46,8 +46,8 @@ need:
 ```
 
 When a required image style is missing (`config.image_style` has no bundle the
-mapping's ImageNode can name), emit a named prerequisite blockade and stop; start
-`data-model` separately. Shape:
+mapping's ImageNode can name), the planning output is this YAML and the
+design-entity plan stays unsealed; start `data-model` separately. Shape:
 
 ```yaml
 kind: PrerequisiteNeed

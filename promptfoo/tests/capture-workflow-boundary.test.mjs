@@ -41,4 +41,18 @@ test("planning accepts a named PrerequisiteNeed blockade instead of a sealed pla
     ).pass,
     false,
   );
+  assert.equal(
+    planResult(
+      {
+        ...output,
+        text: "sealed a design-entity plan",
+        fileContents: {
+          ".agents/skills/designbook/skills/design-entity/resources/intake.md":
+            output.text,
+        },
+      },
+      context,
+    ).pass,
+    false,
+  );
 });

@@ -88,10 +88,10 @@ export function runModelPipeline({
   const intakeSetup =
     `Set up the CLI once: \`_debo() { npx storybook-addon-designbook "$@"; }\` then \`eval "$(_debo config)"\`.\n` +
     `Read the intake handoff at ${JSON.stringify(intakeHandoff)} — it records the workspace and any published reference from the completed capture phase. Reuse those exact bindings; do not recapture.\n` +
-    `Follow the installed ${JSON.stringify(workflowId)} domain intake and \`.agents/skills/designbook/resources/workflow-building.md\`: run \`_debo intake ${workflowId} --palette\` and read the applicable intake rules.`;
+    `Follow the installed ${JSON.stringify(workflowId)} domain intake and \`.agents/skills/designbook/resources/workflow-building.md\`: run \`_debo intake ${workflowId} --palette\` and read the applicable intake rules. If intake yields a named \`ReferenceNeed\` or \`PrerequisiteNeed\`, report that YAML and stop — skip \`tasks.json\` and \`plan build\`.`;
   plan.prompts = [
     blockade
-      ? `You are the planning model, already inside Promptfoo. Do NOT execute tasks in this invocation.\n` +
+      ? `You are the planning model, already inside Promptfoo. Complete domain intake in this invocation. Workflow tasks wait for a later executor.\n` +
         `Goal:\n${requestPrompt}\n\n` +
         `${intakeSetup}\n`
       : `You are the planning model, already inside Promptfoo. Produce a complete, sealed MD plan for a separate simple executor. Do NOT execute its tasks in this invocation.\n` +

@@ -5,10 +5,7 @@ export default function planResult(output, context) {
     return fail("Missing fixed planning workflow contract");
   if (contract.blockade?.workflow) {
     const need = contract.blockade.workflow;
-    const blob = [
-      output.text,
-      JSON.stringify(output.fileContents || {}),
-    ].join("\n");
+    const blob = String(output.text || "");
     if (
       !/kind:\s*PrerequisiteNeed/.test(blob) ||
       !new RegExp(`need:[\\s\\S]*workflow:\\s*${need}`).test(blob)
