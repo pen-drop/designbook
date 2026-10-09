@@ -22,3 +22,9 @@ assert:
     # Current css-generate emits typography.src.css (legacy name was typography-scale.src.css).
     # newFiles may be theme-rooted (web/themes/.../css/tokens/...).
     value: output.newFiles.some((f) => f.endsWith('css/tokens/typography.src.css') || f.endsWith('css/tokens/typography-scale.src.css'))
+  - type: javascript
+    # Tailwind 4 reads --text-<role>--font-weight; --weight would leave text-<role> without font-weight.
+    value: |
+      const css = Object.entries(output.fileContents).find(([f]) => f.endsWith('css/tokens/typography.src.css'))?.[1] || '';
+      return ['heading', 'display', 'subheading', 'body', 'link', 'button'].every((role) => css.includes(`--text-${role}--font-weight:`))
+        && !/--text-[\w-]+--weight:/.test(css);
