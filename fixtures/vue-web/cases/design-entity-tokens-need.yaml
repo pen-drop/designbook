@@ -1,0 +1,29 @@
+workflow: design-entity
+validate: none
+blockade:
+  workflow: tokens
+fixtures:
+  - vision
+  - tokens-incomplete
+  - data-model
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo design-entity workflow for the "paragraph.signage" entity, "full" view mode.
+  Do NOT ask any questions. The product is "LEANDO".
+  This is a text-only request; do not capture a design reference.
+  The signage component uses heading and body typefaces from the design tokens.
+  Design tokens already exist at designbook/design-system/design-tokens.yml (colors, spacing, radius).
+  They do not yet include typography or font families.
+  If required design tokens are missing or incomplete, emit a PrerequisiteNeed
+  blockade that starts `tokens` to create or extend them, then STOP.
+  Do not seal a design-entity plan. Do not start the tokens workflow in this run.
+  Execute the workflow now.
+assert:
+  - type: javascript
+    value: |
+      const blob = [output.text, JSON.stringify(output.fileContents || {})].join('\n');
+      return /kind:\s*PrerequisiteNeed/.test(blob) && /need:[\s\S]*workflow:\s*tokens/.test(blob);
+  - type: javascript
+    value: output.completedWorkflows['design-entity'] == null
+  - type: javascript
+    value: output.completedWorkflows['tokens'] == null

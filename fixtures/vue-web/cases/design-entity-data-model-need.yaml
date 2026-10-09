@@ -1,0 +1,30 @@
+workflow: design-entity
+validate: none
+blockade:
+  workflow: data-model
+fixtures:
+  - vision
+  - tokens
+  - data-model-incomplete
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo design-entity workflow for the "paragraph.signage" entity, "full" view mode.
+  Do NOT ask any questions. The product is "LEANDO".
+  This is a text-only request; do not capture a design reference.
+  Each signage item includes a photo. Map that photo as an ImageNode with a
+  named image style.
+  A data model already exists at designbook/data-model.yml (paragraph.signage is present).
+  It does not yet define config.image_style bundles.
+  If the data model is missing or incomplete, emit a PrerequisiteNeed blockade
+  that starts `data-model` to create or extend it, then STOP.
+  Do not seal a design-entity plan. Do not start the data-model workflow in this run.
+  Execute the workflow now.
+assert:
+  - type: javascript
+    value: |
+      const blob = [output.text, JSON.stringify(output.fileContents || {})].join('\n');
+      return /kind:\s*PrerequisiteNeed/.test(blob) && /need:[\s\S]*workflow:\s*data-model/.test(blob);
+  - type: javascript
+    value: output.completedWorkflows['design-entity'] == null
+  - type: javascript
+    value: output.completedWorkflows['data-model'] == null

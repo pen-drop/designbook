@@ -280,8 +280,12 @@ const config = {
               suite: opts.suite,
               case: opts.case,
               workspace,
+              ...(caseDoc.blockade ? { blockade: caseDoc.blockade } : {}),
             }
-          : { workspace },
+          : {
+              workspace,
+              ...(caseDoc.blockade ? { blockade: caseDoc.blockade } : {}),
+            },
       assert: assertions,
     },
   ],
