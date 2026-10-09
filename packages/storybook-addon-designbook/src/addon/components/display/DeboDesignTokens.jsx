@@ -40,7 +40,11 @@ export function resolveTokenReferences(tokens) {
   }
 
   for (const token of lookup.values()) {
-    token.$value = resolve(token.$value);
+    const v = token.$value;
+    // Composite values (e.g. $type: typography) hold references per member.
+    token.$value = v && typeof v === 'object' && !Array.isArray(v)
+      ? Object.fromEntries(Object.entries(v).map(([k, m]) => [k, resolve(m)]))
+      : resolve(v);
   }
 
   return tokens;
@@ -441,6 +445,7 @@ function getGroupRenderer(group) {
   const dominant = Object.entries(types).sort((a, b) => b[1] - a[1])[0][0];
   if (dominant === 'dimension') return 'bar';
   if (dominant === 'color') return 'color';
+  if (dominant === 'typography') return 'typography';
   return 'generic';
 }
 
@@ -632,6 +637,38 @@ function ScreenRenderer({ tokens }) {
   );
 }
 
+function TypographyRenderer({ tokens }) {
+  const theme = useTheme();
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '8px 0' }}>
+      {tokens.map(([k, v]) => {
+        const value = v.$value && typeof v.$value === 'object' ? v.$value : {};
+        return (
+          <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div
+              data-typography-sample={k}
+              style={{
+                fontFamily: value.fontFamily,
+                fontSize: value.fontSize,
+                fontWeight: value.fontWeight,
+                lineHeight: value.lineHeight,
+                letterSpacing: value.letterSpacing,
+                color: value.color,
+              }}
+            >
+              The quick brown fox jumps over the lazy dog
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 600, color: theme.color.defaultText }}>{k}</span>
+            <span style={{ fontSize: 11, fontFamily: 'monospace', color: theme.textMutedColor }}>
+              {Object.entries(value).map(([p, x]) => `${p}: ${x}`).join(' · ')}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 const RENDERERS = {
   bar: BarRenderer,
   color: ColorRenderer,
@@ -640,6 +677,7 @@ const RENDERERS = {
   gap: GapRenderer,
   radius: RadiusRenderer,
   screen: ScreenRenderer,
+  typography: TypographyRenderer,
 };
 
 // ─── Generic token fallback ─────────────────────────────────────────────────
