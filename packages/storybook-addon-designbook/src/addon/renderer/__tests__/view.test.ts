@@ -172,4 +172,22 @@ describe('view()', () => {
     expect(result).toHaveLength(2);
     expect(result.map((n) => n.component)).toEqual(['nav_item', 'content']);
   });
+  it('renders a delegating entity wrapper exactly like its delegated entity (DESIGNBOOK-54)', () => {
+    const event = { entity_type: 'node', bundle: 'event', view_mode: 'stream', mapping: '/event.jsonata' };
+    const post = { entity_type: 'node', bundle: 'post', view_mode: 'default', mapping: '/post.jsonata' };
+    const card = (): SceneTreeNode => ({
+      kind: 'entity',
+      entity: event,
+      component: 'stream_card',
+      props: { title: 'Event' },
+      slots: { image: [{ kind: 'component', component: 'image', props: { src: 'a.jpg' } }] },
+    });
+    const merged: SceneTreeNode[] = [{ ...card(), entity: post }];
+    const wrapped: SceneTreeNode[] = [{ kind: 'entity', entity: post, children: [card()] }];
+
+    expect(view(wrapped)).toEqual(view(merged));
+    expect(view([{ kind: 'component', component: 'grid', slots: { items: wrapped } }])).toEqual(
+      view([{ kind: 'component', component: 'grid', slots: { items: merged } }]),
+    );
+  });
 });

@@ -128,12 +128,13 @@ async function resolveToTree(nodes: RawNode[], meta: BuildResult['meta'], ctx: B
 
   // If the builder has entity/scene-ref meta and produced multiple nodes,
   // wrap them as children of a single meta node (e.g. entity with N sections).
-  // Single-node results merge meta directly onto the node.
+  // A single component result merges meta directly onto the node; a single
+  // entity/scene-ref result (delegation) keeps its own origin as a child.
   if (meta.kind === 'entity' || meta.kind === 'scene-ref') {
-    if (resolved.length === 1) {
+    if (resolved.length === 1 && resolved[0]!.kind === 'component') {
       return [{ ...resolved[0], ...meta }];
     }
-    // Multiple nodes → entity parent with children
+    // Multiple nodes or a delegated origin → entity parent with children
     return [{ ...meta, children: resolved }];
   }
 
