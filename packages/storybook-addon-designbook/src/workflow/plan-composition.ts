@@ -41,6 +41,8 @@ export interface CompositionInputs {
   samples: CompositionSampleSnapshot[];
   scenes: CompositionSceneSnapshot[];
   data_model: Record<string, unknown>;
+  /** Configured `component.namespace`, sealed by plan build; qualifies bare planned writes. */
+  namespace?: string;
 }
 
 export type CompositionStatus = 'neu' | 'geändert' | 'wiederverwendet';
@@ -111,6 +113,17 @@ function getBundle(
     if (isObj(b)) return b;
   }
   return undefined;
+}
+
+function componentTreeFieldNames(bundle: Record<string, unknown>): string[] {
+  return Object.entries(bundleFields(bundle))
+    .filter(([, def]) => isObj(def) && def.type === 'component_tree')
+    .map(([name]) => name);
+}
+
+export function componentTreeFields(model: Record<string, unknown>, entityType: string, bundle: string): string[] {
+  const def = getBundle(model, entityType, bundle);
+  return def ? componentTreeFieldNames(def) : [];
 }
 
 function bundleFields(bundle: Record<string, unknown>): Record<string, unknown> {
@@ -263,9 +276,18 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
   const model = composition.data_model ?? {};
   const knownIds = new Set<string>();
   for (const snap of composition.components) knownIds.add(snap.id);
+  const collectQualifiedIds = (value: unknown) => {
+    if (Array.isArray(value)) {
+      value.forEach(collectQualifiedIds);
+      return;
+    }
+    if (!isObj(value)) return;
+    if (typeof value.component === 'string' && value.component.includes(':')) knownIds.add(value.component);
+    for (const nested of Object.values(value)) collectQualifiedIds(nested);
+  };
+  // Sample values never name a contract, so they never qualify a planned write.
   for (const { task } of tasks) {
-    if (typeof task.params.component === 'string' && task.params.component.includes(':'))
-      knownIds.add(task.params.component);
+    if (task.name !== 'create-sample-data') collectQualifiedIds(task.params);
   }
 
   const plannedWrites = new Map<string, { task: PlanTask; step: string; contract: Record<string, unknown> }>();
@@ -275,7 +297,8 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
     const c = task.params.component;
     if (!isObj(c)) continue;
     const bare = asString(c.component);
-    const id = qualify(bare, knownIds);
+    const id =
+      composition.namespace && !bare.includes(':') ? `${composition.namespace}:${bare}` : qualify(bare, knownIds);
     knownIds.add(id);
     const titles = producerCount.get(id) ?? [];
     titles.push(task.title || bare);
@@ -297,15 +320,19 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
   }
 
   const samples = new Map<string, SamplePool>();
-  for (const snap of composition.samples) {
-    samples.set(`${snap.entity_type}.${snap.bundle}`, {
-      entity_type: snap.entity_type,
-      bundle: snap.bundle,
-      records: snap.records,
-    });
-  }
+  // Error locators point at each record's source: the planned task params or the frozen baseline.
+  const sampleAt = new Map<string, (path: string) => string>();
+  const recordAt = new Map<string, (path: string) => string>();
+  composition.samples.forEach((snap, i) => {
+    const key = `${snap.entity_type}.${snap.bundle}`;
+    samples.set(key, { entity_type: snap.entity_type, bundle: snap.bundle, records: snap.records });
+    sampleAt.set(key, (path) => `composition.samples[${i}]${path ? `.${path}` : ''}`);
+    snap.records.forEach((rec, k) =>
+      recordAt.set(`${key}#${rec.id}`, (path) => `composition.samples[${i}].records[${k}].${path}`),
+    );
+  });
   const sampleProducers = new Map<string, string[]>();
-  for (const { task } of tasks) {
+  for (const { step, task } of tasks) {
     if (task.name !== 'create-sample-data') continue;
     const bundle = isObj(task.params.bundle) ? task.params.bundle : {};
     const entity_type = asString(bundle.entity_type);
@@ -317,6 +344,8 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
     const planned = Array.isArray(task.params.records) ? (task.params.records as SamplePool['records']) : [];
     const baseline = samples.get(key)?.records ?? [];
     samples.set(key, { entity_type, bundle: b, records: overlaySampleRecords(baseline, planned) });
+    sampleAt.set(key, (path) => loc(step, task, path));
+    planned.forEach((rec, k) => recordAt.set(`${key}#${rec.id}`, (path) => loc(step, task, `records[${k}].${path}`)));
   }
   for (const [key, titles] of sampleProducers) {
     if (titles.length > 1) errors.push(`create-sample-data: duplicate producer for ${key}`);
@@ -384,6 +413,26 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
     const mode = rec.mode_kind === 'form' ? rec.form_mode : rec.view_mode;
     if (rec.mode_kind !== 'form' && !(mode in viewModes(bundle))) {
       errors.push(`${prefix('mapping.view_mode')}: ${rec.entity_type}.${rec.bundle} has no view mode "${mode}"`);
+    }
+    const treeFields = componentTreeFieldNames(bundle);
+    if (treeFields.length > 1) {
+      errors.push(`${prefix('mapping')}: at most one component_tree field on ${rec.entity_type}.${rec.bundle}`);
+      continue;
+    }
+    if (treeFields.length) {
+      if (rec.task.params.component !== undefined) {
+        errors.push(
+          `${prefix('component')}: ${rec.entity_type}.${rec.bundle} has a component_tree field; omit the wrapping component`,
+        );
+      }
+      if (rec.bindings.length) {
+        errors.push(`${prefix('bindings')}: component_tree composition is the sample tree`);
+      }
+      const pool = samples.get(`${rec.entity_type}.${rec.bundle}`);
+      if (!pool || pool.records.length === 0) {
+        errors.push(`${prefix('mapping')}: empty required samples for ${rec.entity_type}.${rec.bundle}`);
+      }
+      continue;
     }
     if (rec.mode_kind !== 'form') {
       const modeDef = viewModes(bundle)[mode];
@@ -468,6 +517,105 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
     });
   }
 
+  function treeField(entityType: string, bundle: string): string | undefined {
+    const fields = componentTreeFields(model, entityType, bundle);
+    return fields.length === 1 ? fields[0] : undefined;
+  }
+
+  function validateTree(items: unknown[], at: (path: string) => string, path: string): void {
+    items.forEach((item, i) => {
+      const p = `${path}[${i}]`;
+      if (!isObj(item) || typeof item.component !== 'string') {
+        errors.push(`${at(p)}: expected ComponentNode`);
+        return;
+      }
+      const id = item.component;
+      const comp = components.get(id);
+      if (!comp) errors.push(`${at(`${p}.component`)}: no contract for ${id}`);
+      if (item.props !== undefined && !isObj(item.props)) errors.push(`${at(`${p}.props`)}: expected object`);
+      if (item.slots !== undefined && !isObj(item.slots)) errors.push(`${at(`${p}.slots`)}: expected object`);
+      const props = comp ? contractProps(comp.contract) : {};
+      if (comp && isObj(item.props)) {
+        for (const [k, v] of Object.entries(item.props)) {
+          if (!(k in props)) errors.push(`${at(`${p}.props.${k}`)}: unknown prop ${k}`);
+          else if (!literalTypeOk(props[k], v)) errors.push(`${at(`${p}.props.${k}`)}: ${k} type mismatch`);
+        }
+      }
+      if (!isObj(item.slots)) return;
+      for (const [slot, val] of Object.entries(item.slots)) {
+        if (typeof val === 'string') continue;
+        if (Array.isArray(val)) validateTree(val, at, `${p}.slots.${slot}`);
+        else errors.push(`${at(`${p}.slots.${slot}`)}: expected string or ComponentNode[]`);
+      }
+    });
+  }
+
+  // Every record of every tree bundle is validated once, independent of what is displayed.
+  for (const [key, pool] of samples) {
+    const fields = componentTreeFields(model, pool.entity_type, pool.bundle);
+    if (!fields.length) continue;
+    const at = sampleAt.get(key)!;
+    if (fields.length > 1) {
+      errors.push(`${at('')}: at most one component_tree field on ${key}`);
+      continue;
+    }
+    const field = fields[0]!;
+    for (const record of pool.records) {
+      const recAt = recordAt.get(`${key}#${record.id}`)!;
+      const path = `values.${field}`;
+      const raw = record.values?.[field];
+      if (!Array.isArray(raw)) errors.push(`${recAt(path)}: expected ComponentNode[]`);
+      else validateTree(raw, recAt, path);
+    }
+  }
+
+  function treeNodes(items: unknown[]): CompositionNode[] {
+    const nodes: CompositionNode[] = [];
+    for (const item of items) {
+      if (!isObj(item) || typeof item.component !== 'string') continue;
+      const id = item.component;
+      const children: CompositionNode[] = [];
+      if (isObj(item.slots)) {
+        for (const [slot, val] of Object.entries(item.slots)) {
+          if (typeof val !== 'string' && !Array.isArray(val)) continue;
+          children.push({
+            kind: 'slot',
+            identity: slot,
+            target: slot,
+            children: Array.isArray(val) ? treeNodes(val) : [],
+          });
+        }
+      }
+      nodes.push({ kind: 'component', identity: id, status: components.get(id)?.status, children });
+    }
+    return nodes;
+  }
+
+  /** One entity node per selected record of a tree bundle, each carrying that record's tree. */
+  function treeRecordNodes(
+    entityType: string,
+    bundle: string,
+    field: string,
+    indexes: number[],
+    mode?: string,
+  ): CompositionNode[] {
+    const pool = samples.get(`${entityType}.${bundle}`);
+    return indexes.map((idx) => {
+      const raw = pool?.records[idx]?.values?.[field];
+      return {
+        kind: 'entity' as const,
+        identity: `${entityType}.${bundle}`,
+        mode,
+        record: idx,
+        children: Array.isArray(raw) ? treeNodes(raw) : [],
+      };
+    });
+  }
+
+  function allIndexes(entityType: string, bundle: string): number[] {
+    return (samples.get(`${entityType}.${bundle}`)?.records ?? []).map((_, i) => i);
+  }
+
   const sceneFiles = new Map<string, { path: string; file: Record<string, unknown> }>();
   for (const snap of composition.scenes) {
     const id = asString(snap.file.id) || snap.path;
@@ -512,6 +660,17 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
     return ids.length;
   }
 
+  function selectedIndexes(rec: MappingRec, binding: Binding, recordIndex: number | undefined): number[] {
+    const child = binding.entity!;
+    const childPool = samples.get(`${child.entity_type}.${child.bundle}`);
+    const parent =
+      recordIndex == null ? undefined : samples.get(`${rec.entity_type}.${rec.bundle}`)?.records[recordIndex];
+    if (!parent) return allIndexes(child.entity_type, child.bundle);
+    const raw = parent.values?.[binding.field];
+    const ids = Array.isArray(raw) ? raw.map(String) : raw != null ? [String(raw)] : [];
+    return ids.map((id) => (childPool?.records ?? []).findIndex((r) => r.id === id)).filter((i) => i >= 0);
+  }
+
   function bindingNodes(rec: MappingRec, recordIndex?: number, chain: string[] = []): CompositionNode[] {
     const selfKey = mappingKey(rec);
     return rec.bindings.map((b) => {
@@ -530,6 +689,19 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
         const childKey = `${b.entity.entity_type}.${b.entity.bundle}:view:${b.entity.view_mode}`;
         const child = mappings.get(childKey);
         const childComp = child ? components.get(child.component) : undefined;
+        const field = treeField(b.entity.entity_type, b.entity.bundle);
+        if (field) {
+          node.children.push(
+            ...treeRecordNodes(
+              b.entity.entity_type,
+              b.entity.bundle,
+              field,
+              selectedIndexes(rec, b, recordIndex),
+              b.entity.view_mode,
+            ),
+          );
+          return node;
+        }
         const nextChain = chain.includes(selfKey) ? chain : [...chain, selfKey];
         if (nextChain.includes(childKey)) {
           errors.push(
@@ -587,6 +759,11 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
         const key = `${entity_type}.${bundle}:view:${view_mode}`;
         const rec = mappings.get(key);
         if (!rec) errors.push(`${loc(step, task, itemPath)}: missing mapping ${key}`);
+        const field = treeField(entity_type, bundle);
+        if (field) {
+          nodes.push(...treeRecordNodes(entity_type, bundle, field, indexes, view_mode));
+          return;
+        }
         const recordIndex = indexes[0];
         const comp = rec ? components.get(rec.component) : undefined;
         nodes.push({
@@ -670,20 +847,44 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
       });
     }
   } else {
-    const mapped = new Set([...mappings.values()].map((m) => m.component));
+    const mappedBundles = new Set<string>();
     for (const rec of mappings.values()) {
-      const comp = components.get(rec.component);
+      mappedBundles.add(`${rec.entity_type}.${rec.bundle}`);
+      const mode = rec.mode_kind === 'form' ? rec.form_mode : rec.view_mode;
+      const field = treeField(rec.entity_type, rec.bundle);
+      if (field) {
+        roots.push(
+          ...treeRecordNodes(rec.entity_type, rec.bundle, field, allIndexes(rec.entity_type, rec.bundle), mode),
+        );
+        continue;
+      }
+      const comp = rec.component ? components.get(rec.component) : undefined;
       roots.push({
         kind: 'entity',
         identity: `${rec.entity_type}.${rec.bundle}`,
-        mode: rec.mode_kind === 'form' ? rec.form_mode : rec.view_mode,
-        target: rec.component,
+        mode,
+        target: rec.component || undefined,
         status: comp?.status,
         children: bindingNodes(rec),
       });
     }
+    for (const [key, pool] of samples) {
+      if (mappedBundles.has(key) || !sampleProducers.has(key)) continue;
+      const field = treeField(pool.entity_type, pool.bundle);
+      if (field)
+        roots.push(...treeRecordNodes(pool.entity_type, pool.bundle, field, allIndexes(pool.entity_type, pool.bundle)));
+    }
+    const used = new Set<string>();
+    const collect = (nodes: CompositionNode[]) => {
+      for (const node of nodes) {
+        if (node.kind === 'component') used.add(node.identity);
+        if (node.target) used.add(node.target);
+        collect(node.children);
+      }
+    };
+    collect(roots);
     for (const [id, c] of components) {
-      if (mapped.has(id)) continue;
+      if (used.has(id)) continue;
       if (c.status === 'wiederverwendet') continue;
       roots.push({ kind: 'component', identity: id, status: c.status, children: [] });
     }
@@ -710,7 +911,8 @@ function formatNode(node: CompositionNode): string {
     case 'prop':
       return `prop ${node.target ?? node.identity} ← ${node.source ?? ''}`;
     case 'slot': {
-      let s = `slot ${node.target ?? node.identity} ← ${node.source ?? ''}`;
+      let s = `slot ${node.target ?? node.identity}`;
+      if (node.source) s += ` ← ${node.source}`;
       if (node.count !== undefined) s += ` (reference, ${node.count} selected records)`;
       return s;
     }

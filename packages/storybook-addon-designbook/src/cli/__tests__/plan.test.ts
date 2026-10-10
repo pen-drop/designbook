@@ -1016,3 +1016,218 @@ describe('plan done composition enforcement', () => {
     }
   });
 });
+
+const treeContract = (name: string, props: string[], slots: string[]) => ({
+  component: name,
+  group: 'layout',
+  props: {
+    type: 'object',
+    properties: Object.fromEntries(props.map((p) => [p, { type: 'string' }])),
+    required: [],
+    additionalProperties: false,
+  },
+  slots: Object.fromEntries(slots.map((slot) => [slot, { description: slot, required: false }])),
+});
+
+const homeTree = [
+  {
+    component: 'test_integration_vue:section',
+    slots: {
+      column_1: [
+        {
+          component: 'test_integration_vue:hero',
+          slots: { content: [{ component: 'test_integration_vue:rich_snippet', props: { headline: 'Home' } }] },
+        },
+      ],
+    },
+  },
+];
+const aboutTree = [{ component: 'test_integration_vue:rich_snippet', props: { headline: 'About' } }];
+
+function setupTree() {
+  const setup = setupSignage();
+  writeFileSync(
+    setup.tasksPath,
+    JSON.stringify({
+      workflow: 'design-entity',
+      composition: {
+        components: [],
+        mappings: [],
+        samples: [],
+        scenes: [],
+        data_model: {
+          content: {
+            canvas_page: {
+              landing_page: {
+                fields: { components: { type: 'component_tree' } },
+                view_modes: { full: { template: 'canvas' } },
+              },
+            },
+          },
+        },
+      },
+      tasks: [
+        {
+          step: 'write-component',
+          task: 'write-component',
+          title: 'section',
+          params: { component: treeContract('section', [], ['column_1']) },
+        },
+        {
+          step: 'write-component',
+          task: 'write-component',
+          title: 'hero',
+          params: { component: treeContract('hero', [], ['content']) },
+        },
+        {
+          step: 'write-component',
+          task: 'write-component',
+          title: 'rich_snippet',
+          params: { component: treeContract('rich_snippet', ['headline'], []) },
+        },
+        {
+          step: 'create-sample-data',
+          task: 'create-sample-data',
+          title: 'landing_page',
+          params: {
+            section_id: 'home',
+            bundle: { entity_type: 'canvas_page', bundle: 'landing_page' },
+            data_model: {},
+            components_dir: join(setup.dir, 'components'),
+            records: [
+              { id: 'home', summary: 'Home', values: { components: homeTree } },
+              { id: 'about', summary: 'About', values: { components: aboutTree } },
+            ],
+          },
+        },
+        {
+          step: 'map-entity',
+          task: 'map-entity--design-screen',
+          title: 'landing_page',
+          params: {
+            mapping: { entity_type: 'canvas_page', bundle: 'landing_page', mode_kind: 'view', view_mode: 'full' },
+            data_model: {},
+          },
+        },
+      ],
+    }),
+  );
+  return setup;
+}
+
+const buildArgs = (s: ReturnType<typeof setupTree>, ...extra: string[]) => [
+  'plan',
+  'build',
+  'design-entity',
+  '--tasks',
+  s.tasksPath,
+  '--output',
+  s.planPath,
+  '--config-dir',
+  workspaceRoot,
+  '--config',
+  s.configPath,
+  ...extra,
+];
+
+describe('plan tree / build / done — component_tree samples', () => {
+  it('draft tree, build and sealed tree agree on the nested per-record hierarchy', async () => {
+    const s = setupTree();
+    try {
+      process.exitCode = undefined;
+      const draftArgs = [
+        'plan',
+        'tree',
+        s.tasksPath,
+        '--workflow',
+        'design-entity',
+        '--config-dir',
+        workspaceRoot,
+        '--config',
+        s.configPath,
+      ];
+      const draft = JSON.parse(await run([...draftArgs, '--format', 'json'])) as CompositionTree;
+      const built = JSON.parse(await run(buildArgs(s, '--format', 'json'))) as { tree: CompositionTree };
+      const sealed = JSON.parse(await run(['plan', 'tree', s.planPath, '--format', 'json'])) as CompositionTree;
+      expect(built.tree).toEqual(draft);
+      expect(sealed).toEqual(draft);
+      expect(draft.roots.map((r) => r.record)).toEqual([0, 1]);
+
+      const text = await run(['plan', 'tree', s.planPath]);
+      expect(await run(draftArgs)).toBe(text);
+      expect(text).toBe(
+        [
+          'canvas_page.landing_page [full] record 0',
+          '└─ test_integration_vue:section (neu)',
+          '   └─ slot column_1',
+          '      └─ test_integration_vue:hero (neu)',
+          '         └─ slot content',
+          '            └─ test_integration_vue:rich_snippet (neu)',
+          'canvas_page.landing_page [full] record 1',
+          '└─ test_integration_vue:rich_snippet (neu)',
+          '',
+        ].join('\n'),
+      );
+    } finally {
+      process.exitCode = undefined;
+      rmSync(s.dir, { recursive: true, force: true });
+    }
+  });
+
+  async function sealTree() {
+    const s = setupTree();
+    process.exitCode = undefined;
+    expect((await runCli(buildArgs(s, '--format', 'json'))).exitCode).toBe(0);
+    return { ...s, plan: parsePlan(readFileSync(s.planPath, 'utf8')) };
+  }
+
+  async function done(s: Awaited<ReturnType<typeof sealTree>>, task: string, data: unknown) {
+    const dataPath = join(s.dir, 'result.json');
+    writeFileSync(dataPath, JSON.stringify(data));
+    process.exitCode = undefined;
+    return runCli(['plan', 'done', s.planPath, '--task', task, '--title', 'landing_page', '--data-file', dataPath]);
+  }
+
+  const taskState = (planPath: string, name: string) =>
+    parsePlan(readFileSync(planPath, 'utf8'))
+      .steps.flatMap((st) => st.tasks)
+      .find((t) => t.name === name)!;
+
+  it.each([
+    ['map-entity--design-screen', 'entity-mapping'],
+    ['create-sample-data', 'sample-data'],
+  ])('rejects a bad %s result without writes, then completes the exact one', async (name, key) => {
+    const s = await sealTree();
+    try {
+      const task = s.plan.steps.flatMap((st) => st.tasks).find((t) => t.name === name)!;
+      const outPath = task.contract.outputs[key]?.path;
+      expect(outPath).toBeTruthy();
+      const beforePlan = readFileSync(s.planPath);
+      const beforeOut = outPath && existsSync(outPath) ? readFileSync(outPath) : null;
+      const rows = (trees: unknown[]) =>
+        ['home', 'about'].map((id, i) => ({ id, components: trees[i], __designbook: { section: 'home' } }));
+      const bad =
+        key === 'entity-mapping'
+          ? '(\n  $record := $;\n  [{ "component": "test_integration_vue:section", "slots": { "column_1": $record.components } }]\n)\n'
+          : rows([homeTree, [{ component: 'test_integration_vue:rich_snippet', props: { headline: 'Changed' } }]]);
+      const good = key === 'entity-mapping' ? compilePlannedMapping(task, s.plan) : rows([homeTree, aboutTree]);
+
+      const rejected = await done(s, name, { [key]: bad });
+      expect(rejected.exitCode).toBe(1);
+      expect(readFileSync(s.planPath)).toEqual(beforePlan);
+      expect(taskState(s.planPath, name).done).toBe(false);
+      if (outPath) {
+        if (beforeOut === null) expect(existsSync(outPath)).toBe(false);
+        else expect(readFileSync(outPath)).toEqual(beforeOut);
+      }
+
+      const accepted = await done(s, name, { [key]: good });
+      expect(accepted.exitCode).toBe(0);
+      expect(taskState(s.planPath, name).done).toBe(true);
+      expect(existsSync(outPath!)).toBe(true);
+    } finally {
+      process.exitCode = undefined;
+      rmSync(s.dir, { recursive: true, force: true });
+    }
+  });
+});

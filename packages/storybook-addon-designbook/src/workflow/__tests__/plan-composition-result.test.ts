@@ -10,6 +10,7 @@ import { buildPlan, type TaskList } from '../plan-build.js';
 import { planDigest, type Plan, type PlanTask } from '../plan-document.js';
 import { compilePlannedMapping, validateCompositionResult } from '../plan-composition-result.js';
 import type { DesignbookConfig } from '../../shared/config.js';
+import jsonata from 'jsonata';
 
 const agents = resolve(process.cwd(), '../../.agents');
 const vueOpts = {
@@ -84,6 +85,205 @@ describe('compilePlannedMapping', () => {
     expect(expr).toContain('$fields := $');
     expect(expr).toContain('"kicker": $fields.field_paragraph_style');
     expect(expr).toContain('$map($fields.field_signage_item');
+  });
+});
+
+type TreeRecord = { id: string; summary: string; values: Record<string, unknown> };
+
+function treeContract(name: string, props: string[] = [], slots: string[] = []): Record<string, unknown> {
+  return {
+    component: name,
+    group: 'layout',
+    props: {
+      type: 'object',
+      properties: Object.fromEntries(props.map((p) => [p, { type: 'string' }])),
+      required: [],
+      additionalProperties: false,
+    },
+    slots: Object.fromEntries(slots.map((slot) => [slot, { description: slot, required: false }])),
+  };
+}
+
+const sectionTree = [
+  {
+    component: 'test_integration_vue:section',
+    props: { max_width: 'lg' },
+    slots: {
+      column_1: [
+        { component: 'test_integration_vue:hero', props: { title: 'One' } },
+        { component: 'test_integration_vue:hero', props: { title: 'Two' } },
+      ],
+    },
+  },
+];
+
+function treeTaskList(field: string, records: TreeRecord[], fields?: Record<string, unknown>): TaskList {
+  return {
+    workflow: 'design-entity',
+    composition: {
+      components: [],
+      mappings: [],
+      samples: [],
+      scenes: [],
+      data_model: {
+        content: {
+          canvas_page: {
+            landing_page: {
+              fields: fields ?? { [field]: { type: 'component_tree' } },
+              view_modes: { full: { template: 'canvas' } },
+            },
+          },
+        },
+      },
+    },
+    tasks: [
+      {
+        step: 'write-component',
+        task: 'write-component',
+        title: 'section',
+        params: { component: treeContract('section', ['max_width'], ['column_1']) },
+      },
+      {
+        step: 'write-component',
+        task: 'write-component',
+        title: 'hero',
+        params: { component: treeContract('hero', ['title']) },
+      },
+      {
+        step: 'create-sample-data',
+        task: 'create-sample-data',
+        title: 'landing_page',
+        params: {
+          section_id: 'home',
+          bundle: { entity_type: 'canvas_page', bundle: 'landing_page' },
+          data_model: {},
+          components_dir: '/tmp/components',
+          records,
+        },
+      },
+      {
+        step: 'map-entity',
+        task: 'map-entity--design-screen',
+        title: 'landing_page',
+        params: {
+          mapping: { entity_type: 'canvas_page', bundle: 'landing_page', mode_kind: 'view', view_mode: 'full' },
+          data_model: {},
+        },
+      },
+    ],
+  };
+}
+
+const treeRecords = (field: string): TreeRecord[] => [
+  { id: 'home', summary: 'Home', values: { [field]: sectionTree } },
+  { id: 'about', summary: 'About', values: { [field]: [] } },
+];
+
+async function buildTreePlan(field: string, records = treeRecords(field)): Promise<Plan> {
+  const { plan, errors } = await buildPlan(treeTaskList(field, records), vueOpts);
+  expect(errors).toEqual([]);
+  return plan!;
+}
+
+describe('compilePlannedMapping — component_tree passthrough', () => {
+  it.each(['components', 'layout'])('compiles the %s field as a record passthrough', async (field) => {
+    const plan = await buildTreePlan(field);
+    expect(compilePlannedMapping(findTask(plan, 'map-entity', 'landing_page'), plan)).toBe(
+      `(\n  $record := $;\n  $record.${field}\n)\n`,
+    );
+  });
+
+  it.each([
+    ['empty', []],
+    ['one root', sectionTree],
+    ['multiple roots', [...sectionTree, { component: 'test_integration_vue:hero', props: { title: 'Last' } }]],
+  ])('evaluates to the exact %s sample tree', async (_label, tree) => {
+    const plan = await buildTreePlan('layout', [{ id: 'home', summary: 'Home', values: { layout: tree } }]);
+    const expr = compilePlannedMapping(findTask(plan, 'map-entity', 'landing_page'), plan);
+    const out = await jsonata(expr).evaluate({ id: 'home', layout: tree });
+    expect(JSON.parse(JSON.stringify(out ?? []))).toEqual(tree);
+  });
+
+  it('names the tree-field count instead of a missing component for two tree fields', async () => {
+    const { plan, errors } = await buildPlan(
+      treeTaskList('layout', treeRecords('layout'), {
+        layout: { type: 'component_tree' },
+        aside: { type: 'component_tree' },
+      }),
+      { ...vueOpts },
+    );
+    expect(plan).toBeNull();
+    expect(errors.join('\n')).toMatch(/at most one component_tree field/);
+    const draft = await buildTreePlan('layout');
+    draft.composition!.data_model = treeTaskList('layout', [], {
+      layout: { type: 'component_tree' },
+      aside: { type: 'component_tree' },
+    }).composition!.data_model;
+    const task = findTask(draft, 'map-entity', 'landing_page');
+    expect(() => compilePlannedMapping(task, draft)).toThrow(/at most one component_tree field/);
+    const result = await validateCompositionResult(draft, task, { 'entity-mapping': '$record.layout' });
+    expect(result.errors.join('\n')).toMatch(/at most one component_tree field/);
+    expect(result.errors.join('\n')).not.toMatch(/missing component/);
+  });
+});
+
+describe('validateCompositionResult — component_tree mapping', () => {
+  it('accepts the exact passthrough for every record', async () => {
+    const plan = await buildTreePlan('layout');
+    const task = findTask(plan, 'map-entity', 'landing_page');
+    const result = await validateCompositionResult(plan, task, {
+      'entity-mapping': compilePlannedMapping(task, plan),
+    });
+    expect(result).toEqual({ ok: true, errors: [] });
+  });
+
+  it.each([
+    [
+      'a wrapper',
+      '(\n  $record := $;\n  [{ "component": "test_integration_vue:section", "slots": { "column_1": $record.layout } }]\n)',
+    ],
+    ['another field', '(\n  $record := $;\n  $record.components\n)'],
+    ['an equal literal', `(\n  $record := $;\n  ${JSON.stringify(sectionTree)}\n)`],
+    ['malformed JSONata', '(\n  $record := $;\n  $record.layout\n'],
+  ])('rejects %s', async (_label, source) => {
+    const plan = await buildTreePlan('layout');
+    const task = findTask(plan, 'map-entity', 'landing_page');
+    const result = await validateCompositionResult(plan, task, { 'entity-mapping': source });
+    expect(result.ok).toBe(false);
+  });
+});
+
+describe('validateCompositionResult — component_tree samples', () => {
+  const rows = (records: TreeRecord[]) =>
+    records.map((r) => ({ id: r.id, ...r.values, __designbook: { section: 'home' } }));
+
+  it('accepts the exact sealed trees', async () => {
+    const plan = await buildTreePlan('layout');
+    const task = findTask(plan, 'create-sample-data', 'landing_page');
+    expect((await validateCompositionResult(plan, task, { 'sample-data': rows(treeRecords('layout')) })).ok).toBe(true);
+  });
+
+  it.each([
+    ['a changed nested prop', (t: typeof sectionTree) => (t[0]!.slots.column_1[1]!.props.title = 'Changed')],
+    ['a removed child', (t: typeof sectionTree) => t[0]!.slots.column_1.pop()],
+    ['reordered children', (t: typeof sectionTree) => t[0]!.slots.column_1.reverse()],
+  ])('rejects %s', async (_label, mutate) => {
+    const plan = await buildTreePlan('layout');
+    const task = findTask(plan, 'create-sample-data', 'landing_page');
+    const written = treeRecords('layout').map((r) => structuredClone(r));
+    mutate(written[0]!.values.layout as typeof sectionTree);
+    const result = await validateCompositionResult(plan, task, { 'sample-data': rows(written) });
+    expect(result.ok).toBe(false);
+    expect(result.errors.join('\n')).toMatch(/home field layout/);
+  });
+
+  it('rejects a second-record mismatch', async () => {
+    const plan = await buildTreePlan('layout');
+    const task = findTask(plan, 'create-sample-data', 'landing_page');
+    const written = treeRecords('layout');
+    written[1]!.values.layout = sectionTree;
+    const result = await validateCompositionResult(plan, task, { 'sample-data': rows(written) });
+    expect(result.errors.join('\n')).toMatch(/about field layout/);
   });
 });
 

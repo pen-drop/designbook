@@ -53,6 +53,11 @@ export interface BuildResult {
   errors: string[];
 }
 
+function sealComposition(composition: CompositionInputs, config: Record<string, unknown>): CompositionInputs {
+  const namespace = config['component.namespace'];
+  return typeof namespace === 'string' && namespace ? { ...composition, namespace } : composition;
+}
+
 export async function buildPlan(taskList: TaskList, opts: ResolveIntakeOptions = {}): Promise<BuildResult> {
   const intake = await resolveIntakeContext(taskList.workflow, opts);
   const errors: string[] = [];
@@ -187,7 +192,7 @@ export async function buildPlan(taskList: TaskList, opts: ResolveIntakeOptions =
     definitions: intake.definitions,
     context: registry,
     steps,
-    ...(taskList.composition ? { composition: taskList.composition } : {}),
+    ...(taskList.composition ? { composition: sealComposition(taskList.composition, intake.config) } : {}),
   };
   if (WRITING_DESIGN_WORKFLOWS.has(taskList.workflow) && draft.composition) {
     const semantic = deriveComposition(draft);

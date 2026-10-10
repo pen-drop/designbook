@@ -6,7 +6,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import jsonata from 'jsonata';
 import { load as parseYaml } from 'js-yaml';
 import type { Plan, PlanTask } from './plan-document.js';
-import { overlaySampleRecords } from './plan-composition.js';
+import { componentTreeFields, overlaySampleRecords } from './plan-composition.js';
 
 interface Binding {
   field: string;
@@ -22,7 +22,25 @@ interface SampleRec {
   values?: Record<string, unknown>;
 }
 
+function treeFieldsFor(task: PlanTask, plan: Plan): string[] {
+  const mapping = task.params.mapping as { entity_type?: string; bundle?: string } | undefined;
+  if (!mapping?.entity_type || !mapping.bundle) return [];
+  return componentTreeFields(plan.composition?.data_model ?? {}, mapping.entity_type, mapping.bundle);
+}
+
 export function compilePlannedMapping(task: PlanTask, plan: Plan): string {
+  const treeFields = treeFieldsFor(task, plan);
+  if (treeFields.length > 1) {
+    const mapping = task.params.mapping as { entity_type?: string; bundle?: string };
+    throw new Error(`at most one component_tree field on ${mapping.entity_type}.${mapping.bundle}`);
+  }
+  if (treeFields.length === 1) {
+    return `(
+  $record := $;
+  $record.${treeFields[0]}
+)
+`;
+  }
   const component = String(task.params.component ?? '');
   const bindings = (task.params.bindings as Binding[] | undefined) ?? [];
   if (!component) throw new Error('map-entity is missing component');
@@ -67,7 +85,7 @@ export async function validateCompositionResult(
   result: Record<string, unknown>,
 ): Promise<{ ok: boolean; errors: string[] }> {
   const errors: string[] = [];
-  if (task.name.includes('map-entity') && Array.isArray(task.params.bindings)) {
+  if (task.name.includes('map-entity') && (Array.isArray(task.params.bindings) || treeFieldsFor(task, plan).length)) {
     await validateMapping(plan, task, result, errors);
   } else if (task.name === 'write-scene' && Array.isArray(task.params.items)) {
     validateScene(plan, task, result, errors);
@@ -208,6 +226,24 @@ async function validateMapping(
   try {
     compiled = jsonata(source);
   } catch {
+    return;
+  }
+  const treeFields = treeFieldsFor(task, plan);
+  if (treeFields.length === 1) {
+    const field = treeFields[0]!;
+    for (const rec of recordsFor(plan, mapping.entity_type, mapping.bundle)) {
+      const values: Record<string, unknown> = { id: rec.id, ...(rec.values ?? {}) };
+      let out: unknown;
+      try {
+        out = await compiled.evaluate(values);
+      } catch (err: unknown) {
+        errors.push(`jsonata evaluation failed: ${err instanceof Error ? err.message : String(err)}`);
+        continue;
+      }
+      if (!sameValue(out, values[field])) {
+        errors.push(`evaluated ${field} tree does not match the sealed sample record`);
+      }
+    }
     return;
   }
   const bindings = (task.params.bindings as Binding[]) ?? [];

@@ -663,7 +663,9 @@ CompositionSampleSnapshot:
           summary: { type: string, description: Short remaining content. }
           values:
             type: object
-            description: Concrete field values. Extra keys are field names from the data model.
+            description: >
+              Concrete field values. Extra keys are field names from the data model.
+              A `component_tree` field holds a ComponentNode[] tree.
             additionalProperties: true
 
 CompositionSceneSnapshot:
@@ -716,6 +718,12 @@ CompositionInputs:
         (config entities under config.<entity_type>.<bundle>); image styles under
         config.image_style. Extra keys are the file's own sections.
       additionalProperties: true
+    namespace:
+      type: string
+      description: >
+        Configured component namespace. `plan build` seals it from `component.namespace`;
+        it qualifies bare planned component writes.
+      examples: [test_integration_drupal]
 
 Variant:
   type: object
