@@ -43,8 +43,10 @@ sealing. Every mode uses the same sealed-plan assembly and the same
    work that needs no new visuals does not invent a ReferenceNeed. Completion:
    either the dependent revision is approved for the need, or a precise blockade /
    ReferenceNeed is reported.
-4. Choose an **execution mode**, then run `plan build` accordingly. Caller override
-   always wins over workflow defaults.
+4. For a **design-*** workflow, run `plan tree <tasks.json> --workflow <id>
+   --config-dir <workspace>` and present that exact text. Then choose an
+   **execution mode** and run `plan build` accordingly. In `ask` mode the tree
+   precedes the three choices. Caller override always wins over workflow defaults.
 
    | Mode | Persist durable plan? | Start execute? |
    |---|---|---|
@@ -78,7 +80,7 @@ sealing. Every mode uses the same sealed-plan assembly and the same
      file after caller/tester inspection when scoring needs the sealed plan;
      result artifacts remain. Interrupted ephemeral runs have no durable
      resume — re-intake and rebuild, or switch to `persist` first.
-   - **`ask`:** Before build/execute, present the three choices (run here /
+   - **`ask`:** Present the `plan tree` text, then the three choices (run here /
      ephemeral, hand off / persist without execute, or cancel). Follow the chosen
      mode.
 
