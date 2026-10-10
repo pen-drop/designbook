@@ -59,6 +59,16 @@
       ]
     },
     {
+      "name": "designbook-figma",
+      "source": "./.agents/skills/designbook-figma",
+      "strict": false,
+      "description": "Figma integration for Designbook — capture selected Figma frames, nodes and assets as reference observations",
+      "category": "design",
+      "skills": [
+        "./"
+      ]
+    },
+    {
       "name": "designbook-test",
       "source": "./.agents/skills/designbook-test",
       "strict": false,

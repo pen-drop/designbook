@@ -21,7 +21,7 @@ templates live in [schemas.yml](../schemas.yml) and [blueprints/](../blueprints/
 
 ### group
 
-`group:` required, one of: `Action`, `Data Display`, `Navigation`, `Layout`, `Shell`.
+`group:` required. Reuse an existing group when one fits; suggested groups: `Action`, `Data Display`, `Form`, `Navigation`, `Layout`, `Shell`.
 
 ### Storybook story address
 

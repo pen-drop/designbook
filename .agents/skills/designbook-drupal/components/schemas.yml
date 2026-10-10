@@ -42,11 +42,11 @@ SdcComponent:
       description: Lifecycle state. `stable` for production-ready; `experimental` for in-development; `deprecated` for scheduled removal.
     group:
       type: string
-      enum: [Action, "Data Display", Navigation, Layout, Shell]
+      examples: [Action, "Data Display", Form, Navigation, Layout, Shell]
       description: >
         Top-level Storybook category. Also the middle segment of the derived CSF
-        story id after sanitize (see sdc-components story-address rule). Must be
-        one of the listed values.
+        story id after sanitize (see sdc-components story-address rule). Reuse an
+        existing group when one fits; the examples are suggestions, not a closed list.
     description:
       type: string
       description: One-sentence summary of the component's purpose and typical usage context.
