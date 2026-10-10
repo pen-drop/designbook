@@ -42,9 +42,18 @@ function assetPath(path: string, label: string): void {
     throw new Error(`${label}: expected a normalized path under assets/, got ${path}`);
 }
 
-function schemaCheck(value: unknown, schema: object, definitions: Record<string, object>, label: string): void {
-  const ajv = new Ajv({ allErrors: true, strict: false });
-  const check = ajv.compile({ ...schema, definitions });
+const ajv = new Ajv({ allErrors: true, strict: false });
+const compiled = new Map<string, ReturnType<typeof ajv.compile>>();
+/**
+ * Contracts arrive as freshly parsed JSON on every read, and a published read
+ * re-validates each state document per query cell, so compile once per distinct
+ * schema text instead of once per call.
+ */
+export function schemaCheck(value: unknown, schema: object, definitions: Record<string, object>, label: string): void {
+  const full = { ...schema, definitions };
+  const key = JSON.stringify(full);
+  let check = compiled.get(key);
+  if (!check) compiled.set(key, (check = ajv.compile(full)));
   if (!check(value)) throw new Error(`${label}: ${ajv.errorsText(check.errors)}`);
 }
 
@@ -189,5 +198,60 @@ export function observationCatalogue(doc: ReferenceObservationDocument) {
         unavailable: sample.unavailable.length,
       })),
     })),
+  };
+}
+
+/**
+ * One revision's per-state documents as one extract. Shared records (assets,
+ * fonts, parents) must agree across states; a conflict is an error, never a
+ * silent pick. The stored capture is returned as the independent expected scope.
+ */
+export function mergeObservationDocuments(documents: ReferenceObservationDocument[]): {
+  capture: CaptureDefinition;
+  extract: ObservationExtract;
+} {
+  const capture = documents[0]?.capture;
+  if (!capture) throw new Error('observations: no state documents');
+  const states = new Set<string>();
+  const subjects = new Map<string, ObservationExtract['subjects'][number]>();
+  const parents = new Map<string, ObservationExtract['parents'][number]>();
+  const images = new Map<string, ObservationExtract['images'][number]>();
+  const fonts = new Map<string, ObservationExtract['fonts'][number]>();
+  const captures: ObservationExtract['captures'] = [];
+  const same = <T>(records: Map<string, T>, id: string, record: T, label: string) => {
+    const known = records.get(id);
+    if (known !== undefined && !isDeepStrictEqual(known, record))
+      throw new Error(`observations: conflicting ${label} ${id}`);
+    records.set(id, known ?? record);
+  };
+  for (const doc of documents) {
+    if (!isDeepStrictEqual(doc.capture, capture))
+      throw new Error('observations: states differ in their capture definition');
+    if (states.has(doc.state)) throw new Error(`observations: duplicate state document ${doc.state}`);
+    states.add(doc.state);
+    for (const subject of doc.extract.subjects) {
+      const known = subjects.get(subject.id);
+      if (known && !isDeepStrictEqual(known.locator, subject.locator))
+        throw new Error(`observations: conflicting subject locator ${subject.id}`);
+      subjects.set(subject.id, { ...subject, samples: [...(known?.samples ?? []), ...subject.samples] });
+    }
+    for (const parent of doc.extract.parents) {
+      const known = parents.get(parent.id);
+      if (known && known.parent !== parent.parent) throw new Error(`observations: conflicting parent ${parent.id}`);
+      parents.set(parent.id, { ...parent, samples: [...(known?.samples ?? []), ...parent.samples] });
+    }
+    for (const image of doc.extract.images) same(images, image.url, image, 'asset');
+    for (const font of doc.extract.fonts) same(fonts, font.family, font, 'font');
+    captures.push(...doc.extract.captures);
+  }
+  return {
+    capture,
+    extract: {
+      subjects: [...subjects.values()],
+      parents: [...parents.values()],
+      images: [...images.values()],
+      fonts: [...fonts.values()],
+      captures,
+    },
   };
 }
