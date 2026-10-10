@@ -59,7 +59,8 @@ SceneFile:
       type: string
       description: >
         Bare story group, e.g. `Designbook/Sections/Wayfinding`. The indexer
-        titles scene exports `<group>/Scenes`. Falls back to name.
+        titles scene exports `<group>/Scenes`, so the group itself never ends
+        in `/Scenes`. Falls back to name.
       examples: [Designbook/Sections/Wayfinding]
       not:
         pattern: "/Scenes$"
