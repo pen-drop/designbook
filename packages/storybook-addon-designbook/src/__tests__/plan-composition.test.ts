@@ -1239,3 +1239,35 @@ describe('deriveComposition — component_tree identity and node shape', () => {
     expect(errors).toContain(`records[0].values.components[0].${message}`);
   });
 });
+
+describe('deriveComposition — field-map and frozen tree mappings', () => {
+  it.each([
+    ['bindings', /map-entity \[signage_item\] bindings: field-map mapping requires bindings/],
+    ['component', /map-entity \[signage_item\] component: field-map mapping requires a component/],
+  ])('rejects a field-map mapping without %s', async (key, message) => {
+    const list = structuredClone(fixture);
+    const child = list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage_item')!;
+    delete child.params![key];
+    expect(await buildErrors(list)).toMatch(message);
+  });
+
+  it('seals a frozen component_tree mapping snapshot without component or bindings', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'comp-tree-map-'));
+    const source = join(dir, 'canvas_page.landing_page.view.full.jsonata');
+    const expected = '(\n  $record := $;\n  $record.components\n)\n';
+    writeFileSync(source, expected);
+    try {
+      const list = canvasTaskList();
+      const mapping = taskOf(list, 'map-entity').params.mapping as Record<string, unknown>;
+      list.tasks = list.tasks.filter((t) => t.step !== 'map-entity');
+      list.composition!.mappings = [
+        { identity: mapping, source, hash: createHash('sha256').update(expected).digest('hex') },
+      ];
+      const text = await treeText(list);
+      expect(text).toContain('canvas_page.landing_page [full]');
+      expect(text).toContain('test_integration_vue:rich_snippet (neu)');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});

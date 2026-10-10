@@ -85,7 +85,7 @@ export async function validateCompositionResult(
   result: Record<string, unknown>,
 ): Promise<{ ok: boolean; errors: string[] }> {
   const errors: string[] = [];
-  if (task.name.includes('map-entity') && (Array.isArray(task.params.bindings) || treeFieldsFor(task, plan).length)) {
+  if (task.name.includes('map-entity')) {
     await validateMapping(plan, task, result, errors);
   } else if (task.name === 'write-scene' && Array.isArray(task.params.items)) {
     validateScene(plan, task, result, errors);

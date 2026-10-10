@@ -17,8 +17,8 @@ export interface CompositionComponentSnapshot {
 
 export interface CompositionMappingSnapshot {
   identity: Record<string, unknown>;
-  component: string;
-  bindings: unknown[];
+  component?: string;
+  bindings?: unknown[];
   source: string;
   hash: string;
 }
@@ -362,8 +362,8 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
         done: false,
         params: {
           mapping: identity,
-          component: snap.component,
-          bindings: snap.bindings,
+          ...(snap.component !== undefined && { component: snap.component }),
+          ...(snap.bindings !== undefined && { bindings: snap.bindings }),
         },
         contract: { outputs: {} },
         results: null,
@@ -374,7 +374,7 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
       mode_kind: asString(identity.mode_kind) || 'view',
       view_mode: asString(identity.view_mode),
       form_mode: asString(identity.form_mode),
-      component: snap.component,
+      component: asString(snap.component),
       bindings: Array.isArray(snap.bindings) ? (snap.bindings as Binding[]) : [],
     };
     mappings.set(mappingKey(rec), rec);
@@ -443,6 +443,13 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
         );
         continue;
       }
+    }
+    if (!rec.component) {
+      errors.push(`${prefix('component')}: field-map mapping requires a component`);
+      continue;
+    }
+    if (!Array.isArray(rec.task.params.bindings)) {
+      errors.push(`${prefix('bindings')}: field-map mapping requires bindings`);
     }
     const comp = components.get(rec.component);
     if (!comp) {

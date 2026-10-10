@@ -321,6 +321,13 @@ describe('validateCompositionResult — mapping', () => {
     expect(constantResult.errors.join('\n')).toMatch(/AST|binding|field_paragraph_style|constant/i);
   });
 
+  it('validates a map-entity result even when its params carry no bindings', async () => {
+    const plan = await buildSignage();
+    const task = findTask(plan, 'map-entity', 'signage');
+    delete task.params.bindings;
+    expect((await validateCompositionResult(plan, task, { 'entity-mapping': '"garbage"' })).ok).toBe(false);
+  });
+
   it('rejects a wrong child view mode and invalid JSONata', async () => {
     const plan = await buildSignage();
     const task = findTask(plan, 'map-entity', 'signage');

@@ -20,7 +20,7 @@ Intake records the component allowlist from existing artifacts and all planned c
 
 ## Record Structure
 
-On `canvas_page` the bundle's `component_tree` field is `components`; each record fills it with the page's component tree. The canvas entity mapper passes `$record.components` through unchanged, so Storybook renders exactly that tree. Every component name in it is a real SDC component from the intake allowlist.
+On `canvas_page` the bundle's `component_tree` field is `components`; each record fills it with the page's component tree. The canvas entity mapper passes `$record.components` through unchanged, so Storybook renders exactly that tree. Component IDs and tree shape follow the generic `component-tree` sample-data rule (CT-01..03).
 
 > ⛔ **Never invent component names.** Do not use `canvas_section`, `canvas_text`, `canvas_image`, `canvas_cta`, or any other fictional type. Use only what intake declared.
 

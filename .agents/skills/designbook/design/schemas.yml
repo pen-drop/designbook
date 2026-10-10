@@ -613,7 +613,7 @@ CompositionMappingSnapshot:
   type: object
   title: Frozen mapping snapshot
   description: Existing mapping reused by the plan, with its declared binding contract.
-  required: [identity, component, bindings, source, hash]
+  required: [identity, source, hash]
   properties:
     identity:
       type: object
@@ -627,10 +627,10 @@ CompositionMappingSnapshot:
         form_mode: { type: string, description: Form mode when mode_kind is form. }
     component:
       type: string
-      description: Qualified target component ID.
+      description: Qualified target component ID of a field-map mapping. Omitted when the bundle has a component_tree field.
     bindings:
       type: array
-      description: Declared field bindings for this mapping.
+      description: Declared field bindings of a field-map mapping. Omitted when the bundle has a component_tree field.
       items:
         $ref: "#/MappingBinding"
     source:
