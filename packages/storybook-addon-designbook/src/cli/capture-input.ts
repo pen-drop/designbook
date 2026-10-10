@@ -109,7 +109,7 @@ export function importCaptureInput(opts: CaptureInputOptions): {
   let existing = dirname(target);
   while (!existsSync(existing)) existing = dirname(existing);
   const real = resolve(realpathSync(existing), relative(existing, target));
-  if (!inside(root, real) || (existsSync(target) && lstatSync(target).isSymbolicLink()))
+  if (!inside(root, real) || lstatSync(target, { throwIfNoEntry: false })?.isSymbolicLink())
     throw new Error(`path: ${opts.path} escapes the revision directory`);
   assertUnpublishedTarget(target);
   mkdirSync(dirname(target), { recursive: true });

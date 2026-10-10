@@ -5,7 +5,7 @@
  * source kind: native locators and properties pass through verbatim.
  */
 import Ajv from 'ajv';
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { isAbsolute, join, normalize } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import {
@@ -118,6 +118,9 @@ export function parseObservationDocument(value: unknown, contract: ReferenceCont
       if (selected.breakpoint !== sample.breakpoint) throw new Error(`observations: sample ${key} breakpoint differs`);
       validateObservedStructure(sample.structure);
       const foreign = sample.structure.nodes.find((node) => node.locator.kind !== subject.locator.kind);
+      // A native locator names one node per sample; a repeat would make inspection pick silently.
+      if (new Set(sample.structure.nodes.map((node) => node.locator.value)).size !== sample.structure.nodes.length)
+        throw new Error(`observations: sample ${key} repeats a native locator`);
       if (foreign)
         throw new Error(`observations: node ${foreign.id} locator kind ${foreign.locator.kind} is not native`);
       dependencies(sample.dependencies, key);
@@ -127,7 +130,11 @@ export function parseObservationDocument(value: unknown, contract: ReferenceCont
   }
   for (const key of scope.keys()) if (!samples.has(key)) throw new Error(`observations: missing sample ${key}`);
   for (const parent of extract.parents) {
-    if (parent.parent && !parents.has(parent.parent)) throw new Error(`parent ${parent.id}: undeclared parent`);
+    for (let up = parent.parent, seen = new Set([parent.id]); up; up = parents.get(up)!.parent) {
+      if (!parents.has(up)) throw new Error(`parent ${parent.id}: undeclared parent ${up}`);
+      if (seen.has(up)) throw new Error(`parent ${parent.id}: parent cycle through ${up}`);
+      seen.add(up);
+    }
     for (const sample of parent.samples) {
       if (sample.state !== state) throw new Error(`parent ${parent.id}: sample outside state ${state}`);
       dependencies(sample, `parent ${parent.id}`);
@@ -162,6 +169,8 @@ export function importObservations(
   const doc = parseObservationDocument(value, contract);
   const target = join(directory, sourceDumpName(doc.state));
   assertUnpublishedTarget(target);
+  if (lstatSync(target, { throwIfNoEntry: false })?.isSymbolicLink())
+    throw new Error(`${sourceDumpName(doc.state)}: refusing to write through a symlink`);
   if (existsSync(directory))
     for (const name of readdirSync(directory)) {
       const match = /^extract--(.+)\.json$/.exec(name);

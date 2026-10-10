@@ -125,6 +125,14 @@ describe('importCaptureInput', () => {
     expect(existsSync(join(outside, 'hero-logo.svg'))).toBe(false);
   });
 
+  it('rejects a dangling symlink at the output path without creating its target', () => {
+    const { root, reference, asset } = setup();
+    mkdirSync(join(reference, 'assets'));
+    symlinkSync(join(root, 'outside.svg'), join(reference, asset.path));
+    expect(() => importCaptureInput(asset)).toThrow(/escapes/);
+    expect(existsSync(join(root, 'outside.svg'))).toBe(false);
+  });
+
   it('leaves an existing output unchanged when a write is rejected', () => {
     const { reference, image, input } = setup();
     importCaptureInput(image);

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { importObservations, parseObservationDocument } from '../tools/reference-observations.js';
@@ -85,6 +85,22 @@ describe('parseObservationDocument', () => {
     ['undeclared asset dependency', (doc) => (doc.extract.images = [])],
     ['undeclared font dependency', (doc) => (doc.extract.fonts = [])],
     [
+      'parent cycle',
+      (doc) => {
+        const parent = (id: string, up: string) => ({
+          id,
+          parent: up,
+          samples: [{ view: 'desktop', state: 'rest', layout: {}, asset_ids: [], font_families: [] }],
+        });
+        doc.extract.parents = [parent('a', 'b'), parent('b', 'a')];
+        doc.extract.subjects[0]!.samples[0]!.dependencies.parent_ids = ['a'];
+      },
+    ],
+    [
+      'duplicate native locator within one sample',
+      (doc) => (doc.extract.subjects[0]!.samples[0]!.structure.nodes[1]!.locator.value = '12:34'),
+    ],
+    [
       'undeclared parent dependency',
       (doc) => doc.extract.subjects[0]!.samples[0]!.dependencies.parent_ids.push('page'),
     ],
@@ -140,6 +156,14 @@ describe('importObservations', () => {
       ),
     ).toThrow();
     expect(readFileSync(join(dir, sourceDumpName('rest')), 'utf8')).toBe('sentinel');
+  });
+
+  it('refuses to follow a symlinked extract out of the revision', () => {
+    const dir = folder();
+    const outside = join(folder(), 'outside.json');
+    symlinkSync(outside, join(dir, sourceDumpName('rest')));
+    expect(() => importObservations(dir, observationFixture().document('rest'), contract)).toThrow(/symlink/);
+    expect(existsSync(outside)).toBe(false);
   });
 
   it('refuses to write into a published revision', () => {
