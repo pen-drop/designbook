@@ -1,0 +1,20 @@
+{
+  "role": "reference",
+  "source": {
+    "kind": "figma",
+    "identity": "synthetic-file-key",
+    "revision": null
+  },
+  "scope": [
+    {
+      "subject": "hero",
+      "view": "desktop",
+      "state": "rest",
+      "session": "anonymous",
+      "locator": {
+        "kind": "figma-node",
+        "value": "12:34"
+      }
+    }
+  ]
+}
