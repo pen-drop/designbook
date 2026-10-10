@@ -14,6 +14,7 @@ import {
 } from '../workflow/plan-document.js';
 import { buildPlan, type TaskList } from '../workflow/plan-build.js';
 import { deriveComposition, renderCompositionTree, type CompositionTree } from '../workflow/plan-composition.js';
+import { validateCompositionResult } from '../workflow/plan-composition-result.js';
 
 function print(value: unknown): void {
   process.stdout.write(JSON.stringify(value, null, 2));
@@ -232,7 +233,7 @@ export function register(program: Command): void {
     .requiredOption('--task <name>', 'Task name to complete')
     .option('--title <title>', 'Disambiguate when several tasks share the name')
     .requiredOption('--data-file <path>', 'JSON result object')
-    .action((path: string, opts: { task: string; title?: string; dataFile: string }) => {
+    .action(async (path: string, opts: { task: string; title?: string; dataFile: string }) => {
       const parsed = parsePlan(readFileSync(path, 'utf8'));
       if (planDigest(parsed) !== parsed.digest) return fail('plan digest mismatch');
       const task = findTask(parsed.steps, opts.task, opts.title);
@@ -241,6 +242,8 @@ export function register(program: Command): void {
       const result = JSON.parse(readFileSync(opts.dataFile, 'utf8')) as Record<string, unknown>;
       const validation = validateTaskResult(task, result, parsed.definitions);
       if (!validation.ok) return fail(validation.errors.join('; '));
+      const composition = await validateCompositionResult(parsed, task, result);
+      if (!composition.ok) return fail(composition.errors.join('; '));
       // Materialize `data` outputs that declare a path: the plan is the definition,
       // so completing the task writes the workspace artifact (vision.yml, …).
       for (const [key, output] of Object.entries(task.contract.outputs)) {
