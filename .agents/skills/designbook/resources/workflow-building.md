@@ -52,8 +52,8 @@ sealing. Every mode uses the same sealed-plan assembly and the same
    either the dependent revision is approved for the need, or a precise blockade /
    ReferenceNeed is reported.
 4. For a **design-*** workflow, run `plan tree <tasks.json> --workflow <id>
-   --config-dir <workspace>`. Copy that command's unmodified stdout into the
-   next user-visible reply. In `ask` mode that same unmodified stdout precedes
+   --config-dir <workspace>`. The next assistant message's body is that
+   command's unmodified stdout. In `ask` mode that same unmodified stdout precedes
    the three choices. Completion: the next user-visible reply is that command's unmodified stdout.
 5. After that user-visible reply is sent, choose an **execution mode** and run `plan build` accordingly.
    Caller override always wins over workflow defaults.
