@@ -39,6 +39,46 @@ function revisionFileHashes(directory: string): Record<string, string> {
   return hashes;
 }
 
+/**
+ * Local input mode for capture-image / capture-file: mutually exclusive with the
+ * browser flags, and it must not touch config, sessions or a browser.
+ */
+async function runLocalInput(
+  command: Command,
+  opts: Record<string, unknown>,
+  mode: 'image' | 'file',
+  browserFlags: string[],
+): Promise<void> {
+  const mixed = browserFlags.filter((flag) => command.getOptionValueSource(flag) === 'cli');
+  if (mixed.length)
+    throw new Error(
+      `--input cannot be combined with browser flags: ${mixed.map((f) => `--${f.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`).join(', ')}`,
+    );
+  for (const flag of ['capture', 'contract', 'subject', 'view', 'state'])
+    if (!opts[flag]) throw new Error(`--input requires --${flag}`);
+  const { importCaptureInput } = await import('./capture-input.js');
+  const result = importCaptureInput({
+    reference: opts.reference as string,
+    path: opts.path as string,
+    input: opts.input as string,
+    capture: JSON.parse(readFileSync(opts.capture as string, 'utf8')) as CaptureDefinition,
+    contract: JSON.parse(readFileSync(opts.contract as string, 'utf8')) as ReferenceContract,
+    subject: opts.subject as string,
+    view: opts.view as string,
+    state: opts.state as string,
+    mode,
+    assetId: opts.assetId as string | undefined,
+    fontFamily: opts.fontFamily as string | undefined,
+  });
+  console.log(JSON.stringify(result));
+}
+const LOCAL_INPUT_OPTIONS = [
+  ['--input <file>', 'Local export to copy instead of a browser capture (no URL, no network)'],
+  ['--capture <json>', 'Local input: the fixed capture definition of the imported observations'],
+  ['--contract <json>', 'Local input: effective workflow contract'],
+  ['--subject <id>', 'Local input: subject of the selected sample'],
+] as const;
+
 export function register(program: Command): void {
   const reference = program
     .command('reference')
@@ -234,8 +274,8 @@ export function register(program: Command): void {
     .description('Capture one PNG into the revision directory.')
     .requiredOption('--reference <folder>', 'Absolute capture revision or screenshot directory')
     .requiredOption('--path <rel>', 'PNG path relative to --reference')
-    .requiredOption('--url <url>', 'URL (source page or story iframe)')
-    .requiredOption('--width <px>', 'Viewport width in pixels', (v) => Number.parseInt(v, 10))
+    .option('--url <url>', 'Browser mode: URL (source page or story iframe)')
+    .option('--width <px>', 'Browser mode: viewport width in pixels', (v) => Number.parseInt(v, 10))
     .option('--selector <sel>', 'Element selector to isolate ("" ⇒ full page / story root)', '')
     .option('--steps <json>', 'JSON array of capture steps to reach a non-rest state')
     .option('--session <name>', 'Named session to observe as (see config sessions:)', 'anonymous')
@@ -244,24 +284,47 @@ export function register(program: Command): void {
     .option('--prelude <file>', 'Prelude module run after navigation on every pass')
     .option('--transparent', 'Capture with a transparent background (default for element captures)')
     .option('--full-page', 'Full-page capture when no selector is given')
+    .option(...LOCAL_INPUT_OPTIONS[0])
+    .option(...LOCAL_INPUT_OPTIONS[1])
+    .option(...LOCAL_INPUT_OPTIONS[2])
+    .option(...LOCAL_INPUT_OPTIONS[3])
     .action(
-      async (opts: {
-        reference: string;
-        path: string;
-        url: string;
-        width: number;
-        selector: string;
-        steps?: string;
-        session: string;
-        state?: string;
-        view?: string;
-        prelude?: string;
-        transparent?: boolean;
-        fullPage?: boolean;
-      }) => {
-        const config = loadConfig();
-        const { runCaptureScreenshot, parseStepsArg } = await import('./capture-screenshot.js');
+      async (
+        opts: {
+          reference: string;
+          path: string;
+          url?: string;
+          width?: number;
+          selector: string;
+          steps?: string;
+          session: string;
+          state?: string;
+          view?: string;
+          prelude?: string;
+          transparent?: boolean;
+          fullPage?: boolean;
+          input?: string;
+        },
+        command: Command,
+      ) => {
         try {
+          if (opts.input) {
+            await runLocalInput(command, opts, 'image', [
+              'url',
+              'width',
+              'selector',
+              'steps',
+              'session',
+              'prelude',
+              'transparent',
+              'fullPage',
+            ]);
+            return;
+          }
+          if (!opts.url || opts.width === undefined)
+            throw new Error('Browser mode requires --url and --width (or use --input)');
+          const config = loadConfig();
+          const { runCaptureScreenshot, parseStepsArg } = await import('./capture-screenshot.js');
           if (!isAbsolute(opts.reference)) throw new Error('reference: expected absolute directory');
           if (isAbsolute(opts.path)) throw new Error('path: expected a path relative to --reference');
           const outPath = join(opts.reference, opts.path);
@@ -295,26 +358,44 @@ export function register(program: Command): void {
     .description('Download one source asset into the revision directory as served.')
     .requiredOption('--reference <folder>', 'Absolute capture revision directory')
     .requiredOption('--path <rel>', 'Asset path relative to --reference')
-    .requiredOption('--url <url>', 'Absolute http(s) URL of the source asset')
+    .option('--url <url>', 'Browser mode: absolute http(s) URL of the source asset')
     .option('--session <name>', 'Named session to observe as (see config sessions:)', 'anonymous')
-    .action(async (opts: { reference: string; path: string; url: string; session: string }) => {
-      const config = loadConfig();
-      const { runCaptureFile } = await import('./capture-file.js');
-      try {
-        if (!isAbsolute(opts.reference)) throw new Error('reference: expected absolute revision directory');
-        if (isAbsolute(opts.path)) throw new Error('path: expected a path relative to --reference');
-        const outPath = join(opts.reference, opts.path);
-        const rel = relative(resolve(opts.reference), resolve(outPath));
-        if (rel === '..' || rel.startsWith('../') || isAbsolute(rel))
-          throw new Error('path: expected a path inside --reference');
-        assertUnpublishedTarget(outPath);
-        const result = await runCaptureFile({ url: opts.url, outPath, session: opts.session }, config);
-        console.log(JSON.stringify({ path: opts.path, bytes: result.bytes }));
-      } catch (err) {
-        console.error(`Error: ${(err as Error).message}`);
-        process.exitCode = 1;
-      }
-    });
+    .option(...LOCAL_INPUT_OPTIONS[0])
+    .option(...LOCAL_INPUT_OPTIONS[1])
+    .option(...LOCAL_INPUT_OPTIONS[2])
+    .option(...LOCAL_INPUT_OPTIONS[3])
+    .option('--view <id>', 'Local input: view of the selected sample')
+    .option('--state <name>', 'Local input: state of the selected sample')
+    .option('--asset-id <id>', 'Local input: images[].url identity this file is')
+    .option('--font-family <family>', 'Local input: fonts[].family whose declared binary this file is')
+    .action(
+      async (
+        opts: { reference: string; path: string; url?: string; session: string; input?: string },
+        command: Command,
+      ) => {
+        try {
+          if (opts.input) {
+            await runLocalInput(command, opts, 'file', ['url', 'session']);
+            return;
+          }
+          if (!opts.url) throw new Error('Browser mode requires --url (or use --input)');
+          const config = loadConfig();
+          const { runCaptureFile } = await import('./capture-file.js');
+          if (!isAbsolute(opts.reference)) throw new Error('reference: expected absolute revision directory');
+          if (isAbsolute(opts.path)) throw new Error('path: expected a path relative to --reference');
+          const outPath = join(opts.reference, opts.path);
+          const rel = relative(resolve(opts.reference), resolve(outPath));
+          if (rel === '..' || rel.startsWith('../') || isAbsolute(rel))
+            throw new Error('path: expected a path inside --reference');
+          assertUnpublishedTarget(outPath);
+          const result = await runCaptureFile({ url: opts.url, outPath, session: opts.session }, config);
+          console.log(JSON.stringify({ path: opts.path, bytes: result.bytes }));
+        } catch (err) {
+          console.error(`Error: ${(err as Error).message}`);
+          process.exitCode = 1;
+        }
+      },
+    );
   reference
     .command('prelude')
     .description(
@@ -341,25 +422,47 @@ export function register(program: Command): void {
     .option('--locator <css>', 'Native locator to resolve; omit for dump totals only')
     .option('--depth <n>', 'Subtree depth to report', (v) => Number.parseInt(v, 10))
     .option('--limit <n>', 'Maximum subtree nodes to report', (v) => Number.parseInt(v, 10))
-    .action(async (opts: { reference: string; state: string; locator?: string; depth?: number; limit?: number }) => {
-      const { inspectReference } = await import('./reference-inspect.js');
-      try {
-        console.log(
-          JSON.stringify(
-            inspectReference({
-              reference: opts.reference,
-              state: opts.state,
-              ...(opts.locator ? { locator: opts.locator } : {}),
-              ...(opts.depth !== undefined ? { depth: opts.depth } : {}),
-              ...(opts.limit !== undefined ? { limit: opts.limit } : {}),
-            }),
-          ),
-        );
-      } catch (err) {
-        console.error(`Error: ${(err as Error).message}`);
-        process.exitCode = 1;
-      }
-    });
+    .option('--subject <id>', 'Imported observations: subject whose samples to search')
+    .option('--view <id>', 'Imported observations: view whose sample to search')
+    .option('--locator-kind <kind>', 'Imported observations: native locator kind, e.g. figma-node')
+    .option('--contract <json>', 'Imported, unpublished observations: effective workflow contract')
+    .action(
+      async (opts: {
+        reference: string;
+        state: string;
+        locator?: string;
+        depth?: number;
+        limit?: number;
+        subject?: string;
+        view?: string;
+        locatorKind?: string;
+        contract?: string;
+      }) => {
+        const { inspectReference } = await import('./reference-inspect.js');
+        try {
+          console.log(
+            JSON.stringify(
+              inspectReference({
+                reference: opts.reference,
+                state: opts.state,
+                ...(opts.locator ? { locator: opts.locator } : {}),
+                ...(opts.depth !== undefined ? { depth: opts.depth } : {}),
+                ...(opts.limit !== undefined ? { limit: opts.limit } : {}),
+                ...(opts.subject ? { subject: opts.subject } : {}),
+                ...(opts.view ? { view: opts.view } : {}),
+                ...(opts.locatorKind ? { locatorKind: opts.locatorKind } : {}),
+                ...(opts.contract
+                  ? { contract: JSON.parse(readFileSync(opts.contract, 'utf8')) as ReferenceContract }
+                  : {}),
+              }),
+            ),
+          );
+        } catch (err) {
+          console.error(`Error: ${(err as Error).message}`);
+          process.exitCode = 1;
+        }
+      },
+    );
   reference
     .command('image')
     .description('Read PNG dimensions from a revision-relative path. No pixel payload.')
