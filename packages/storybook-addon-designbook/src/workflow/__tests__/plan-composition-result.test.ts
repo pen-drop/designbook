@@ -71,6 +71,131 @@ describe('compilePlannedMapping', () => {
   });
 });
 
+describe('compilePlannedMapping — component_tree passthrough', () => {
+  it('emits $record.<field> for a component_tree mapping and plan done accepts that tree', async () => {
+    const tree = [
+      {
+        component: 'test_integration_vue:section',
+        props: { max_width: 'lg' },
+        slots: { column_1: [{ component: 'test_integration_vue:hero' }] },
+      },
+    ];
+    const { plan, errors } = await buildPlan(
+      {
+        workflow: 'design-entity',
+        composition: {
+          components: [],
+          mappings: [],
+          samples: [],
+          scenes: [],
+          data_model: {
+            canvas_page: {
+              landing_page: {
+                fields: { components: { type: 'component_tree' } },
+                view_modes: { full: { template: 'canvas' } },
+              },
+            },
+          },
+        },
+        tasks: [
+          {
+            step: 'write-component',
+            task: 'write-component',
+            title: 'section',
+            params: {
+              component: {
+                component: 'section',
+                group: 'layout',
+                props: {
+                  type: 'object',
+                  properties: { max_width: { type: 'string' } },
+                  required: [],
+                  additionalProperties: false,
+                },
+                slots: { column_1: { description: 'column', required: false } },
+              },
+            },
+          },
+          {
+            step: 'write-component',
+            task: 'write-component',
+            title: 'hero',
+            params: {
+              component: {
+                component: 'hero',
+                group: 'layout',
+                props: {
+                  type: 'object',
+                  properties: {},
+                  required: [],
+                  additionalProperties: false,
+                },
+                slots: {},
+              },
+            },
+          },
+          {
+            step: 'create-sample-data',
+            task: 'create-sample-data',
+            title: 'landing_page',
+            params: {
+              section_id: 'home',
+              bundle: { entity_type: 'canvas_page', bundle: 'landing_page' },
+              data_model: {},
+              components_dir: '/tmp/components',
+              records: [{ id: 'home', summary: 'Home', values: { components: tree } }],
+            },
+          },
+          {
+            step: 'map-entity',
+            task: 'map-entity--design-screen',
+            title: 'landing_page',
+            params: {
+              mapping: {
+                entity_type: 'canvas_page',
+                bundle: 'landing_page',
+                mode_kind: 'view',
+                view_mode: 'full',
+              },
+              data_model: {},
+            },
+          },
+        ],
+      },
+      vueOpts,
+    );
+    expect(errors).toEqual([]);
+    const task = findTask(plan!, 'map-entity', 'landing_page');
+    const expr = compilePlannedMapping(task, plan!);
+    expect(expr).toContain('$record.components');
+    expect(expr).not.toContain('bindings');
+    expect((await validateCompositionResult(plan!, task, { 'entity-mapping': expr })).ok).toBe(true);
+
+    const wrapped = `(
+  $fields := $;
+  [{ "component": "test_integration_vue:section" }]
+)
+`;
+    expect((await validateCompositionResult(plan!, task, { 'entity-mapping': wrapped })).ok).toBe(false);
+
+    const sample = findTask(plan!, 'create-sample-data', 'landing_page');
+    const matching = {
+      'sample-data': [{ id: 'home', components: tree, __designbook: { section: 'home' } }],
+    };
+    expect((await validateCompositionResult(plan!, sample, matching)).ok).toBe(true);
+    const swapped = {
+      'sample-data': [
+        {
+          id: 'home',
+          components: [{ component: 'test_integration_vue:hero' }],
+          __designbook: { section: 'home' },
+        },
+      ],
+    };
+    expect((await validateCompositionResult(plan!, sample, swapped)).ok).toBe(false);
+  });
+});
+
 describe('validateCompositionResult — mapping', () => {
   it('accepts the compiled expression and rejects swapped fields, extra targets, missing bindings, and coincidental constants', async () => {
     const plan = await buildSignage();

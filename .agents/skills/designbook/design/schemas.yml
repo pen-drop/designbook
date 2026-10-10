@@ -663,7 +663,9 @@ CompositionSampleSnapshot:
           summary: { type: string, description: Short remaining content. }
           values:
             type: object
-            description: Concrete field values. Extra keys are field names from the data model.
+            description: >
+              Concrete field values. Extra keys are field names from the data model.
+              A `component_tree` field holds a ComponentNode[] tree.
             additionalProperties: true
 
 CompositionSceneSnapshot:

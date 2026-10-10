@@ -20,7 +20,7 @@ Intake records the component allowlist from existing artifacts and all planned c
 
 ## Record Structure
 
-Each record MUST include a `components` field containing a `ComponentNode[]` tree. The canvas entity mapper is a direct passthrough — `$record.components` is rendered as-is in Storybook. This means **every component name in `components` must be a real SDC component** from the intake allowlist.
+Each record includes the bundle's `component_tree` field (`components` on `canvas_page`) as a `ComponentNode[]` tree. The canvas entity mapper is a direct passthrough — `$record.components` is rendered as-is in Storybook. Every component name in that tree is a real SDC component from the intake allowlist.
 
 > ⛔ **Never invent component names.** Do not use `canvas_section`, `canvas_text`, `canvas_image`, `canvas_cta`, or any other fictional type. Use only what intake declared.
 

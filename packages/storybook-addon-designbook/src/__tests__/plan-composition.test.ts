@@ -336,8 +336,9 @@ describe('buildPlan composition sealing', () => {
             task: 'map-entity--design-screen',
             title: 'signage',
             params: {
-              mapping: { entity_type: 'paragraph', bundle: 'signage', mode_kind: 'view', view_mode: 'full' },
               data_model: {},
+              component: 'test_integration_vue:signage',
+              bindings: [],
             },
           },
         ],
@@ -412,5 +413,161 @@ describe('buildPlan composition sealing', () => {
     const back = parsePlan(serializePlan(plan));
     expect(back.composition).toEqual(plan.composition);
     expect(planDigest(back)).toBe(plan.digest);
+  });
+});
+
+function vueContract(
+  name: string,
+  props: Record<string, { type: string }> = {},
+  slots: string[] = [],
+): Record<string, unknown> {
+  return {
+    component: name,
+    group: 'layout',
+    props: {
+      type: 'object',
+      properties: props,
+      required: [],
+      additionalProperties: false,
+    },
+    slots: Object.fromEntries(slots.map((slot) => [slot, { description: slot, required: false }])),
+  };
+}
+
+const pageTree = [
+  {
+    component: 'test_integration_vue:section',
+    props: { max_width: 'lg' },
+    slots: {
+      column_1: [
+        {
+          component: 'test_integration_vue:hero',
+          slots: {
+            content: [
+              {
+                component: 'test_integration_vue:rich_snippet',
+                props: { headline: 'Welcome' },
+              },
+            ],
+          },
+        },
+      ],
+    },
+  },
+];
+
+function canvasTaskList(): TaskList {
+  return {
+    workflow: 'design-entity',
+    composition: {
+      components: [],
+      mappings: [],
+      samples: [],
+      scenes: [],
+      data_model: {
+        canvas_page: {
+          landing_page: {
+            fields: { components: { type: 'component_tree' } },
+            view_modes: { full: { template: 'canvas' } },
+          },
+        },
+      },
+    },
+    tasks: [
+      {
+        step: 'write-component',
+        task: 'write-component',
+        title: 'section',
+        params: { component: vueContract('section', { max_width: { type: 'string' } }, ['column_1']) },
+      },
+      {
+        step: 'write-component',
+        task: 'write-component',
+        title: 'hero',
+        params: { component: vueContract('hero', {}, ['content']) },
+      },
+      {
+        step: 'write-component',
+        task: 'write-component',
+        title: 'rich_snippet',
+        params: { component: vueContract('rich_snippet', { headline: { type: 'string' } }) },
+      },
+      {
+        step: 'create-sample-data',
+        task: 'create-sample-data',
+        title: 'landing_page',
+        params: {
+          section_id: 'home',
+          bundle: { entity_type: 'canvas_page', bundle: 'landing_page' },
+          data_model: {},
+          components_dir: '/tmp/components',
+          records: [{ id: 'home', summary: 'Home', values: { components: pageTree } }],
+        },
+      },
+      {
+        step: 'map-entity',
+        task: 'map-entity--design-screen',
+        title: 'landing_page',
+        params: {
+          mapping: { entity_type: 'canvas_page', bundle: 'landing_page', mode_kind: 'view', view_mode: 'full' },
+          data_model: {},
+        },
+      },
+    ],
+  };
+}
+
+describe('deriveComposition — component_tree sample fields', () => {
+  it('renders the sample ComponentNode tree on the mapped entity', async () => {
+    const { plan, errors } = await buildPlan(canvasTaskList(), vueOpts);
+    expect(errors).toEqual([]);
+    const text = renderCompositionTree(deriveComposition(plan!).tree);
+    expect(text).toContain('canvas_page.landing_page [full]');
+    expect(text).toContain('test_integration_vue:section (neu)');
+    expect(text).toContain('slot column_1');
+    expect(text).toContain('test_integration_vue:hero (neu)');
+    expect(text).toContain('test_integration_vue:rich_snippet (neu)');
+    expect(text).not.toMatch(/^test_integration_vue:section/m);
+  });
+
+  it('walks content-wrapped data-model bundles the same way', async () => {
+    const list = canvasTaskList();
+    list.composition = {
+      ...list.composition!,
+      data_model: { content: list.composition!.data_model },
+    };
+    const { plan, errors } = await buildPlan(list, vueOpts);
+    expect(errors).toEqual([]);
+    expect(renderCompositionTree(deriveComposition(plan!).tree)).toContain('canvas_page.landing_page [full]');
+  });
+
+  it('rejects an unknown component id in the sample tree', async () => {
+    const list = canvasTaskList();
+    const sample = list.tasks.find((t) => t.step === 'create-sample-data')!;
+    sample.params = {
+      ...sample.params,
+      records: [
+        {
+          id: 'home',
+          summary: 'Home',
+          values: { components: [{ component: 'test_integration_vue:missing' }] },
+        },
+      ],
+    };
+    const { plan, errors } = await buildPlan(list, vueOpts);
+    expect(plan).toBeNull();
+    expect(errors.join('\n')).toMatch(/missing/);
+  });
+
+  it('rejects a component_tree field that is not a ComponentNode array', async () => {
+    const list = canvasTaskList();
+    const sample = list.tasks.find((t) => t.step === 'create-sample-data')!;
+    sample.params = {
+      ...sample.params,
+      records: [{ id: 'home', summary: 'Home', values: { components: 'plain' } }],
+    };
+    const { plan, errors } = await buildPlan(list, vueOpts);
+    expect(plan).toBeNull();
+    expect(errors.join('\n')).toMatch(/ComponentNode/);
   });
 });

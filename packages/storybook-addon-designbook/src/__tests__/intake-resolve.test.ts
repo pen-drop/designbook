@@ -92,7 +92,10 @@ describe('resolveIntakeContext', () => {
       const write = ctx.steps.flatMap((s) => s.tasks).find((t) => t.name === 'write-component');
       expect(write).toBeDefined();
       const map = ctx.steps.flatMap((s) => s.tasks).find((t) => t.name === 'map-entity--design-screen');
-      expect(map?.params_schema.required).toEqual(expect.arrayContaining(['component', 'bindings']));
+      expect(map?.params_schema.required).toEqual(expect.arrayContaining(['mapping', 'data_model']));
+      expect(map?.params_schema.properties).toEqual(
+        expect.objectContaining({ component: expect.anything(), bindings: expect.anything() }),
+      );
       const scene = ctx.steps.flatMap((s) => s.tasks).find((t) => t.name === 'write-scene');
       expect(scene?.params_schema.required).toEqual(expect.arrayContaining(['items']));
       const sample = ctx.steps.flatMap((s) => s.tasks).find((t) => t.name === 'create-sample-data');

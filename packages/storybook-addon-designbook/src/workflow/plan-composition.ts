@@ -101,10 +101,24 @@ function getBundle(
   entityType: string,
   bundle: string,
 ): Record<string, unknown> | undefined {
-  const et = model[entityType];
-  if (!isObj(et)) return undefined;
-  const b = et[bundle];
-  return isObj(b) ? b : undefined;
+  const from = (root: Record<string, unknown>): Record<string, unknown> | undefined => {
+    const et = root[entityType];
+    if (!isObj(et)) return undefined;
+    const b = et[bundle];
+    return isObj(b) ? b : undefined;
+  };
+  return from(model) ?? (isObj(model.content) ? from(model.content) : undefined);
+}
+
+function componentTreeFieldNames(bundle: Record<string, unknown>): string[] {
+  return Object.entries(bundleFields(bundle))
+    .filter(([, def]) => isObj(def) && def.type === 'component_tree')
+    .map(([name]) => name);
+}
+
+export function componentTreeFields(model: Record<string, unknown>, entityType: string, bundle: string): string[] {
+  const def = getBundle(model, entityType, bundle);
+  return def ? componentTreeFieldNames(def) : [];
 }
 
 function bundleFields(bundle: Record<string, unknown>): Record<string, unknown> {
@@ -226,9 +240,19 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
   const model = composition.data_model ?? {};
   const knownIds = new Set<string>();
   for (const snap of composition.components) knownIds.add(snap.id);
+  const collectQualifiedIds = (value: unknown) => {
+    if (Array.isArray(value)) {
+      value.forEach(collectQualifiedIds);
+      return;
+    }
+    if (!isObj(value)) return;
+    if (typeof value.component === 'string' && value.component.includes(':')) knownIds.add(value.component);
+    for (const nested of Object.values(value)) collectQualifiedIds(nested);
+  };
   for (const { task } of tasks) {
     if (typeof task.params.component === 'string' && task.params.component.includes(':'))
       knownIds.add(task.params.component);
+    collectQualifiedIds(task.params);
   }
 
   const plannedWrites = new Map<string, { task: PlanTask; step: string; contract: Record<string, unknown> }>();
@@ -320,6 +344,20 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
     const mode = rec.mode_kind === 'form' ? rec.form_mode : rec.view_mode;
     if (rec.mode_kind !== 'form' && !(mode in viewModes(bundle))) {
       errors.push(`${prefix('mapping.view_mode')}: ${rec.entity_type}.${rec.bundle} has no view mode "${mode}"`);
+    }
+    const treeFields = componentTreeFieldNames(bundle);
+    if (treeFields.length > 1) {
+      errors.push(`${prefix('mapping')}: at most one component_tree field on ${rec.entity_type}.${rec.bundle}`);
+    }
+    if (treeFields.length) {
+      if (rec.bindings.length) {
+        errors.push(`${prefix('bindings')}: component_tree composition is the sample tree`);
+      }
+      const pool = samples.get(`${rec.entity_type}.${rec.bundle}`);
+      if (!pool || pool.records.length === 0) {
+        errors.push(`${prefix('mapping')}: empty required samples for ${rec.entity_type}.${rec.bundle}`);
+      }
+      continue;
     }
     const comp = components.get(rec.component);
     if (!comp) {
@@ -499,7 +537,10 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
           record: recordIndex,
           target: rec?.component,
           status: comp?.status,
-          children: rec ? bindingNodes(rec, recordIndex) : [],
+          children: [
+            ...(rec ? bindingNodes(rec, recordIndex) : []),
+            ...treeFieldNodes(entity_type, bundle, recordIndex, step, task),
+          ],
         });
         return;
       }
@@ -560,6 +601,48 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
     return nodes;
   }
 
+  function walkComponentTree(items: unknown[], step: string, task: PlanTask, path: string): CompositionNode[] {
+    items.forEach((item, i) => {
+      if (!isObj(item) || typeof item.component !== 'string') {
+        errors.push(`${loc(step, task, `${path}[${i}]`)}: expected ComponentNode`);
+      }
+    });
+    return walkItems(items, [], step, task, path);
+  }
+
+  function treeFieldNodes(
+    entityType: string,
+    bundle: string,
+    recordIndex: number | undefined,
+    fallbackStep: string,
+    fallbackTask: PlanTask,
+  ): CompositionNode[] {
+    const def = getBundle(model, entityType, bundle);
+    if (!def) return [];
+    const fields = componentTreeFieldNames(def);
+    if (!fields.length) return [];
+    const sampleIt = tasks.find(({ task }) => {
+      if (task.name !== 'create-sample-data') return false;
+      const ident = isObj(task.params.bundle) ? task.params.bundle : {};
+      return asString(ident.entity_type) === entityType && asString(ident.bundle) === bundle;
+    });
+    const step = sampleIt?.step ?? fallbackStep;
+    const task = sampleIt?.task ?? fallbackTask;
+    const pool = samples.get(`${entityType}.${bundle}`);
+    const idx = recordIndex ?? 0;
+    const values = pool?.records[idx]?.values ?? {};
+    const nodes: CompositionNode[] = [];
+    for (const field of fields) {
+      const raw = values[field];
+      if (!Array.isArray(raw)) {
+        errors.push(`${loc(step, task, `records.values.${field}`)}: expected ComponentNode[]`);
+        continue;
+      }
+      nodes.push(...walkComponentTree(raw, step, task, `records.values.${field}`));
+    }
+    return nodes;
+  }
+
   const roots: CompositionNode[] = [];
   if (sceneTasks.length) {
     for (const { step, task } of sceneTasks) {
@@ -573,20 +656,51 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
       });
     }
   } else {
-    const mapped = new Set([...mappings.values()].map((m) => m.component));
+    const mappedBundles = new Set<string>();
     for (const rec of mappings.values()) {
-      const comp = components.get(rec.component);
+      mappedBundles.add(`${rec.entity_type}.${rec.bundle}`);
+      const comp = rec.component ? components.get(rec.component) : undefined;
       roots.push({
         kind: 'entity',
         identity: `${rec.entity_type}.${rec.bundle}`,
         mode: rec.mode_kind === 'form' ? rec.form_mode : rec.view_mode,
-        target: rec.component,
+        target: rec.component || undefined,
         status: comp?.status,
-        children: bindingNodes(rec),
+        children: [...bindingNodes(rec), ...treeFieldNodes(rec.entity_type, rec.bundle, 0, rec.step, rec.task)],
       });
     }
+    for (const key of samples.keys()) {
+      if (mappedBundles.has(key)) continue;
+      const dot = key.indexOf('.');
+      if (dot < 0) continue;
+      const entityType = key.slice(0, dot);
+      const bundle = key.slice(dot + 1);
+      const def = getBundle(model, entityType, bundle);
+      if (!def || !componentTreeFieldNames(def).length) continue;
+      const sampleIt = tasks.find(
+        ({ task }) =>
+          task.name === 'create-sample-data' &&
+          asString((isObj(task.params.bundle) ? task.params.bundle : {}).entity_type) === entityType &&
+          asString((isObj(task.params.bundle) ? task.params.bundle : {}).bundle) === bundle,
+      );
+      if (!sampleIt) continue;
+      roots.push({
+        kind: 'entity',
+        identity: key,
+        children: treeFieldNodes(entityType, bundle, 0, sampleIt.step, sampleIt.task),
+      });
+    }
+    const used = new Set<string>();
+    const collect = (nodes: CompositionNode[]) => {
+      for (const node of nodes) {
+        if (node.kind === 'component') used.add(node.identity);
+        if (node.target) used.add(node.target);
+        collect(node.children);
+      }
+    };
+    collect(roots);
     for (const [id, c] of components) {
-      if (mapped.has(id)) continue;
+      if (used.has(id)) continue;
       if (c.status === 'wiederverwendet') continue;
       roots.push({ kind: 'component', identity: id, status: c.status, children: [] });
     }
