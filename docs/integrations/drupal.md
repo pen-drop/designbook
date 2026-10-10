@@ -1,6 +1,6 @@
 # Drupal
 
-The `designbook-drupal` plugin adds Drupal-backend and SDC-framework tasks, rules, and blueprints. It is a marketplace plugin: `/plugin install designbook-drupal@designbook`.
+The `designbook-drupal` plugin adds Drupal-backend and SDC-framework tasks, rules, and blueprints. It is a marketplace plugin: `/plugin install designbook-drupal@designbook`. For the shortest path to an imported content type, use [First Drupal result](/integrations/drupal/first-result).
 
 ## Prerequisites
 

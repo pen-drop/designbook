@@ -1,12 +1,13 @@
 // Built-site gate. VitePress fails on a dead Markdown page link; this reads
 // the built HTML and fails on missing pages, anchors and assets, host-root
 // escapes, a duplicated /designbook base, malformed fragments, and a
-// current-route inventory that is missing, duplicated or incomplete.
-// Generated 404 is excluded from the inventory. Navigation, sidebar and home
-// links are included, not only .vp-doc.
+// current-route inventory (routes.json union LANDINGS links) that is missing,
+// duplicated or incomplete. Generated 404 is excluded from the inventory.
+// Navigation, sidebar and home links are included, not only .vp-doc.
 import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs'
 import { join, posix, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { LANDINGS } from '../.vitepress/manual.mjs'
 
 const WEBSITE = fileURLToPath(new URL('..', import.meta.url))
 const DIST = join(WEBSITE, '.vitepress', 'dist')
@@ -122,11 +123,13 @@ for (const [route, page] of pages) {
   }
 }
 
+const landingRoutes = (Array.isArray(LANDINGS) ? LANDINGS : []).map((entry) => entry.link)
+
 if (!Array.isArray(ROUTES)) {
   report('routes.json', 'inventory must be a JSON array of current routes')
 } else {
   const seen = new Set()
-  for (const entry of ROUTES) {
+  for (const entry of [...ROUTES, ...landingRoutes]) {
     if (seen.has(entry)) report(entry, 'duplicate route in inventory')
     seen.add(entry)
     if (lookup(entry) === null) report(entry, 'missing route: not built')

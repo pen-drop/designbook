@@ -13,6 +13,10 @@ export const AREAS = [
   { label: 'Advanced', link: '/advanced/', icon: 'gear' },
 ]
 
+export const LANDINGS = [
+  { id: 'drupal', label: 'Drupal', link: '/drupal/', status: 'ready', integration: '/integrations/drupal' },
+]
+
 const group = (text, items) => ({ text, items: items.map(([label, link]) => ({ text: label, link })) })
 
 export const SIDEBAR = {
@@ -45,6 +49,7 @@ export const SIDEBAR = {
     group('Integrations', [
       ['Overview', '/integrations/'],
       ['Drupal', '/integrations/drupal'],
+      ['First Drupal result', '/integrations/drupal/first-result'],
       ['Tailwind CSS', '/integrations/tailwind'],
       ['Google Stitch', '/integrations/stitch'],
       ['Figma', '/integrations/figma'],
