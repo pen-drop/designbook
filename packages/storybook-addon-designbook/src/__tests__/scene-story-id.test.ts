@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { load as parseYaml } from 'js-yaml';
 import { toId, storyNameFromExport } from 'storybook/internal/csf';
+import Ajv from 'ajv';
 import { indexScenesFile } from '../addon/preset';
 
 interface IndexEntry {
@@ -90,5 +91,16 @@ describe('section scene story ids', () => {
     const ids = (indexScenesFile(fileName) as IndexEntry[]).map(storyId);
     expect(ids).toContain('designbook-sections-wayfinding--overview');
     expect(ids).toContain('designbook-sections-wayfinding-scenes--signage');
+  });
+
+  it('rejects a SceneFile.group that ends in /Scenes', () => {
+    const repoRoot = resolve(import.meta.dirname, '../../../../');
+    const schemas = parseYaml(
+      readFileSync(resolve(repoRoot, '.agents/skills/designbook/scenes/schemas.yml'), 'utf8'),
+    ) as { SceneFile: { properties: { group: object } } };
+    const validate = new Ajv({ allErrors: true, strict: false }).compile(schemas.SceneFile.properties.group);
+
+    expect(validate('Designbook/Sections/Signage')).toBe(true);
+    expect(validate('Designbook/Sections/Signage/Scenes')).toBe(false);
   });
 });

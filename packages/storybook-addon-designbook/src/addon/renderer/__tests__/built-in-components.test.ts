@@ -193,8 +193,22 @@ describe('vueBuiltInComponents', () => {
     };
     expect(result.__v_isVNode).toBe(true);
     expect(result.type).toBe('span');
-    expect(result.propsOrChildren).toEqual({ class: 'kicker' });
-    expect(result.children).toBe('Training');
+    expect(result.propsOrChildren).toEqual({ class: 'kicker', innerHTML: 'Training' });
+    expect(result.children).toBeUndefined();
+  });
+
+  it('designbook:element injects an HTML value as innerHTML', () => {
+    const mod = vueBuiltInComponents['designbook:element']!;
+    const result = mod.render({ value: '<strong>Bold text</strong>', tag: 'p' }, {}) as {
+      __v_isVNode: boolean;
+      type: string;
+      propsOrChildren: unknown;
+      children: unknown;
+    };
+    expect(result.__v_isVNode).toBe(true);
+    expect(result.type).toBe('p');
+    expect(result.propsOrChildren).toEqual({ innerHTML: '<strong>Bold text</strong>' });
+    expect(result.children).toBeUndefined();
   });
 
   it('designbook:image provider mode returns a vnode-like object, not a string', () => {

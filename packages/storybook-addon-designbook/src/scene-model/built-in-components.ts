@@ -127,7 +127,7 @@ export const vueBuiltInComponents: Record<string, ComponentModule> = {
       const tag = (props.tag as string) || 'div';
       const value = (props.value as string) ?? '';
       const attributes = (props.attributes as Record<string, unknown>) ?? {};
-      return h(tag, attributes, value);
+      return h(tag, { ...attributes, innerHTML: value });
     },
   },
 
