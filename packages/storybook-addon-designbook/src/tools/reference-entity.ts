@@ -38,7 +38,7 @@ export class Reference {
     if (relativeDirectory.startsWith('..') || isAbsolute(relativeDirectory)) return null;
     const published = readPublishedCapture(directory);
     if (`${published.id}/${published.revision}` !== binding) throw new Error('Reference binding identity differs');
-    const { meta, extract } = projectPublishedObservations(directory);
+    const { meta, extract } = projectPublishedObservations(directory, published.contract);
     return new Reference(published.id, published.revision, `references/${binding}`, meta, extract.captures);
   }
 

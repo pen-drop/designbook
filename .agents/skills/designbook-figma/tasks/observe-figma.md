@@ -22,4 +22,5 @@ result:
 # Observe figma
 
 Observed structure, properties, selected screenshot associations and asset
-evidence for the fixed source scope. Required missing observations are explicit.
+evidence for the fixed source scope. Required missing observations are explicit,
+including an unavailable Figma capability.

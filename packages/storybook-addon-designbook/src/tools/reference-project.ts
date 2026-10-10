@@ -4,7 +4,20 @@ import { isAbsolute, join, relative } from 'node:path';
 import { load } from 'js-yaml';
 import { cssFontFamilies } from './css-font-families.js';
 import type { CapturedSource, CapturedSourceStyle, PropertyNode } from './inspect/element-walker.js';
-import type { ObservationExtract, ObservationMeta, ObservationSample } from './reference-capture.js';
+import {
+  validateCaptureObservations,
+  type ObservationExtract,
+  type ObservationMeta,
+  type ObservationSample,
+  type ReferenceContract,
+} from './reference-capture.js';
+import {
+  isObservationDocument,
+  mergeObservationDocuments,
+  parseObservationDocument,
+  readStoredExtract,
+  schemaCheck,
+} from './reference-observations.js';
 
 const GENERIC_FAMILIES = new Set([
   'serif',
@@ -308,12 +321,34 @@ export function projectObservations(
   return { subjects, parents: [], images, fonts, captures };
 }
 
-export function projectPublishedObservations(directory: string): {
+/**
+ * Read a revision's observations through its explicit representation: browser
+ * dumps are projected, imported documents are validated and merged. An imported
+ * revision is checked against its stored capture definition and actual files
+ * here, so every consumer (validate, query, Reference.load) rejects incomplete
+ * or mismatched evidence instead of trusting a cast.
+ */
+export function projectPublishedObservations(
+  directory: string,
+  contract: ReferenceContract,
+): {
   meta: ObservationMeta;
   extract: ObservationExtract;
 } {
   if (!isAbsolute(directory)) throw new Error('reference: expected absolute revision directory');
   const meta = load(readFileSync(join(directory, 'meta.yml'), 'utf8')) as ObservationMeta;
-  const dumps = loadSourceDumps(directory, declaredStates(meta));
-  return { meta, extract: projectObservations(dumps, meta, directory) };
+  const states = declaredStates(meta);
+  const stored = states.map((state) => readStoredExtract(directory, state));
+  const imported = stored.filter(isObservationDocument).length;
+  if (!imported) return { meta, extract: projectObservations(loadSourceDumps(directory, states), meta, directory) };
+  if (imported !== stored.length) throw new Error('reference: browser dumps and imported observations cannot mix');
+  schemaCheck(meta, contract.referenceSchema as object, contract.definitions, 'meta.yml');
+  const documents = stored.map((raw, index) => {
+    const doc = parseObservationDocument(raw, contract);
+    if (doc.state !== states[index]) throw new Error(`${sourceDumpName(states[index]!)}: stores state ${doc.state}`);
+    return doc;
+  });
+  const { capture, extract } = mergeObservationDocuments(documents);
+  validateCaptureObservations(directory, capture, meta, extract);
+  return { meta, extract };
 }

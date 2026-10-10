@@ -5,3 +5,4 @@ packages:
   - "promptfoo/workspaces/*"
   - "workspaces/*"
   - "workspaces/**/web/themes/custom/*"
+  - "website"
