@@ -8,7 +8,7 @@ filter:
 
 # Sample Data: Canvas
 
-Applies **only to bundles where `purpose: landing-page`** is set in `data-model.yml` and the `canvas` extension is active. Ignore this rule for all other bundles.
+Applies to `canvas_page` bundles while the `canvas` extension is active.
 
 ## Entity Type
 
@@ -20,22 +20,9 @@ Intake records the component allowlist from existing artifacts and all planned c
 
 ## Record Structure
 
-Each record MUST include a `components` field containing a `ComponentNode[]` tree. The canvas entity mapper is a direct passthrough — `$record.components` is rendered as-is in Storybook. This means **every component name in `components` must be a real SDC component** from the intake allowlist.
+On `canvas_page` the bundle's `component_tree` field is `components`; each record fills it with the page's component tree. The canvas entity mapper passes `$record.components` through unchanged, so Storybook renders exactly that tree. Component IDs and tree shape follow the generic `component-tree` sample-data rule (CT-01..03).
 
 > ⛔ **Never invent component names.** Do not use `canvas_section`, `canvas_text`, `canvas_image`, `canvas_cta`, or any other fictional type. Use only what intake declared.
-
-## Slots Format
-
-Slot values in `components` are either plain strings (for text/HTML content) or arrays of nested `ComponentNode`. Use `slots:` as an object (not an array):
-
-```yaml
-slots:
-  header: "Section heading text"
-  content:
-    - component: "$COMPONENT_NAMESPACE:child_component"
-      props: {}
-      slots: {}
-```
 
 ## Example
 

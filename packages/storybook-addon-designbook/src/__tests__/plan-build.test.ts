@@ -171,10 +171,23 @@ describe('buildPlan', () => {
     expect(plan).not.toBeNull();
   });
 
-  it('rejects map-entity without component or bindings', async () => {
+  it('rejects a field-map map-entity without a target component', async () => {
     const { plan, errors } = await buildPlan(
       {
         workflow: 'design-entity',
+        composition: {
+          ...emptyComposition,
+          data_model: {
+            content: {
+              paragraph: {
+                signage: {
+                  fields: { field_title: { type: 'string' } },
+                  view_modes: { full: { template: 'field-map' } },
+                },
+              },
+            },
+          },
+        },
         tasks: [
           {
             step: 'map-entity',
@@ -190,7 +203,7 @@ describe('buildPlan', () => {
       opts,
     );
     expect(plan).toBeNull();
-    expect(errors.join('\n')).toMatch(/component|bindings/);
+    expect(errors.join('\n')).toMatch(/component/);
   });
 
   it('rejects a binding that names both prop and slot', async () => {
@@ -215,6 +228,29 @@ describe('buildPlan', () => {
     );
     expect(plan).toBeNull();
     expect(errors.join('\n')).toMatch(/bindings/);
+  });
+
+  it('rejects a component tree supplied as bindings at the schema', async () => {
+    const { plan, errors } = await buildPlan(
+      {
+        workflow: 'design-entity',
+        tasks: [
+          {
+            step: 'map-entity',
+            task: 'map-entity--design-screen',
+            title: 'landing_page',
+            params: {
+              mapping: { entity_type: 'canvas_page', bundle: 'landing_page', mode_kind: 'view', view_mode: 'full' },
+              data_model: {},
+              bindings: [{ component: 'test:section' }],
+            },
+          },
+        ],
+      },
+      opts,
+    );
+    expect(plan).toBeNull();
+    expect(errors.join('\n')).toMatch(/params: .*bindings\/0/);
   });
 
   it('rejects a reference-slot binding without a child view mode', async () => {

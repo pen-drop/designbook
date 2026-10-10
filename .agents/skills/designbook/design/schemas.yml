@@ -613,7 +613,7 @@ CompositionMappingSnapshot:
   type: object
   title: Frozen mapping snapshot
   description: Existing mapping reused by the plan, with its declared binding contract.
-  required: [identity, component, bindings, source, hash]
+  required: [identity, source, hash]
   properties:
     identity:
       type: object
@@ -627,10 +627,10 @@ CompositionMappingSnapshot:
         form_mode: { type: string, description: Form mode when mode_kind is form. }
     component:
       type: string
-      description: Qualified target component ID.
+      description: Qualified target component ID of a field-map mapping. Omitted when the bundle has a component_tree field.
     bindings:
       type: array
-      description: Declared field bindings for this mapping.
+      description: Declared field bindings of a field-map mapping. Omitted when the bundle has a component_tree field.
       items:
         $ref: "#/MappingBinding"
     source:
@@ -663,7 +663,9 @@ CompositionSampleSnapshot:
           summary: { type: string, description: Short remaining content. }
           values:
             type: object
-            description: Concrete field values. Extra keys are field names from the data model.
+            description: >
+              Concrete field values. Extra keys are field names from the data model.
+              A `component_tree` field holds a ComponentNode[] tree.
             additionalProperties: true
 
 CompositionSceneSnapshot:
@@ -716,6 +718,12 @@ CompositionInputs:
         (config entities under config.<entity_type>.<bundle>); image styles under
         config.image_style. Extra keys are the file's own sections.
       additionalProperties: true
+    namespace:
+      type: string
+      description: >
+        Configured component namespace. `plan build` seals it from `component.namespace`;
+        it qualifies bare planned component writes.
+      examples: [test_integration_drupal]
 
 Variant:
   type: object

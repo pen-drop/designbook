@@ -1,0 +1,17 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Section
+status: stable
+group: Layout
+description: A page section that constrains its width and holds one content column.
+provider: test_integration_drupal
+props:
+  type: object
+  properties:
+    max_width:
+      title: Max width
+      type: string
+      enum: [md, lg]
+slots:
+  column_1:
+    title: Column 1
+    description: Section content.

@@ -39,7 +39,10 @@ PlannedSampleRecord:
       description: Short intended content for fields not listed in values.
     values:
       type: object
-      description: Concrete fields needed by planned bindings and references. Keys are field machine names.
+      description: >
+        Concrete fields needed by planned bindings, references, and composition.
+        Keys are field machine names. A field whose data-model type is
+        `component_tree` holds a ComponentNode[] tree (see scenes ComponentNode).
       additionalProperties: true
 
 SampleDataBundle:

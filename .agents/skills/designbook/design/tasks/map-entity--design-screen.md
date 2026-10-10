@@ -15,8 +15,6 @@ params:
   required:
     - mapping
     - data_model
-    - component
-    - bindings
   properties:
     mapping:
       type: object
@@ -27,11 +25,16 @@ params:
       type: object
     component:
       type: string
-      description: Qualified target component ID (`namespace:name`) for this mapping.
+      description: >
+        Qualified target component ID (`namespace:name`) for a field-map mapping.
+        Omitted when the mapped bundle carries a `component_tree` field — that tree
+        is the composition, passed through from sample records.
       examples: [test_integration_vue:signage]
     bindings:
       type: array
-      description: Field-to-prop and field-to-slot bindings for the target component.
+      description: >
+        Field-to-prop and field-to-slot bindings for the target component.
+        Empty or omitted when the mapped bundle carries a `component_tree` field.
       items:
         $ref: ../schemas.yml#/MappingBinding
 result:
@@ -50,8 +53,8 @@ result:
 
 # Map Entity
 
-Produce the complete mapping expression for the one entity type, bundle and mode selected by `mapping`. The expression targets `component` and binds exactly the listed `bindings`. Apply the requested field-output delta to the existing expression when present, preserving unrelated assignments and references.
+Produce the complete mapping expression for the one entity type, bundle and mode selected by `mapping`. A field-map mapping targets `component` and binds exactly the listed `bindings`. A mapping whose bundle has a `component_tree` field passes that field through from the sample records. Apply the requested field-output delta to the existing expression when present, preserving unrelated assignments and references.
 
 Retain other view/form modes, bundles, model/display settings and sample records. Any necessary model, sample or consumer changes are separate outputs/tasks declared by intake. Reuse components that already satisfy the mapping.
 
-Completion: the selected mapping expresses the requested delta, binds exactly the declared fields, and all preserved assignments remain equivalent. The saved definition includes the standalone preview and concrete mapped-field browser observations.
+Completion: the selected mapping expresses the requested delta. Field-map mappings bind exactly the declared fields; `component_tree` mappings evaluate to the sealed sample tree. All preserved assignments remain equivalent. The saved definition includes the standalone preview and concrete mapped-field browser observations.
