@@ -55,7 +55,7 @@ sealing. Every mode uses the same sealed-plan assembly and the same
    --config-dir <workspace>`. Copy that command's unmodified stdout into the
    next user-visible reply. In `ask` mode that same unmodified stdout precedes
    the three choices. Completion: the next user-visible reply is that command's unmodified stdout.
-5. Then choose an **execution mode** and run `plan build` accordingly.
+5. After that user-visible reply is sent, choose an **execution mode** and run `plan build` accordingly.
    Caller override always wins over workflow defaults.
 
    | Mode | Persist durable plan? | Start execute? |

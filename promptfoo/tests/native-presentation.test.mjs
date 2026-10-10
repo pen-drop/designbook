@@ -82,6 +82,19 @@ test("rejects a tree presented after the first plan build", () => {
   assert.match(result.reason, /after|late|before/i);
 });
 
+test("rejects a tree sent only in the sealed-plan wrap-up", () => {
+  const result = compositionPresentation(
+    [
+      command("_debo plan tree tasks.json --workflow design-entity"),
+      command(build),
+      message(tree),
+    ],
+    tree,
+  );
+  assert.equal(result.ok, false);
+  assert.match(result.reason, /after|late|before/i);
+});
+
 test("rejects a paraphrased or keyword-only tree", () => {
   const keywords = compositionPresentation(
     [
