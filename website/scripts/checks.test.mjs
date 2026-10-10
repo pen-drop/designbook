@@ -24,6 +24,7 @@ const defaultManual = `{
     { label: 'Integrations', link: '/integrations/', icon: 'plug' },
     { label: 'Advanced', link: '/advanced/', icon: 'gear' },
   ],
+  LANDINGS: [],
   SIDEBAR: {
     '/manual': [{ text: 'Documentation', items: [
       { text: 'Get started', link: '/get-started/' },
@@ -42,9 +43,34 @@ function manualModule(overrides = '') {
   return `const data = ${defaultManual}
 export const SRC_EXCLUDE = data.SRC_EXCLUDE
 export const AREAS = data.AREAS
+export const LANDINGS = data.LANDINGS
 export const SIDEBAR = data.SIDEBAR
 ${overrides}
 `
+}
+
+function landingEntry(overrides = {}) {
+  return {
+    id: 'drupal',
+    label: 'Drupal',
+    link: '/drupal/',
+    status: 'ready',
+    integration: '/integrations/drupal',
+    ...overrides,
+  }
+}
+
+function withLandings(entries, extra = '') {
+  return manualModule(`
+LANDINGS.splice(0, LANDINGS.length, ...${JSON.stringify(entries)})
+${extra}
+`)
+}
+
+function homeLanding(title = 'Drupal', n = 40, extraFm = '') {
+  const headingWords = title.split(/\s+/).filter((word) => /[A-Za-z]/.test(word)).length
+  const rest = Math.max(0, n - headingWords)
+  return `---\nlayout: home\n${extraFm}---\n\n# ${title}\n\n${words(rest)}\n`
 }
 
 function html({ title = 'Page', extra = '', nav = true } = {}) {
@@ -509,5 +535,274 @@ test('routes.json missing, duplicate and unlisted content routes fail; generated
     duplicate.cleanup()
     unlisted.cleanup()
     with404.cleanup()
+  }
+})
+
+test('registered home landing over 600 words passes without sidebar', () => {
+  const fixture = makeFixture({
+    manual: withLandings([landingEntry()]),
+    docs: { ...sliceDocs, 'drupal/index.md': homeLanding('Drupal', 700) },
+  })
+  try {
+    const result = run(fixture.website, 'check-pages.mjs')
+    assert.equal(result.status, 0, output(result))
+    assert.doesNotMatch(output(result), /over 600|in no sidebar|unknown area/)
+  } finally {
+    fixture.cleanup()
+  }
+})
+
+test('registry entry without a file fails with missing landing file', () => {
+  const fixture = makeFixture({
+    manual: withLandings([landingEntry()]),
+    docs: sliceDocs,
+  })
+  try {
+    const result = run(fixture.website, 'check-pages.mjs')
+    assert.equal(result.status, 1)
+    assert.match(output(result), /missing landing file/)
+  } finally {
+    fixture.cleanup()
+  }
+})
+
+test('home layout without a registry entry fails', () => {
+  const fixture = makeFixture({
+    docs: { ...sliceDocs, 'drupal/index.md': homeLanding() },
+  })
+  try {
+    const result = run(fixture.website, 'check-pages.mjs')
+    assert.equal(result.status, 1)
+    assert.match(output(result), /unregistered home landing/)
+  } finally {
+    fixture.cleanup()
+  }
+})
+
+test('registry entry with wrong layout fails', () => {
+  const fixture = makeFixture({
+    manual: withLandings([landingEntry()]),
+    docs: { ...sliceDocs, 'drupal/index.md': page('Drupal', 40) },
+  })
+  try {
+    const result = run(fixture.website, 'check-pages.mjs')
+    assert.equal(result.status, 1)
+    assert.match(output(result), /wrong layout/)
+  } finally {
+    fixture.cleanup()
+  }
+})
+
+test('registered landing draft fails', () => {
+  const fixture = makeFixture({
+    manual: withLandings([landingEntry()]),
+    docs: { ...sliceDocs, 'drupal/index.md': homeLanding('Drupal', 40, 'draft: true\n') },
+  })
+  try {
+    const result = run(fixture.website, 'check-pages.mjs')
+    assert.equal(result.status, 1)
+    assert.match(output(result), /draft/)
+  } finally {
+    fixture.cleanup()
+  }
+})
+
+test('duplicate landing id and link fail', () => {
+  const dupId = makeFixture({
+    manual: withLandings([landingEntry(), landingEntry()]),
+    docs: { ...sliceDocs, 'drupal/index.md': homeLanding() },
+  })
+  const dupLink = makeFixture({
+    manual: withLandings([
+      landingEntry(),
+      landingEntry({ id: 'other', link: '/drupal/' }),
+    ]),
+    docs: {
+      ...sliceDocs,
+      'drupal/index.md': homeLanding(),
+      'other/index.md': homeLanding('Other'),
+    },
+  })
+  try {
+    const idResult = run(dupId.website, 'check-pages.mjs')
+    const linkResult = run(dupLink.website, 'check-pages.mjs')
+    assert.equal(idResult.status, 1)
+    assert.match(output(idResult), /duplicate landing id/)
+    assert.equal(linkResult.status, 1)
+    assert.match(output(linkResult), /duplicate landing link/)
+  } finally {
+    dupId.cleanup()
+    dupLink.cleanup()
+  }
+})
+
+test('invalid status, mismatched link and slash in id fail', () => {
+  const status = makeFixture({
+    manual: withLandings([landingEntry({ status: 'beta' })]),
+    docs: { ...sliceDocs, 'drupal/index.md': homeLanding() },
+  })
+  const mismatch = makeFixture({
+    manual: withLandings([landingEntry({ link: '/other/' })]),
+    docs: { ...sliceDocs, 'drupal/index.md': homeLanding() },
+  })
+  const slash = makeFixture({
+    manual: withLandings([landingEntry({ id: 'foo/bar', link: '/foo/bar/' })]),
+    docs: { ...sliceDocs, 'foo/bar/index.md': homeLanding('Nested') },
+  })
+  try {
+    const statusResult = run(status.website, 'check-pages.mjs')
+    const mismatchResult = run(mismatch.website, 'check-pages.mjs')
+    const slashResult = run(slash.website, 'check-pages.mjs')
+    assert.equal(statusResult.status, 1)
+    assert.match(output(statusResult), /invalid status/)
+    assert.equal(mismatchResult.status, 1)
+    assert.match(output(mismatchResult), /landing id\/link mismatch/)
+    assert.equal(slashResult.status, 1)
+    assert.match(output(slashResult), /invalid landing id/)
+  } finally {
+    status.cleanup()
+    mismatch.cleanup()
+    slash.cleanup()
+  }
+})
+
+test('page prefix does not skip a missing landing file', () => {
+  const fixture = makeFixture({
+    manual: withLandings([landingEntry()]),
+    docs: sliceDocs,
+  })
+  try {
+    const result = run(fixture.website, 'check-pages.mjs', ['get-started/'])
+    assert.equal(result.status, 1)
+    assert.match(output(result), /missing landing file/)
+  } finally {
+    fixture.cleanup()
+  }
+})
+
+test('home layout on a handbook page does not skip the word gate', () => {
+  const fixture = makeFixture({
+    docs: { ...sliceDocs, 'get-started/index.md': homeLanding('Get started', 251) },
+  })
+  try {
+    const result = run(fixture.website, 'check-pages.mjs')
+    assert.equal(result.status, 1)
+    const text = output(result)
+    assert.match(text, /unregistered home landing/)
+    assert.match(text, /over 250/)
+  } finally {
+    fixture.cleanup()
+  }
+})
+
+test('landing route is accepted without a routes.json entry', () => {
+  const fixture = makeFixture({
+    manual: withLandings([landingEntry()]),
+    dist: { ...baseDist, 'drupal/index.html': html({ title: 'Drupal' }) },
+    routes: allRoutes,
+  })
+  try {
+    const result = run(fixture.website, 'check-site.mjs')
+    assert.equal(result.status, 0, output(result))
+  } finally {
+    fixture.cleanup()
+  }
+})
+
+test('missing built landing fails', () => {
+  const fixture = makeFixture({
+    manual: withLandings([landingEntry()]),
+    dist: baseDist,
+    routes: allRoutes,
+  })
+  try {
+    const result = run(fixture.website, 'check-site.mjs')
+    assert.equal(result.status, 1)
+    assert.match(output(result), /missing route/)
+  } finally {
+    fixture.cleanup()
+  }
+})
+
+test('Drupal landing CTA to first-result passes', () => {
+  const fixture = makeFixture({
+    manual: withLandings([landingEntry()]),
+    dist: {
+      ...baseDist,
+      'drupal/index.html': html({
+        title: 'Drupal',
+        extra:
+          '<a href="/designbook/integrations/drupal/first-result">Get your first Drupal result</a>',
+      }),
+      'integrations/drupal/first-result.html': html({ title: 'First Drupal result' }),
+    },
+    routes: [...allRoutes, '/integrations/drupal/first-result'],
+  })
+  try {
+    const result = run(fixture.website, 'check-site.mjs')
+    assert.equal(result.status, 0, output(result))
+  } finally {
+    fixture.cleanup()
+  }
+})
+
+test('missing Drupal CTA target and host-root escape fail', () => {
+  const missing = makeFixture({
+    manual: withLandings([landingEntry()]),
+    dist: {
+      ...baseDist,
+      'drupal/index.html': html({
+        extra: '<a href="/designbook/integrations/drupal/first-result">CTA</a>',
+      }),
+    },
+    routes: allRoutes,
+  })
+  const escape = makeFixture({
+    manual: withLandings([landingEntry()]),
+    dist: {
+      ...baseDist,
+      'drupal/index.html': html({ extra: '<a href="/integrations/drupal/first-result">CTA</a>' }),
+    },
+    routes: [...allRoutes, '/integrations/drupal/first-result'],
+  })
+  try {
+    const miss = run(missing.website, 'check-site.mjs')
+    const escaped = run(escape.website, 'check-site.mjs')
+    assert.equal(miss.status, 1)
+    assert.match(output(miss), /missing page/)
+    assert.equal(escaped.status, 1)
+    assert.match(output(escaped), /host root|escapes/)
+  } finally {
+    missing.cleanup()
+    escape.cleanup()
+  }
+})
+
+test('experimental landing is inventoried without a routes.json entry', () => {
+  const fixture = makeFixture({
+    manual: withLandings([landingEntry({ status: 'experimental' })]),
+    dist: { ...baseDist, 'drupal/index.html': html({ title: 'Drupal' }) },
+    routes: allRoutes,
+  })
+  try {
+    const result = run(fixture.website, 'check-site.mjs')
+    assert.equal(result.status, 0, output(result))
+  } finally {
+    fixture.cleanup()
+  }
+})
+
+test('duplicate static and landing inventory fails', () => {
+  const fixture = makeFixture({
+    manual: withLandings([landingEntry()]),
+    dist: { ...baseDist, 'drupal/index.html': html({ title: 'Drupal' }) },
+    routes: [...allRoutes, '/drupal/'],
+  })
+  try {
+    const result = run(fixture.website, 'check-site.mjs')
+    assert.equal(result.status, 1)
+    assert.match(output(result), /duplicate/)
+  } finally {
+    fixture.cleanup()
   }
 })
