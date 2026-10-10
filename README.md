@@ -1,5 +1,7 @@
 # Designbook
 
+<img src="docs/assets/logo/logo-hero.png" alt="Designbook handwritten wordmark with coral underline" width="560">
+
 **AI workflows that structure your design for CMS implementation.**
 
 Start from anywhere — Figma, Figma Make, Google Stitch, an existing website, or directly through AI conversation. Designbook's job is what comes after: turning your design into structured specs ready for implementation in any CMS (Drupal, WordPress, ...) and any frontend framework (React, Vue, Twig, Web Components, ...).
