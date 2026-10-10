@@ -12,7 +12,7 @@ import { LANDINGS } from '../.vitepress/manual.mjs'
 const WEBSITE = fileURLToPath(new URL('..', import.meta.url))
 const DIST = join(WEBSITE, '.vitepress', 'dist')
 const BASE = '/designbook'
-const ASSET = /\.(svg|png|jpe?g|gif|webp|ico|txt|xml|json|js|css|pdf|woff2?|map)$/i
+const ASSET = /\.(svg|png|jpe?g|gif|webp|ico|txt|xml|json|js|css|pdf|woff2?|map|mp4|webm|vtt)$/i
 const ROUTES = JSON.parse(readFileSync(join(WEBSITE, 'routes.json'), 'utf8'))
 
 const pages = new Map()
@@ -32,12 +32,15 @@ function collect(dir) {
     const hrefs = [...html.matchAll(/<(?:a|link)\s[^>]*\bhref="([^"]+)"/gi)].map((m) =>
       m[1].replace(/&amp;/g, '&'),
     )
-    const srcs = [...html.matchAll(/<(?:img|script)\s[^>]*\bsrc="([^"]+)"/gi)].map((m) =>
+    const srcs = [...html.matchAll(/<(?:img|script|video|source|track)\s[^>]*\bsrc="([^"]+)"/gi)].map((m) =>
       m[1].replace(/&amp;/g, '&'),
+    )
+    const posters = [...html.matchAll(/<video\s[^>]*\bposter="([^"]+)"/gi)].map(
+      (m) => m[1].replace(/&amp;/g, '&'),
     )
     pages.set(route, {
       ids: new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1])),
-      hrefs: [...hrefs, ...srcs],
+      hrefs: [...hrefs, ...srcs, ...posters],
     })
   }
 }

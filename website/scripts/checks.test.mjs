@@ -806,3 +806,29 @@ test('duplicate static and landing inventory fails', () => {
     fixture.cleanup()
   }
 })
+
+test('video sources and posters are checked as local assets', () => {
+  const fixture = makeFixture({
+    dist: {
+      'index.html': html({
+        extra:
+          '<video poster="/designbook/demo/poster.png"><source src="/designbook/demo/film.mp4" type="video/mp4"></video>',
+      }),
+      'manual.html': html(),
+    },
+  })
+  try {
+    const missing = run(fixture.website, 'check-site.mjs')
+    assert.notEqual(missing.status, 0)
+    assert.match(output(missing), /missing asset.*poster\.png/)
+    assert.match(output(missing), /missing asset.*film\.mp4/)
+    const media = join(fixture.website, '.vitepress/dist/demo')
+    mkdirSync(media, { recursive: true })
+    writeFileSync(join(media, 'poster.png'), 'fixture')
+    writeFileSync(join(media, 'film.mp4'), 'fixture')
+    const valid = run(fixture.website, 'check-site.mjs')
+    assert.equal(valid.status, 0, output(valid))
+  } finally {
+    fixture.cleanup()
+  }
+})

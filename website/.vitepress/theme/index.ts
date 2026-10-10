@@ -13,8 +13,8 @@ export default {
   Layout: () =>
     h(DefaultTheme.Layout, null, {
       'sidebar-nav-before': () => h(SidebarAreas),
-      'home-hero-after': () => h(DistroLinks),
-      'home-features-after': () => h(LandingContent),
+      'home-hero-after': () => h(LandingContent),
+      'home-features-after': () => h(DistroLinks),
     }),
   enhanceApp({ app }) {
     app.component('ManualCards', ManualCards)
