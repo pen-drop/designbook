@@ -1,8 +1,8 @@
 # Execute a saved workflow plan
 
 Input: a path to a complete MD plan (durable persisted-plan path — the exact
-`plan` field `plan build` returned — or an ephemeral path from
-`plan build --ephemeral`). This is the sole owner of the task loop. The executor
+`plan` field `plan build --format json` returned — or an ephemeral path from
+`plan build --ephemeral --format json`). This is the sole owner of the task loop. The executor
 reads only the plan — no discovery, no rule selection, no added tasks, no widened
 scope.
 

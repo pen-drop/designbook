@@ -24,7 +24,7 @@ prompts:
 
       Run `_debo intake design-shell`. Then author the COMPLETE MD plan via
       `_debo plan build design-shell --tasks <tasks.json> --name <a concrete name for
-      this initiative>` (using the intake context's `plans_dir` plus that `--name`),
+      this initiative> --format json` (using the intake context's `plans_dir` plus that `--name`),
       covering every step: `write-component` (header and footer as separate
       checkbox tasks), `refresh-components`, `create-sample-data`, `map-entity`,
       `create-scene-file`, `write-scene`, and `validate`. Each task carries its
