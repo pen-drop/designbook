@@ -13,6 +13,7 @@ params:
     - components_dir
     - scene_name
     - scene_scope
+    - items
   properties:
     scene_name:
       type: string
@@ -21,6 +22,11 @@ params:
       type: string
       enum: [screen, shell, standalone]
       description: Actual target role, including consumer writes originating in another domain intake.
+    items:
+      type: array
+      description: Planned SceneNode tree for the selected scene, same schema as the written result.
+      items:
+        $ref: ../schemas.yml#/SceneNode
     scene_path:
       type: string
       description: >
@@ -80,7 +86,7 @@ result:
 
 ## Result: scene-file
 
-Produce the complete SceneFile for the selected `scene_path` and `scene_name` from `section_scenes` plus the requested delta. A uniquely matching name replaces only the selected scene's requested content in its current array position. An absent name adds exactly one entry. Multiple matches or conflicting selectors block execution and require corrected intake.
+Produce the complete SceneFile for the selected `scene_path` and `scene_name` from `section_scenes` plus the requested delta. The selected scene's `items` match the declared SceneNode tree. A uniquely matching name replaces only the selected scene's requested content in its current array position. An absent name adds exactly one entry. Multiple matches or conflicting selectors block execution and require corrected intake.
 
 Preserve sibling scenes and their order, unrelated selected-scene fields, and unrelated file metadata. Preserve the file and scene identities unless intake explicitly declared a rename and every reference edit. Repeating the same delta leaves one target entry and the same semantic result.
 

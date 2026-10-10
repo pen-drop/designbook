@@ -8,7 +8,7 @@ trigger:
 
 # Blueprint: Layout Builder — Passthrough Mapping
 
-Applies when `map-entity` runs for a view mode with `template: layout-builder` (i.e. a node bundle's full view mode that uses Layout Builder).
+Applies when `map-entity` runs for a view mode with `template: layout-builder` (i.e. a node bundle's full view mode that uses Layout Builder). The current plan-param contract is a single target component plus field bindings; a layout-builder section list cannot be expressed there, so `plan build` rejects that selected mapping with the target and unsupported structure.
 
 ## Behavior
 

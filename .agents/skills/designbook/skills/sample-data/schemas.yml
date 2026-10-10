@@ -24,6 +24,24 @@ SampleData:
       type: object
       additionalProperties: true
 
+PlannedSampleRecord:
+  type: object
+  title: Planned sample record
+  description: One record the sample-data task will write or update.
+  required: [id, summary, values]
+  properties:
+    id:
+      type: string
+      description: Unique record identifier within the bundle.
+      examples: ["signage-1", "item-a"]
+    summary:
+      type: string
+      description: Short intended content for fields not listed in values.
+    values:
+      type: object
+      description: Concrete fields needed by planned bindings and references. Keys are field machine names.
+      additionalProperties: true
+
 SampleDataBundle:
   type: array
   description: Bare record array for one entity_type.bundle file under data/; every record carries a __designbook block

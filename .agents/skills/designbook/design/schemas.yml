@@ -431,9 +431,51 @@ Issue:
           expected: { type: string }
           actual: { type: string }
 
+ComponentPropsSchema:
+  type: object
+  title: Component props JSON Schema
+  description: >
+    JSON Schema object describing the component's props. Reuses SDC's native prop
+    representation. Extra JSON Schema keywords (items, $defs, and similar) are
+    allowed on this object. The empty contract is
+    `{type: object, properties: {}, required: [], additionalProperties: false}`.
+  required: [type, properties, required, additionalProperties]
+  additionalProperties: true
+  properties:
+    type:
+      const: object
+      description: Props are always a JSON Schema object.
+    properties:
+      type: object
+      description: Per-prop JSON Schema, including item/property schemas for collections.
+      additionalProperties: true
+    required:
+      type: array
+      items: { type: string }
+      description: Required prop names. Empty when every prop is optional.
+    additionalProperties:
+      const: false
+      description: Unknown props are rejected.
+
+ComponentSlot:
+  type: object
+  title: Component slot
+  description: One named slot in the component contract.
+  required: [description, required]
+  properties:
+    description:
+      type: string
+      description: What the slot receives.
+      examples: [Rendered child entities, Heading text]
+    required:
+      type: boolean
+      description: Whether the slot must be filled.
+
 Component:
   type: object
-  required: [component, group]
+  title: Component
+  description: Planned component identity and typed prop/slot contract.
+  required: [component, group, props, slots]
   properties:
     component:
       type: string
@@ -463,12 +505,24 @@ Component:
         therefore locked ten working components out of every workflow in this
         skill, with no defect to show for it.
       examples: [hero, content_card, stage_teaser, active-filters]
+    props:
+      $ref: "#/ComponentPropsSchema"
     slots:
-      type: array
-      items: { type: string }
-      default: []
-    group: { type: string }
-    description: { type: string }
+      type: object
+      description: >
+        Slot contract keyed by slot name. Empty object is a valid empty contract.
+        Each value is a ComponentSlot.
+      additionalProperties:
+        $ref: "#/ComponentSlot"
+      propertyNames:
+        pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+    group:
+      type: string
+      description: Storybook group / directory family for the component.
+      examples: [layout, content, navigation]
+    description:
+      type: string
+      description: Purpose of the component. Variants and design_hint stay alongside.
     design_hint:
       $ref: "#/DesignHint"
     variants:
@@ -476,6 +530,189 @@ Component:
       default: []
       items:
         $ref: "#/Variant"
+
+MappingChildEntity:
+  type: object
+  title: Referenced child entity
+  description: Child entity rendered into a reference slot, including its view mode.
+  required: [entity_type, bundle, view_mode]
+  properties:
+    entity_type:
+      type: string
+      description: Child entity type from the data model.
+      examples: [paragraph, node, media]
+    bundle:
+      type: string
+      description: Child bundle from the data model.
+      examples: [signage_item, article, image]
+    view_mode:
+      type: string
+      minLength: 1
+      description: View mode used to render each referenced child.
+      examples: [full, teaser]
+
+MappingBinding:
+  type: object
+  title: Field binding
+  description: >
+    One source field bound to exactly one component prop or slot. A `path` array
+    selects a structured-field member. `entity` is present only on a reference slot.
+  required: [field]
+  additionalProperties: false
+  properties:
+    field:
+      type: string
+      description: Data-model field machine name.
+      examples: [field_title, field_signage_item]
+    path:
+      type: array
+      description: Optional path within a structured field. The first field remains a real model field.
+      items: { type: string }
+      examples:
+        - [value]
+    prop:
+      type: string
+      description: Target prop name. Exclusive with slot.
+      pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+      examples: [title, style]
+    slot:
+      type: string
+      description: Target slot name. Exclusive with prop.
+      pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+      examples: [items, image]
+    entity:
+      $ref: "#/MappingChildEntity"
+  oneOf:
+    - required: [prop]
+      not:
+        required: [slot]
+    - required: [slot]
+      not:
+        required: [prop]
+
+CompositionComponentSnapshot:
+  type: object
+  title: Frozen component snapshot
+  description: Existing component contract copied into the sealed plan.
+  required: [id, contract, source, hash]
+  properties:
+    id:
+      type: string
+      description: Qualified component ID (namespace:name).
+      examples: [test_integration_vue:signage]
+    contract:
+      $ref: "#/Component"
+    source:
+      type: string
+      description: Source path of the existing artifact.
+    hash:
+      type: string
+      description: Content hash of the frozen source.
+
+CompositionMappingSnapshot:
+  type: object
+  title: Frozen mapping snapshot
+  description: Existing mapping reused by the plan, with its declared binding contract.
+  required: [identity, component, bindings, source, hash]
+  properties:
+    identity:
+      type: object
+      description: Entity type, bundle and mode that identify the mapping file.
+      required: [entity_type, bundle]
+      properties:
+        entity_type: { type: string, description: Entity type key. }
+        bundle: { type: string, description: Bundle key. }
+        mode_kind: { type: string, enum: [view, form], description: View or form half. }
+        view_mode: { type: string, description: View mode when mode_kind is view. }
+        form_mode: { type: string, description: Form mode when mode_kind is form. }
+    component:
+      type: string
+      description: Qualified target component ID.
+    bindings:
+      type: array
+      description: Declared field bindings for this mapping.
+      items:
+        $ref: "#/MappingBinding"
+    source:
+      type: string
+      description: Source path of the existing mapping expression.
+    hash:
+      type: string
+      description: Content hash of the frozen source.
+
+CompositionSampleSnapshot:
+  type: object
+  title: Frozen sample pool
+  description: Ordered sample records for one bundle, used to resolve scene and reference indexes.
+  required: [entity_type, bundle, records]
+  properties:
+    entity_type:
+      type: string
+      description: Entity type of the pool.
+    bundle:
+      type: string
+      description: Bundle of the pool.
+    records:
+      type: array
+      description: Ordered records after planned writes are applied.
+      items:
+        type: object
+        required: [id]
+        properties:
+          id: { type: string, description: Record identifier within the bundle. }
+          summary: { type: string, description: Short remaining content. }
+          values:
+            type: object
+            description: Concrete field values. Extra keys are field names from the data model.
+            additionalProperties: true
+
+CompositionSceneSnapshot:
+  type: object
+  title: Frozen scene file
+  description: Parsed baseline scene file used for sibling preservation and substitutions.
+  required: [path, file]
+  properties:
+    path:
+      type: string
+      description: Scene file path relative to DESIGNBOOK_DATA.
+    file:
+      $ref: ../scenes/schemas.yml#/SceneFile
+    hash:
+      type: string
+      description: Content hash of the frozen source.
+
+CompositionInputs:
+  type: object
+  title: Frozen composition inputs
+  description: >
+    Baseline artifacts needed to validate and render a writing design plan.
+    Arrays are empty when nothing is reused. Foundation workflows omit this object.
+  required: [components, mappings, samples, scenes, data_model]
+  properties:
+    components:
+      type: array
+      description: Existing component contracts in the reachable set.
+      items:
+        $ref: "#/CompositionComponentSnapshot"
+    mappings:
+      type: array
+      description: Existing mapping descriptors in the reachable set.
+      items:
+        $ref: "#/CompositionMappingSnapshot"
+    samples:
+      type: array
+      description: Existing sample pools in the reachable set.
+      items:
+        $ref: "#/CompositionSampleSnapshot"
+    scenes:
+      type: array
+      description: Existing scene files in the reachable set.
+      items:
+        $ref: "#/CompositionSceneSnapshot"
+    data_model:
+      type: object
+      description: Data model used to validate fields, bundles and modes. Keys follow data-model.yml.
+      additionalProperties: true
 
 Variant:
   type: object
@@ -500,10 +737,18 @@ Variant:
 
 EntityMapping:
   type: object
+  title: Entity mapping identity
+  description: Entity type, bundle and concrete view or form mode for one mapping task.
   required: [entity_type, bundle]
   properties:
-    entity_type: { type: string }
-    bundle: { type: string }
+    entity_type:
+      type: string
+      description: Entity type key from the data model.
+      examples: [paragraph, node]
+    bundle:
+      type: string
+      description: Bundle key under the entity type.
+      examples: [signage, article]
     mode_kind:
       type: string
       enum: [view, form]
@@ -514,12 +759,25 @@ EntityMapping:
         so a caller that omits it (e.g. design-screen) is unchanged.
     view_mode:
       type: string
-      default: ""
-      description: View mode machine name; the mode name when mode_kind = view. Empty for a form mapping.
+      description: View mode machine name; required and non-empty when mode_kind is view.
+      examples: [full, teaser, default]
     form_mode:
       type: string
-      default: ""
-      description: Form mode machine name; the mode name when mode_kind = form. Empty for a view mapping.
+      description: Form mode machine name; required and non-empty when mode_kind is form.
+      examples: [default, inline]
+  allOf:
+    - if:
+        properties:
+          mode_kind: { const: form }
+        required: [mode_kind]
+      then:
+        required: [form_mode]
+        properties:
+          form_mode: { type: string, minLength: 1 }
+      else:
+        required: [view_mode]
+        properties:
+          view_mode: { type: string, minLength: 1 }
 
 DesignReference:
   type: object
