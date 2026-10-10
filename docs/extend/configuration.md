@@ -31,8 +31,8 @@ Skills lookup (`resolveSkillsRoot`) walks up from the config directory trying `.
 
 Canonical files (immutable sources in this repository):
 
-- [fixtures/drupal-stitch/designbook.config.yml](https://github.com/pen-drop/designbook/blob/main/fixtures/drupal-stitch/designbook.config.yml)
-- [fixtures/drupal-petshop/designbook.config.yml](https://github.com/pen-drop/designbook/blob/main/fixtures/drupal-petshop/designbook.config.yml)
+- [fixtures/drupal-stitch/designbook.config.yml](https://github.com/pen-drop/designbook/blob/next/fixtures/drupal-stitch/designbook.config.yml)
+- [fixtures/drupal-petshop/designbook.config.yml](https://github.com/pen-drop/designbook/blob/next/fixtures/drupal-petshop/designbook.config.yml)
 - Stitch rules: `.agents/skills/designbook-stitch/rules/stitch-import.md` and `provide-stitch-url.md` (`filter: extensions: stitch`)
 
 Stitch excerpt:

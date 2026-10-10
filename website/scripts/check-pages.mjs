@@ -12,11 +12,10 @@ const DOCS = fileURLToPath(new URL('../../docs/', import.meta.url))
 const LANDING = 'landing.md'
 const NO_SIDEBAR = new Set(['index.md', LANDING])
 const AREA_DIRS = AREAS.map((area) => area.link.replace(/^\//, ''))
-const AREA_INDEX = new Set(['index.md', ...AREA_DIRS.map((dir) => `${dir}index.md`)])
 
 function limitFor(rel) {
   if (rel === LANDING) return null
-  if (AREA_INDEX.has(rel)) return 250
+  if (rel === 'index.md' || rel.endsWith('/index.md')) return 250
   if (rel.startsWith('advanced/')) return 1500
   if (AREA_DIRS.some((dir) => rel.startsWith(dir))) return 600
   return null

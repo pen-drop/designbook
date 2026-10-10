@@ -17,16 +17,16 @@ no .md in links. Update SIDEBAR and routes.json.
 
 2. Follow the three tiers. `check-pages.mjs` counts prose words (frontmatter, fenced code, HTML comments, link destinations, and tags excluded; inline code included; a token needs a letter). Limits:
 
-- Area indexes (`docs/<area>/index.md` and the repo `docs/index.md`) — 250
+- Every `index.md` — 250, including under `docs/advanced/`
 - Other pages under get-started, extend, integrations — 600
-- Any page under `docs/advanced/` except `docs/advanced/index.md` — 1500
+- Advanced leaf pages (non-index) — 1500
 - `docs/landing.md` has no word limit and still fails on `draft: true`
 
 Index membership uses the area sidebar, not the `/manual` listing. Unknown areas fail. A page in no sidebar, the wrong sidebar, or twice fails. `draft: true` always fails, including on the landing.
 
 3. Task pages use a goal sentence, **You need:**, numbered steps, and **Done when:**. The first fenced command or clearly labelled AI prompt is within 150 prose words. Label AI prompts as prompts, never as shell. Concepts and references start with a summary. At most one short Ask-your-AI tip.
 
-4. Internal Markdown links are absolute site routes without `.md` and without `/designbook` (`/get-started/install`). Repository-only files use GitHub `main` URLs. `routes.json` is a **current-route inventory** of built content routes, not a legacy redirect map. There are no compatibility redirects.
+4. Internal Markdown links are absolute site routes without `.md` and without `/designbook` (`/get-started/install`). Repository-only files use GitHub `next` URLs. `routes.json` is a **current-route inventory** of built content routes, not a legacy redirect map. There are no compatibility redirects.
 
 5. Build order is exactly:
 

@@ -184,6 +184,33 @@ test('Advanced index uses the 250-word index cap', () => {
   }
 })
 
+test('nested Advanced index uses the 250-word index cap', () => {
+  const sidebar = manualModule(`
+SIDEBAR['/advanced/'] = [{ text: 'Advanced', items: [
+  { text: 'Overview', link: '/advanced/' },
+  { text: 'CLI', link: '/advanced/cli/' },
+]}]
+`)
+  const pass = makeFixture({
+    manual: sidebar,
+    docs: { ...sliceDocs, 'advanced/cli/index.md': page('CLI', 250) },
+  })
+  const fail = makeFixture({
+    manual: sidebar,
+    docs: { ...sliceDocs, 'advanced/cli/index.md': page('CLI', 251) },
+  })
+  try {
+    const ok = run(pass.website, 'check-pages.mjs')
+    const bad = run(fail.website, 'check-pages.mjs')
+    assert.equal(ok.status, 0, output(ok))
+    assert.equal(bad.status, 1)
+    assert.match(output(bad), /over 250/)
+  } finally {
+    pass.cleanup()
+    fail.cleanup()
+  }
+})
+
 test('excluded working docs are ignored', () => {
   const fixture = makeFixture({
     docs: {
