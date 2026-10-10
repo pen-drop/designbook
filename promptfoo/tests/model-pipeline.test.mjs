@@ -189,6 +189,53 @@ test("executor receives only a saved path and keeps all final assertions", (t) =
   assert.ok(Buffer.byteLength(config.prompts[0]) < 2000);
 });
 
+test("non-blockade planning prompt requires CLI plan build, not a chat brief", (t) => {
+  const f = fixture(t);
+  let planPrompt;
+  runModelPipeline({
+    ...f,
+    requestPrompt: "Map paragraph.signage full",
+    evaluate(path) {
+      const config = yaml.load(readFileSync(path, "utf8"));
+      if (config.tags.phase === "plan") {
+        planPrompt = config.prompts[0];
+        writeFileSync(join(f.runDir, "plan.json"), "{}\n");
+      }
+      return 0;
+    },
+  });
+  assert.match(planPrompt, /_debo plan build design-shell --tasks/);
+  assert.match(planPrompt, /chat-only markdown brief is not a sealed plan/);
+  assert.doesNotMatch(
+    planPrompt,
+    /Produce a complete, sealed MD plan for a separate simple executor/,
+  );
+});
+
+test("blockade planning prompt follows intake without naming the expected need", (t) => {
+  const f = fixture(t);
+  f.base.tests[0].vars.blockade = { workflow: "css-generate" };
+  let planPrompt;
+  runModelPipeline({
+    ...f,
+    requestPrompt: "Map paragraph.signage full",
+    evaluate(path) {
+      const config = yaml.load(readFileSync(path, "utf8"));
+      if (config.tags.phase === "plan") {
+        planPrompt = config.prompts[0];
+        writeFileSync(join(f.runDir, "plan.json"), "{}\n");
+      }
+      return 0;
+    },
+  });
+  assert.match(planPrompt, /_debo intake design-shell --palette/);
+  assert.match(planPrompt, /Complete domain intake in this invocation/);
+  assert.match(planPrompt, /ReferenceNeed` or `PrerequisiteNeed/);
+  assert.doesNotMatch(planPrompt, /This case expects a named PrerequisiteNeed/);
+  assert.doesNotMatch(planPrompt, /need\.workflow:\s*css-generate/);
+  assert.doesNotMatch(planPrompt, /Emit that YAML/);
+});
+
 for (const planExit of [0, 100]) {
   test(`one executor call only after successful planner (exit ${planExit})`, (t) => {
     const f = fixture(t),

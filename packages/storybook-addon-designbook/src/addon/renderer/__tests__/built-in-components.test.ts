@@ -17,6 +17,21 @@ describe('builtInComponents', () => {
     const html = mod.render({}, {});
     expect(html).toContain('placeholder');
   });
+
+  it('designbook:element wraps value in tag and attributes', () => {
+    const mod = builtInComponents['designbook:element']!;
+    const html = mod.render(
+      { value: 'Training', tag: 'span', attributes: { class: 'kicker', id: 'title' } },
+      {},
+    ) as string;
+    expect(html).toBe('<span class="kicker" id="title">Training</span>');
+  });
+
+  it('designbook:element defaults the wrapper to div', () => {
+    const mod = builtInComponents['designbook:element']!;
+    const html = mod.render({ value: 'Build your skills.' }, {}) as string;
+    expect(html).toBe('<div>Build your skills.</div>');
+  });
 });
 
 describe('designbook:image', () => {
@@ -166,6 +181,34 @@ describe('vueBuiltInComponents', () => {
     const mod = vueBuiltInComponents['designbook:placeholder']!;
     const result = mod.render({}, {}) as { children: unknown };
     expect(result.children).toBe('placeholder');
+  });
+
+  it('designbook:element returns a vnode with tag, attributes and value', () => {
+    const mod = vueBuiltInComponents['designbook:element']!;
+    const result = mod.render({ value: 'Training', tag: 'span', attributes: { class: 'kicker' } }, {}) as {
+      __v_isVNode: boolean;
+      type: string;
+      propsOrChildren: unknown;
+      children: unknown;
+    };
+    expect(result.__v_isVNode).toBe(true);
+    expect(result.type).toBe('span');
+    expect(result.propsOrChildren).toEqual({ class: 'kicker', innerHTML: 'Training' });
+    expect(result.children).toBeUndefined();
+  });
+
+  it('designbook:element injects an HTML value as innerHTML', () => {
+    const mod = vueBuiltInComponents['designbook:element']!;
+    const result = mod.render({ value: '<strong>Bold text</strong>', tag: 'p' }, {}) as {
+      __v_isVNode: boolean;
+      type: string;
+      propsOrChildren: unknown;
+      children: unknown;
+    };
+    expect(result.__v_isVNode).toBe(true);
+    expect(result.type).toBe('p');
+    expect(result.propsOrChildren).toEqual({ innerHTML: '<strong>Bold text</strong>' });
+    expect(result.children).toBeUndefined();
   });
 
   it('designbook:image provider mode returns a vnode-like object, not a string', () => {

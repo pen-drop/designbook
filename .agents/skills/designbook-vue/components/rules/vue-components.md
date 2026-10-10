@@ -32,8 +32,28 @@ indexer never sees.
 ### Storybook story address
 
 Freeze identity in the plan as `namespace` + `group` + `component` + `variant`. Derive
-every CSF story id and story URL from that identity — same derivation scheme as every
-other designbook story, independent of component framework.
+every CSF story id and story URL from that identity.
+
+The Vue story indexer builds:
+
+```text
+title = Components/{Human Name}
+id    = sanitize(title)--sanitize(variant)
+```
+
+`Human Name` is the kebab-case directory name with each segment capitalized and
+hyphens turned into spaces (`signage-item` → `Signage Item`). `sanitize` is CSF
+`toId`: lowercase, non-alphanumerics become `-`. Examples:
+
+| component dir | variant | title | CSF story id |
+|---|---|---|---|
+| `signage` | `default` | `Components/Signage` | `components-signage--default` |
+| `signage-item` | `default` | `Components/Signage Item` | `components-signage-item--default` |
+| `book-card` | `sale` | `Components/Book Card` | `components-book-card--sale` |
+
+`refresh-components.story_ids` and every `validate` / capture story address for
+components written in this run use these derived ids. Retained fixture stories keep
+the exact id already present in the live index.
 
 ### File Set
 
@@ -73,13 +93,15 @@ Always double quotes (`"`) in every YAML file.
 
 - **One file per variant**: `<name>.<variant>.story.yml`. Default story is
   `<name>.default.story.yml`. The name segment is mandatory — never `<name>.story.yml`.
-- **Flat format** — top-level keys are `component`, `name`, `props`, `slots`. No
-  `stories:` wrapper.
+- **Flat format** — top-level keys are `component`, `name`, `variant`, `props`,
+  `slots`. A story file selects its variant through the top-level `variant` field.
+  No `stories:` wrapper.
 - **One story per file** — never combine multiple stories using `---` YAML document
   separators.
 - **Story node `type:`** ∈ `element`, `component`, `image`.
-- **Placeholder images** use service URLs (`https://placehold.co/600x400`). Local file
-  paths are not served by Storybook.
+- **Images** use root-relative paths to committed local assets under `public/`
+  (`/images/cover.png`). Same local-asset contract as every other designbook story
+  file (`local-image-assets`).
 - **Component refs include the namespace prefix**: `<namespace>:<name>`, matching
   `designbook.config.yml` → `component.namespace`.
 - **Visually distinct states** — every story file must show a meaningful visual

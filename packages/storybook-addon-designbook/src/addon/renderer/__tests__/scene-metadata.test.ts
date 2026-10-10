@@ -14,6 +14,12 @@ describe('scene-metadata', () => {
     it('falls back to fileBase when name is empty string', () => {
       expect(extractGroup({ name: '' }, 'blog')).toBe('blog');
     });
+
+    it('prefers group over name', () => {
+      expect(extractGroup({ group: 'Designbook/Sections/Signage', name: 'ignored' }, 'signage')).toBe(
+        'Designbook/Sections/Signage',
+      );
+    });
   });
 
   describe('buildExportName', () => {

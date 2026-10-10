@@ -45,6 +45,20 @@ export const builtInComponents: Record<string, ComponentModule> = {
     },
   },
 
+  'designbook:element': {
+    render: (props) => {
+      const tag = (props.tag as string) || 'div';
+      const value = (props.value as string) ?? '';
+      const attributes = props.attributes as Record<string, unknown> | undefined;
+      const attrStr = attributes
+        ? Object.entries(attributes)
+            .map(([key, val]) => ` ${key}="${String(val).replace(/&/g, '&amp;').replace(/"/g, '&quot;')}"`)
+            .join('')
+        : '';
+      return `<${tag}${attrStr}>${value}</${tag}>`;
+    },
+  },
+
   'designbook:image': {
     render: (props) => {
       const sources = (props.sources ?? []) as ImageSource[];
@@ -105,6 +119,15 @@ export const vueBuiltInComponents: Record<string, ComponentModule> = {
         },
         message,
       );
+    },
+  },
+
+  'designbook:element': {
+    render: (props) => {
+      const tag = (props.tag as string) || 'div';
+      const value = (props.value as string) ?? '';
+      const attributes = (props.attributes as Record<string, unknown>) ?? {};
+      return h(tag, { ...attributes, innerHTML: value });
     },
   },
 

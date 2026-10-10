@@ -13,15 +13,38 @@ SceneId:
 StoryId:
   type: string
   description: >
-    CSF story id (`sanitize(title)--sanitize(exportName)`). For SDC component
-    stories, derive from frozen identity namespace + group + component + variant
-    (see designbook-drupal `sdc-components` story-address rule), e.g.
-    `test-integration-drupal-shell-header--default`. Scene and entity stories use
-    their own title prefixes; copy retained ids from the live index when unchanged.
+    CSF story id (`sanitize(title)--sanitize(name)`). `sanitize` lowercases and
+    turns spaces, slashes and other non-alphanumerics into `-` (CSF `toId`).
+
+
+    SDC component stories: derive from frozen identity namespace + group +
+    component + variant (see designbook-drupal `sdc-components` story-address
+    rule). Example: `test-integration-drupal-shell-header--default`.
+
+
+    Vue component stories: derive from title `Components/<Human Name>` (see
+    designbook-vue `vue-components` story-address rule). Example:
+    `components-book-card--default`.
+
+
+    Scene files (`*.scenes.yml`): each scene export uses title `<group>/Scenes`
+    and the scene display name, so the id is `sanitize(<group>/Scenes)--sanitize(<scene>)`.
+    The stem is the `group` field, not the section file `id`. Example: group
+    `Designbook/Sections/Wayfinding`, scene `signage` →
+    `designbook-sections-wayfinding-scenes--signage`. The overview entry
+    (section files only) uses title `<group>` and name `Overview`, so the id is
+    `sanitize(<group>)--overview`. Example: group `Designbook/Sections/Wayfinding`
+    → `designbook-sections-wayfinding--overview`.
+
+
+    Entity stories use their own title prefixes. Copy retained ids from the live
+    index when unchanged.
   examples:
     - test-integration-drupal-shell-header--default
     - test-integration-drupal-action-button--primary
-    - design-system--shell
+    - components-book-card--default
+    - designbook-sections-wayfinding-scenes--signage
+    - designbook-sections-wayfinding--overview
 
 SceneFile:
   type: object
@@ -32,7 +55,15 @@ SceneFile:
     description: { type: string, description: "Section description for overview page." }
     status: { type: string, enum: [planned, in-progress, done] }
     order: { type: integer, description: "Display order in Storybook sidebar." }
-    group: { type: string, description: "Storybook story group (e.g. \"Designbook/Design System\"). Falls back to name." }
+    group:
+      type: string
+      description: >
+        Bare story group, e.g. `Designbook/Sections/Wayfinding`. The indexer
+        titles scene exports `<group>/Scenes`, so the group itself never ends
+        in `/Scenes`. Falls back to name.
+      examples: [Designbook/Sections/Wayfinding]
+      not:
+        pattern: "/Scenes$"
     scenes:
       type: array
       items:

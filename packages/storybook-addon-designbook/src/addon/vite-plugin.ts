@@ -871,7 +871,15 @@ async function loadComponentStoryModule(
     const displayVariant = resolveComponentStoryName(parsedName.variant, parsed.name);
     const group = componentStoryGroup(parsedName.name);
     const storyItem: Record<string, unknown> = { component: parsed.component };
-    if (parsed.props !== undefined) storyItem.props = parsed.props;
+    const parsedProps =
+      parsed.props !== undefined && typeof parsed.props === 'object' && parsed.props !== null
+        ? { ...(parsed.props as Record<string, unknown>) }
+        : undefined;
+    if (parsedProps !== undefined || typeof parsed.variant === 'string') {
+      const props = parsedProps ?? {};
+      if (typeof parsed.variant === 'string') props.variant = parsed.variant;
+      storyItem.props = props;
+    }
     if (parsed.slots !== undefined) storyItem.slots = parsed.slots;
 
     const syntheticRaw: Record<string, unknown> = {

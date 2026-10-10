@@ -16,18 +16,18 @@ Use the concrete `story_url`, viewport, selectors and observations fixed by inta
 
 Use the Playwright CLI session skeleton documented in [`cli-playwright.md`](../../resources/cli-playwright.md#validate-story-render) (open → goto → resize → wait → eval → close), then read:
 
-- `#storybook-root` inner text or rendered children.
-- Any error element: `#error-message`, `#preview-loader-error`, `.sb-errordisplay`.
-- Font load state: for each `font-family` the rendered root resolves to (read the computed `font-family` of `#storybook-root` and its text descendants), confirm the browser actually loaded it via `document.fonts.check('1em "<family>"')`. A generic/system family (`serif`, `sans-serif`, `system-ui`, …) where a named brand family was expected means the real face never loaded.
+- `#storybook-root` `textContent` and element children. `innerText` of a closed `<details>` omits CSS-shown descendants; `textContent` and child elements still count.
+- Overlay wrappers `.sb-errordisplay` and `#preview-loader-error`. A wrapper whose computed `display` is other than `none` is a visible render error. `#error-message` lives inside that wrapper and stays `display: block` even when the wrapper is hidden.
+- Font load state: for each text descendant of `#storybook-root`, take the first name in computed `font-family`. When that name is a non-generic family, `document.fonts.check('1em "<name>"')` is true. Generic first names (`serif`, `sans-serif`, `system-ui`, …) are the resolved stack for that node.
 
 ## Pass criteria
 
 The stage only completes when ALL are true:
 
-- `#storybook-root` contains non-empty text or rendered children.
-- No error element is present.
+- `#storybook-root` has element children, or its `textContent` is non-empty.
+- Overlay wrappers `.sb-errordisplay` and `#preview-loader-error` have computed `display: none`.
 - The Storybook log for the current session has no unresolved compilation errors referencing the scene or its components.
-- Every non-generic `font-family` the render resolves to passes `document.fonts.check` (the named face actually loaded). A silent fallback to a system font is a failure, not a pass — it is invisible in the screenshot diff at this stage but breaks typography fidelity.
+- Every non-generic first `font-family` name on a text descendant of `#storybook-root` passes `document.fonts.check`.
 - Every component the scene renders that has an `interactive[]` entry with a `behavior` is functional: run the `steps` of its first non-rest state against the rendered iframe and confirm the trigger's `aria` attribute flips, or the `target` changes visibility. A trigger that does nothing when exercised is a major issue — static markup with no behavior passes the render checks above but is not done.
 
 ## Failure protocol
