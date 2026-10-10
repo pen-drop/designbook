@@ -25,9 +25,11 @@ scope.
    of a step share a name (e.g. `write-component` for header and footer), add
    `--title <title>` to select one; the CLI refuses an ambiguous name. Direct file
    outputs use their declared paths. The CLI validates the result against the
-   task's frozen in-plan contract and, on success, ticks the checkbox and records
-   the results. Completion: every task of the step is `done`, or unfinished tasks
-   are accounted for in the problems log.
+   task's frozen in-plan contract, including composition for `write-scene` and
+   `map-entity` (scene `items` and mapping bindings equal the sealed params), and
+   on success ticks the checkbox and records the results. A composition change
+   needs a new intake and a new sealed plan. Completion: every task of the step
+   is `done`, or unfinished tasks are accounted for in the problems log.
 5. A validation failure leaves the task open and reports the failing outputs.
    Attempt an in-scope correction (same task, sealed params and contracts only)
    and resubmit `plan done`. If the defect persists, or fixing it would require

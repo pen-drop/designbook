@@ -112,6 +112,7 @@ export function runModelPipeline({
     workflow: workflowId,
     ...(blockade ? { blockade } : {}),
   };
+  plan.tests[0].vars.composition_plan = workflowPath;
   plan.tests[0].assert = [
     {
       type: "javascript",
@@ -125,6 +126,19 @@ export function runModelPipeline({
       type: "javascript",
       value: `file://${join(repo, "promptfoo/extensions/plan-artifacts.mjs")}`,
     },
+    ...(new Set([
+      "design-entity",
+      "design-component",
+      "design-screen",
+      "design-shell",
+    ]).has(workflowId)
+      ? [
+          {
+            type: "javascript",
+            value: `file://${join(repo, "promptfoo/extensions/composition-presentation.mjs")}`,
+          },
+        ]
+      : []),
   ];
   writeConfig(planPath, plan);
   const planStatus = evaluate(planPath);
