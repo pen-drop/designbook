@@ -208,6 +208,28 @@ export function register(program: Command): void {
       },
     );
   reference
+    .command('import')
+    .description(
+      'Store translated source observations (format designbook-observations) as extract--<state>.json and print a bounded native catalogue. The source integration acquires and translates; this command only validates and stores.',
+    )
+    .requiredOption('--reference <folder>', 'Absolute capture revision directory')
+    .requiredOption('--input <json>', 'Observation document: { format, capture, state, captured_at, extract }')
+    .requiredOption('--contract <json>', 'Effective workflow contract { referenceSchema, definitions }')
+    .action(async (opts: { reference: string; input: string; contract: string }) => {
+      const { importObservations, observationCatalogue } = await import('../tools/reference-observations.js');
+      try {
+        const document = importObservations(
+          opts.reference,
+          JSON.parse(readFileSync(opts.input, 'utf8')),
+          JSON.parse(readFileSync(opts.contract, 'utf8')) as ReferenceContract,
+        );
+        console.log(JSON.stringify(observationCatalogue(document)));
+      } catch (err) {
+        console.error(`Error: ${(err as Error).message}`);
+        process.exitCode = 1;
+      }
+    });
+  reference
     .command('capture-image')
     .description('Capture one PNG into the revision directory.')
     .requiredOption('--reference <folder>', 'Absolute capture revision or screenshot directory')

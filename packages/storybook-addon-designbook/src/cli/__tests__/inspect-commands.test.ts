@@ -10,7 +10,8 @@ import { matrixCellsFromMeta, planCaptureMatrix, ensureCellsPlanned, type Matrix
 import { isStorybookStale } from '../check-story.js';
 import { parseStepsArg } from '../capture-screenshot.js';
 import { register } from '../inspect-register.js';
-import { captureFixture, png } from '../../__tests__/capture-fixture.js';
+import { captureFixture, observationContract, png } from '../../__tests__/capture-fixture.js';
+import { observationFixture } from '../../__tests__/observation-fixture.js';
 import { loadConfig } from '../../shared/config.js';
 import type { CapturedSource, PropertyNode } from '../../tools/inspect/element-walker.js';
 
@@ -291,7 +292,16 @@ describe('reference CLI surface', () => {
     expect(program.commands.map((command) => command.name())).not.toContain('extract');
     const reference = program.commands.find((command) => command.name() === 'reference')!;
     expect(reference.commands.map((command) => command.name())).toEqual(
-      expect.arrayContaining(['save', 'capture-image', 'capture-file', 'image', 'validate', 'prepare', 'query']),
+      expect.arrayContaining([
+        'save',
+        'import',
+        'capture-image',
+        'capture-file',
+        'image',
+        'validate',
+        'prepare',
+        'query',
+      ]),
     );
     const capture = program.commands.find((command) => command.name() === 'capture')!;
     expect(capture.commands.map((command) => command.name())).toEqual(['matrix']);
@@ -306,6 +316,39 @@ describe('reference CLI surface', () => {
     register(program);
     await program.parseAsync(['reference', 'image', '--reference', dir, '--path', 'shot.png'], { from: 'user' });
     expect(JSON.parse(log.mock.calls[0]![0] as string)).toEqual({ path: 'shot.png', width: 1, height: 1 });
+    log.mockRestore();
+  });
+
+  it('reference import stores translated observations and prints a bounded native catalogue', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'reference-import-'));
+    dirs.push(dir);
+    const input = join(dir, 'input.json');
+    const contract = join(dir, 'contract.json');
+    writeFileSync(input, JSON.stringify(observationFixture().document('rest')));
+    writeFileSync(contract, JSON.stringify(observationContract()));
+    const folder = join(dir, 'revision');
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const program = new Command();
+    register(program);
+    process.exitCode = 0;
+    await program.parseAsync(['reference', 'import', '--reference', folder, '--input', input, '--contract', contract], {
+      from: 'user',
+    });
+    expect(process.exitCode ?? 0).toBe(0);
+    const catalogue = JSON.parse(log.mock.calls[0]![0] as string);
+    expect(catalogue).toMatchObject({
+      state: 'rest',
+      source: { kind: 'figma', identity: 'synthetic-file-key', revision: null },
+      subjects: [
+        {
+          id: 'hero',
+          locator: { kind: 'figma-node', value: '12:34' },
+          samples: [{ view: 'desktop', nodes: 2 }],
+        },
+      ],
+    });
+    expect(catalogue.subjects[0].samples[0].tree.map((n: { id: string }) => n.id)).toEqual(['12:34', 'I12:34;56:78']);
+    expect(existsSync(join(folder, 'extract--rest.json'))).toBe(true);
     log.mockRestore();
   });
 
