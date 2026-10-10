@@ -10,6 +10,7 @@ import { Command, CommanderError } from 'commander';
 import { register as registerPlan } from '../plan.js';
 import { serializePlan, parsePlan, planDigest, type Plan } from '../../workflow/plan-document.js';
 import { renderCompositionTree, type CompositionTree } from '../../workflow/plan-composition.js';
+import { compilePlannedMapping } from '../../workflow/plan-composition-result.js';
 
 /** Worktree root — resolves the real `.agents`/`.claude` skills tree. */
 const workspaceRoot = resolve(process.cwd(), '../../');
@@ -883,6 +884,110 @@ describe('plan tree and plan build --format', () => {
       const missing = await runCli(['plan', 'tree', join(dir, 'missing.md')]);
       expect(missing.exitCode).toBe(1);
       expect(missing.stderr.length).toBeGreaterThan(0);
+    } finally {
+      process.exitCode = undefined;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('plan done composition enforcement', () => {
+  async function sealSignage() {
+    const setup = setupSignage();
+    const { exitCode } = await runCli([
+      'plan',
+      'build',
+      'design-entity',
+      '--tasks',
+      setup.tasksPath,
+      '--output',
+      setup.planPath,
+      '--config-dir',
+      workspaceRoot,
+      '--config',
+      setup.configPath,
+      '--format',
+      'json',
+    ]);
+    expect(exitCode).toBe(0);
+    const plan = parsePlan(readFileSync(setup.planPath, 'utf8'));
+    return { ...setup, plan };
+  }
+
+  it('rejects a scene whose items differ and leaves plan and data-output bytes unchanged', async () => {
+    const { dir, planPath, plan } = await sealSignage();
+    const task = plan.steps.flatMap((s) => s.tasks).find((t) => t.name === 'write-scene')!;
+    const outPath = task.contract.outputs['scene-file']?.path;
+    const beforePlan = readFileSync(planPath);
+    const beforeOut = outPath && existsSync(outPath) ? readFileSync(outPath) : null;
+    const dataPath = join(dir, 'scene.json');
+    writeFileSync(
+      dataPath,
+      JSON.stringify({
+        'scene-file': {
+          id: 'signage',
+          title: 'Signage',
+          scenes: [
+            {
+              name: 'Signage',
+              items: [{ entity: 'paragraph.signage', view_mode: 'teaser', record: 1 }],
+            },
+          ],
+        },
+      }),
+    );
+    try {
+      process.exitCode = undefined;
+      const { exitCode } = await runCli([
+        'plan',
+        'done',
+        planPath,
+        '--task',
+        'write-scene',
+        '--title',
+        'Signage',
+        '--data-file',
+        dataPath,
+      ]);
+      expect(exitCode).toBe(1);
+      const after = parsePlan(readFileSync(planPath, 'utf8'));
+      expect(after.steps.flatMap((s) => s.tasks).find((t) => t.name === 'write-scene')!.done).toBe(false);
+      expect(readFileSync(planPath)).toEqual(beforePlan);
+      if (outPath) {
+        if (beforeOut === null) expect(existsSync(outPath)).toBe(false);
+        else expect(readFileSync(outPath)).toEqual(beforeOut);
+      }
+    } finally {
+      process.exitCode = undefined;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('completes map-entity when the submitted expression matches the declared bindings', async () => {
+    const { dir, planPath, plan } = await sealSignage();
+    const task = plan.steps
+      .flatMap((s) => s.tasks)
+      .find((t) => t.name.includes('map-entity') && t.title === 'signage')!;
+    const dataPath = join(dir, 'mapping.json');
+    writeFileSync(dataPath, JSON.stringify({ 'entity-mapping': compilePlannedMapping(task, plan) }));
+    try {
+      process.exitCode = undefined;
+      const { exitCode } = await runCli([
+        'plan',
+        'done',
+        planPath,
+        '--task',
+        task.name,
+        '--title',
+        'signage',
+        '--data-file',
+        dataPath,
+      ]);
+      expect(exitCode).toBe(0);
+      const after = parsePlan(readFileSync(planPath, 'utf8'));
+      expect(
+        after.steps.flatMap((s) => s.tasks).find((t) => t.title === 'signage' && t.name.includes('map-entity'))!.done,
+      ).toBe(true);
     } finally {
       process.exitCode = undefined;
       rmSync(dir, { recursive: true, force: true });
