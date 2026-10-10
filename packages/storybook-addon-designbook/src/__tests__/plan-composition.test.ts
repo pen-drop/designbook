@@ -600,6 +600,54 @@ describe('buildPlan composition sealing', () => {
     expect(errors.join('\n')).toMatch(/cannot be expressed/);
   });
 
+  it('accepts a string field bound to a slot', async () => {
+    const list = structuredClone(fixture);
+    const write = list.tasks.find((t) => t.step === 'write-component' && t.title === 'signage')!;
+    (write.params!.component as { slots: Record<string, unknown> }).slots.kicker = {
+      description: 'Style as slot content',
+      required: false,
+    };
+    const map = list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage')!;
+    (map.params!.bindings as unknown[]).push({ field: 'field_paragraph_style', slot: 'kicker' });
+    const { plan, errors } = await buildPlan(list, vueOpts);
+    expect(errors).toEqual([]);
+    expect(plan).not.toBeNull();
+    const text = renderCompositionTree(deriveComposition(plan!).tree);
+    expect(text).toContain('slot kicker ← field_paragraph_style');
+  });
+
+  it('rejects a reference-field slot binding without an entity descriptor', async () => {
+    const list = structuredClone(fixture);
+    const map = list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage')!;
+    const bindings = map.params!.bindings as Array<{ field: string; slot?: string; entity?: unknown }>;
+    const items = bindings.find((b) => b.slot === 'items')!;
+    delete items.entity;
+    const { plan, errors } = await buildPlan(list, vueOpts);
+    expect(plan).toBeNull();
+    expect(errors.join('\n')).toMatch(/bindings\[\d+\]\.entity/);
+    expect(errors.join('\n')).toMatch(/field_signage_item/);
+  });
+
+  it('rejects an image-field prop binding', async () => {
+    const list = structuredClone(fixture);
+    const model = list.composition!.data_model as {
+      content: { paragraph: { signage: { fields: Record<string, unknown> } } };
+    };
+    model.content.paragraph.signage.fields.field_image = { type: 'image', title: 'Bild' };
+    const write = list.tasks.find((t) => t.step === 'write-component' && t.title === 'signage')!;
+    const component = write.params!.component as {
+      props: { properties: Record<string, unknown> };
+    };
+    component.props.properties.hero = { type: 'string' };
+    const map = list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage')!;
+    (map.params!.bindings as unknown[]).push({ field: 'field_image', prop: 'hero' });
+    const { plan, errors } = await buildPlan(list, vueOpts);
+    expect(plan).toBeNull();
+    expect(errors.join('\n')).toMatch(/bindings\[\d+\]/);
+    expect(errors.join('\n')).toMatch(/field_image/);
+    expect(errors.join('\n')).toMatch(/cannot be expressed/);
+  });
+
   it('rejects a top-level data_model shape that is not content-keyed', async () => {
     const list = structuredClone(fixture);
     const nested = list.composition!.data_model as {

@@ -129,6 +129,10 @@ function isRefType(type: unknown): boolean {
   return type === 'reference' || type === 'entity_reference';
 }
 
+function isImageType(type: unknown): boolean {
+  return type === 'image';
+}
+
 function declaredTargetBundles(settings: Record<string, unknown>): string[] {
   const out: string[] = [];
   const one = asString(settings.target_bundle);
@@ -405,6 +409,11 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
       if (!(b.field in fields)) {
         errors.push(`${prefix(`${p}.field`)}: unknown field ${b.field}`);
       }
+      const rawField = fields[b.field];
+      const field = isObj(rawField) ? rawField : {};
+      if (b.field in fields && isImageType(field.type)) {
+        errors.push(`${prefix(p)}: image field ${b.field} cannot be expressed`);
+      }
       if (b.prop && b.slot) errors.push(`${prefix(p)}: names both prop and slot`);
       if (b.prop) {
         const t = `prop:${b.prop}`;
@@ -417,13 +426,10 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
         if (used.has(t)) errors.push(`${prefix(`${p}.slot`)}: duplicate target ${b.slot}`);
         used.add(t);
         if (!(b.slot in slots)) errors.push(`${prefix(`${p}.slot`)}: unknown slot ${b.slot}`);
-        const rawField = fields[b.field];
-        const field = isObj(rawField) ? rawField : {};
-        if (!b.entity && b.field in fields && !isRefType(field.type)) {
-          const kind = asString(field.type) || 'unknown';
-          errors.push(`${prefix(p)}: ${kind} field ${b.field} cannot be expressed`);
-        }
-        if (b.entity) {
+        const imageBinding = b.field in fields && isImageType(field.type);
+        if (!imageBinding && b.field in fields && isRefType(field.type) && !b.entity) {
+          errors.push(`${prefix(`${p}.entity`)}: reference field ${b.field} requires an entity descriptor`);
+        } else if (!imageBinding && b.entity) {
           if (b.field in fields && !isRefType(field.type)) {
             errors.push(`${prefix(`${p}.entity`)}: ${b.field} is not a reference field`);
           }

@@ -42,22 +42,29 @@ The `$lookup` object is the referenced bundle's sample pool, keyed by record id 
 
 ## Image Field Mapping
 
-Map a media entity reference (`type: reference`) into the image slot with `entity`, using the same `$map` / `$lookup` template as other reference slots:
+Map a media entity reference (`type: reference`) into the image slot with `entity`, using the same `$map` / `$lookup` template as other reference slots. `plan instructions` `expected_mapping` is this compiled wrapper:
 
 ```jsonata
-{
-  "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:content-teaser",
-  "props": { "title": $fields.field_title },
-  "slots": {
-    "image": $map($fields.field_image, function($id) {
-      {
-        "entity": "media.image",
-        "view_mode": "teaser",
-        "record": $lookup({ "img-1": 0, "img-2": 1 }, $string($id))
+(
+  $fields := $;
+  [
+    {
+      "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:content-teaser",
+      "props": {
+        "title": $fields.field_title
+      },
+      "slots": {
+        "image": $map($fields.field_image, function($id) {
+          {
+            "entity": "media.image",
+            "view_mode": "teaser",
+            "record": $lookup({ "img-1": 0, "img-2": 1 }, $string($id))
+          }
+        })
       }
-    })
-  }
-}
+    }
+  ]
+)
 ```
 
 ## Rules

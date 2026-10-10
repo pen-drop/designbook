@@ -69,6 +69,22 @@ describe('compilePlannedMapping', () => {
     expect(expr).toContain('item-a');
     expect(expr).not.toMatch(/\$number\(\$id\)\s*-\s*1/);
   });
+
+  it('compiles a string-field slot as a direct field expression inside the wrapper', async () => {
+    const list = structuredClone(fixture);
+    const write = list.tasks.find((t) => t.step === 'write-component' && t.title === 'signage')!;
+    (write.params!.component as { slots: Record<string, unknown> }).slots.kicker = {
+      description: 'Style as slot content',
+      required: false,
+    };
+    const map = list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage')!;
+    (map.params!.bindings as unknown[]).push({ field: 'field_paragraph_style', slot: 'kicker' });
+    const plan = await buildSignage(list);
+    const expr = compilePlannedMapping(findTask(plan, 'map-entity', 'signage'), plan);
+    expect(expr).toContain('$fields := $');
+    expect(expr).toContain('"kicker": $fields.field_paragraph_style');
+    expect(expr).toContain('$map($fields.field_signage_item');
+  });
 });
 
 describe('validateCompositionResult — mapping', () => {

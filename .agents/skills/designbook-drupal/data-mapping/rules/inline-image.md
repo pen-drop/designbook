@@ -22,6 +22,12 @@ already prescribes. The image still renders through the configured image style
 (correct derivative, aspect ratio, responsive breakpoints) via the image-style
 builder — never a raw original-file `<img>`.
 
+Under the field-map `bindings` contract, that inline ImageNode is not a
+MappingBinding target: `plan build` rejects a `type: image` field at `bindings[i]`.
+A media `type: reference` slot still uses the EntityNode `$map`/`$lookup` template
+when `entity` is declared. For a planned map-entity step, submit `expected_mapping`
+from `plan instructions`. Scene `items` may still include ImageNodes.
+
 ## The rule
 
 1. **Define an image-style bundle** for the image under `config.image_style` in
