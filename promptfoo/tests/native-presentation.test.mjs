@@ -164,12 +164,16 @@ test("all four design intakes reach write-planning.md and do not duplicate the t
   );
   assert.match(planning, /plan tree/);
   assert.match(planning, /composition snapshot/);
+  assert.match(planning, /unmodified stdout/);
+  assert.match(planning, /user-visible reply/);
   const building = readFileSync(
     join(repo, ".agents/skills/designbook/resources/workflow-building.md"),
     "utf8",
   );
   assert.match(building, /plan tree/);
   assert.match(building, /"composition"/);
+  assert.match(building, /unmodified stdout/);
+  assert.match(building, /user-visible reply/);
   assert.match(building, /ask/i);
   const fieldMap = readFileSync(
     join(
