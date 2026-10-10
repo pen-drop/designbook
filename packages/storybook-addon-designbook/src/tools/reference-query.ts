@@ -141,7 +141,7 @@ function loadReference(reference: string, suppliedContract: ReferenceQueryContra
     const check = ajv.compile({ ...schema, definitions: contract.definitions });
     if (!check(value)) fail(`${label}: ${ajv.errorsText(check.errors)}`);
   };
-  const { meta, extract } = projectPublishedObservations(reference);
+  const { meta, extract } = projectPublishedObservations(reference, binding.contract);
   validate(meta, contract.referenceSchema, 'meta');
   validate(extract, contract.extractSchema, 'extract');
   return { binding, contract, meta, extract };

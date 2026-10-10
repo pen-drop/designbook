@@ -2,9 +2,11 @@ import { mkdirSync, mkdtempSync, writeFileSync, rmSync, unlinkSync } from 'node:
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { dump as toYaml } from 'js-yaml';
-import { afterEach, expect, it } from 'vitest';
-import { png } from './capture-fixture.js';
-import { projectObservations } from '../tools/reference-project.js';
+import { afterEach, describe, expect, it } from 'vitest';
+import { observationContract, png } from './capture-fixture.js';
+import { observationFixture, sizedPng } from './observation-fixture.js';
+import { projectObservations, projectPublishedObservations } from '../tools/reference-project.js';
+import { mergeObservationDocuments, type ReferenceObservationDocument } from '../tools/reference-observations.js';
 import type { CapturedSource } from '../tools/inspect/element-walker.js';
 import {
   validateCaptureObservations,
@@ -169,4 +171,150 @@ it('requires binaries for declared @font-face families only, not for fallback st
   unlinkSync(join(directory, 'assets/reef.woff2'));
   const without = projectObservations(new Map([['rest', dump]]), meta, directory);
   expect(() => validateCaptureObservations(directory, capture, meta, without)).toThrow('Missing local font files Reef');
+});
+
+describe('imported source observations', () => {
+  const contract = observationContract();
+  const states = [
+    { name: 'rest', session: 'anonymous' },
+    { name: 'hover', session: 'anonymous' },
+  ];
+  const views = [
+    { id: 'desktop', width: 1200, height: 6605 },
+    { id: 'mobile', width: 390, height: 3200 },
+  ];
+  /** A complete unpublished imported revision: one document per state plus its files. */
+  function revision(edit: (doc: ReferenceObservationDocument) => void = () => {}) {
+    const directory = mkdtempSync(join(tmpdir(), 'project-imported-'));
+    dirs.push(directory);
+    const f = observationFixture({ states, views });
+    for (const state of states) {
+      const doc = f.document(state.name);
+      edit(doc);
+      writeFileSync(join(directory, `extract--${state.name}.json`), JSON.stringify(doc));
+      for (const view of views) writeFileSync(join(directory, `${view.id}--hero--${state.name}.png`), f.screenshot);
+    }
+    mkdirSync(join(directory, 'assets'));
+    writeFileSync(join(directory, 'assets/hero-logo.svg'), f.asset);
+    writeFileSync(join(directory, 'meta.yml'), toYaml(f.meta));
+    return { directory, f };
+  }
+
+  it('merges per-state documents into one extract and deduplicates shared records', () => {
+    const f = observationFixture({ states, views });
+    const merged = mergeObservationDocuments([f.document('rest'), f.document('hover')]);
+    expect(merged.capture).toEqual(f.capture);
+    expect(merged.extract.subjects).toHaveLength(1);
+    expect(merged.extract.subjects[0]!.samples.map((s) => `${s.view}/${s.state}`)).toEqual([
+      'desktop/rest',
+      'mobile/rest',
+      'desktop/hover',
+      'mobile/hover',
+    ]);
+    expect(merged.extract.images).toHaveLength(1);
+    expect(merged.extract.fonts).toHaveLength(1);
+    expect(merged.extract.captures).toHaveLength(4);
+  });
+
+  it('merges parent samples by view and state', () => {
+    const f = observationFixture({ states, views });
+    const withParent = (state: string) => {
+      const doc = f.document(state);
+      doc.extract.parents = [
+        {
+          id: 'page',
+          samples: views.map((view) => ({ view: view.id, state, layout: {}, asset_ids: [], font_families: [] })),
+        },
+      ];
+      return doc;
+    };
+    const merged = mergeObservationDocuments([withParent('rest'), withParent('hover')]);
+    expect(merged.extract.parents).toHaveLength(1);
+    expect(merged.extract.parents[0]!.samples).toHaveLength(4);
+  });
+
+  it.each<[string, (docs: ReferenceObservationDocument[]) => void]>([
+    ['a conflicting asset record', (docs) => (docs[1]!.extract.images[0]!.role = 'icon')],
+    ['a conflicting font record', (docs) => (docs[1]!.extract.fonts[0]!.source = 'google')],
+    [
+      'a conflicting subject locator',
+      (docs) => (docs[1]!.extract.subjects[0]!.locator = { kind: 'figma-node', value: '9:9' }),
+    ],
+    ['a differing capture definition', (docs) => (docs[1]!.capture = { ...docs[1]!.capture, role: 'actual' })],
+    ['a duplicate state document', (docs) => (docs[1] = docs[0]!)],
+  ])('rejects %s', (_label, change) => {
+    const f = observationFixture({ states, views });
+    const docs = [f.document('rest'), f.document('hover')];
+    change(docs);
+    expect(() => mergeObservationDocuments(docs)).toThrow();
+  });
+
+  it('projects a complete imported revision with downscaled screenshots and native ids', () => {
+    const { directory } = revision();
+    const { meta, extract } = projectPublishedObservations(directory, contract);
+    expect(meta.source.kind).toBe('figma');
+    expect(meta.elements[0]!.views[0]).toMatchObject({ width: 1200, height: 6605 });
+    expect(extract.captures[0]).toMatchObject({ width: 187, height: 1024 });
+    expect(extract.subjects[0]!.samples[0]!.structure.nodes[1]!.locator).toEqual({
+      kind: 'figma-node',
+      value: 'I12:34;56:78',
+    });
+  });
+
+  it.each<[string, (r: ReturnType<typeof revision>) => void]>([
+    ['a missing screenshot', (r) => unlinkSync(join(r.directory, 'mobile--hero--hover.png'))],
+    ['a missing asset binary', (r) => unlinkSync(join(r.directory, 'assets/hero-logo.svg'))],
+    ['a missing state document', (r) => unlinkSync(join(r.directory, 'extract--hover.json'))],
+    [
+      'metadata whose source differs from the stored capture',
+      (r) =>
+        writeFileSync(
+          join(r.directory, 'meta.yml'),
+          toYaml({ ...r.f.meta, source: { ...r.f.meta.source, revision: 'v9' } }),
+        ),
+    ],
+    [
+      'metadata whose locator differs from the stored capture',
+      (r) =>
+        writeFileSync(
+          join(r.directory, 'meta.yml'),
+          toYaml({
+            ...r.f.meta,
+            elements: [{ ...r.f.meta.elements[0]!, locator: { kind: 'figma-node', value: '1:2' } }],
+          }),
+        ),
+    ],
+    [
+      'metadata outside the reference schema',
+      (r) => writeFileSync(join(r.directory, 'meta.yml'), toYaml({ ...r.f.meta, assets_dir: 'elsewhere' })),
+    ],
+    [
+      'a browser dump mixed into an imported revision',
+      (r) =>
+        writeFileSync(join(r.directory, 'extract--hover.json'), JSON.stringify({ source_kind: 'url-dom', nodes: [] })),
+    ],
+    [
+      'a malformed stored structure',
+      (r) => writeFileSync(join(r.directory, 'extract--hover.json'), '{"format":"designbook-observations"}'),
+    ],
+  ])('rejects %s', (_label, change) => {
+    const r = revision();
+    change(r);
+    expect(() => projectPublishedObservations(r.directory, contract)).toThrow();
+  });
+
+  it('rejects required unavailable evidence at completion', () => {
+    const { directory } = revision((doc) =>
+      doc.extract.subjects[0]!.samples.forEach((sample) =>
+        sample.unavailable.push({ property: 'structure', reason: 'Host returned no tree', required: true }),
+      ),
+    );
+    expect(() => projectPublishedObservations(directory, contract)).toThrow(/Missing required evidence/);
+  });
+
+  it('rejects screenshots whose pixels differ from the declared capture record', () => {
+    const { directory } = revision();
+    writeFileSync(join(directory, 'desktop--hero--rest.png'), sizedPng(1200, 6605));
+    expect(() => projectPublishedObservations(directory, contract)).toThrow(/dimensions differ/);
+  });
 });

@@ -17,7 +17,14 @@ import { existsSync } from 'node:fs';
 import { isAbsolute, join } from 'node:path';
 import type { CapturedSource, PropertyNode } from '../tools/inspect/element-walker.js';
 import { cssFontFamilies } from './extract-page.js';
-import { loadSourceDump, sourceDumpName } from '../tools/reference-project.js';
+import { sourceDumpName } from '../tools/reference-project.js';
+import { readPublishedCapture, type ObservationSample, type ReferenceContract } from '../tools/reference-capture.js';
+import {
+  isObservationDocument,
+  parseObservationDocument,
+  readStoredExtract,
+  type ReferenceObservationDocument,
+} from '../tools/reference-observations.js';
 
 export interface InspectNode {
   depth: number;
@@ -48,6 +55,9 @@ export interface InspectResult {
   /** Total nodes in the state's dump — the observation the answer comes from. */
   nodes: number;
   source_ref: string;
+  /** Imported observations only: the source kind and the locator kind that was matched. */
+  source_kind?: string;
+  locator_kind?: string;
   /** Present when a locator was requested. */
   subject?: {
     locator: string;
@@ -67,6 +77,9 @@ export interface InspectResult {
     truncated?: boolean;
     /** Present when `found` is false and the dump offers a way forward. */
     miss?: InspectMiss;
+    /** Imported observations: the sample cell the node was found in, and its explicit gaps. */
+    context?: { subject: string; view: string; state: string };
+    unavailable?: ObservationSample['unavailable'];
   };
 }
 
@@ -129,18 +142,106 @@ function locatorMiss(dump: CapturedSource, locator: string): InspectMiss {
   return miss;
 }
 
-export function inspectReference(opts: {
+export interface InspectOptions {
   reference: string;
   state: string;
   locator?: string;
   depth?: number;
   limit?: number;
-}): InspectResult {
+  /** Imported observations: narrow the sample context and name the native locator kind. */
+  subject?: string;
+  view?: string;
+  locatorKind?: string;
+  /** Effective workflow contract for unpublished imported observations. */
+  contract?: ReferenceContract;
+}
+
+/**
+ * Imported observations carry no CSS paths: a native id either is a node of the
+ * selected sample or it is not. Membership in stored evidence, not live freshness.
+ */
+function inspectImported(raw: unknown, opts: InspectOptions): InspectResult {
+  const published = existsSync(join(opts.reference, 'publication.json'));
+  const contract = published ? readPublishedCapture(opts.reference).contract : opts.contract;
+  if (!contract) throw new Error('Imported observations need --contract <json> (the effective workflow contract)');
+  const doc: ReferenceObservationDocument = parseObservationDocument(raw, contract);
+  const contexts = doc.extract.subjects.flatMap((subject) =>
+    subject.samples
+      .filter((sample) => (!opts.subject || subject.id === opts.subject) && (!opts.view || sample.view === opts.view))
+      .map((sample) => ({ subject: subject.id, sample })),
+  );
+  const result: InspectResult = {
+    state: opts.state,
+    nodes: contexts.reduce((total, { sample }) => total + sample.structure.nodes.length, 0),
+    source_ref: doc.capture.source.identity,
+    source_kind: doc.capture.source.kind,
+  };
+  if (!opts.locator) return result;
+  if (!opts.locatorKind) throw new Error('Imported observations need --locator-kind with --locator (e.g. figma-node)');
+  result.locator_kind = opts.locatorKind;
+  const hits = contexts.flatMap(({ subject, sample }) => {
+    const node = sample.structure.nodes.find(
+      (item) => item.locator.kind === opts.locatorKind && item.locator.value === opts.locator,
+    );
+    return node ? [{ subject, sample, node }] : [];
+  });
+  if (!hits.length) {
+    result.subject = { locator: opts.locator, found: false };
+    return result;
+  }
+  if (hits.length > 1)
+    throw new Error(
+      `Locator ${opts.locator} is ambiguous across ${hits
+        .map((hit) => `${hit.subject}/${hit.sample.view}`)
+        .join(', ')}; select one with --subject and --view`,
+    );
+  const { subject, sample, node: root } = hits[0]!;
+  const byId = new Map(sample.structure.nodes.map((node) => [node.id, node]));
+  const depth = opts.depth ?? DEFAULT_DEPTH;
+  const limit = opts.limit ?? DEFAULT_LIMIT;
+  // The structure was validated acyclic and fully placed before this walk.
+  const tree: Array<{ node: (typeof sample.structure.nodes)[number]; level: number }> = [];
+  const walk = (id: string, level: number) => {
+    const node = byId.get(id)!;
+    tree.push({ node, level });
+    node.children.forEach((child) => walk(child, level + 1));
+  };
+  walk(root.id, 0);
+  const withinDepth = tree.filter((item) => item.level <= depth);
+  const shown = withinDepth.slice(0, limit).map(({ node, level }) => ({
+    depth: level,
+    kind: node.kind,
+    label: node.id,
+    locator: node.locator.value,
+  }));
+  result.subject = {
+    locator: opts.locator,
+    found: true,
+    kind: root.kind,
+    label: root.id,
+    context: { subject, view: sample.view, state: sample.state },
+    descendants: tree.length,
+    images: sample.dependencies.asset_ids,
+    fonts: sample.dependencies.font_families,
+    unavailable: sample.unavailable,
+    tree: shown,
+    ...(shown.length < withinDepth.length ? { truncated: true } : {}),
+  };
+  return result;
+}
+
+export function inspectReference(opts: InspectOptions): InspectResult {
   if (!isAbsolute(opts.reference)) throw new Error('reference: expected absolute revision directory');
   const file = join(opts.reference, sourceDumpName(opts.state));
   if (!existsSync(file))
-    throw new Error(`No dump for state "${opts.state}" in ${opts.reference} — run reference save --state first`);
-  const dump = loadSourceDump(opts.reference, opts.state);
+    throw new Error(
+      `No dump for state "${opts.state}" in ${opts.reference} — run reference save --state (browser) or reference import (translated source observations) first`,
+    );
+  const raw = readStoredExtract(opts.reference, opts.state);
+  if (isObservationDocument(raw)) return inspectImported(raw, opts);
+  const dump = raw as CapturedSource;
+  if (!Array.isArray(dump?.nodes))
+    throw new Error(`${sourceDumpName(opts.state)}: expected a source dump with nodes[]`);
   const result: InspectResult = { state: opts.state, nodes: dump.nodes.length, source_ref: dump.source_ref };
   if (!opts.locator) return result;
 

@@ -5,6 +5,9 @@ import { join } from 'node:path';
 import { inspectReference } from '../reference-inspect.js';
 import { sourceDumpName } from '../../tools/reference-project.js';
 import type { CapturedSource } from '../../tools/inspect/element-walker.js';
+import { importObservations } from '../../tools/reference-observations.js';
+import { observationContract } from '../../__tests__/capture-fixture.js';
+import { observationFixture } from '../../__tests__/observation-fixture.js';
 
 const dirs: string[] = [];
 afterEach(() => {
@@ -119,5 +122,82 @@ describe('reference inspect', () => {
       /No dump for state "menu-open"/,
     );
     expect(() => inspectReference({ reference: 'relative/path', state: 'rest' })).toThrow(/absolute/);
+  });
+});
+
+describe('reference inspect on imported observations', () => {
+  const contract = observationContract();
+  const twoViews = [
+    { id: 'desktop', width: 1200, height: 6605 },
+    { id: 'mobile', width: 390, height: 3200 },
+  ];
+  function imported(views?: typeof twoViews): string {
+    const dir = mkdtempSync(join(tmpdir(), 'reference-inspect-native-'));
+    dirs.push(dir);
+    importObservations(dir, observationFixture(views ? { views } : {}).document('rest'), contract);
+    return dir;
+  }
+  const native = { state: 'rest', locatorKind: 'figma-node', contract };
+
+  it('reports source identity and node totals without a locator', () => {
+    expect(inspectReference({ reference: imported(), state: 'rest', contract })).toMatchObject({
+      state: 'rest',
+      nodes: 2,
+      source_ref: 'synthetic-file-key',
+      source_kind: 'figma',
+    });
+  });
+
+  it('resolves an instance-qualified native id exactly in its sample context', () => {
+    const result = inspectReference({ reference: imported(), ...native, locator: 'I12:34;56:78' });
+    expect(result.locator_kind).toBe('figma-node');
+    expect(result.subject).toMatchObject({
+      locator: 'I12:34;56:78',
+      found: true,
+      kind: 'INSTANCE',
+      context: { subject: 'hero', view: 'desktop', state: 'rest' },
+      descendants: 1,
+      images: ['figma-image:hero-logo'],
+      fonts: ['Inter'],
+      unavailable: [{ property: 'interactions', required: false }],
+    });
+    // Optional source geometry is absent, not invented.
+    expect(result.subject!.bbox).toBeUndefined();
+  });
+
+  it('never matches a native id by suffix and offers no CSS diagnostics', () => {
+    const miss = inspectReference({ reference: imported(), ...native, locator: '56:78' });
+    expect(miss.subject).toEqual({ locator: '56:78', found: false });
+    const wrongKind = inspectReference({ reference: imported(), ...native, locator: '12:34', locatorKind: 'css' });
+    expect(wrongKind.subject).toEqual({ locator: '12:34', found: false });
+  });
+
+  it('bounds the native subtree by depth and limit', () => {
+    const reference = imported();
+    const shallow = inspectReference({ reference, ...native, locator: '12:34', depth: 0 });
+    expect(shallow.subject!.tree!.map((n) => n.locator)).toEqual(['12:34']);
+    expect(shallow.subject!.descendants).toBe(2);
+    const capped = inspectReference({ reference, ...native, locator: '12:34', limit: 1 });
+    expect(capped.subject!.tree).toHaveLength(1);
+    expect(capped.subject!.truncated).toBe(true);
+  });
+
+  it('requires an explicit view when the locator lives in several sample contexts', () => {
+    const reference = imported(twoViews);
+    expect(() => inspectReference({ reference, ...native, locator: '12:34' })).toThrow(/ambiguous.*--view/i);
+    const mobile = inspectReference({ reference, ...native, locator: '12:34', view: 'mobile' });
+    expect(mobile.subject).toMatchObject({ found: true, context: { view: 'mobile' } });
+  });
+
+  it('requires the effective contract and the locator kind', () => {
+    const reference = imported();
+    expect(() => inspectReference({ reference, state: 'rest' })).toThrow(/--contract/);
+    expect(() => inspectReference({ reference, state: 'rest', contract, locator: '12:34' })).toThrow(/--locator-kind/);
+  });
+
+  it('names both producers when the state has no stored extract', () => {
+    expect(() => inspectReference({ reference: imported(), state: 'hover', contract })).toThrow(
+      /reference save.*reference import/,
+    );
   });
 });
