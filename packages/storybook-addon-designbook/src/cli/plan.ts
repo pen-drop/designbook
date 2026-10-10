@@ -13,6 +13,7 @@ import {
   type PlanTask,
 } from '../workflow/plan-document.js';
 import { buildPlan, type TaskList } from '../workflow/plan-build.js';
+import { deriveComposition, renderCompositionTree, type CompositionTree } from '../workflow/plan-composition.js';
 
 function print(value: unknown): void {
   process.stdout.write(JSON.stringify(value, null, 2));
@@ -21,6 +22,37 @@ function print(value: unknown): void {
 function fail(message: string): void {
   console.error(message);
   process.exitCode = 1;
+}
+
+type OutputFormat = 'text' | 'json';
+
+function parseFormat(raw: string | undefined): OutputFormat | null {
+  const value = (raw ?? 'text').toLowerCase();
+  if (value === 'text' || value === 'json') return value;
+  return null;
+}
+
+function emitTree(tree: CompositionTree, format: OutputFormat): void {
+  if (format === 'json') {
+    print(tree);
+    return;
+  }
+  const text = renderCompositionTree(tree);
+  if (text) process.stdout.write(`${text}\n`);
+}
+
+function compositionTree(plan: Plan): CompositionTree | null {
+  const { tree, errors } = deriveComposition(plan);
+  if (errors.length) {
+    console.error(errors.join('\n'));
+    process.exitCode = 1;
+    return null;
+  }
+  return tree;
+}
+
+function isTaskListPath(path: string): boolean {
+  return path.toLowerCase().endsWith('.json');
 }
 
 /** Write the plan back atomically so a crash never leaves a half-written definition. */
@@ -98,6 +130,7 @@ export function register(program: Command): void {
     )
     .option('--config-dir <path>', 'Workspace dir to resolve skills root and sources from')
     .option('--config <path>', 'Draft configuration JSON (skips designbook.config.yml lookup)')
+    .option('--format <fmt>', 'Output format: text (default) or json', 'text')
     .action(
       async (
         workflow: string,
@@ -108,8 +141,11 @@ export function register(program: Command): void {
           name?: string;
           configDir?: string;
           config?: string;
+          format?: string;
         },
       ) => {
+        const format = parseFormat(opts.format);
+        if (!format) return fail(`invalid format "${opts.format}" (expected text or json)`);
         if (!opts.output && !opts.ephemeral && !opts.name) {
           return fail('--name is required to persist a plan (or pass --output/--ephemeral)');
         }
@@ -136,15 +172,60 @@ export function register(program: Command): void {
           return fail(err instanceof Error ? err.message : String(err));
         }
         writePlan(target, serializePlan(built));
-        print({
-          ok: true,
-          plan: target,
-          ...(opts.ephemeral ? { ephemeral: true } : {}),
-          steps: built.steps.length,
-          tasks: built.steps.flatMap((s) => s.tasks).length,
-        });
+        const tree = compositionTree(built);
+        if (!tree) return;
+        if (format === 'json') {
+          print({
+            ok: true,
+            plan: target,
+            ...(opts.ephemeral ? { ephemeral: true } : {}),
+            steps: built.steps.length,
+            tasks: built.steps.flatMap((s) => s.tasks).length,
+            tree,
+          });
+          return;
+        }
+        const rendered = renderCompositionTree(tree);
+        process.stdout.write(rendered ? `${target}\n${rendered}\n` : `${target}\n`);
       },
     );
+
+  plan
+    .command('tree <path>')
+    .description('Render the composition tree from a sealed plan or a JSON task-list preview')
+    .option('--format <fmt>', 'Output format: text (default) or json', 'text')
+    .option('--workflow <name>', 'Workflow id when <path> is a JSON task list')
+    .option('--config-dir <path>', 'Workspace dir to resolve skills root and sources from')
+    .option('--config <path>', 'Draft configuration JSON (skips designbook.config.yml lookup)')
+    .action(async (path: string, opts: { format?: string; workflow?: string; configDir?: string; config?: string }) => {
+      const format = parseFormat(opts.format);
+      if (!format) return fail(`invalid format "${opts.format}" (expected text or json)`);
+      if (!existsSync(path)) return fail(`file not found: ${path}`);
+      if (isTaskListPath(path)) {
+        const taskList = JSON.parse(readFileSync(path, 'utf8')) as TaskList;
+        if (opts.workflow) taskList.workflow = opts.workflow;
+        if (!taskList.workflow) return fail('--workflow is required for a task-list preview');
+        const draft = opts.config ? JSON.parse(readFileSync(opts.config, 'utf8')) : undefined;
+        const { plan: built, errors } = await buildPlan(taskList, {
+          configDir: opts.configDir,
+          config: draft,
+        });
+        if (!built) {
+          console.error(errors.join('\n'));
+          process.exitCode = 1;
+          return;
+        }
+        const tree = compositionTree(built);
+        if (!tree) return;
+        emitTree(tree, format);
+        return;
+      }
+      const parsed = parsePlan(readFileSync(path, 'utf8'));
+      if (planDigest(parsed) !== parsed.digest) return fail('plan digest mismatch');
+      const tree = compositionTree(parsed);
+      if (!tree) return;
+      emitTree(tree, format);
+    });
 
   plan
     .command('done <path>')

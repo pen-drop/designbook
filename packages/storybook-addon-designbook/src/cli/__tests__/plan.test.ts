@@ -4,11 +4,12 @@
  */
 import { describe, it, expect } from 'vitest';
 import { join, resolve } from 'node:path';
-import { mkdtempSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, readFileSync, rmSync, existsSync, readdirSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { Command } from 'commander';
+import { Command, CommanderError } from 'commander';
 import { register as registerPlan } from '../plan.js';
 import { serializePlan, parsePlan, planDigest, type Plan } from '../../workflow/plan-document.js';
+import { renderCompositionTree, type CompositionTree } from '../../workflow/plan-composition.js';
 
 /** Worktree root — resolves the real `.agents`/`.claude` skills tree. */
 const workspaceRoot = resolve(process.cwd(), '../../');
@@ -44,22 +45,46 @@ function freshPlan(): Plan {
   return plan;
 }
 
-async function run(args: string[]): Promise<string> {
+async function runCli(args: string[]): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const program = new Command();
   program.exitOverride();
   registerPlan(program);
-  let out = '';
-  const original = process.stdout.write.bind(process.stdout);
+  let stdout = '';
+  let stderr = '';
+  const originalOut = process.stdout.write.bind(process.stdout);
+  const originalErr = process.stderr.write.bind(process.stderr);
+  const originalConsoleError = console.error;
   process.stdout.write = ((chunk: string | Uint8Array) => {
-    out += typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString('utf8');
+    stdout += typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString('utf8');
     return true;
   }) as typeof process.stdout.write;
+  process.stderr.write = ((chunk: string | Uint8Array) => {
+    stderr += typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString('utf8');
+    return true;
+  }) as typeof process.stderr.write;
+  console.error = ((...parts: unknown[]) => {
+    stderr += `${parts.map(String).join(' ')}\n`;
+  }) as typeof console.error;
   try {
     await program.parseAsync(['node', 'cli', ...args]);
+  } catch (err: unknown) {
+    if (err instanceof CommanderError) {
+      stderr += `${err.message}\n`;
+      process.exitCode = typeof err.exitCode === 'number' ? err.exitCode : 1;
+    } else {
+      throw err;
+    }
   } finally {
-    process.stdout.write = original;
+    process.stdout.write = originalOut;
+    process.stderr.write = originalErr;
+    console.error = originalConsoleError;
   }
-  return out;
+  return { stdout, stderr, exitCode: typeof process.exitCode === 'number' ? process.exitCode : 0 };
+}
+
+async function run(args: string[]): Promise<string> {
+  const { stdout } = await runCli(args);
+  return stdout;
 }
 
 /** A plan whose only obligation rule requires a task the plan may or may not contain. */
@@ -438,6 +463,8 @@ describe('plan build --ephemeral', () => {
         workspaceRoot,
         '--config',
         configPath,
+        '--format',
+        'json',
       ]);
       expect(process.exitCode ?? 0).toBe(0);
       const result = JSON.parse(out);
@@ -522,6 +549,8 @@ describe('plan build --name', () => {
         workspaceRoot,
         '--config',
         configPath,
+        '--format',
+        'json',
       ]);
       expect(process.exitCode ?? 0).toBe(0);
       const result = JSON.parse(out);
@@ -552,6 +581,8 @@ describe('plan build --name', () => {
           workspaceRoot,
           '--config',
           configPath,
+          '--format',
+          'json',
         ]),
       );
       const second = JSON.parse(
@@ -567,6 +598,8 @@ describe('plan build --name', () => {
           workspaceRoot,
           '--config',
           configPath,
+          '--format',
+          'json',
         ]),
       );
       expect(first.plan).toBe(join(dataDir, 'plans', `${today}-panel-removal`, 'plan.md'));
@@ -597,6 +630,259 @@ describe('plan build --name', () => {
         configPath,
       ]);
       expect(process.exitCode).toBe(1);
+    } finally {
+      process.exitCode = undefined;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+const signageFixturePath = resolve(process.cwd(), 'src/__tests__/fixtures/plans/signage-tasks.json');
+
+function setupSignage() {
+  const dir = mkdtempSync(join(tmpdir(), 'plan-tree-'));
+  const dataDir = join(dir, 'data');
+  mkdirSync(dataDir, { recursive: true });
+  const configPath = join(dir, 'config.json');
+  const tasksPath = join(dir, 'tasks.json');
+  const planPath = join(dir, 'plan.md');
+  writeFileSync(
+    configPath,
+    JSON.stringify({
+      data: dataDir,
+      technology: 'html',
+      backend: 'none',
+      'frameworks.component': 'vue',
+      'frameworks.css': 'tailwind',
+      extensions: [],
+      'component.namespace': 'test_integration_vue',
+    }),
+  );
+  writeFileSync(tasksPath, readFileSync(signageFixturePath, 'utf8'));
+  return { dir, dataDir, configPath, tasksPath, planPath };
+}
+
+function listedPlanFiles(dataDir: string): string[] {
+  const plans = join(dataDir, 'plans');
+  if (!existsSync(plans)) return [];
+  return readdirSync(plans, { recursive: true }).map(String);
+}
+
+describe('plan tree and plan build --format', () => {
+  it('prints equivalent trees from saved JSON build and plan tree', async () => {
+    const { dir, configPath, tasksPath, planPath } = setupSignage();
+    try {
+      process.exitCode = undefined;
+      const built = JSON.parse(
+        await run([
+          'plan',
+          'build',
+          'design-entity',
+          '--tasks',
+          tasksPath,
+          '--output',
+          planPath,
+          '--config-dir',
+          workspaceRoot,
+          '--config',
+          configPath,
+          '--format',
+          'json',
+        ]),
+      ) as { tree: CompositionTree };
+      const inspected = JSON.parse(await run(['plan', 'tree', planPath, '--format', 'json'])) as CompositionTree;
+      expect(built.tree).toEqual(inspected);
+      const text = await run(['plan', 'tree', planPath]);
+      expect(text).toContain('paragraph.signage [full]');
+    } finally {
+      process.exitCode = undefined;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('ends plan build text with the saved path then the rendered tree', async () => {
+    const { dir, configPath, tasksPath, planPath } = setupSignage();
+    try {
+      process.exitCode = undefined;
+      const { stdout, exitCode } = await runCli([
+        'plan',
+        'build',
+        'design-entity',
+        '--tasks',
+        tasksPath,
+        '--output',
+        planPath,
+        '--config-dir',
+        workspaceRoot,
+        '--config',
+        configPath,
+      ]);
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain(planPath);
+      const treeText = await run(['plan', 'tree', planPath]);
+      expect(stdout.trimEnd().endsWith(treeText.trimEnd())).toBe(true);
+      const rendered = renderCompositionTree(
+        JSON.parse(await run(['plan', 'tree', planPath, '--format', 'json'])) as CompositionTree,
+      );
+      expect(stdout.trimEnd().endsWith(rendered.trimEnd())).toBe(true);
+    } finally {
+      process.exitCode = undefined;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('previews a task list without writing a plan directory or file', async () => {
+    const { dir, dataDir, configPath, tasksPath, planPath } = setupSignage();
+    try {
+      process.exitCode = undefined;
+      const { stdout, exitCode } = await runCli([
+        'plan',
+        'tree',
+        tasksPath,
+        '--workflow',
+        'design-entity',
+        '--config-dir',
+        workspaceRoot,
+        '--config',
+        configPath,
+      ]);
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain('paragraph.signage [full]');
+      expect(existsSync(planPath)).toBe(false);
+      expect(listedPlanFiles(dataDir)).toEqual([]);
+      const preview = JSON.parse(
+        await run([
+          'plan',
+          'tree',
+          tasksPath,
+          '--workflow',
+          'design-entity',
+          '--config-dir',
+          workspaceRoot,
+          '--config',
+          configPath,
+          '--format',
+          'json',
+        ]),
+      ) as CompositionTree;
+      expect(preview.roots.length).toBeGreaterThan(0);
+      expect(existsSync(planPath)).toBe(false);
+      expect(listedPlanFiles(dataDir)).toEqual([]);
+    } finally {
+      process.exitCode = undefined;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('writes no file when plan build is invalid', async () => {
+    const { dir, configPath, tasksPath, planPath } = setupSignage();
+    const list = JSON.parse(readFileSync(tasksPath, 'utf8')) as {
+      tasks: Array<{ params?: { bindings?: Array<{ field: string }> } }>;
+    };
+    const mapping = list.tasks.find((t) => t.params?.bindings);
+    mapping!.params!.bindings![0]!.field = 'field_nope';
+    writeFileSync(tasksPath, JSON.stringify(list));
+    try {
+      process.exitCode = undefined;
+      const { exitCode, stderr } = await runCli([
+        'plan',
+        'build',
+        'design-entity',
+        '--tasks',
+        tasksPath,
+        '--output',
+        planPath,
+        '--config-dir',
+        workspaceRoot,
+        '--config',
+        configPath,
+      ]);
+      expect(exitCode).toBe(1);
+      expect(stderr).toMatch(/field_nope/);
+      expect(existsSync(planPath)).toBe(false);
+    } finally {
+      process.exitCode = undefined;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('renders a saved tree after baseline workspace files are removed', async () => {
+    const { dir, dataDir, configPath, tasksPath, planPath } = setupSignage();
+    try {
+      process.exitCode = undefined;
+      const { exitCode } = await runCli([
+        'plan',
+        'build',
+        'design-entity',
+        '--tasks',
+        tasksPath,
+        '--output',
+        planPath,
+        '--config-dir',
+        workspaceRoot,
+        '--config',
+        configPath,
+        '--format',
+        'json',
+      ]);
+      expect(exitCode).toBe(0);
+      rmSync(configPath, { force: true });
+      rmSync(tasksPath, { force: true });
+      rmSync(dataDir, { recursive: true, force: true });
+      const text = await run(['plan', 'tree', planPath]);
+      expect(process.exitCode ?? 0).toBe(0);
+      expect(text).toContain('paragraph.signage [full]');
+    } finally {
+      process.exitCode = undefined;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('refuses plan tree when the sealed digest is tampered', async () => {
+    const { dir, configPath, tasksPath, planPath } = setupSignage();
+    try {
+      process.exitCode = undefined;
+      await run([
+        'plan',
+        'build',
+        'design-entity',
+        '--tasks',
+        tasksPath,
+        '--output',
+        planPath,
+        '--config-dir',
+        workspaceRoot,
+        '--config',
+        configPath,
+        '--format',
+        'json',
+      ]);
+      const parsed = parsePlan(readFileSync(planPath, 'utf8'));
+      parsed.workflow = 'design-screen';
+      writeFileSync(planPath, serializePlan(parsed));
+      process.exitCode = undefined;
+      const { exitCode, stderr } = await runCli(['plan', 'tree', planPath]);
+      expect(exitCode).toBe(1);
+      expect(stderr).toMatch(/digest/);
+    } finally {
+      process.exitCode = undefined;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects an invalid format and a missing input path', async () => {
+    const { dir, planPath } = setupSignage();
+    writeFileSync(planPath, '# not a used plan\n');
+    try {
+      process.exitCode = undefined;
+      const badFormat = await runCli(['plan', 'tree', planPath, '--format', 'yaml']);
+      expect(badFormat.exitCode).toBe(1);
+      expect(badFormat.stderr).toMatch(/yaml|format/i);
+
+      process.exitCode = undefined;
+      const missing = await runCli(['plan', 'tree', join(dir, 'missing.md')]);
+      expect(missing.exitCode).toBe(1);
+      expect(missing.stderr.length).toBeGreaterThan(0);
     } finally {
       process.exitCode = undefined;
       rmSync(dir, { recursive: true, force: true });
