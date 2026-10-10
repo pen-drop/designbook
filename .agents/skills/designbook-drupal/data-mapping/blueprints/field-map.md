@@ -8,35 +8,37 @@ trigger:
 
 # Blueprint: Field Map
 
-Applies when a view mode declares `template: field-map`. The plan names one target `component` and a `bindings` list; the generated JSONata expression maps those fields onto that component. A mapping that needs a ComponentNode array, canvas tree, or layout-builder section list is rejected at `plan build` with the selected target and unsupported structure.
+Applies when a view mode declares `template: field-map`. The plan names one target `component` and a `bindings` list; the generated JSONata expression maps those fields onto that component. `plan done` AST-compares the submitted expression to this compiled template. A mapping that needs a ComponentNode array, canvas tree, or layout-builder section list is rejected at `plan build` with the selected target and unsupported structure.
 
 ## Pattern
+
+One wrapping component. Props read field paths. Reference slots `$map` the field ids and `$lookup` each id in the inlined sample-pool index (stable record id → array index).
 
 ```jsonata
 (
   $fields := $;
   [
     {
-      "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:heading",
-      "props": { "level": "h1" },
-      "slots": { "text": $fields.title }
-    },
-    {
-      "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:text_block",
-      "slots": { "content": $fields.field_body }
-    },
-    /* Reference field → entity node in slot */
-    $fields.field_author ? {
-      "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:author_card",
+      "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:teaser",
+      "props": {
+        "title": $fields.field_title,
+        "text": $fields.field_teaser_text
+      },
       "slots": {
-        "avatar": [
-          { "entity": "user.user", "view_mode": "avatar", "record": 0 }
-        ]
+        "items": $map($fields.field_items, function($id) {
+          {
+            "entity": "paragraph.item",
+            "view_mode": "full",
+            "record": $lookup({ "item-a": 0, "item-b": 1 }, $string($id))
+          }
+        })
       }
     }
   ]
 )
 ```
+
+The `$lookup` object is the referenced bundle's sample pool, keyed by record id in pool order.
 
 ## Image Field Mapping
 
@@ -50,12 +52,12 @@ When the data-model declares `type: image`, image data lives on the entity. Emit
 {
   "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:content-teaser",
   "props": {
-    "title": title,
-    "text": field_teaser_text
+    "title": $fields.title,
+    "text": $fields.field_teaser_text
   },
   "slots": {
     "image": [
-      { "image": "leando_teaser", "alt": field_topic_image.alt }
+      { "image": "teaser", "alt": $fields.field_topic_image.alt }
     ]
   }
 }
@@ -63,32 +65,33 @@ When the data-model declares `type: image`, image data lives on the entity. Emit
 
 ### `type: reference` — EntityNode
 
-When the data-model declares `type: reference`, emit an EntityNode. The referenced entity renders itself via its own mapping:
+When the data-model declares `type: reference`, emit EntityNodes through the same `$map` / `$lookup` slot template. The referenced entity renders itself via its own mapping:
 
 ```jsonata
 {
   "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:content-teaser",
-  "props": { "title": field_title },
+  "props": { "title": $fields.field_title },
   "slots": {
-    "image": [
-      { "entity": "media.image", "view_mode": "leando_teaser", "record": $number(field_image) - 1 }
-    ]
+    "image": $map($fields.field_image, function($id) {
+      {
+        "entity": "media.image",
+        "view_mode": "teaser",
+        "record": $lookup({ "img-1": 0, "img-2": 1 }, $string($id))
+      }
+    })
   }
 }
 ```
 
-The record index is derived from the reference field value (entity ID) mapped to the sample data array index.
-
 ## Rules
 
-- Output is a JSONata array expression returning `ComponentNode[]`
+- Output is a JSONata array expression returning one wrapping `ComponentNode`
 - Input (`$`) is the sample data record for this entity from `data.yml`
-- Use dot notation for field access: `$fields.field_image.alt`
+- Use `$fields.` plus dot notation for field access: `$fields.field_image.alt`
 - Static values (no `$`): `"h1"`, `true`, `42`
 - Provider prefix must be resolved at generation time: `DESIGNBOOK_COMPONENT_NAMESPACE:component-name`
-- Reference fields (`type: reference`) emit `{ "entity": "<entity_type>.<bundle>", "view_mode": "...", "record": N }` nodes **as slot values of the wrapping component — NEVER in `props`** (the renderer resolves refs only inside slots and at top level; a ref in `props` is never resolved and renders empty — see scenes-constraints). The **only** exception is a pure delegation parent that has no wrapping markup of its own (e.g. a landing page stacking its paragraph sections), which MAY emit the refs as top-level array items.
+- Reference fields (`type: reference`) emit `{ "entity": "<entity_type>.<bundle>", "view_mode": "...", "record": $lookup({ "<id>": <index> }, $string($id)) }` nodes as slot values of the wrapping component. The renderer resolves refs inside slots and at top level. The exception is a pure delegation parent that has no wrapping markup of its own (a landing page stacking its paragraph sections), which may emit the refs as top-level array items.
 - Image fields: see [image-fields rule](../rules/image-fields.md) — `type: image` → ImageNode in slot, `type: reference` → EntityNode in slot
-- Conditional components: use `$fields.field_x ? { ... }` to omit when field is empty
 
 ## Supported Settings
 

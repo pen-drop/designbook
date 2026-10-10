@@ -55,4 +55,31 @@ describe('intake <workflow>', () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it('exposes CompositionInputs on the writing-design palette', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'intake-palette-'));
+    const configPath = join(dir, 'config.json');
+    writeFileSync(configPath, JSON.stringify(config));
+    try {
+      const out = await runIntake([
+        'intake',
+        'design-entity',
+        '--palette',
+        '--config-dir',
+        workspaceRoot,
+        '--config',
+        configPath,
+      ]);
+      const palette = JSON.parse(out) as {
+        composition?: { $ref?: string };
+        definitions?: { CompositionInputs?: { required?: string[] } };
+      };
+      expect(palette.composition).toEqual({ $ref: '#/definitions/CompositionInputs' });
+      expect(palette.definitions?.CompositionInputs?.required).toEqual(
+        expect.arrayContaining(['components', 'mappings', 'samples', 'scenes', 'data_model']),
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });

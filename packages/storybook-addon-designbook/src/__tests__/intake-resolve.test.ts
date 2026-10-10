@@ -99,4 +99,14 @@ describe('resolveIntakeContext', () => {
       expect(sample?.params_schema.required).toEqual(expect.arrayContaining(['records']));
     }
   });
+
+  it('freezes CompositionInputs for writing-design workflows', async () => {
+    const ctx = await resolveIntakeContext('design-entity', { agentsDir: agents, config });
+    const composition = ctx.definitions.CompositionInputs as { required?: string[] };
+    expect(composition.required).toEqual(
+      expect.arrayContaining(['components', 'mappings', 'samples', 'scenes', 'data_model']),
+    );
+    const vision = await resolveIntakeContext('vision', { agentsDir: agents, config });
+    expect(vision.definitions.CompositionInputs).toBeUndefined();
+  });
 });

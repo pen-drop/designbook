@@ -163,12 +163,23 @@ test("all four design intakes reach write-planning.md and do not duplicate the t
     "utf8",
   );
   assert.match(planning, /plan tree/);
+  assert.match(planning, /composition snapshot/);
   const building = readFileSync(
     join(repo, ".agents/skills/designbook/resources/workflow-building.md"),
     "utf8",
   );
   assert.match(building, /plan tree/);
+  assert.match(building, /"composition"/);
   assert.match(building, /ask/i);
+  const fieldMap = readFileSync(
+    join(
+      repo,
+      ".agents/skills/designbook-drupal/data-mapping/blueprints/field-map.md",
+    ),
+    "utf8",
+  );
+  assert.match(fieldMap, /\$lookup/);
+  assert.doesNotMatch(fieldMap, /\$number\([^)]+\)\s*-\s*1/);
 });
 
 test("composition-presentation extension reads native logs and the expected tree", async () => {

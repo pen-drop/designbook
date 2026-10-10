@@ -131,7 +131,15 @@ export async function buildPlan(taskList: TaskList, opts: ResolveIntakeOptions =
 
   if (WRITING_DESIGN_WORKFLOWS.has(taskList.workflow)) {
     if (!taskList.composition) errors.push('composition snapshot is required');
-    else errors.push(...verifyCompositionHashes(taskList.composition));
+    else {
+      const validateComposition = ajv.compile({
+        $ref: '#/definitions/CompositionInputs',
+        definitions: intake.definitions,
+      });
+      if (!validateComposition(taskList.composition))
+        errors.push(`composition: ${ajv.errorsText(validateComposition.errors)}`);
+      else errors.push(...verifyCompositionHashes(taskList.composition));
+    }
     if (errors.length > 0) return { plan: null, plans_dir: intake.plans_dir, errors };
   }
 

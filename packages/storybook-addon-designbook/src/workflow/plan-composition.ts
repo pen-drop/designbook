@@ -133,6 +133,21 @@ function sha256(buf: Buffer | string): string {
   return createHash('sha256').update(buf).digest('hex');
 }
 
+export function overlaySampleRecords<T extends { id: string }>(baseline: T[], planned: T[]): T[] {
+  const plannedById = new Map(planned.map((rec) => [String(rec.id), rec]));
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const rec of baseline) {
+    const id = String(rec.id);
+    seen.add(id);
+    out.push(plannedById.get(id) ?? rec);
+  }
+  for (const rec of planned) {
+    if (!seen.has(String(rec.id))) out.push(rec);
+  }
+  return out;
+}
+
 export function verifyCompositionHashes(composition: CompositionInputs): string[] {
   const errors: string[] = [];
   const check = (kind: string, items: Array<{ source?: string; hash?: string }>) => {
@@ -277,8 +292,9 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
     const titles = sampleProducers.get(key) ?? [];
     titles.push(task.title || key);
     sampleProducers.set(key, titles);
-    const records = Array.isArray(task.params.records) ? (task.params.records as SamplePool['records']) : [];
-    samples.set(key, { entity_type, bundle: b, records });
+    const planned = Array.isArray(task.params.records) ? (task.params.records as SamplePool['records']) : [];
+    const baseline = samples.get(key)?.records ?? [];
+    samples.set(key, { entity_type, bundle: b, records: overlaySampleRecords(baseline, planned) });
   }
   for (const [key, titles] of sampleProducers) {
     if (titles.length > 1) errors.push(`create-sample-data: duplicate producer for ${key}`);
@@ -431,7 +447,8 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
     return ids.length;
   }
 
-  function bindingNodes(rec: MappingRec, recordIndex?: number): CompositionNode[] {
+  function bindingNodes(rec: MappingRec, recordIndex?: number, chain: string[] = []): CompositionNode[] {
+    const selfKey = mappingKey(rec);
     return rec.bindings.map((b) => {
       if (b.prop) {
         return { kind: 'prop' as const, identity: b.prop, target: b.prop, source: b.field, children: [] };
@@ -448,14 +465,29 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
         const childKey = `${b.entity.entity_type}.${b.entity.bundle}:view:${b.entity.view_mode}`;
         const child = mappings.get(childKey);
         const childComp = child ? components.get(child.component) : undefined;
-        node.children.push({
-          kind: 'entity',
-          identity: `${b.entity.entity_type}.${b.entity.bundle}`,
-          mode: b.entity.view_mode,
-          target: child?.component,
-          status: childComp?.status,
-          children: child ? bindingNodes(child) : [],
-        });
+        const nextChain = chain.includes(selfKey) ? chain : [...chain, selfKey];
+        if (nextChain.includes(childKey)) {
+          errors.push(
+            `${loc(rec.step, rec.task, 'bindings')}: cyclic entity reference ${[...nextChain, childKey].join(' → ')}`,
+          );
+          node.children.push({
+            kind: 'entity',
+            identity: `${b.entity.entity_type}.${b.entity.bundle}`,
+            mode: b.entity.view_mode,
+            target: child?.component,
+            status: childComp?.status,
+            children: [],
+          });
+        } else {
+          node.children.push({
+            kind: 'entity',
+            identity: `${b.entity.entity_type}.${b.entity.bundle}`,
+            mode: b.entity.view_mode,
+            target: child?.component,
+            status: childComp?.status,
+            children: child ? bindingNodes(child, undefined, nextChain) : [],
+          });
+        }
       }
       return node;
     });

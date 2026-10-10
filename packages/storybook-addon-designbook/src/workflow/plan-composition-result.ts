@@ -6,6 +6,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import jsonata from 'jsonata';
 import { load as parseYaml } from 'js-yaml';
 import type { Plan, PlanTask } from './plan-document.js';
+import { overlaySampleRecords } from './plan-composition.js';
 
 interface Binding {
   field: string;
@@ -92,18 +93,18 @@ function indexById(plan: Plan, entityType: string, bundle: string): Record<strin
 }
 
 function recordsFor(plan: Plan, entityType: string, bundle: string): SampleRec[] {
+  const baseline =
+    plan.composition?.samples.find((sample) => sample.entity_type === entityType && sample.bundle === bundle)
+      ?.records ?? [];
   for (const step of plan.steps) {
     for (const task of step.tasks) {
       const ident = task.params.bundle as { entity_type?: string; bundle?: string } | undefined;
       if (task.name === 'create-sample-data' && ident?.entity_type === entityType && ident.bundle === bundle) {
-        return (task.params.records as SampleRec[] | undefined) ?? [];
+        return overlaySampleRecords(baseline, (task.params.records as SampleRec[] | undefined) ?? []);
       }
     }
   }
-  return (
-    plan.composition?.samples.find((sample) => sample.entity_type === entityType && sample.bundle === bundle)
-      ?.records ?? []
-  );
+  return baseline;
 }
 
 function normalizeAst(node: unknown): unknown {
@@ -234,9 +235,7 @@ function validateSample(plan: Plan, task: PlanTask, result: Record<string, unkno
       ? (plan.composition?.samples.find((s) => s.entity_type === bundle.entity_type && s.bundle === bundle.bundle)
           ?.records ?? [])
       : [];
-  const declaredIds = new Set(declared.map((rec) => String(rec.id)));
-  const preserved = baseline.filter((rec) => !declaredIds.has(String(rec.id)));
-  const expectedIds = [...preserved.map((rec) => String(rec.id)), ...declared.map((rec) => String(rec.id))];
+  const expectedIds = overlaySampleRecords(baseline, declared).map((rec) => String(rec.id));
   const writtenIds = written.map((row) => (isObj(row) ? String(row.id) : ''));
   if (JSON.stringify(writtenIds) !== JSON.stringify(expectedIds)) {
     errors.push('sample ids/order do not match the sealed records');

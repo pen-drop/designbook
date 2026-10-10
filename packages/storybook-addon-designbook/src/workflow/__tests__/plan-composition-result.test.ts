@@ -225,6 +225,47 @@ describe('validateCompositionResult — sample data', () => {
     };
     expect((await validateCompositionResult(plan, task, missingId)).ok).toBe(false);
   });
+
+  it('expects overlay order: update matching ids in place, then append new ones', async () => {
+    const plan = await buildSignage();
+    const task = findTask(plan, 'create-sample-data', 'signage_item');
+    plan.composition = {
+      ...(plan.composition ?? { components: [], mappings: [], samples: [], scenes: [], data_model: {} }),
+      samples: [
+        {
+          entity_type: 'paragraph',
+          bundle: 'signage_item',
+          records: [
+            { id: 'a', summary: 'a', values: { field_title: 'a' } },
+            { id: 'b', summary: 'old-b', values: { field_title: 'old-b' } },
+            { id: 'c', summary: 'c', values: { field_title: 'c' } },
+          ],
+        },
+      ],
+    };
+    task.params.records = [
+      { id: 'b', summary: 'new-b', values: { field_title: 'new-b' } },
+      { id: 'd', summary: 'd', values: { field_title: 'd' } },
+    ];
+    const overlay = {
+      'sample-data': [
+        { id: 'a', field_title: 'a' },
+        { id: 'b', field_title: 'new-b' },
+        { id: 'c', field_title: 'c' },
+        { id: 'd', field_title: 'd' },
+      ],
+    };
+    expect((await validateCompositionResult(plan, task, overlay)).ok).toBe(true);
+    const replaced = {
+      'sample-data': [
+        { id: 'a', field_title: 'a' },
+        { id: 'c', field_title: 'c' },
+        { id: 'b', field_title: 'new-b' },
+        { id: 'd', field_title: 'd' },
+      ],
+    };
+    expect((await validateCompositionResult(plan, task, replaced)).ok).toBe(false);
+  });
 });
 
 describe('validateCompositionResult — direct missing file', () => {

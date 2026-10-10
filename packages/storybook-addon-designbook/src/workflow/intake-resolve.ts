@@ -12,7 +12,7 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { basename, dirname } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { findConfig, loadConfig, resolveSkillsRoot, type DesignbookConfig } from '../shared/config.js';
 import { resolveSkillSources } from './skill-resolver.js';
 import type { SkillSource } from '../shared/skill-sources.js';
@@ -25,6 +25,7 @@ import {
 } from '../shared/planning-sources.js';
 import { buildEnvMap } from '../shared/planning-sources.js';
 import { buildSchemaBlock, type SchemaEntry } from '../shared/schema-block.js';
+import { WRITING_DESIGN_WORKFLOWS } from './plan-composition.js';
 
 export interface EmbeddedContent {
   source: string;
@@ -308,6 +309,23 @@ export async function resolveIntakeContext(
 
     const context = files.map((f) => registry.embed(f.source, f.kind));
     steps.push({ name: step, context, read_order: context, tasks });
+  }
+
+  if (WRITING_DESIGN_WORKFLOWS.has(workflowId)) {
+    const compositionBlock = await buildSchemaBlock({
+      params: {
+        type: 'object',
+        properties: {
+          composition: { $ref: 'designbook/design/schemas.yml#/CompositionInputs' },
+        },
+      },
+      result: undefined,
+      taskFilePath: join(skillsRoot, 'designbook/design/schemas.yml'),
+      skillsRoot,
+      envMap,
+      sources,
+    });
+    Object.assign(definitions, compositionBlock.definitions);
   }
 
   return {

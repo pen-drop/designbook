@@ -312,6 +312,60 @@ describe('deriveComposition — signage fixture', () => {
     expect(plan).toBeNull();
     expect(errors.join('\n')).toMatch(/signage_item/);
   });
+
+  it('extends the existing sample pool by updating matching ids in place and appending new ones', async () => {
+    const list = structuredClone(fixture);
+    list.composition = {
+      ...list.composition!,
+      samples: [
+        {
+          entity_type: 'paragraph',
+          bundle: 'signage_item',
+          records: [
+            { id: '1', summary: 'old-1', values: { field_title: 'old-1' } },
+            { id: 'keep', summary: 'keep-me', values: { field_title: 'keep' } },
+          ],
+        },
+      ],
+    };
+    const parent = list.tasks.find((t) => t.step === 'create-sample-data' && t.title === 'signage')!;
+    const parentRecords = parent.params?.records as Array<{ values: { field_signage_item: string[] } }>;
+    parentRecords[0]!.values.field_signage_item = ['1', 'keep', '2'];
+    const plan = await buildSignage(list);
+    const result = deriveComposition(plan);
+    expect(result.errors).toEqual([]);
+    expect(renderCompositionTree(result.tree)).toContain('3 selected records');
+  });
+
+  it('terminates cyclic entity-mode graphs with a reference marker', async () => {
+    const signagePlan = await buildSignage();
+    const cyclic = structuredClone(signagePlan);
+    const model = cyclic.composition!.data_model as {
+      paragraph: { signage_item: { fields: Record<string, unknown> } };
+    };
+    model.paragraph.signage_item.fields.field_parent = {
+      type: 'reference',
+      settings: { target_type: 'paragraph', target_bundle: 'signage' },
+    };
+    const itemWrite = cyclic.steps
+      .flatMap((s) => s.tasks)
+      .find((t) => t.name === 'write-component' && t.title === 'signage_item')!;
+    (itemWrite.params.component as { slots: Record<string, unknown> }).slots.parent = {
+      description: 'parent signage',
+    };
+    const itemMap = mappingTask(cyclic, 'signage_item');
+    (itemMap.params.bindings as Array<Record<string, unknown>>).push({
+      field: 'field_parent',
+      slot: 'parent',
+      entity: { entity_type: 'paragraph', bundle: 'signage', view_mode: 'full' },
+    });
+    const result = deriveComposition(cyclic);
+    expect(result.errors.join('\n')).toMatch(/cyclic/);
+    const text = renderCompositionTree(result.tree);
+    const hits = text.split('paragraph.signage [full]').length - 1;
+    expect(hits).toBeGreaterThanOrEqual(2);
+    expect(hits).toBeLessThan(5);
+  });
 });
 
 describe('buildPlan composition sealing', () => {
@@ -323,6 +377,38 @@ describe('buildPlan composition sealing', () => {
     expect(errors).toEqual([]);
     expect(plan).not.toBeNull();
     expect(plan!.composition).toBeUndefined();
+  });
+
+  it('rejects a composition snapshot that fails CompositionInputs', async () => {
+    const { plan, errors } = await buildPlan(
+      {
+        workflow: 'design-entity',
+        composition: { components: [] } as unknown as TaskList['composition'],
+        tasks: [
+          {
+            step: 'write-component',
+            task: 'write-component',
+            title: 'hero',
+            params: {
+              component: {
+                component: 'hero',
+                group: 'layout',
+                props: {
+                  type: 'object',
+                  properties: {},
+                  required: [],
+                  additionalProperties: false,
+                },
+                slots: {},
+              },
+            },
+          },
+        ],
+      },
+      vueOpts,
+    );
+    expect(plan).toBeNull();
+    expect(errors.join('\n')).toMatch(/composition/i);
   });
 
   it('does not run semantic traversal when AJV already failed', async () => {

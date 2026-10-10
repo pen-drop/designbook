@@ -21,6 +21,13 @@ sealing. Every mode uses the same sealed-plan assembly and the same
    ```json
    {
      "selectors": { "source": "website" },
+     "composition": {
+       "components": [],
+       "mappings": [],
+       "samples": [],
+       "scenes": [],
+       "data_model": {}
+     },
      "tasks": [
        { "step": "write-component", "task": "write-component", "title": "header", "params": { … } },
        { "step": "write-component", "task": "write-component", "title": "footer", "params": { … } },
@@ -30,7 +37,8 @@ sealing. Every mode uses the same sealed-plan assembly and the same
    ```
    Each task names a palette `task` (repeat it for several instances, e.g. header
    and footer both instantiate `write-component`), a `title`, and `params` that
-   satisfy that task's `params_schema`. Cover every step the palette lists.
+   satisfy that task's `params_schema`. A writing-design list carries `composition`
+   matching the palette `$ref` to `CompositionInputs`. Cover every step the palette lists.
    Completion: one entry per concrete task, params filled.
 3. Before `plan build` for a **design-*** workflow that depends on a published
    revision: confirm that revision is approved for the needed scope. Run
