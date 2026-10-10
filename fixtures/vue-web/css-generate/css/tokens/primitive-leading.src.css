@@ -1,0 +1,5 @@
+@theme static {
+  --leading-tight: 1.2;
+  --leading-snug: 1.3;
+  --leading-normal: 1.5;
+}

@@ -1,0 +1,7 @@
+@theme static {
+  --text-sm: 16px;
+  --text-md: 18px;
+  --text-lg: 22px;
+  --text-xl: 34px;
+  --text-2xl: 40px;
+}

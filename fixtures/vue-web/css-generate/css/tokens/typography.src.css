@@ -1,5 +1,20 @@
 @theme static {
-  --font-heading: "{primitive.typography.reef}";
-  --font-body: "{primitive.typography.sarabun}";
-  --font-body-light: "{primitive.typography.sarabun-light}";
+  --text-heading: var(--text-xl);
+  --text-heading--weight: var(--font-weight-medium);
+  --text-heading--line-height: var(--leading-tight);
+  --text-display: var(--text-2xl);
+  --text-display--weight: var(--font-weight-thin);
+  --text-display--line-height: var(--leading-snug);
+  --text-subheading: var(--text-md);
+  --text-subheading--weight: var(--font-weight-black);
+  --text-subheading--line-height: var(--leading-snug);
+  --text-body: var(--text-sm);
+  --text-body--weight: var(--font-weight-regular);
+  --text-body--line-height: var(--leading-normal);
+  --text-link: var(--text-sm);
+  --text-link--weight: var(--font-weight-regular);
+  --text-link--line-height: var(--leading-normal);
+  --text-button: var(--text-lg);
+  --text-button--weight: var(--font-weight-regular);
+  --text-button--line-height: var(--leading-normal);
 }
