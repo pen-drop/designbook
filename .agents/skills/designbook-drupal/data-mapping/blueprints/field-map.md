@@ -8,7 +8,7 @@ trigger:
 
 # Blueprint: Field Map
 
-Applies when a view mode declares `template: field-map`. Generates a JSONata expression that maps entity fields to a `ComponentNode[]` array.
+Applies when a view mode declares `template: field-map`. The plan names one target `component` and a `bindings` list; the generated JSONata expression maps those fields onto that component. A mapping that needs a ComponentNode array, canvas tree, or layout-builder section list is rejected at `plan build` with the selected target and unsupported structure.
 
 ## Pattern
 

@@ -33,13 +33,15 @@ Each sub-skill / shared content root (core skill) or skill root (integration ski
 
 Component:
   type: object
-  required: [component, group]
+  required: [component, group, props, slots]
   properties:
     component: { type: string }
+    props:
+      $ref: "#/ComponentPropsSchema"
     slots:
-      type: array
-      items: { type: string }
-      default: []
+      type: object
+      additionalProperties:
+        $ref: "#/ComponentSlot"
     group: { type: string }
     description: { type: string }
 

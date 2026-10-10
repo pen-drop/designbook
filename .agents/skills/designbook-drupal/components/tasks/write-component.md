@@ -41,7 +41,7 @@ result:
 
 # Write Component
 
-Produce the complete artifacts for the selected component and requested delta. Existing content is the baseline for a change; blueprint defaults apply to new structure only.
+Produce the complete artifacts for the selected component and requested delta. `component.props` and `component.slots` are the typed interface written into those artifacts. Existing content is the baseline for a change; blueprint defaults apply to new structure only.
 
 ## Result: component-yml
 
