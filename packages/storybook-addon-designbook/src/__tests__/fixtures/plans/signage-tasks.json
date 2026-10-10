@@ -1,0 +1,209 @@
+{
+  "workflow": "design-entity",
+  "composition": {
+    "components": [],
+    "mappings": [],
+    "samples": [],
+    "scenes": [],
+    "data_model": {
+      "config": {
+        "image_style": {
+          "ratio_16_9": { "aspect_ratio": "16:9" }
+        }
+      },
+      "paragraph": {
+        "signage": {
+          "title": "Wegweiser",
+          "fields": {
+            "field_paragraph_style": { "type": "string", "title": "Stil" },
+            "field_overlapping_top": { "type": "boolean", "title": "Überlappend" },
+            "field_signage_item": {
+              "type": "reference",
+              "title": "Wegweiser Element",
+              "multiple": true,
+              "settings": { "target_type": "paragraph", "target_bundle": "signage_item" }
+            }
+          },
+          "view_modes": { "full": { "template": "field-map" } }
+        },
+        "signage_item": {
+          "title": "Wegweiser Element",
+          "fields": {
+            "field_title": { "type": "string", "title": "Titel" },
+            "field_description": { "type": "text", "title": "Beschreibung" },
+            "field_icon": { "type": "string", "title": "Icon" },
+            "field_links": { "type": "link", "title": "Links", "multiple": true },
+            "field_button_anonymous": { "type": "link", "title": "Button anonym" },
+            "field_button_authenticated": { "type": "link", "title": "Button angemeldet" }
+          },
+          "view_modes": { "full": { "template": "field-map" } }
+        }
+      }
+    }
+  },
+  "tasks": [
+    {
+      "step": "write-component",
+      "task": "write-component",
+      "title": "signage",
+      "params": {
+        "component": {
+          "component": "signage",
+          "group": "content",
+          "props": {
+            "type": "object",
+            "properties": {
+              "style": { "type": "string" },
+              "overlapping": { "type": "boolean" }
+            },
+            "required": ["style", "overlapping"],
+            "additionalProperties": false
+          },
+          "slots": {
+            "items": { "description": "Rendered signage items", "required": true }
+          }
+        }
+      }
+    },
+    {
+      "step": "write-component",
+      "task": "write-component",
+      "title": "signage_item",
+      "params": {
+        "component": {
+          "component": "signage_item",
+          "group": "content",
+          "props": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "string" },
+              "description": { "type": "string" },
+              "icon": { "type": "string" },
+              "links": { "type": "array" },
+              "buttonAnonymous": { "type": "object" },
+              "buttonAuthenticated": { "type": "string" }
+            },
+            "required": ["title"],
+            "additionalProperties": false
+          },
+          "slots": {}
+        }
+      }
+    },
+    {
+      "step": "create-sample-data",
+      "task": "create-sample-data",
+      "title": "signage",
+      "params": {
+        "section_id": "signage",
+        "bundle": { "entity_type": "paragraph", "bundle": "signage" },
+        "data_model": {},
+        "components_dir": "components",
+        "records": [
+          {
+            "id": "1",
+            "summary": "Wegweiser parent",
+            "values": {
+              "field_paragraph_style": "default",
+              "field_overlapping_top": false,
+              "field_signage_item": ["1", "2", "3"]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "step": "create-sample-data",
+      "task": "create-sample-data",
+      "title": "signage_item",
+      "params": {
+        "section_id": "signage",
+        "bundle": { "entity_type": "paragraph", "bundle": "signage_item" },
+        "data_model": {},
+        "components_dir": "components",
+        "records": [
+          {
+            "id": "1",
+            "summary": "ausbilden",
+            "values": { "field_title": "ausbilden", "field_icon": "school" }
+          },
+          {
+            "id": "2",
+            "summary": "prüfen",
+            "values": { "field_title": "prüfen", "field_icon": "fact_check" }
+          },
+          {
+            "id": "3",
+            "summary": "vernetzen",
+            "values": { "field_title": "vernetzen", "field_icon": "groups" }
+          }
+        ]
+      }
+    },
+    {
+      "step": "map-entity",
+      "task": "map-entity--design-screen",
+      "title": "signage",
+      "params": {
+        "mapping": {
+          "entity_type": "paragraph",
+          "bundle": "signage",
+          "mode_kind": "view",
+          "view_mode": "full"
+        },
+        "data_model": {},
+        "component": "test_integration_vue:signage",
+        "bindings": [
+          { "field": "field_paragraph_style", "prop": "style" },
+          { "field": "field_overlapping_top", "prop": "overlapping" },
+          {
+            "field": "field_signage_item",
+            "slot": "items",
+            "entity": {
+              "entity_type": "paragraph",
+              "bundle": "signage_item",
+              "view_mode": "full"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "step": "map-entity",
+      "task": "map-entity--design-screen",
+      "title": "signage_item",
+      "params": {
+        "mapping": {
+          "entity_type": "paragraph",
+          "bundle": "signage_item",
+          "mode_kind": "view",
+          "view_mode": "full"
+        },
+        "data_model": {},
+        "component": "test_integration_vue:signage_item",
+        "bindings": [
+          { "field": "field_title", "prop": "title" },
+          { "field": "field_description", "prop": "description" },
+          { "field": "field_icon", "prop": "icon" },
+          { "field": "field_links", "prop": "links" },
+          { "field": "field_button_anonymous", "prop": "buttonAnonymous" },
+          { "field": "field_button_authenticated", "prop": "buttonAuthenticated" }
+        ]
+      }
+    },
+    {
+      "step": "write-scene",
+      "task": "write-scene",
+      "title": "Signage",
+      "params": {
+        "scene_name": "Signage",
+        "scene_scope": "standalone",
+        "scene_path": "sections/signage/signage.section.scenes.yml",
+        "components_dir": "components",
+        "items": [
+          { "entity": "paragraph.signage", "view_mode": "full", "record": 0 }
+        ]
+      }
+    }
+  ]
+}

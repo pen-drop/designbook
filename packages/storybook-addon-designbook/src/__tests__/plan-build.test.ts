@@ -107,6 +107,13 @@ describe('buildPlan', () => {
     agentsDir: agents,
     config: { ...config, 'frameworks.component': 'vue', backend: 'none' } as unknown as DesignbookConfig,
   };
+  const emptyComposition = {
+    components: [] as [],
+    mappings: [] as [],
+    samples: [] as [],
+    scenes: [] as [],
+    data_model: {},
+  };
 
   it('rejects write-component when props or slots are absent', async () => {
     const missingProps = await buildPlan(
@@ -148,6 +155,7 @@ describe('buildPlan', () => {
     const { plan, errors } = await buildPlan(
       {
         workflow: 'design-shell',
+        composition: emptyComposition,
         tasks: [
           {
             step: 'write-component',
@@ -243,7 +251,36 @@ describe('buildPlan', () => {
     const view = await buildPlan(
       {
         workflow: 'design-entity',
+        composition: {
+          ...emptyComposition,
+          data_model: {
+            paragraph: {
+              signage: {
+                fields: { field_title: { type: 'string' } },
+                view_modes: { full: { template: 'field-map' } },
+              },
+            },
+          },
+        },
         tasks: [
+          {
+            step: 'write-component',
+            task: 'write-component',
+            title: 'signage',
+            params: {
+              component: {
+                component: 'signage',
+                group: 'content',
+                props: {
+                  type: 'object',
+                  properties: { title: { type: 'string' } },
+                  required: [],
+                  additionalProperties: false,
+                },
+                slots: {},
+              },
+            },
+          },
           {
             step: 'map-entity',
             task: 'map-entity--design-screen',
@@ -364,6 +401,7 @@ describe('buildPlan', () => {
     const sdc = await buildPlan(
       {
         workflow: 'design-component',
+        composition: emptyComposition,
         tasks: [
           {
             step: 'write-component',
@@ -378,6 +416,7 @@ describe('buildPlan', () => {
     const vue = await buildPlan(
       {
         workflow: 'design-component',
+        composition: emptyComposition,
         tasks: [
           {
             step: 'write-component',
