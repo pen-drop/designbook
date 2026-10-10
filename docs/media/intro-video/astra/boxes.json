@@ -1,0 +1,96 @@
+{
+  "navHero": {
+    "x": 12,
+    "y": 642,
+    "width": 275,
+    "height": 28
+  },
+  "navButton": {
+    "x": 12,
+    "y": 502,
+    "width": 275,
+    "height": 28
+  },
+  "navPricing": {
+    "x": 12,
+    "y": 698,
+    "width": 275,
+    "height": 28
+  },
+  "preview": {
+    "x": 300,
+    "y": 40,
+    "width": 1300,
+    "height": 860
+  },
+  "components": {
+    "hero": {
+      "x": 0,
+      "y": 128,
+      "width": 1300,
+      "height": 778,
+      "comment": "db:s:test_integration_drupal:saas-hero@0.content.0"
+    },
+    "button": {
+      "x": 32,
+      "y": 692.515625,
+      "width": 113.203125,
+      "height": 44
+    },
+    "pricing": {
+      "x": 32,
+      "y": 3129.734375,
+      "width": 390.65625,
+      "height": 505.328125,
+      "comment": "db:s:test_integration_drupal:saas-pricing-card@0.content.2.items.items.0"
+    }
+  },
+  "entityNav": {
+    "x": 12,
+    "y": 398,
+    "width": 275,
+    "height": 28
+  },
+  "mappingEntity": {
+    "x": 898.5625,
+    "y": 504,
+    "width": 120.578125,
+    "height": 16
+  },
+  "mappingPrice": {
+    "x": 849,
+    "y": 686,
+    "width": 36.015625,
+    "height": 17
+  },
+  "mappingSlot": {
+    "x": 1259,
+    "y": 686,
+    "width": 79.21875,
+    "height": 17
+  },
+  "mappingComponent": {
+    "x": 1247,
+    "y": 561,
+    "width": 336,
+    "height": 29
+  },
+  "mappingFile": {
+    "x": 836,
+    "y": 536,
+    "width": 748,
+    "height": 12
+  },
+  "modelPrice": {
+    "x": 479,
+    "y": 469,
+    "width": 942,
+    "height": 39.5
+  },
+  "modelHeading": {
+    "x": 458,
+    "y": 221,
+    "width": 122,
+    "height": 33
+  }
+}

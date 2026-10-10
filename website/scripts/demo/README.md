@@ -1,5 +1,11 @@
 # Designbook demo film
 
+Two new 15-second versions and their sources are available in
+[Intro video: Astra / Opus](../../../docs/media/intro-video/README.md), following the
+[agreed storytelling](../../../docs/media/intro-video/STORYTELLING.md).
+The instructions below describe the existing 22-second landing-page film;
+selecting its replacement is a separate decision.
+
 The 22-second silent film uses real captures from the Figma SaaS Canvas fixture.
 Its animated highlights and connections map semantic design regions without slicing
 the source image. Screenshots keep their full aspect ratio. This is explanatory

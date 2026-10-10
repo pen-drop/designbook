@@ -4,6 +4,7 @@ export const SRC_EXCLUDE = [
   'experiments/**',
   'gaia/**',
   'superpowers/**',
+  'media/intro-video/**',
 ]
 
 export const AREAS = [
