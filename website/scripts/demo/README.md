@@ -1,7 +1,9 @@
 # Designbook demo film
 
 The 22-second silent film uses real captures from the Figma SaaS Canvas fixture.
-Its animated separation is explanatory motion graphics, not a recording of elapsed
+Its animated highlights and connections map semantic design regions without slicing
+the source image. Screenshots keep their full aspect ratio. This is explanatory
+motion graphics, not a recording of elapsed
 build time. The Claude image is a formatted reading view of the real run log.
 
 Media lives in `docs/assets/logo/demo/`, the existing VitePress public asset root.

@@ -21,6 +21,15 @@ try {
     await Promise.all([...document.images].map((i) => i.decode()))
   })
   assert.equal(await page.locator('.scene').count(), 6)
+  const clipped = await page.locator('img').evaluateAll((images) =>
+    images.filter((image) => {
+      const box = image.getBoundingClientRect()
+      return getComputedStyle(image).objectFit !== 'contain' ||
+        box.left < 0 || box.right > 1280 || box.top < 0 || box.bottom > 720
+    }).map((image) => image.src),
+  )
+  assert.deepEqual(clipped, [], 'Film screenshots must remain complete and inside the frame')
+
   const ffmpeg = spawn(
     'ffmpeg',
     [

@@ -86,7 +86,7 @@ const shot = computed(() => shots[selected.value])
       <details v-if="landing.demo.video" id="film-transcript" class="film-transcript">
         <summary>Read the video walkthrough</summary>
         <p>
-          Designbook is not a design tool. Start with an existing design. The design separates into
+          Designbook is not a design tool. Start with an existing design. The design’s typography, content and actions are mapped to
           tokens, a data model and SDC components. Your AI agent follows Designbook workflows to
           produce the implementation. Inspect the resulting Canvas page in Designbook, inside
           Storybook. This edited sequence summarises the workflow; it does not show elapsed build
