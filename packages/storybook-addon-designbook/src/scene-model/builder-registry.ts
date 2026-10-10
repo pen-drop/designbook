@@ -37,11 +37,20 @@ function needsBuilding(node: RawNode): node is SceneNode {
   );
 }
 
-/** Vue/SDC story YAML `type: element` slot item — text (optional tag) that is not a component. */
-function isElementNode(node: unknown): node is { type: 'element'; value: string } {
+/** Vue/SDC story YAML `type: element` slot item — inline HTML (optional tag/attributes). */
+function isElementNode(node: unknown): node is { type: 'element'; value: string; tag?: unknown; attributes?: unknown } {
   if (typeof node !== 'object' || node === null) return false;
   const n = node as Record<string, unknown>;
   return n.type === 'element' && typeof n.value === 'string';
+}
+
+function projectElement(node: { value: string; tag?: unknown; attributes?: unknown }): SceneTreeNode {
+  const props: Record<string, unknown> = { value: node.value };
+  if (typeof node.tag === 'string' && node.tag) props.tag = node.tag;
+  if (node.attributes && typeof node.attributes === 'object' && !Array.isArray(node.attributes)) {
+    props.attributes = node.attributes;
+  }
+  return { kind: 'component', component: 'designbook:element', props };
 }
 
 // ── resolveSlots ──────────────────────────────────────────────────────
@@ -71,7 +80,7 @@ async function resolveSlots(
             return [{ kind: 'string', value: item }];
           }
           if (isElementNode(item)) {
-            return [{ kind: 'string', value: item.value }];
+            return [projectElement(item)];
           }
           if (needsBuilding(item)) {
             return ctx.buildNode(item);
@@ -92,7 +101,7 @@ async function resolveSlots(
     } else {
       // Single node — may be a SceneNode ref, an element, or a ComponentNode
       if (isElementNode(value)) {
-        resolved[key] = [{ kind: 'string', value: value.value }];
+        resolved[key] = [projectElement(value)];
       } else if (needsBuilding(value as RawNode)) {
         resolved[key] = await ctx.buildNode(value as unknown as SceneNode);
       } else {

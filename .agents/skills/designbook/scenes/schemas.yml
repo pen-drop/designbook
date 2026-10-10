@@ -33,9 +33,8 @@ StoryId:
     `Designbook/Sections/Wayfinding`, scene `signage` →
     `designbook-sections-wayfinding-scenes--signage`. The overview entry
     (section files only) uses title `<group>` and name `Overview`, so the id is
-    `sanitize(<group>)--overview`. Example: group `Designbook/Design System`,
-    scene `Shell` → `designbook-design-system-scenes--shell`; overview →
-    `designbook-design-system--overview`.
+    `sanitize(<group>)--overview`. Example: group `Designbook/Sections/Wayfinding`
+    → `designbook-sections-wayfinding--overview`.
 
 
     Entity stories use their own title prefixes. Copy retained ids from the live
@@ -45,8 +44,7 @@ StoryId:
     - test-integration-drupal-action-button--primary
     - components-book-card--default
     - designbook-sections-wayfinding-scenes--signage
-    - designbook-design-system-scenes--shell
-    - designbook-design-system--overview
+    - designbook-sections-wayfinding--overview
 
 SceneFile:
   type: object
@@ -57,7 +55,12 @@ SceneFile:
     description: { type: string, description: "Section description for overview page." }
     status: { type: string, enum: [planned, in-progress, done] }
     order: { type: integer, description: "Display order in Storybook sidebar." }
-    group: { type: string, description: "Storybook story group (e.g. \"Designbook/Design System\"). Falls back to name." }
+    group:
+      type: string
+      description: >
+        Bare story group, e.g. `Designbook/Sections/Wayfinding`. The indexer
+        titles scene exports `<group>/Scenes`; a group never ends in `/Scenes`.
+        Falls back to name.
     scenes:
       type: array
       items:

@@ -51,14 +51,44 @@ describe('section scene story ids', () => {
     const repoRoot = resolve(import.meta.dirname, '../../../../');
     const schemas = parseYaml(
       readFileSync(resolve(repoRoot, '.agents/skills/designbook/scenes/schemas.yml'), 'utf8'),
-    ) as { StoryId: { description: string; examples: string[] } };
+    ) as {
+      StoryId: { description: string; examples: string[] };
+      SceneFile: { properties: { group: { description: string } } };
+    };
     const { description, examples } = schemas.StoryId;
 
     expect(description).toMatch(/sanitize\(<group>\/Scenes\)/i);
     expect(description).toMatch(/sanitize\(<group>\)--overview/i);
     expect(description).toMatch(/Vue component stories/i);
-    expect(examples).toContain('designbook-design-system-scenes--shell');
+    expect(examples).toContain('designbook-sections-wayfinding-scenes--signage');
+    expect(examples).toContain('designbook-sections-wayfinding--overview');
     expect(examples).toContain('components-book-card--default');
+    expect(examples).not.toContain('designbook-design-system--overview');
     expect(examples).not.toContain('design-system--shell');
+    expect(schemas.SceneFile.properties.group.description).toMatch(/bare story group/i);
+    expect(schemas.SceneFile.properties.group.description).toMatch(/\/Scenes/);
+  });
+
+  it('indexes the documented wayfinding overview id from a section scenes file', () => {
+    const root = mkdtempSync(join(tmpdir(), 'debo-scene-id-wayfinding-'));
+    const sectionsDir = resolve(root, 'sections', 'wayfinding');
+    mkdirSync(sectionsDir, { recursive: true });
+    const fileName = join(sectionsDir, 'wayfinding.section.scenes.yml');
+    writeFileSync(
+      fileName,
+      [
+        'id: "wayfinding"',
+        'title: "Wayfinding"',
+        'group: "Designbook/Sections/Wayfinding"',
+        'scenes:',
+        '  - name: "signage"',
+        '    items: []',
+        '',
+      ].join('\n'),
+    );
+
+    const ids = (indexScenesFile(fileName) as IndexEntry[]).map(storyId);
+    expect(ids).toContain('designbook-sections-wayfinding--overview');
+    expect(ids).toContain('designbook-sections-wayfinding-scenes--signage');
   });
 });

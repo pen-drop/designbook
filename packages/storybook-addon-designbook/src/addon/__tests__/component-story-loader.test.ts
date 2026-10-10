@@ -75,7 +75,7 @@ describe('designbookLoadPlugin — component story loading', () => {
     expect(code).toContain('"label": "Click me"');
   });
 
-  it('renders type:element slot items as string slot values', async () => {
+  it('renders type:element slot items as designbook:element nodes', async () => {
     const root = mkdtempSync(join(tmpdir(), 'debo-component-element-'));
     mkdirSync(resolve(root, 'designbook'), { recursive: true });
     const componentsDir = resolve(root, 'components', 'signage-item');
@@ -109,8 +109,10 @@ describe('designbookLoadPlugin — component story loading', () => {
 
     const code: string | null = await plugin.load(storyFile);
     expect(code).toBeTruthy();
-    expect(code).toContain('"title": "Training"');
-    expect(code).toContain('"description": "Build your skills."');
+    expect(code).toContain('"designbook:element"');
+    expect(code).toContain('"value": "Training"');
+    expect(code).toContain('"tag": "span"');
+    expect(code).toContain('"value": "Build your skills."');
     expect(code).not.toContain('"type": "element"');
   });
 });

@@ -173,7 +173,7 @@ describe('BuilderRegistry', () => {
     expect(result?.slots).not.toHaveProperty('body');
   });
 
-  it('projects type:element slot items to string nodes so Vue stories render their text', async () => {
+  it('projects type:element slot items to designbook:element nodes with tag and attributes', async () => {
     const registry = new BuilderRegistry();
     const componentBuilder: SceneNodeBuilder = {
       appliesTo: (node) => 'component' in node && typeof node['component'] === 'string',
@@ -182,7 +182,7 @@ describe('BuilderRegistry', () => {
           {
             component: 'test:signage-item',
             slots: {
-              title: [{ type: 'element', value: 'Training', tag: 'span' }],
+              title: [{ type: 'element', value: 'Training', tag: 'span', attributes: { class: 'kicker' } }],
               description: [{ type: 'element', value: 'Build your skills.' }],
             },
           },
@@ -201,8 +201,62 @@ describe('BuilderRegistry', () => {
     const [result] = await registry.buildNode({ component: 'test:signage-item' } as SceneNode, ctx);
 
     expect(result?.slots).toEqual({
-      title: [{ kind: 'string', value: 'Training' }],
-      description: [{ kind: 'string', value: 'Build your skills.' }],
+      title: [
+        {
+          kind: 'component',
+          component: 'designbook:element',
+          props: { value: 'Training', tag: 'span', attributes: { class: 'kicker' } },
+        },
+      ],
+      description: [
+        {
+          kind: 'component',
+          component: 'designbook:element',
+          props: { value: 'Build your skills.' },
+        },
+      ],
+    });
+  });
+
+  it('keeps type:element beside a sibling component in the same slot', async () => {
+    const registry = new BuilderRegistry();
+    const componentBuilder: SceneNodeBuilder = {
+      appliesTo: (node) => 'component' in node && typeof node['component'] === 'string',
+      build: vi.fn().mockResolvedValue({
+        nodes: [
+          {
+            component: 'test:hero',
+            slots: {
+              body: [
+                { type: 'element', value: 'Read more', tag: 'span' },
+                { component: 'test:button', props: { label: 'Go' } },
+              ],
+            },
+          },
+        ],
+        meta: { kind: 'component' },
+      }),
+    };
+    registry.register(componentBuilder);
+
+    const ctx = registry.createContext({
+      dataModel: { content: {} },
+      sampleData: {},
+      designbookDir: '/test',
+    });
+
+    const [result] = await registry.buildNode({ component: 'test:hero' } as SceneNode, ctx);
+    const body = result?.slots?.body ?? [];
+    expect(body).toHaveLength(2);
+    expect(body[0]).toMatchObject({
+      kind: 'component',
+      component: 'designbook:element',
+      props: { value: 'Read more', tag: 'span' },
+    });
+    expect(body[1]).toMatchObject({
+      kind: 'component',
+      component: 'test:button',
+      props: { label: 'Go' },
     });
   });
   // ── DESIGNBOOK-54: entities a mapping resolves to stay visible in the tree ──

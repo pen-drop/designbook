@@ -87,6 +87,33 @@ describe('view()', () => {
     expect(result[0]!.slots!.text).toBe('Hello World');
   });
 
+  it('keeps an element node and a sibling component in the same slot', () => {
+    const tree: SceneTreeNode[] = [
+      {
+        kind: 'component',
+        component: 'hero',
+        slots: {
+          body: [
+            {
+              kind: 'component',
+              component: 'designbook:element',
+              props: { value: 'Read more', tag: 'span' },
+            },
+            { kind: 'component', component: 'test:button', props: { label: 'Go' } },
+          ],
+        },
+      },
+    ];
+    const result = view(tree);
+    const body = result[0]!.slots!.body as { component: string; props?: Record<string, unknown> }[];
+    expect(body).toHaveLength(2);
+    expect(body[0]).toMatchObject({
+      component: 'designbook:element',
+      props: { value: 'Read more', tag: 'span' },
+    });
+    expect(body[1]).toMatchObject({ component: 'test:button', props: { label: 'Go' } });
+  });
+
   it('skips top-level string nodes', () => {
     const tree: SceneTreeNode[] = [
       { kind: 'string', value: 'orphan text' },

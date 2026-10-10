@@ -98,6 +98,36 @@ describe('renderComponent', () => {
     expect(stripMarkers(result)).toBe('Hello World');
   });
 
+  it('renders an element node and a sibling component in the same slot', () => {
+    const parentSpy = vi.fn().mockImplementation((_props, slots) => slots.body);
+    const buttonSpy = vi.fn().mockReturnValue('BUTTON');
+    const elementSpy = vi.fn().mockReturnValue('<span>Read more</span>');
+    const imports = {
+      'test:hero': makeModule(parentSpy),
+      'test:button': makeModule(buttonSpy),
+      'designbook:element': makeModule(elementSpy),
+    };
+
+    const node: ComponentNode = {
+      component: 'test:hero',
+      slots: {
+        body: [
+          { component: 'designbook:element', props: { value: 'Read more', tag: 'span' } },
+          { component: 'test:button', props: { label: 'Go' } },
+        ],
+      },
+    };
+
+    renderComponent(node, imports);
+    expect(elementSpy).toHaveBeenCalledOnce();
+    expect(buttonSpy).toHaveBeenCalledOnce();
+    const [, resolvedSlots] = parentSpy.mock.calls[0]!;
+    const body = (resolvedSlots as Record<string, unknown[]>).body;
+    expect(body).toHaveLength(2);
+    expect(stripMarkers(body![0])).toBe('<span>Read more</span>');
+    expect(stripMarkers(body![1])).toBe('BUTTON');
+  });
+
   it('passes props as first argument and slots as second — no cross-contamination', () => {
     const renderSpy = vi.fn().mockReturnValue('output');
     const imports = { 'test:heading': makeModule(renderSpy) };
