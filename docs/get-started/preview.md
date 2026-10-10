@@ -36,3 +36,5 @@ npx storybook-addon-designbook storybook restart
 **Done when:** `storybook status` reports a running daemon and you can see the workflow artifact in the Storybook UI.
 
 Stop with `npx storybook-addon-designbook storybook stop`. Options for every child command: [storybook CLI](/advanced/cli/storybook).
+
+For a Drupal project, continue on [Designbook for Drupal](/drupal/) to sync the previewed selection into configuration Drupal actually imports.

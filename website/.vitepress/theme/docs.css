@@ -85,3 +85,133 @@ html.dark {
   display: block;
   margin-bottom: 4px;
 }
+
+.distro-links {
+  max-width: 1152px;
+  margin: 0 auto;
+  padding: 8px 24px 40px;
+}
+
+.distro-links__title {
+  margin: 0 0 12px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--vp-c-text-1);
+}
+
+.distro-links__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.distro-links__link {
+  display: block;
+  padding: 16px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  color: inherit;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.distro-links__link:hover,
+.distro-links__link:focus-visible {
+  border-color: var(--vp-c-brand-1);
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 1px;
+}
+
+.landing-content {
+  max-width: 1152px;
+  margin: 0 auto;
+  padding: 8px 24px 48px;
+}
+
+.landing-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: landing-step;
+  display: grid;
+  gap: 16px;
+}
+
+.landing-steps__item {
+  counter-increment: landing-step;
+  padding: 16px 16px 16px 56px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  position: relative;
+}
+
+.landing-steps__item::before {
+  content: counter(landing-step);
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--vp-c-brand-soft);
+  color: var(--vp-c-brand-1);
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.landing-steps__title {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.landing-steps__text {
+  margin: 0;
+  color: var(--vp-c-text-2);
+}
+
+.landing-demo {
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px dashed var(--vp-c-divider);
+  border-radius: 8px;
+  background: var(--vp-c-bg-soft);
+}
+
+.landing-demo__title {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.landing-demo__text {
+  margin: 0;
+  color: var(--vp-c-text-2);
+}
+
+.landing-cta {
+  margin: 24px 0 0;
+}
+
+.landing-cta__link {
+  display: inline-block;
+  padding: 10px 18px;
+  border-radius: 8px;
+  background: var(--vp-c-brand-1);
+  color: var(--vp-c-bg);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.landing-cta__link:hover,
+.landing-cta__link:focus-visible {
+  background: var(--vp-c-brand-2);
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 2px;
+}
