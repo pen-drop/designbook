@@ -254,10 +254,12 @@ describe('buildPlan', () => {
         composition: {
           ...emptyComposition,
           data_model: {
-            paragraph: {
-              signage: {
-                fields: { field_title: { type: 'string' } },
-                view_modes: { full: { template: 'field-map' } },
+            content: {
+              paragraph: {
+                signage: {
+                  fields: { field_title: { type: 'string' } },
+                  view_modes: { full: { template: 'field-map' } },
+                },
               },
             },
           },

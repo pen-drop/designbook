@@ -42,30 +42,7 @@ The `$lookup` object is the referenced bundle's sample pool, keyed by record id 
 
 ## Image Field Mapping
 
-> See rule: [image-fields](../rules/image-fields.md) for hard constraints.
-
-### `type: image` — direct ImageNode
-
-When the data-model declares `type: image`, image data lives on the entity. Emit an ImageNode in the component's image slot:
-
-```jsonata
-{
-  "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:content-teaser",
-  "props": {
-    "title": $fields.title,
-    "text": $fields.field_teaser_text
-  },
-  "slots": {
-    "image": [
-      { "image": "teaser", "alt": $fields.field_topic_image.alt }
-    ]
-  }
-}
-```
-
-### `type: reference` — EntityNode
-
-When the data-model declares `type: reference`, emit EntityNodes through the same `$map` / `$lookup` slot template. The referenced entity renders itself via its own mapping:
+Map a media entity reference (`type: reference`) into the image slot with `entity`, using the same `$map` / `$lookup` template as other reference slots:
 
 ```jsonata
 {
@@ -88,11 +65,11 @@ When the data-model declares `type: reference`, emit EntityNodes through the sam
 - Output is a JSONata array expression returning one wrapping `ComponentNode`
 - Input (`$`) is the sample data record for this entity from `data.yml`
 - Use `$fields.` plus dot notation for field access: `$fields.field_image.alt`
-- Static values (no `$`): `"h1"`, `true`, `42`
+- Every bound value comes from a declared field path (`$fields.<field>`)
 - Provider prefix must be resolved at generation time: `DESIGNBOOK_COMPONENT_NAMESPACE:component-name`
 - Reference fields (`type: reference`) emit `{ "entity": "<entity_type>.<bundle>", "view_mode": "...", "record": $lookup({ "<id>": <index> }, $string($id)) }` nodes as slot values of the wrapping component. The renderer resolves refs inside slots and at top level.
-- Image fields: see [image-fields rule](../rules/image-fields.md) — `type: image` → ImageNode in slot, `type: reference` → EntityNode in slot
+- Image slots use that same reference-slot template; `plan instructions` `expected_mapping` is the expression to submit
 
 ## Supported Settings
 
-- `primary_image_field` — name of the entity's primary image field (e.g. `field_topic_image`). Determines which field is mapped to the component's main image slot. The field's data-model type (`image` vs `reference`) decides the mapping pattern — see Image Field Mapping above.
+- `primary_image_field` — name of the media reference field mapped to the component's image slot with the reference-slot template above.

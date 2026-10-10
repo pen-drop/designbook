@@ -103,7 +103,7 @@ function getBundle(
 ): Record<string, unknown> | undefined {
   const content = isObj(model.content) ? model.content : undefined;
   const config = isObj(model.config) ? model.config : undefined;
-  for (const pool of [content, config, model]) {
+  for (const pool of [content, config]) {
     if (!pool) continue;
     const et = pool[entityType];
     if (!isObj(et)) continue;
@@ -127,6 +127,18 @@ function fieldSettings(field: Record<string, unknown>): Record<string, unknown> 
 
 function isRefType(type: unknown): boolean {
   return type === 'reference' || type === 'entity_reference';
+}
+
+function declaredTargetBundles(settings: Record<string, unknown>): string[] {
+  const out: string[] = [];
+  const one = asString(settings.target_bundle);
+  if (one) out.push(one);
+  if (Array.isArray(settings.target_bundles)) {
+    for (const item of settings.target_bundles) {
+      if (typeof item === 'string' && item) out.push(item);
+    }
+  }
+  return [...new Set(out)];
 }
 
 function parseEntityId(entity: string): { entity_type: string; bundle: string } {
@@ -405,21 +417,26 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
         if (used.has(t)) errors.push(`${prefix(`${p}.slot`)}: duplicate target ${b.slot}`);
         used.add(t);
         if (!(b.slot in slots)) errors.push(`${prefix(`${p}.slot`)}: unknown slot ${b.slot}`);
+        const rawField = fields[b.field];
+        const field = isObj(rawField) ? rawField : {};
+        if (!b.entity && b.field in fields && !isRefType(field.type)) {
+          const kind = asString(field.type) || 'unknown';
+          errors.push(`${prefix(p)}: ${kind} field ${b.field} cannot be expressed`);
+        }
         if (b.entity) {
-          const rawField = fields[b.field];
-          const field = isObj(rawField) ? rawField : {};
           if (b.field in fields && !isRefType(field.type)) {
             errors.push(`${prefix(`${p}.entity`)}: ${b.field} is not a reference field`);
           }
           const settings = fieldSettings(field);
           const targetType = asString(settings.target_type);
-          const targetBundle = asString(settings.target_bundle);
+          const targetBundles = declaredTargetBundles(settings);
           if (
             (targetType && b.entity.entity_type !== targetType) ||
-            (targetBundle && b.entity.bundle !== targetBundle)
+            (targetBundles.length > 0 && !targetBundles.includes(b.entity.bundle))
           ) {
+            const shown = targetBundles.length ? targetBundles.join('|') : asString(settings.target_bundle);
             errors.push(
-              `${prefix(`${p}.entity`)}: ${b.entity.entity_type}.${b.entity.bundle} is not the declared target ${targetType}.${targetBundle}`,
+              `${prefix(`${p}.entity`)}: ${b.entity.entity_type}.${b.entity.bundle} is not the declared target ${targetType}.${shown}`,
             );
           }
           const child = getBundle(model, b.entity.entity_type, b.entity.bundle);

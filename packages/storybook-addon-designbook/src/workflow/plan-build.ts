@@ -30,6 +30,7 @@ import {
   WRITING_DESIGN_WORKFLOWS,
   type CompositionInputs,
 } from './plan-composition.js';
+import { verifyReusedMappingSources } from './plan-composition-result.js';
 
 export interface TaskDecision {
   /** Execution step this task belongs to. */
@@ -109,7 +110,15 @@ export async function buildPlan(taskList: TaskList, opts: ResolveIntakeOptions =
     // so the frozen contract carries the concrete file path — not an unrendered template.
     const outputs: Record<string, PlanTask['contract']['outputs'][string]> = {};
     for (const [key, out] of Object.entries(contract.outputs)) {
-      outputs[key] = out.path ? { ...out, path: await interpolate(out.path, params, { lenient: true }) } : out;
+      outputs[key] = out.path
+        ? {
+            ...out,
+            path: await interpolate(out.path, params, {
+              lenient: true,
+              envMap: { DESIGNBOOK_DATA: String(intake.config.data ?? '') },
+            }),
+          }
+        : out;
     }
     const planTask: PlanTask = {
       name: d.task,
@@ -183,6 +192,8 @@ export async function buildPlan(taskList: TaskList, opts: ResolveIntakeOptions =
   if (WRITING_DESIGN_WORKFLOWS.has(taskList.workflow) && draft.composition) {
     const semantic = deriveComposition(draft);
     if (semantic.errors.length > 0) return { plan: null, plans_dir: intake.plans_dir, errors: semantic.errors };
+    const reused = verifyReusedMappingSources(draft);
+    if (reused.length > 0) return { plan: null, plans_dir: intake.plans_dir, errors: reused };
   }
   // Seal on the canonical parsed form: parsePlan trims embedded bodies, so the
   // digest must be computed over what execution will re-parse — not the raw

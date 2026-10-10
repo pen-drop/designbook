@@ -256,7 +256,7 @@ for (const planExit of [0, 100]) {
     assert.equal(result.mainStatus, planExit ? null : 100);
     assert.equal(result.steps, undefined);
     const plan = calls[0];
-    assert.doesNotMatch(plan.prompts[0], /plan tree/);
+    assert.doesNotMatch(plan.prompts[0], /plan tree|composition tree/);
     assert.ok(
       plan.tests[0].assert.some((assertion) =>
         String(assertion.value).includes("composition-presentation.mjs"),

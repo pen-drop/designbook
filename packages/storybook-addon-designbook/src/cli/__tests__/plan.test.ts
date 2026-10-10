@@ -968,6 +968,8 @@ describe('plan done composition enforcement', () => {
     const task = plan.steps
       .flatMap((s) => s.tasks)
       .find((t) => t.name.includes('map-entity') && t.title === 'signage')!;
+    expect(task.contract.outputs['entity-mapping']?.path).toContain(join(dir, 'data'));
+    expect(task.contract.outputs['entity-mapping']?.path).not.toContain('$DESIGNBOOK_DATA');
     const dataPath = join(dir, 'mapping.json');
     writeFileSync(dataPath, JSON.stringify({ 'entity-mapping': compilePlannedMapping(task, plan) }));
     try {

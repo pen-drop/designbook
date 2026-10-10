@@ -79,6 +79,61 @@ export async function validateCompositionResult(
   return { ok: errors.length === 0, errors };
 }
 
+function mappingIdentityKey(identity: Record<string, unknown>): string {
+  const entityType = String(identity.entity_type ?? '');
+  const bundle = String(identity.bundle ?? '');
+  const modeKind = String(identity.mode_kind ?? 'view') || 'view';
+  const mode = modeKind === 'form' ? String(identity.form_mode ?? '') : String(identity.view_mode ?? '');
+  return `${entityType}.${bundle}:${modeKind}:${mode}`;
+}
+
+/** Compare each reused snapshot mapping file to the expression compiled from its declared bindings. */
+export function verifyReusedMappingSources(plan: Plan): string[] {
+  const errors: string[] = [];
+  const snaps = plan.composition?.mappings ?? [];
+  if (!snaps.length) return errors;
+  const planned = new Set<string>();
+  for (const step of plan.steps) {
+    for (const task of step.tasks) {
+      if (!task.name.includes('map-entity')) continue;
+      const mapping = isObj(task.params.mapping) ? task.params.mapping : undefined;
+      if (mapping) planned.add(mappingIdentityKey(mapping));
+    }
+  }
+  snaps.forEach((snap, i) => {
+    const identity = isObj(snap.identity) ? snap.identity : {};
+    if (planned.has(mappingIdentityKey(identity))) return;
+    const fake: PlanTask = {
+      name: 'map-entity--design-screen',
+      title: String(identity.bundle ?? `mapping-${i}`),
+      done: false,
+      params: { mapping: identity, component: snap.component, bindings: snap.bindings },
+      contract: { outputs: {} },
+      results: null,
+    };
+    let expected: string;
+    try {
+      expected = compilePlannedMapping(fake, plan);
+    } catch (err: unknown) {
+      errors.push(`composition.mappings[${i}]: ${err instanceof Error ? err.message : String(err)}`);
+      return;
+    }
+    if (!snap.source || !existsSync(snap.source)) {
+      errors.push(`composition.mappings[${i}].source: missing file ${snap.source}`);
+      return;
+    }
+    const source = readFileSync(snap.source, 'utf8');
+    try {
+      if (JSON.stringify(astOf(source)) !== JSON.stringify(astOf(expected))) {
+        errors.push(`composition.mappings[${i}]: mapping AST does not match the declared bindings`);
+      }
+    } catch (err: unknown) {
+      errors.push(`composition.mappings[${i}]: invalid JSONata: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  });
+  return errors;
+}
+
 function fieldAccess(binding: Binding): string {
   return `$fields.${[binding.field, ...(binding.path ?? [])].join('.')}`;
 }

@@ -11,6 +11,7 @@ import { load as parseYaml } from 'js-yaml';
 import { buildPlan, type TaskList } from '../workflow/plan-build.js';
 import { parsePlan, serializePlan, planDigest, type Plan, type PlanTask } from '../workflow/plan-document.js';
 import { deriveComposition, renderCompositionTree } from '../workflow/plan-composition.js';
+import { compilePlannedMapping } from '../workflow/plan-composition-result.js';
 import type { DesignbookConfig } from '../shared/config.js';
 
 const agents = resolve(process.cwd(), '../../.agents');
@@ -515,7 +516,7 @@ describe('buildPlan composition sealing', () => {
     expect(renderCompositionTree(deriveComposition(plan!).tree)).toContain('paragraph.signage [full]');
   });
 
-  it('seeds child mappings from composition.mappings and overlays planned tasks', async () => {
+  it('rejects a reused mapping whose source AST does not match the declared bindings', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'comp-map-'));
     const source = join(dir, 'paragraph.signage_item.view.full.jsonata');
     writeFileSync(source, '[]\n');
@@ -537,6 +538,38 @@ describe('buildPlan composition sealing', () => {
       };
       list.tasks = list.tasks.filter((t) => t !== child);
       const { plan, errors } = await buildPlan(list, vueOpts);
+      expect(plan).toBeNull();
+      expect(errors.join('\n')).toMatch(/composition\.mappings\[0\]/);
+      expect(errors.join('\n')).toMatch(/declared bindings/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('seeds child mappings from composition.mappings when the source AST matches', async () => {
+    const full = await buildSignage();
+    const expected = compilePlannedMapping(mappingTask(full, 'signage_item'), full);
+    const dir = mkdtempSync(join(tmpdir(), 'comp-map-ok-'));
+    const source = join(dir, 'paragraph.signage_item.view.full.jsonata');
+    writeFileSync(source, expected);
+    try {
+      const list = structuredClone(fixture);
+      const child = list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage_item')!;
+      const childParams = child.params!;
+      list.composition = {
+        ...list.composition!,
+        mappings: [
+          {
+            identity: childParams.mapping as Record<string, unknown>,
+            component: childParams.component as string,
+            bindings: childParams.bindings as unknown[],
+            source,
+            hash: createHash('sha256').update(expected).digest('hex'),
+          },
+        ],
+      };
+      list.tasks = list.tasks.filter((t) => t !== child);
+      const { plan, errors } = await buildPlan(list, vueOpts);
       expect(errors).toEqual([]);
       expect(plan).not.toBeNull();
       const text = renderCompositionTree(deriveComposition(plan!).tree);
@@ -547,14 +580,64 @@ describe('buildPlan composition sealing', () => {
     }
   });
 
+  it('rejects an image-field slot binding without an entity descriptor', async () => {
+    const list = structuredClone(fixture);
+    const model = list.composition!.data_model as {
+      content: { paragraph: { signage: { fields: Record<string, unknown> } } };
+    };
+    model.content.paragraph.signage.fields.field_image = { type: 'image', title: 'Bild' };
+    const write = list.tasks.find((t) => t.step === 'write-component' && t.title === 'signage')!;
+    (write.params!.component as { slots: Record<string, unknown> }).slots.image = {
+      description: 'Hero image',
+      required: false,
+    };
+    const map = list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage')!;
+    (map.params!.bindings as unknown[]).push({ field: 'field_image', slot: 'image' });
+    const { plan, errors } = await buildPlan(list, vueOpts);
+    expect(plan).toBeNull();
+    expect(errors.join('\n')).toMatch(/bindings\[\d+\]/);
+    expect(errors.join('\n')).toMatch(/field_image/);
+    expect(errors.join('\n')).toMatch(/cannot be expressed/);
+  });
+
+  it('rejects a top-level data_model shape that is not content-keyed', async () => {
+    const list = structuredClone(fixture);
+    const nested = list.composition!.data_model as {
+      content: Record<string, unknown>;
+      config: Record<string, unknown>;
+    };
+    list.composition = {
+      ...list.composition!,
+      data_model: { ...nested.content, config: nested.config },
+    };
+    const { plan, errors } = await buildPlan(list, vueOpts);
+    expect(plan).toBeNull();
+    expect(errors.join('\n')).toMatch(/unknown bundle paragraph\.signage/);
+  });
+
+  it('rejects a child bundle missing from target_bundles', async () => {
+    const list = structuredClone(fixture);
+    const model = list.composition!.data_model as {
+      content: {
+        paragraph: { signage: { fields: { field_signage_item: { settings: Record<string, unknown> } } } };
+      };
+    };
+    model.content.paragraph.signage.fields.field_signage_item.settings = {
+      target_type: 'paragraph',
+      target_bundles: ['other'],
+    };
+    const { plan, errors } = await buildPlan(list, vueOpts);
+    expect(plan).toBeNull();
+    expect(errors.join('\n')).toMatch(/signage_item/);
+    expect(errors.join('\n')).toMatch(/declared target/);
+  });
+
   it('rejects a canvas view-mode template as an unsupported mapping structure', async () => {
     const list = structuredClone(fixture);
     const model = list.composition!.data_model as {
-      paragraph: { signage: { view_modes: { full: { template: string } } } };
-      content?: { paragraph: { signage: { view_modes: { full: { template: string } } } } };
+      content: { paragraph: { signage: { view_modes: { full: { template: string } } } } };
     };
-    const bundle = model.content?.paragraph.signage ?? model.paragraph.signage;
-    bundle.view_modes.full.template = 'canvas';
+    model.content.paragraph.signage.view_modes.full.template = 'canvas';
     const { plan, errors } = await buildPlan(list, vueOpts);
     expect(plan).toBeNull();
     expect(errors.join('\n')).toMatch(/paragraph\.signage/);
