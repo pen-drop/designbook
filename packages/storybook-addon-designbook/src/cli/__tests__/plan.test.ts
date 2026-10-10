@@ -993,4 +993,24 @@ describe('plan done composition enforcement', () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it('emits the compiled mapping expression on map-entity plan instructions', async () => {
+    const { dir, planPath, plan } = await sealSignage();
+    try {
+      process.exitCode = undefined;
+      const { stdout, exitCode } = await runCli(['plan', 'instructions', planPath, '--step', 'map-entity']);
+      expect(exitCode).toBe(0);
+      const payload = JSON.parse(stdout) as {
+        tasks: Array<{ title: string; name: string; expected_mapping?: string }>;
+      };
+      const signage = payload.tasks.find((t) => t.title === 'signage' && t.name.includes('map-entity'))!;
+      const task = plan.steps
+        .flatMap((s) => s.tasks)
+        .find((t) => t.name.includes('map-entity') && t.title === 'signage')!;
+      expect(signage.expected_mapping).toBe(compilePlannedMapping(task, plan));
+    } finally {
+      process.exitCode = undefined;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });

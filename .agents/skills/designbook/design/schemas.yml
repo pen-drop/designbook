@@ -711,7 +711,10 @@ CompositionInputs:
         $ref: "#/CompositionSceneSnapshot"
     data_model:
       type: object
-      description: Data model used to validate fields, bundles and modes. Keys follow data-model.yml.
+      description: >
+        Parsed data-model.yml. Bundles live under content.<entity_type>.<bundle>
+        (config entities under config.<entity_type>.<bundle>); image styles under
+        config.image_style. Extra keys are the file's own sections.
       additionalProperties: true
 
 Variant:

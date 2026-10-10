@@ -14,7 +14,7 @@ import {
 } from '../workflow/plan-document.js';
 import { buildPlan, type TaskList } from '../workflow/plan-build.js';
 import { deriveComposition, renderCompositionTree, type CompositionTree } from '../workflow/plan-composition.js';
-import { validateCompositionResult } from '../workflow/plan-composition-result.js';
+import { compilePlannedMapping, validateCompositionResult } from '../workflow/plan-composition-result.js';
 
 function print(value: unknown): void {
   process.stdout.write(JSON.stringify(value, null, 2));
@@ -310,6 +310,9 @@ export function register(program: Command): void {
         tasks: step.tasks.map((t) => ({
           ...t,
           instruction_body: t.instruction ? (parsed.context[t.instruction]?.content ?? null) : null,
+          ...(t.name.includes('map-entity') && t.params.component
+            ? { expected_mapping: compilePlannedMapping(t, parsed) }
+            : {}),
         })),
       });
     });

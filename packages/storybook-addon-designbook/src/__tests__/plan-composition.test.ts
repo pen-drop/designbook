@@ -7,6 +7,7 @@ import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createHash } from 'node:crypto';
+import { load as parseYaml } from 'js-yaml';
 import { buildPlan, type TaskList } from '../workflow/plan-build.js';
 import { parsePlan, serializePlan, planDigest, type Plan, type PlanTask } from '../workflow/plan-document.js';
 import { deriveComposition, renderCompositionTree } from '../workflow/plan-composition.js';
@@ -341,9 +342,9 @@ describe('deriveComposition — signage fixture', () => {
     const signagePlan = await buildSignage();
     const cyclic = structuredClone(signagePlan);
     const model = cyclic.composition!.data_model as {
-      paragraph: { signage_item: { fields: Record<string, unknown> } };
+      content: { paragraph: { signage_item: { fields: Record<string, unknown> } } };
     };
-    model.paragraph.signage_item.fields.field_parent = {
+    model.content.paragraph.signage_item.fields.field_parent = {
       type: 'reference',
       settings: { target_type: 'paragraph', target_bundle: 'signage' },
     };
@@ -498,5 +499,66 @@ describe('buildPlan composition sealing', () => {
     const back = parsePlan(serializePlan(plan));
     expect(back.composition).toEqual(plan.composition);
     expect(planDigest(back)).toBe(plan.digest);
+  });
+
+  it('resolves bundles from data-model.yml content keys', async () => {
+    const list = structuredClone(fixture);
+    list.composition = {
+      ...list.composition!,
+      data_model: parseYaml(
+        readFileSync(resolve(process.cwd(), '../../fixtures/vue-web/data-model/designbook/data-model.yml'), 'utf8'),
+      ) as Record<string, unknown>,
+    };
+    const { plan, errors } = await buildPlan(list, vueOpts);
+    expect(errors).toEqual([]);
+    expect(plan).not.toBeNull();
+    expect(renderCompositionTree(deriveComposition(plan!).tree)).toContain('paragraph.signage [full]');
+  });
+
+  it('seeds child mappings from composition.mappings and overlays planned tasks', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'comp-map-'));
+    const source = join(dir, 'paragraph.signage_item.view.full.jsonata');
+    writeFileSync(source, '[]\n');
+    try {
+      const list = structuredClone(fixture);
+      const child = list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage_item')!;
+      const childParams = child.params!;
+      list.composition = {
+        ...list.composition!,
+        mappings: [
+          {
+            identity: childParams.mapping as Record<string, unknown>,
+            component: childParams.component as string,
+            bindings: childParams.bindings as unknown[],
+            source,
+            hash: createHash('sha256').update('[]\n').digest('hex'),
+          },
+        ],
+      };
+      list.tasks = list.tasks.filter((t) => t !== child);
+      const { plan, errors } = await buildPlan(list, vueOpts);
+      expect(errors).toEqual([]);
+      expect(plan).not.toBeNull();
+      const text = renderCompositionTree(deriveComposition(plan!).tree);
+      expect(text).toContain('paragraph.signage_item [full]');
+      expect(text).toContain('test_integration_vue:signage_item');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects a canvas view-mode template as an unsupported mapping structure', async () => {
+    const list = structuredClone(fixture);
+    const model = list.composition!.data_model as {
+      paragraph: { signage: { view_modes: { full: { template: string } } } };
+      content?: { paragraph: { signage: { view_modes: { full: { template: string } } } } };
+    };
+    const bundle = model.content?.paragraph.signage ?? model.paragraph.signage;
+    bundle.view_modes.full.template = 'canvas';
+    const { plan, errors } = await buildPlan(list, vueOpts);
+    expect(plan).toBeNull();
+    expect(errors.join('\n')).toMatch(/paragraph\.signage/);
+    expect(errors.join('\n')).toMatch(/unsupported structure/);
+    expect(errors.join('\n')).toMatch(/canvas/);
   });
 });

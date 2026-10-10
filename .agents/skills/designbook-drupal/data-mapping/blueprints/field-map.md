@@ -8,7 +8,7 @@ trigger:
 
 # Blueprint: Field Map
 
-Applies when a view mode declares `template: field-map`. The plan names one target `component` and a `bindings` list; the generated JSONata expression maps those fields onto that component. `plan done` AST-compares the submitted expression to this compiled template. A mapping that needs a ComponentNode array, canvas tree, or layout-builder section list is rejected at `plan build` with the selected target and unsupported structure.
+Applies when a view mode declares `template: field-map`. The plan names one target `component` and a `bindings` list. `plan instructions` for the map-entity step includes `expected_mapping`, the compiled JSONata `plan done` AST-compares against. A mapping whose view-mode template is canvas, layout-builder, or another non-field-map structure is rejected at `plan build` with the selected target and unsupported structure.
 
 ## Pattern
 
@@ -90,7 +90,7 @@ When the data-model declares `type: reference`, emit EntityNodes through the sam
 - Use `$fields.` plus dot notation for field access: `$fields.field_image.alt`
 - Static values (no `$`): `"h1"`, `true`, `42`
 - Provider prefix must be resolved at generation time: `DESIGNBOOK_COMPONENT_NAMESPACE:component-name`
-- Reference fields (`type: reference`) emit `{ "entity": "<entity_type>.<bundle>", "view_mode": "...", "record": $lookup({ "<id>": <index> }, $string($id)) }` nodes as slot values of the wrapping component. The renderer resolves refs inside slots and at top level. The exception is a pure delegation parent that has no wrapping markup of its own (a landing page stacking its paragraph sections), which may emit the refs as top-level array items.
+- Reference fields (`type: reference`) emit `{ "entity": "<entity_type>.<bundle>", "view_mode": "...", "record": $lookup({ "<id>": <index> }, $string($id)) }` nodes as slot values of the wrapping component. The renderer resolves refs inside slots and at top level.
 - Image fields: see [image-fields rule](../rules/image-fields.md) — `type: image` → ImageNode in slot, `type: reference` → EntityNode in slot
 
 ## Supported Settings

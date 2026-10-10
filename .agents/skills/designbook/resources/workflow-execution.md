@@ -11,7 +11,9 @@ scope.
    step with unfinished tasks in order. Completion: the next step is identified.
 2. Load `plan instructions <path> --step <id>` once for that step. It returns the
    step's referenced context (resolved from the plan's registry) and each task's
-   contract and params. Read the specified project code and input artifacts as
+   contract and params. A `map-entity` task includes `expected_mapping`, the
+   compiled JSONata expression `plan done` AST-compares; submit that expression
+   as `entity-mapping`. Read the specified project code and input artifacts as
    needed; use the embedded context and fixed planning decisions. A missing
    structural or visual decision is a planning defect to record (see Problems
    contract), not permission to invent a target or rediscover context. A nonzero

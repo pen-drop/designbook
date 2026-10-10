@@ -101,10 +101,16 @@ function getBundle(
   entityType: string,
   bundle: string,
 ): Record<string, unknown> | undefined {
-  const et = model[entityType];
-  if (!isObj(et)) return undefined;
-  const b = et[bundle];
-  return isObj(b) ? b : undefined;
+  const content = isObj(model.content) ? model.content : undefined;
+  const config = isObj(model.config) ? model.config : undefined;
+  for (const pool of [content, config, model]) {
+    if (!pool) continue;
+    const et = pool[entityType];
+    if (!isObj(et)) continue;
+    const b = et[bundle];
+    if (isObj(b)) return b;
+  }
+  return undefined;
 }
 
 function bundleFields(bundle: Record<string, unknown>): Record<string, unknown> {
@@ -302,6 +308,32 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
 
   const mappings = new Map<string, MappingRec>();
   const mappingProducers = new Map<string, string[]>();
+  composition.mappings.forEach((snap, i) => {
+    const identity = isObj(snap.identity) ? snap.identity : {};
+    const rec: MappingRec = {
+      task: {
+        name: 'map-entity--design-screen',
+        title: asString(identity.bundle) || `mapping-${i}`,
+        done: false,
+        params: {
+          mapping: identity,
+          component: snap.component,
+          bindings: snap.bindings,
+        },
+        contract: { outputs: {} },
+        results: null,
+      },
+      step: 'map-entity',
+      entity_type: asString(identity.entity_type),
+      bundle: asString(identity.bundle),
+      mode_kind: asString(identity.mode_kind) || 'view',
+      view_mode: asString(identity.view_mode),
+      form_mode: asString(identity.form_mode),
+      component: snap.component,
+      bindings: Array.isArray(snap.bindings) ? (snap.bindings as Binding[]) : [],
+    };
+    mappings.set(mappingKey(rec), rec);
+  });
   for (const { step, task } of tasks) {
     if (task.name !== 'map-entity--design-screen' && !task.name.startsWith('map-entity')) continue;
     const mapping = isObj(task.params.mapping) ? task.params.mapping : {};
@@ -336,6 +368,16 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
     const mode = rec.mode_kind === 'form' ? rec.form_mode : rec.view_mode;
     if (rec.mode_kind !== 'form' && !(mode in viewModes(bundle))) {
       errors.push(`${prefix('mapping.view_mode')}: ${rec.entity_type}.${rec.bundle} has no view mode "${mode}"`);
+    }
+    if (rec.mode_kind !== 'form') {
+      const modeDef = viewModes(bundle)[mode];
+      const template = isObj(modeDef) ? asString(modeDef.template) : '';
+      if (template && template !== 'field-map') {
+        errors.push(
+          `${prefix('mapping')}: ${rec.entity_type}.${rec.bundle}:${mode} uses unsupported structure ${template}`,
+        );
+        continue;
+      }
     }
     const comp = components.get(rec.component);
     if (!comp) {

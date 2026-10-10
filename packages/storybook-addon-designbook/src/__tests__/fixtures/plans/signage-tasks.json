@@ -11,6 +11,7 @@
           "ratio_16_9": { "aspect_ratio": "16:9" }
         }
       },
+      "content": {
       "paragraph": {
         "signage": {
           "title": "Wegweiser",
@@ -38,6 +39,7 @@
           },
           "view_modes": { "full": { "template": "field-map" } }
         }
+      }
       }
     }
   },
