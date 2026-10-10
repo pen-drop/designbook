@@ -94,7 +94,7 @@ export function runModelPipeline({
       ? `You are the planning model, already inside Promptfoo. Complete domain intake in this invocation. Workflow tasks wait for a later executor.\n` +
         `Goal:\n${requestPrompt}\n\n` +
         `${intakeSetup}\n`
-      : `You are the planning model, already inside Promptfoo. Produce a complete, sealed MD plan for a separate simple executor. Do NOT execute its tasks in this invocation.\n` +
+      : `You are the planning model, already inside Promptfoo. Seal the plan with the Designbook CLI in this invocation. A chat-only markdown brief is not a sealed plan — do not paste plan.md into the reply. Do NOT execute the sealed plan's tasks.\n` +
         `Goal for the executor:\n${requestPrompt}\n\n` +
         `${intakeSetup} Author the COMPLETE \`tasks.json\` — one entry per concrete task covering every step, each \`params\` satisfying that task's \`params_schema\`, and every open selector resolved.\n` +
         `Then run \`_debo plan build ${workflowId} --tasks <tasks.json> --name ${JSON.stringify(workflowId)}\`. It validates each task's params, embeds every body once, freezes the contracts and definitions, computes the digest (auto-sealed), and writes the plan to exactly ${JSON.stringify(workflowPath)}. Fix any reported unmet param or missing step in \`tasks.json\` and re-run until it returns ok.\n` +
