@@ -36,7 +36,7 @@ node scripts/check-pages.mjs && vitepress build && node scripts/check-site.mjs
 
 `check-site` scans built HTML for `a href`, `link href`, `img src`, and `script src`, strips the `/designbook` base, and rejects host-root escapes, doubled base, missing pages, missing assets, and routes missing from or extra versus `routes.json` (generated 404 excluded). Query strings are stripped. Malformed fragments fail.
 
-Publication: GitHub Pages from `main` only. `workflow_dispatch` must also be on `main` (`if: github.ref == 'refs/heads/main'` on build and deploy). Pull requests never receive Pages credentials.
+Publication: GitHub Pages from `next` only (this repository's default branch). `workflow_dispatch` must also be on `next` (`if: github.ref == 'refs/heads/next'` on build and deploy). Pull requests never receive Pages credentials.
 
 Do not edit `docs/specs`, `docs/spikes`, `docs/experiments`, `docs/gaia`, or `docs/superpowers` for this site. Do not add Daily work or a per-workflow task catalog.
 

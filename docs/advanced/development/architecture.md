@@ -26,4 +26,4 @@ Historical trees `docs/specs|spikes|experiments|gaia|superpowers` stay in git an
 
 ## CI
 
-Root `pnpm check` is typecheck → lint → test. Site gates run in `website` `build`. GitHub Actions: `build.yml` on push and pull_request (site test + site build on the Node matrix). `docs.yml` publishes GitHub Pages from `main` only, including `workflow_dispatch`, both jobs gated with `if: github.ref == 'refs/heads/main'`.
+Root `pnpm check` is typecheck → lint → test. Site gates run in `website` `build`. GitHub Actions: `build.yml` on push and pull_request (site test + site build on the Node matrix). `docs.yml` publishes GitHub Pages from `next` only (the default branch), including `workflow_dispatch`, both jobs gated with `if: github.ref == 'refs/heads/next'`.
