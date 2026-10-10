@@ -23,4 +23,4 @@ unchanged rule paths.
 
 **Done when:** one blueprint file is added or replaced, skill-creator file-type rules were loaded first, and every `rules/` file you considered is unchanged.
 
-This ticket does not change production skills. For a new integration contribution, add files beside the existing plugin (for example Tailwind's `install/rules/tailwind-storybook.md`) rather than editing core rules.
+For a new integration contribution, add files beside the existing plugin (for example Tailwind's `install/rules/tailwind-storybook.md`) rather than editing core rules.

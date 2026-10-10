@@ -10,7 +10,7 @@ Without a file, defaults are `technology: html` and `data` = `<cwd>/designbook`.
 
 ## Path resolution (after parse)
 
-Nested YAML is flattened (`dirs.css.tokens` → `dirs.css.tokens`). Arrays such as `extensions` stay arrays.
+Nested YAML is flattened to dotted keys (`dirs: { css: { tokens } }` → `dirs.css.tokens`). Arrays such as `extensions` stay arrays.
 
 | Key | Resolution |
 |---|---|

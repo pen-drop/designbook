@@ -16,7 +16,7 @@ Designbook has three product parts plus a private documentation site.
 
 ## Website package
 
-Private workspace package `website/`. VitePress 1.6.4, `srcDir` `../docs`, `base` `/designbook/`, DefaultTheme, Tailwind v4, Mermaid, `github-dark` code theme. Rewrites: `landing.md` → home, `index.md` → `/manual`. `website/.vitepress/manual.mjs` is the navigation authority (`AREAS`, `SIDEBAR`, `SRC_EXCLUDE`). Area strip is a DefaultTheme `sidebar-nav-before` slot (`SidebarAreas.vue`). Cards on `/manual` read `AREAS` (`ManualCards.vue`). Logos from DESIGNBOOK-79 live in `docs/assets/logo/` and are copied via Vite `publicDir`.
+Private workspace package `website/`. VitePress 1.6.4, `srcDir` `../docs`, `base` `/designbook/`, DefaultTheme, Tailwind v4, Mermaid, `github-dark` code theme. Rewrites: `landing.md` → home, `index.md` → `/manual`. `website/.vitepress/manual.mjs` is the navigation authority (`AREAS`, `SIDEBAR`, `SRC_EXCLUDE`). Area strip is a DefaultTheme `sidebar-nav-before` slot (`SidebarAreas.vue`). Cards on `/manual` read `AREAS` (`ManualCards.vue`). Logos live in `docs/assets/logo/` and are copied via Vite `publicDir`.
 
 Historical trees `docs/specs|spikes|experiments|gaia|superpowers` stay in git and are excluded from the site.
 
