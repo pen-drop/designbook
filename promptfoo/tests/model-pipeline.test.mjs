@@ -208,5 +208,13 @@ for (const planExit of [0, 100]) {
     );
     assert.equal(result.mainStatus, planExit ? null : 100);
     assert.equal(result.steps, undefined);
+    const plan = calls[0];
+    assert.match(plan.prompts[0], /plan tree/);
+    assert.ok(
+      plan.tests[0].assert.some((assertion) =>
+        String(assertion.value).includes("composition-presentation.mjs"),
+      ),
+    );
+    assert.equal(plan.tests[0].vars.composition_plan, result.workflowPath);
   });
 }

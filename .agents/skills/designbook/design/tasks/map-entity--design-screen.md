@@ -15,6 +15,8 @@ params:
   required:
     - mapping
     - data_model
+    - component
+    - bindings
   properties:
     mapping:
       type: object
@@ -23,6 +25,15 @@ params:
       path: $DESIGNBOOK_DATA/data-model.yml
       workflow: debo-data-model
       type: object
+    component:
+      type: string
+      description: Qualified target component ID (`namespace:name`) for this mapping.
+      examples: [test_integration_vue:signage]
+    bindings:
+      type: array
+      description: Field-to-prop and field-to-slot bindings for the target component.
+      items:
+        $ref: ../schemas.yml#/MappingBinding
 result:
   type: object
   required:
@@ -39,8 +50,8 @@ result:
 
 # Map Entity
 
-Produce the complete mapping expression for the one entity type, bundle and mode selected by `mapping`. Apply the requested field-output delta to the existing expression when present, preserving unrelated assignments and references.
+Produce the complete mapping expression for the one entity type, bundle and mode selected by `mapping`. The expression targets `component` and binds exactly the listed `bindings`. Apply the requested field-output delta to the existing expression when present, preserving unrelated assignments and references.
 
 Retain other view/form modes, bundles, model/display settings and sample records. Any necessary model, sample or consumer changes are separate outputs/tasks declared by intake. Reuse components that already satisfy the mapping.
 
-Completion: the selected mapping expresses the requested delta and all preserved assignments remain equivalent. The saved definition includes the standalone preview and concrete mapped-field browser observations.
+Completion: the selected mapping expresses the requested delta, binds exactly the declared fields, and all preserved assignments remain equivalent. The saved definition includes the standalone preview and concrete mapped-field browser observations.

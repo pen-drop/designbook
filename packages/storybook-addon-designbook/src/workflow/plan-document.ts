@@ -13,6 +13,7 @@ import { createHash } from 'node:crypto';
 import Ajv from 'ajv';
 import fm from 'front-matter';
 import { load as parseYaml, dump as dumpYaml } from 'js-yaml';
+import type { CompositionInputs } from './plan-composition.js';
 
 export interface EmbeddedContent {
   source: string;
@@ -50,6 +51,7 @@ export interface Plan {
   definitions: Record<string, unknown>;
   context: Record<string, ContextEntry>;
   steps: PlanStep[];
+  composition?: CompositionInputs;
 }
 
 const FENCE = /^(\s*)(`{3,}|~{3,})\s*\w*\s*$/;
@@ -113,6 +115,17 @@ export function parsePlan(md: string): Plan {
   let i = 0;
   while (i < lines.length) {
     const line = lines[i]!;
+    if (/^##\s+Composition\s*$/.test(line)) {
+      i++;
+      while (i < lines.length && !FENCE.test(lines[i]!) && !/^##\s/.test(lines[i]!)) i++;
+      if (i < lines.length && FENCE.test(lines[i]!)) {
+        const { body, next } = readFence(lines, i);
+        const parsed = (parseYaml(body) as CompositionInputs | null) ?? undefined;
+        if (parsed) plan.composition = parsed;
+        i = next;
+      }
+      continue;
+    }
     if (/^##\s+Schemas\s*$/.test(line)) {
       i++;
       while (i < lines.length && !FENCE.test(lines[i]!) && !/^##\s/.test(lines[i]!)) i++;
@@ -253,6 +266,13 @@ export function serializePlan(plan: Plan): string {
   out.push(yaml({ definitions: plan.definitions }));
   out.push('```');
   out.push('');
+  if (plan.composition) {
+    out.push('## Composition');
+    out.push('```yaml');
+    out.push(yaml(plan.composition));
+    out.push('```');
+    out.push('');
+  }
   out.push('## Context');
   for (const entry of Object.values(plan.context)) {
     out.push(`### ${entry.key} (${entry.kind}, source: ${entry.source})`);
@@ -364,6 +384,7 @@ export function planDigest(plan: Omit<Plan, 'digest'>): string {
     workflow: plan.workflow,
     definitions: plan.definitions,
     context: plan.context,
+    composition: plan.composition ?? null,
     steps: plan.steps.map((step) => ({
       ...step,
       tasks: step.tasks.map((task) => ({ ...task, done: false, results: null })),

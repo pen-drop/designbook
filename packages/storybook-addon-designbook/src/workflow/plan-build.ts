@@ -24,6 +24,12 @@ import {
   type PlanStep,
   type PlanTask,
 } from './plan-document.js';
+import {
+  deriveComposition,
+  verifyCompositionHashes,
+  WRITING_DESIGN_WORKFLOWS,
+  type CompositionInputs,
+} from './plan-composition.js';
 
 export interface TaskDecision {
   /** Execution step this task belongs to. */
@@ -37,6 +43,7 @@ export interface TaskList {
   workflow: string;
   selectors?: Record<string, string>;
   tasks: TaskDecision[];
+  composition?: CompositionInputs;
 }
 export interface BuildResult {
   plan: Plan | null;
@@ -119,7 +126,14 @@ export async function buildPlan(taskList: TaskList, opts: ResolveIntakeOptions =
 
   // No fixed-set completeness gate — the agent decides which tasks come along.
   // Hard requirements are enforced by `plan validate` (obligation rules), not here.
+  // AJV failure short-circuits semantic composition traversal.
   if (errors.length > 0) return { plan: null, plans_dir: intake.plans_dir, errors };
+
+  if (WRITING_DESIGN_WORKFLOWS.has(taskList.workflow)) {
+    if (!taskList.composition) errors.push('composition snapshot is required');
+    else errors.push(...verifyCompositionHashes(taskList.composition));
+    if (errors.length > 0) return { plan: null, plans_dir: intake.plans_dir, errors };
+  }
 
   // Assemble steps in the order the agent listed them (first-seen). Each step embeds
   // its intake-step context keys, or its gated context entries for a selector step.
@@ -156,7 +170,12 @@ export async function buildPlan(taskList: TaskList, opts: ResolveIntakeOptions =
     definitions: intake.definitions,
     context: registry,
     steps,
+    ...(taskList.composition ? { composition: taskList.composition } : {}),
   };
+  if (WRITING_DESIGN_WORKFLOWS.has(taskList.workflow) && draft.composition) {
+    const semantic = deriveComposition(draft);
+    if (semantic.errors.length > 0) return { plan: null, plans_dir: intake.plans_dir, errors: semantic.errors };
+  }
   // Seal on the canonical parsed form: parsePlan trims embedded bodies, so the
   // digest must be computed over what execution will re-parse — not the raw
   // in-memory plan — or `plan done` would report a digest mismatch.

@@ -55,9 +55,12 @@ Apply in spec, or after RED diagnosis for a repair:
    returns `ok` and the exact path of a sealed durable plan; execution has not
    started.
 3. Commit the executable plan and required reference artifacts so coding can
-   load them from its checkout. Hand off their exact paths, revision and approval
-   evidence. Keep GAIA process narrative in ticket comments; this saved plan is
-   the Designbook executor's input, not a replacement for those comments.
+   load them from its checkout. Hand off their exact paths, git revision, plan
+   digest and approval evidence. In the spec publication, include the exact
+   `plan tree <sealed-plan>` CLI text for that plan — copy the output, with the
+   path, revision and digest beside it. Keep GAIA process narrative in ticket
+   comments; this saved plan is the Designbook executor's input, not a
+   replacement for those comments.
 
 ## diagnose
 

@@ -73,4 +73,30 @@ describe('resolveIntakeContext', () => {
     expect(Object.keys(task!.outputs).length).toBeGreaterThan(0); // frozen output contract
     expect(Object.keys(ctx.definitions).length).toBeGreaterThan(0); // definitions pulled from schemas.yml
   });
+
+  it('exposes required Component props and object-keyed slots on Vue and SDC palettes', async () => {
+    const sdc = await resolveIntakeContext('design-component', { agentsDir: agents, config });
+    const vue = await resolveIntakeContext('design-component', {
+      agentsDir: agents,
+      config: { ...config, 'frameworks.component': 'vue', backend: 'none' } as unknown as DesignbookConfig,
+    });
+    for (const ctx of [sdc, vue]) {
+      const component = ctx.definitions.Component as {
+        required?: string[];
+        properties?: { slots?: { type?: string }; props?: unknown };
+      };
+      expect(component.required).toEqual(expect.arrayContaining(['component', 'group', 'props', 'slots']));
+      expect(component.properties?.slots?.type).toBe('object');
+      expect(component.properties?.props).toBeDefined();
+
+      const write = ctx.steps.flatMap((s) => s.tasks).find((t) => t.name === 'write-component');
+      expect(write).toBeDefined();
+      const map = ctx.steps.flatMap((s) => s.tasks).find((t) => t.name === 'map-entity--design-screen');
+      expect(map?.params_schema.required).toEqual(expect.arrayContaining(['component', 'bindings']));
+      const scene = ctx.steps.flatMap((s) => s.tasks).find((t) => t.name === 'write-scene');
+      expect(scene?.params_schema.required).toEqual(expect.arrayContaining(['items']));
+      const sample = ctx.steps.flatMap((s) => s.tasks).find((t) => t.name === 'create-sample-data');
+      expect(sample?.params_schema.required).toEqual(expect.arrayContaining(['records']));
+    }
+  });
 });

@@ -8,7 +8,7 @@ trigger:
 
 # Blueprint: Canvas — Passthrough Mapping
 
-Applies when `map-entity` runs for a view mode with `template: canvas` (i.e. a `canvas_page` bundle's full view mode).
+Applies when `map-entity` runs for a view mode with `template: canvas` (i.e. a `canvas_page` bundle's full view mode). The current plan-param contract is a single target component plus field bindings; a canvas tree cannot be expressed there, so `plan build` rejects that selected mapping with the target and unsupported structure.
 
 ## Behavior
 
