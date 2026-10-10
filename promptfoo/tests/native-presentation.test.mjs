@@ -174,6 +174,10 @@ test("all four design intakes reach write-planning.md and do not duplicate the t
   assert.match(building, /"composition"/);
   assert.match(building, /unmodified stdout/);
   assert.match(building, /user-visible reply/);
+  assert.match(
+    building,
+    /Completion: the next user-visible reply is that command's unmodified stdout/,
+  );
   assert.match(building, /ask/i);
   const fieldMap = readFileSync(
     join(
