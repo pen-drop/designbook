@@ -97,8 +97,8 @@ export function runModelPipeline({
       : `You are the planning model, already inside Promptfoo. Seal the plan with the Designbook CLI in this invocation. A chat-only markdown brief is not a sealed plan — do not paste plan.md into the reply. Do NOT execute the sealed plan's tasks.\n` +
         `Goal for the executor:\n${requestPrompt}\n\n` +
         `${intakeSetup} Author the COMPLETE \`tasks.json\` — one entry per concrete task covering every step, each \`params\` satisfying that task's \`params_schema\`, and every open selector resolved.\n` +
-        `Then run \`_debo plan build ${workflowId} --tasks <tasks.json> --name ${JSON.stringify(workflowId)}\`. It validates each task's params, embeds every body once, freezes the contracts and definitions, computes the digest (auto-sealed), and writes the plan to exactly ${JSON.stringify(workflowPath)}. Fix any reported unmet param or missing step in \`tasks.json\` and re-run until it returns ok.\n` +
-        `End after \`plan build\` returns ok and the sealed plan exists at ${JSON.stringify(workflowPath)}. Do NOT run \`plan done\`, write component/scene output files, invoke execute-workflow, or provision fixtures. The following executor invocation executes it.\n`,
+        `Continue \`.agents/skills/designbook/resources/workflow-building.md\` from that task list through sealing. \`_debo plan build ${workflowId} --tasks <tasks.json> --name ${JSON.stringify(workflowId)} --format json\` writes the plan to exactly ${JSON.stringify(workflowPath)}. It validates each task's params, embeds every body once, freezes the contracts and definitions, and computes the digest (auto-sealed). Fix any reported unmet param or missing step in \`tasks.json\` and re-run until it returns ok.\n` +
+        `End after that seal returns ok and the sealed plan exists at ${JSON.stringify(workflowPath)}. Do NOT run \`plan done\`, write component/scene output files, invoke execute-workflow, or provision fixtures. The following executor invocation executes it.\n`,
   ];
   const intakeArtifacts = JSON.parse(
     readFileSync(base.tags.intake_report, "utf8"),
@@ -112,6 +112,7 @@ export function runModelPipeline({
     workflow: workflowId,
     ...(blockade ? { blockade } : {}),
   };
+  plan.tests[0].vars.composition_plan = workflowPath;
   plan.tests[0].assert = [
     {
       type: "javascript",
@@ -125,6 +126,19 @@ export function runModelPipeline({
       type: "javascript",
       value: `file://${join(repo, "promptfoo/extensions/plan-artifacts.mjs")}`,
     },
+    ...(new Set([
+      "design-entity",
+      "design-component",
+      "design-screen",
+      "design-shell",
+    ]).has(workflowId)
+      ? [
+          {
+            type: "javascript",
+            value: `file://${join(repo, "promptfoo/extensions/composition-presentation.mjs")}`,
+          },
+        ]
+      : []),
   ];
   writeConfig(planPath, plan);
   const planStatus = evaluate(planPath);

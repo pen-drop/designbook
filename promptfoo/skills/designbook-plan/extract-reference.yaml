@@ -29,7 +29,7 @@ prompts:
         - `_debo reference inspect --reference <dir> --state rest --locator "body > div"`
         - `_debo reference capture-image --reference <dir> --path desktop--main--rest.png --url https://example.com --selector "body > div" --width 1280 --session anonymous`
       Then author the MD plan via `_debo plan build extract-reference --tasks
-      <tasks.json> --name <a concrete name for this initiative>` (using the intake
+      <tasks.json> --name <a concrete name for this initiative> --format json` (using the intake
       context's `plans_dir` plus a concrete `--name`), embedding `Reference`,
       `DesignReference` and their definitions in `## Schemas`, with the confirmed
       capture block as the publish task's params. `_debo plan validate <plan>`,

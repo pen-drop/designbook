@@ -31,12 +31,30 @@ precisely.
 | Invocation | Plan location | Notes |
 |---|---|---|
 | `plan build <wf> --tasks … --name <text>` | `$DESIGNBOOK_DATA/plans/<date>-<slug>/plan.md` | Default; use for **persist** (stop before execute). `--name` is required unless `--output`/`--ephemeral` is given; a same-day slug collision auto-suffixes (`-2`, `-3`, …), never overwrites |
-| `plan build <wf> --tasks … --ephemeral` | `$DESIGNBOOK_DATA/plans/.ephemeral/<uuid>.md` | Same seal; stdout JSON includes `ephemeral: true` and `plan`; `--name` is ignored; does not write a durable folder |
+| `plan build <wf> --tasks … --ephemeral` | `$DESIGNBOOK_DATA/plans/.ephemeral/<uuid>.md` | Same seal; `--format json` stdout includes `ephemeral: true` and `plan`; `--name` is ignored; does not write a durable folder |
 | `plan build <wf> --tasks … --output <path>` | Caller path | Kept; `--output` wins over both `--name` and `--ephemeral` |
 
-The CLI's stdout `plan` field is the single source of truth: every later command
-(`plan done`/`steps`/`instructions`/`validate`/`summary`) must be given that exact
-returned path, never one reconstructed from `plans_dir`.
+`--format text|json` applies to `plan build` and `plan tree`. Text is the
+interactive default. `plan build` text contains the saved path and ends with the
+composition tree. JSON is one parseable object: `{ ok, plan, steps, tasks, tree }`
+plus `ephemeral: true` when `--ephemeral`. Callers that read the returned `plan`
+path pass `--format json`. Do not mix trailing text into JSON stdout.
+
+The JSON `plan` field is the single source of truth: every later command
+(`plan done`/`steps`/`instructions`/`validate`/`summary`/`tree`) must be given that
+exact returned path, never one reconstructed from `plans_dir`.
+
+### `plan tree`
+
+Two input forms, one renderer:
+
+| Input | Command | Effect |
+|---|---|---|
+| JSON task list | `plan tree tasks.json --workflow <wf> [--config-dir <workspace>]` | Same build preparation as `plan build`, in memory; writes no plan file |
+| Sealed Markdown plan | `plan tree <plan.md>` | Reads the sealed plan only; refuses a digest mismatch |
+
+`--format json` returns the tree object. Default text is the deterministic
+renderer. `plan build --format json` `.tree` equals `plan tree <plan> --format json`.
 
 Ephemeral and durable builds share the same sealing and later `plan *` /
 `execute-workflow` contract. Cleanup of ephemeral plan files after success or
@@ -45,9 +63,10 @@ abandon is the builder/executor's responsibility (see
 
 Execution (against the saved MD plan): `plan steps <path>` for the routing
 overview, `plan instructions <path> --step <id>` for a step's referenced context
-and task contracts, `plan done <path> --task <name> --data-file <json>` to
-validate one task result against its frozen in-plan contract and record it, and
-`plan validate <path>` to report obligations whose required task is absent.
+and task contracts (`map-entity` tasks include `expected_mapping`), `plan done
+<path> --task <name> --data-file <json>` to validate one task result against its
+frozen in-plan contract and record it, and `plan validate <path>` to report
+obligations whose required task is absent.
 `plan summary <path>` reports done/total. Persistent task defects are recorded in
 the `problems.md` sidecar in the plan's per-initiative folder (see
 [execution](workflow-execution.md)); the CLI checkbox state stays done/pending

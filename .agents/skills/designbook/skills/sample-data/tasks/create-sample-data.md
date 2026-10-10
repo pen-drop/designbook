@@ -12,6 +12,7 @@ params:
     - bundle
     - data_model
     - components_dir
+    - records
   properties:
     section_id:
       type: string
@@ -36,6 +37,11 @@ params:
       path: $DESIGNBOOK_DIRS_COMPONENTS
       type: string
       description: Available components — required for canvas bundle generation (rule canvas.md)
+    records:
+      type: array
+      description: Ordered records to write or update. Length is the count; each entry names id, summary and values.
+      items:
+        $ref: ../schemas.yml#/PlannedSampleRecord
 result:
   type: object
   required:
@@ -52,7 +58,7 @@ result:
 
 ## Result: sample-data
 
-Produce the complete sample pool for the selected bundle. Apply only the record/field changes fixed by intake; retain unrelated records and fields, stable IDs, order and existing section tags. Add the requested section tag without discarding other tags.
+Produce the complete sample pool for the selected bundle. The written pool contains the declared `records` in order. Apply only the record/field changes fixed by intake; retain unrelated records and fields, stable IDs, order and existing section tags. Add the requested section tag without discarding other tags.
 
 Reuse a sufficient pool without scheduling a write. When more samples are necessary, preserve existing records and append only the declared shortfall with unused IDs. A selected record update preserves its identity. Preserve other bundles and all unrelated model/display configuration.
 

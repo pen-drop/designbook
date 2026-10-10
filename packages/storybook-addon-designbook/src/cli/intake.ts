@@ -3,6 +3,7 @@ import { dirname } from 'node:path';
 import type { Command } from 'commander';
 import { findConfig, type DesignbookConfig } from '../shared/config.js';
 import { resolveIntakeContext, type IntakeContext } from '../workflow/intake-resolve.js';
+import { WRITING_DESIGN_WORKFLOWS } from '../workflow/plan-composition.js';
 
 /**
  * The palette an agent needs to author a `plan build` task list: the intake
@@ -41,6 +42,12 @@ function toPalette(ctx: IntakeContext) {
       tasks: g.tasks.map(task),
       context: g.context.map(body),
     })),
+    ...(WRITING_DESIGN_WORKFLOWS.has(ctx.workflow)
+      ? {
+          composition: { $ref: '#/definitions/CompositionInputs' },
+          definitions: ctx.definitions,
+        }
+      : {}),
   };
 }
 

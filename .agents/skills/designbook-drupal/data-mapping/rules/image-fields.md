@@ -7,6 +7,8 @@ trigger:
 
 Hard constraints for mapping image and reference fields in entity-mapping JSONata expressions.
 
+Under the field-map `bindings` contract, `plan build` rejects a `type: image` field at `bindings[i]` (`image field <name> cannot be expressed`). MappingBinding has no `image_style`; an ImageNode is not a binding target. Scene `items` may still include ImageNodes. A `type: reference` field on a slot still emits an EntityNode via `$map`/`$lookup` when `entity` is declared. For a planned map-entity step, submit `expected_mapping` from `plan instructions`.
+
 ## Invariants
 
 ### 1. Images are always slots

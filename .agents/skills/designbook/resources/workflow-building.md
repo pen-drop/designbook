@@ -21,6 +21,13 @@ sealing. Every mode uses the same sealed-plan assembly and the same
    ```json
    {
      "selectors": { "source": "website" },
+     "composition": {
+       "components": [],
+       "mappings": [],
+       "samples": [],
+       "scenes": [],
+       "data_model": {}
+     },
      "tasks": [
        { "step": "write-component", "task": "write-component", "title": "header", "params": { … } },
        { "step": "write-component", "task": "write-component", "title": "footer", "params": { … } },
@@ -30,7 +37,8 @@ sealing. Every mode uses the same sealed-plan assembly and the same
    ```
    Each task names a palette `task` (repeat it for several instances, e.g. header
    and footer both instantiate `write-component`), a `title`, and `params` that
-   satisfy that task's `params_schema`. Cover every step the palette lists.
+   satisfy that task's `params_schema`. A writing-design list carries `composition`
+   matching the palette `$ref` to `CompositionInputs`. Cover every step the palette lists.
    Completion: one entry per concrete task, params filled.
 3. Before `plan build` for a **design-*** workflow that depends on a published
    revision: confirm that revision is approved for the needed scope. Run
@@ -43,8 +51,12 @@ sealing. Every mode uses the same sealed-plan assembly and the same
    work that needs no new visuals does not invent a ReferenceNeed. Completion:
    either the dependent revision is approved for the need, or a precise blockade /
    ReferenceNeed is reported.
-4. Choose an **execution mode**, then run `plan build` accordingly. Caller override
-   always wins over workflow defaults.
+4. For a **design-*** workflow, run `plan tree <tasks.json> --workflow <id>
+   --config-dir <workspace>`. The next assistant message's body is that
+   command's unmodified stdout. In `ask` mode that same unmodified stdout precedes
+   the three choices. Completion: the next user-visible reply is that command's unmodified stdout.
+5. After that user-visible reply is sent, choose an **execution mode** and run `plan build` accordingly.
+   Caller override always wins over workflow defaults.
 
    | Mode | Persist durable plan? | Start execute? |
    |---|---|---|
@@ -67,26 +79,26 @@ sealing. Every mode uses the same sealed-plan assembly and the same
    **Mode actions:**
 
    - **`persist`:** `plan build <workflow> --tasks tasks.json --name <concrete
-     initiative name>` (durable default). Stop after `ok`. Hand the CLI's
-     returned `plan` path out — do **not** invoke `execute-workflow` in this
+     initiative name> --format json` (durable default). Stop after `ok`. Hand the
+     CLI's returned `plan` path out — do **not** invoke `execute-workflow` in this
      start.
-   - **`ephemeral`:** `plan build <workflow> --tasks tasks.json --ephemeral`. The
-     CLI writes `$DESIGNBOOK_DATA/plans/.ephemeral/<unique>.md` and returns
-     JSON with `ephemeral: true` and `plan`. Invoke
+   - **`ephemeral`:** `plan build <workflow> --tasks tasks.json --ephemeral
+     --format json`. The CLI writes `$DESIGNBOOK_DATA/plans/.ephemeral/<unique>.md`
+     and returns JSON with `ephemeral: true` and `plan`. Invoke
      `execute-workflow <ephemeral-plan-path>` in a separate execution invocation.
      After successful completion or explicit abandon, delete that ephemeral plan
      file after caller/tester inspection when scoring needs the sealed plan;
      result artifacts remain. Interrupted ephemeral runs have no durable
      resume — re-intake and rebuild, or switch to `persist` first.
-   - **`ask`:** Before build/execute, present the three choices (run here /
-     ephemeral, hand off / persist without execute, or cancel). Follow the chosen
-     mode.
+   - **`ask`:** The user-visible reply is the unmodified stdout of `plan tree`,
+     then the three choices (run here / ephemeral, hand off / persist without
+     execute, or cancel). Follow the chosen mode.
 
    `plan build` validates each task's params against its `params_schema` and that
    every required step is covered, embeds each rule/blueprint/task body once,
    freezes the output contracts and definitions, computes the digest (auto-sealed),
    and writes the plan. It reports each unmet param or missing step precisely —
-   fix `tasks.json` and re-run until it returns `ok`. Sealing is identical for
+   fix `tasks.json` and re-run with `--format json` until it returns `ok`. Sealing is identical for
    ephemeral and durable paths. Completion: sealed plan exists at the mode's path;
    execute started only when the mode says so.
 

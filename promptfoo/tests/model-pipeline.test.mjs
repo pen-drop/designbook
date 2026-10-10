@@ -107,7 +107,7 @@ test("runner exposes explicit planner/executor selection without changing verifi
   const verifyPrompt = verify.prompts[0];
   assert.doesNotMatch(verifyPrompt, /\.page__header|\.page__footer|leando\.de/);
   assert.doesNotMatch(verifyPrompt, /criteria above|take precedence/);
-  assert.match(verifyPrompt, /all comparison targets from that saved plan/);
+  assert.match(verifyPrompt, /all comparison targets from the saved main plan/);
   assert.match(verifyPrompt, /3% when none is declared/);
   assert.throws(
     () =>
@@ -181,7 +181,7 @@ test("executor receives only a saved path and keeps all final assertions", (t) =
   assert.equal(config.providers[0].config.intakeHandoffInput, undefined);
   assert.deepEqual(config.tests[0].assert, f.base.tests[0].assert);
   assert.match(config.prompts[0], /execute-workflow/);
-  assert.match(config.prompts[0], /until complete or blocked/);
+  assert.match(config.prompts[0], /continue through remaining tasks/);
   assert.doesNotMatch(
     config.prompts[0],
     /ENTIRE ORIGINAL CASE|Assigned step|native_work_order/,
@@ -255,5 +255,13 @@ for (const planExit of [0, 100]) {
     );
     assert.equal(result.mainStatus, planExit ? null : 100);
     assert.equal(result.steps, undefined);
+    const plan = calls[0];
+    assert.doesNotMatch(plan.prompts[0], /plan tree|composition tree/);
+    assert.ok(
+      plan.tests[0].assert.some((assertion) =>
+        String(assertion.value).includes("composition-presentation.mjs"),
+      ),
+    );
+    assert.equal(plan.tests[0].vars.composition_plan, result.workflowPath);
   });
 }

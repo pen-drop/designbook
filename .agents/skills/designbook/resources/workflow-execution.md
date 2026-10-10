@@ -1,8 +1,8 @@
 # Execute a saved workflow plan
 
 Input: a path to a complete MD plan (durable persisted-plan path — the exact
-`plan` field `plan build` returned — or an ephemeral path from
-`plan build --ephemeral`). This is the sole owner of the task loop. The executor
+`plan` field `plan build --format json` returned — or an ephemeral path from
+`plan build --ephemeral --format json`). This is the sole owner of the task loop. The executor
 reads only the plan — no discovery, no rule selection, no added tasks, no widened
 scope.
 
@@ -11,7 +11,9 @@ scope.
    step with unfinished tasks in order. Completion: the next step is identified.
 2. Load `plan instructions <path> --step <id>` once for that step. It returns the
    step's referenced context (resolved from the plan's registry) and each task's
-   contract and params. Read the specified project code and input artifacts as
+   contract and params. A `map-entity` task includes `expected_mapping`, the
+   compiled JSONata expression `plan done` AST-compares; submit that expression
+   as `entity-mapping`. Read the specified project code and input artifacts as
    needed; use the embedded context and fixed planning decisions. A missing
    structural or visual decision is a planning defect to record (see Problems
    contract), not permission to invent a target or rediscover context. A nonzero
@@ -25,9 +27,11 @@ scope.
    of a step share a name (e.g. `write-component` for header and footer), add
    `--title <title>` to select one; the CLI refuses an ambiguous name. Direct file
    outputs use their declared paths. The CLI validates the result against the
-   task's frozen in-plan contract and, on success, ticks the checkbox and records
-   the results. Completion: every task of the step is `done`, or unfinished tasks
-   are accounted for in the problems log.
+   task's frozen in-plan contract, including composition for `write-scene` and
+   `map-entity` (scene `items` and mapping bindings equal the sealed params), and
+   on success ticks the checkbox and records the results. A composition change
+   needs a new intake and a new sealed plan. Completion: every task of the step
+   is `done`, or unfinished tasks are accounted for in the problems log.
 5. A validation failure leaves the task open and reports the failing outputs.
    Attempt an in-scope correction (same task, sealed params and contracts only)
    and resubmit `plan done`. If the defect persists, or fixing it would require
