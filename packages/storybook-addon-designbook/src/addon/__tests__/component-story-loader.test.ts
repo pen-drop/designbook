@@ -74,4 +74,43 @@ describe('designbookLoadPlugin — component story loading', () => {
     expect(code).toContain('"variant": "outline"');
     expect(code).toContain('"label": "Click me"');
   });
+
+  it('renders type:element slot items as string slot values', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'debo-component-element-'));
+    mkdirSync(resolve(root, 'designbook'), { recursive: true });
+    const componentsDir = resolve(root, 'components', 'signage-item');
+    mkdirSync(componentsDir, { recursive: true });
+    writeFileSync(join(componentsDir, 'signage-item.vue'), '<template><div /></template>');
+    const storyFile = join(componentsDir, 'signage-item.default.story.yml');
+    writeFileSync(
+      storyFile,
+      [
+        'component: "test:signage-item"',
+        'name: Default',
+        'variant: "default"',
+        'slots:',
+        '  title:',
+        '    - type: element',
+        '      value: Training',
+        '      tag: span',
+        '  description:',
+        '    - type: element',
+        '      value: Build your skills.',
+        '',
+      ].join('\n'),
+    );
+
+    const plugin = designbookLoadPlugin(root, {
+      fsRoot: 'designbook',
+      resolveImportPath: (componentId) => `./components/${componentId.split(':')[1]}.js`,
+      wrapImport: (alias) => `{ render: (p, s) => ({ component: '${alias}', props: p, slots: s }) }`,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any;
+
+    const code: string | null = await plugin.load(storyFile);
+    expect(code).toBeTruthy();
+    expect(code).toContain('"title": "Training"');
+    expect(code).toContain('"description": "Build your skills."');
+    expect(code).not.toContain('"type": "element"');
+  });
 });

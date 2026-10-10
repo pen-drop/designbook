@@ -37,6 +37,13 @@ function needsBuilding(node: RawNode): node is SceneNode {
   );
 }
 
+/** Vue/SDC story YAML `type: element` slot item — text (optional tag) that is not a component. */
+function isElementNode(node: unknown): node is { type: 'element'; value: string } {
+  if (typeof node !== 'object' || node === null) return false;
+  const n = node as Record<string, unknown>;
+  return n.type === 'element' && typeof n.value === 'string';
+}
+
 // ── resolveSlots ──────────────────────────────────────────────────────
 
 /**
@@ -63,6 +70,9 @@ async function resolveSlots(
           if (typeof item === 'string') {
             return [{ kind: 'string', value: item }];
           }
+          if (isElementNode(item)) {
+            return [{ kind: 'string', value: item.value }];
+          }
           if (needsBuilding(item)) {
             return ctx.buildNode(item);
           }
@@ -80,8 +90,10 @@ async function resolveSlots(
       );
       resolved[key] = items.flat();
     } else {
-      // Single node — may be a SceneNode ref or a ComponentNode
-      if (needsBuilding(value as RawNode)) {
+      // Single node — may be a SceneNode ref, an element, or a ComponentNode
+      if (isElementNode(value)) {
+        resolved[key] = [{ kind: 'string', value: value.value }];
+      } else if (needsBuilding(value as RawNode)) {
         resolved[key] = await ctx.buildNode(value as unknown as SceneNode);
       } else {
         const cn = value as ComponentNode;

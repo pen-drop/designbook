@@ -172,6 +172,39 @@ describe('BuilderRegistry', () => {
     });
     expect(result?.slots).not.toHaveProperty('body');
   });
+
+  it('projects type:element slot items to string nodes so Vue stories render their text', async () => {
+    const registry = new BuilderRegistry();
+    const componentBuilder: SceneNodeBuilder = {
+      appliesTo: (node) => 'component' in node && typeof node['component'] === 'string',
+      build: vi.fn().mockResolvedValue({
+        nodes: [
+          {
+            component: 'test:signage-item',
+            slots: {
+              title: [{ type: 'element', value: 'Training', tag: 'span' }],
+              description: [{ type: 'element', value: 'Build your skills.' }],
+            },
+          },
+        ],
+        meta: { kind: 'component' },
+      }),
+    };
+    registry.register(componentBuilder);
+
+    const ctx = registry.createContext({
+      dataModel: { content: {} },
+      sampleData: {},
+      designbookDir: '/test',
+    });
+
+    const [result] = await registry.buildNode({ component: 'test:signage-item' } as SceneNode, ctx);
+
+    expect(result?.slots).toEqual({
+      title: [{ kind: 'string', value: 'Training' }],
+      description: [{ kind: 'string', value: 'Build your skills.' }],
+    });
+  });
   // ── DESIGNBOOK-54: entities a mapping resolves to stay visible in the tree ──
 
   const ctxFor = (registry: BuilderRegistry) =>

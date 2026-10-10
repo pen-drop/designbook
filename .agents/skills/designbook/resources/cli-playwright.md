@@ -70,8 +70,8 @@ npx playwright-cli open
 npx playwright-cli goto "${story_url}"
 npx playwright-cli resize 1280 800
 npx playwright-cli run-code "async (page) => { await page.waitForTimeout(2000) }"
-npx playwright-cli eval "document.querySelector('#storybook-root')?.innerText || ''"
-npx playwright-cli eval "document.querySelector('#error-message, #preview-loader-error, .sb-errordisplay')?.innerText || ''"
+npx playwright-cli eval "JSON.stringify({text: document.querySelector('#storybook-root')?.textContent?.trim() || '', children: document.querySelector('#storybook-root')?.childElementCount || 0})"
+npx playwright-cli eval "JSON.stringify([...document.querySelectorAll('#error-message, #preview-loader-error, .sb-errordisplay')].map(el => ({display: getComputedStyle(el).display, text: (el.innerText||'').slice(0,200)})))"
 npx playwright-cli close
 ```
 
