@@ -22,12 +22,20 @@ StoryId:
     rule). Example: `test-integration-drupal-shell-header--default`.
 
 
+    Vue component stories: derive from title `Components/<Human Name>` (see
+    designbook-vue `vue-components` story-address rule). Example:
+    `components-book-card--default`.
+
+
     Scene files (`*.scenes.yml`): each scene export uses title `<group>/Scenes`
     and the scene display name, so the id is `sanitize(<group>/Scenes)--sanitize(<scene>)`.
-    The overview entry (section files only) uses title `<group>` and name
-    `Overview`, so the id is `sanitize(<group>)--overview`. Example: group
-    `Designbook/Design System`, scene `Shell` → `designbook-design-system-scenes--shell`;
-    overview → `designbook-design-system--overview`.
+    The stem is the `group` field, not the section file `id`. Example: group
+    `Designbook/Sections/Wayfinding`, scene `signage` →
+    `designbook-sections-wayfinding-scenes--signage`. The overview entry
+    (section files only) uses title `<group>` and name `Overview`, so the id is
+    `sanitize(<group>)--overview`. Example: group `Designbook/Design System`,
+    scene `Shell` → `designbook-design-system-scenes--shell`; overview →
+    `designbook-design-system--overview`.
 
 
     Entity stories use their own title prefixes. Copy retained ids from the live
@@ -35,6 +43,8 @@ StoryId:
   examples:
     - test-integration-drupal-shell-header--default
     - test-integration-drupal-action-button--primary
+    - components-book-card--default
+    - designbook-sections-wayfinding-scenes--signage
     - designbook-design-system-scenes--shell
     - designbook-design-system--overview
 

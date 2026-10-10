@@ -32,8 +32,28 @@ indexer never sees.
 ### Storybook story address
 
 Freeze identity in the plan as `namespace` + `group` + `component` + `variant`. Derive
-every CSF story id and story URL from that identity — same derivation scheme as every
-other designbook story, independent of component framework.
+every CSF story id and story URL from that identity.
+
+The Vue story indexer builds:
+
+```text
+title = Components/{Human Name}
+id    = sanitize(title)--sanitize(variant)
+```
+
+`Human Name` is the kebab-case directory name with each segment capitalized and
+hyphens turned into spaces (`signage-item` → `Signage Item`). `sanitize` is CSF
+`toId`: lowercase, non-alphanumerics become `-`. Examples:
+
+| component dir | variant | title | CSF story id |
+|---|---|---|---|
+| `signage` | `default` | `Components/Signage` | `components-signage--default` |
+| `signage-item` | `default` | `Components/Signage Item` | `components-signage-item--default` |
+| `book-card` | `sale` | `Components/Book Card` | `components-book-card--sale` |
+
+`refresh-components.story_ids` and every `validate` / capture story address for
+components written in this run use these derived ids. Retained fixture stories keep
+the exact id already present in the live index.
 
 ### File Set
 

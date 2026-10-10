@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { mkdtempSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
+import { toId, storyNameFromExport } from 'storybook/internal/csf';
 import { indexComponentStory } from '../addon/preset';
 
 let componentsDir: string;
@@ -38,6 +39,12 @@ describe('indexComponentStory', () => {
     expect(entries[0]!.name).toBe('Default');
     expect(entries[0]!.type).toBe('story');
     expect(entries[0]!.tags).toContain('component');
+  });
+
+  it('CSF id is sanitize(Components/<Human Name>)--sanitize(variant name)', () => {
+    const entry = indexComponentStory(join(componentsDir, 'book-card.default.story.yml'))[0] as IndexEntry;
+    const name = entry.name ?? storyNameFromExport(entry.exportName);
+    expect(toId(entry.title, name)).toBe('components-book-card--default');
   });
 
   it('derives a distinct name/exportName per variant, sharing the same title', () => {

@@ -56,7 +56,9 @@ describe('section scene story ids', () => {
 
     expect(description).toMatch(/sanitize\(<group>\/Scenes\)/i);
     expect(description).toMatch(/sanitize\(<group>\)--overview/i);
+    expect(description).toMatch(/Vue component stories/i);
     expect(examples).toContain('designbook-design-system-scenes--shell');
+    expect(examples).toContain('components-book-card--default');
     expect(examples).not.toContain('design-system--shell');
   });
 });
