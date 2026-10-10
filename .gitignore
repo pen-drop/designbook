@@ -1,9 +1,12 @@
-node_modules/*
+node_modules/
 dist/*
 .idea
 *.css
 components/*/*.js
 !*.src.css
+!website/.vitepress/theme/**/*.css
+website/.vitepress/cache
+website/.vitepress/dist
 !*.src.js
 package-lock.json
 !.storybook/*js

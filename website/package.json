@@ -1,0 +1,21 @@
+{
+  "name": "website",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "node scripts/check-pages.mjs && vitepress build && node scripts/check-site.mjs",
+    "check:pages": "node scripts/check-pages.mjs",
+    "check:site": "node scripts/check-site.mjs",
+    "test": "node --test scripts/checks.test.mjs",
+    "preview": "vitepress preview"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "mermaid": "^11.17.2",
+    "tailwindcss": "^4.3.3",
+    "vitepress": "1.6.4",
+    "vitepress-plugin-mermaid": "^2.0.17",
+    "vue": "^3.5.13"
+  }
+}

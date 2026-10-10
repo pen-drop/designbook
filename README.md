@@ -21,6 +21,10 @@ Design Tool (Figma, Make, Stitch, ...)
 
 Framework-agnostic: the same pipeline works regardless of your frontend framework, CSS tooling, or CMS.
 
+## Handbook
+
+The public handbook is at [https://pen-drop.github.io/designbook/](https://pen-drop.github.io/designbook/). It covers Get started, Extend Designbook, Integrations, and Advanced. This README stays the repository entry; the handbook is the user manual.
+
 ## Installation
 
 The user-facing skills are distributed as four plugins: `designbook` (core, skill name `debo`), `designbook-drupal`, `designbook-css-tailwind`, and `designbook-stitch`.

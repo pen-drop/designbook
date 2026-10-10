@@ -1,11 +1,13 @@
 name: Build
 
-on: [push]
+on:
+  push:
+  pull_request:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: "!contains(github.event.head_commit.message, 'ci skip') && !contains(github.event.head_commit.message, 'skip ci')"
+    if: github.event_name == 'pull_request' || (!contains(github.event.head_commit.message, 'ci skip') && !contains(github.event.head_commit.message, 'skip ci'))
     strategy:
       matrix:
         node-version: [20.19, 22.12]
@@ -41,3 +43,9 @@ jobs:
 
       - name: Build Integration (Storybook)
         run: pnpm --filter test-integration-drupal build-storybook
+
+      - name: Test website gates
+        run: pnpm --filter website test
+
+      - name: Build website
+        run: pnpm --filter website build
