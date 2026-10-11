@@ -1,0 +1,7 @@
+component: test_integration_drupal:label
+name: Default
+slots:
+  text:
+    - type: element
+      tag: span
+      value: Recipe

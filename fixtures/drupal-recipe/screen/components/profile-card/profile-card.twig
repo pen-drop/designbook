@@ -1,0 +1,4 @@
+<div{{ attributes.addClass(['profile-card', 'flex', 'flex-col', 'gap-md', 'sm:flex-row']) }}>
+  {% if image %}<div class="w-1/3 shrink-0 overflow-hidden rounded-sm sm:w-1/5">{{ image }}</div>{% endif %}
+  <div class="flex flex-col gap-sm"><p class="font-body text-bold-text text-foreground-muted">{{ name }}</p>{% if description %}<p class="font-body text-paragraph-2 text-body-text">{{ description }}</p>{% endif %}</div>
+</div>

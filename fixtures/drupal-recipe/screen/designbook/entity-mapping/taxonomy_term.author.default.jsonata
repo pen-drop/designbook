@@ -1,0 +1,13 @@
+(
+  $fields := $;
+  [
+    {
+      "component": "test_integration_drupal:profile-card",
+      "slots": {
+        "name": $fields.name,
+        "description": $fields.description,
+        "image": [$map($fields.field_author_image, function($image) { { "image": "ratio_1_1", "src": $image.src, "alt": $image.alt } })]
+      }
+    }
+  ]
+)

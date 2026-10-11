@@ -1,0 +1,31 @@
+$schema: >-
+  https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: saas-pricing-card
+status: experimental
+group: Data Display
+description: >-
+  Subscription plan card: plan name with optional badge, price per period, call
+  to action and included features. Cards align to the bottom of their row.
+variants:
+  default:
+    title: Default
+    description: White card with hairline border and soft shadow.
+  highlighted:
+    title: Highlighted
+    description: Black emphasised card with light text.
+slots:
+  name:
+    title: Plan name
+  badge:
+    title: Badge
+  price:
+    title: Price
+  period:
+    title: Billing period
+  action:
+    title: Action
+  features:
+    title: Features
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

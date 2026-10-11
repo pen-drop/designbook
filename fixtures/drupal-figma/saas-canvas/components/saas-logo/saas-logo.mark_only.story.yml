@@ -1,0 +1,7 @@
+component: test_integration_drupal:saas-logo
+name: Mark only
+variant: mark_only
+props:
+  href: /
+  src: /saas-kit/logo-saas.png
+  alt: SaaS

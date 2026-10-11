@@ -1,0 +1,53 @@
+component: test_integration_drupal:detail-page
+name: Default
+props:
+  prep_minutes: 20
+  cook_minutes: 40
+  servings: 4
+  equipment:
+    - Roasting pan
+    - Meat thermometer
+  nutrition:
+    - 'Calories: ~250'
+    - 'Protein: ~30g'
+slots:
+  category:
+    - type: element
+      tag: span
+      value: Recipe
+  title:
+    - type: element
+      tag: span
+      value: Lemon Garlic Roasted Chicken
+  description:
+    - type: element
+      tag: span
+      value: Welcome to Cooks Delight, where culinary dreams come alive!
+  difficulty:
+    - type: element
+      tag: span
+      value: Hard
+  nutrition_basis:
+    - type: element
+      tag: span
+      value: 'Per serving (based on a 4-pound chicken):'
+  ingredients:
+    - type: element
+      tag: li
+      value: 1 whole chicken (about 3-4 pounds)
+    - type: element
+      tag: li
+      value: 2 lemons, sliced
+  steps:
+    - type: element
+      tag: p
+      value: Steps preview
+  body:
+    - type: element
+      tag: p
+      value: Picture succulent chicken infused with the bright notes of lemon.
+  image:
+    - type: image
+      uri: /images/recipes/lemon-garlic-roasted-chicken.png
+      attributes:
+        alt: Lemon garlic roasted chicken

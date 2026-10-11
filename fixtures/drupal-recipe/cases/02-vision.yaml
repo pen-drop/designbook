@@ -1,0 +1,36 @@
+workflow: vision
+fixtures:
+  - empty
+  - reference
+prompt: |
+  You are working in {{workspace}}. This is the Cooks Delight recipe demo.
+  Use the installed Designbook skills and the configured Drupal / SDC / Tailwind integration.
+  Read the actual SKILL.md for each skill named below and follow its instructions.
+  Execute only this case and its explicitly named prerequisite skills.
+  Preserve all completed earlier steps and the published reference. Do not sync to Drupal.
+  Do not launch Promptfoo or rebuild this prepared workspace from inside the case.
+  If required evidence, access or approval is missing, stop with the exact blocker; never invent it.
+  Read the published Figma reference in designbook/references/ under the configured
+  Designbook home. Use only the captured Lemon Garlic Roasted Chicken recipe frame,
+  its actual native locators, screenshot, assets and observations. Do not fetch a
+  website equivalent or replace the reference with an imagined layout.
+  Build the product vision from this screen.
+  Use the vision skill with product name Cooks Delight.
+  Audience: home cooks who want to follow a recipe without hunting for quantities or timings.
+  Purpose: present one readable recipe with ingredients, ordered instructions, preparation
+  and cooking times, difficulty, servings, and related recipes where present in the reference.
+  Problems: scattered recipe information and unclear timing. Solutions: clear recipe
+  metadata, structured ingredients and steps, and a total duration derived from two time fields.
+  Scope: recipe browsing and a recipe detail screen. No accounts, checkout, AI recipe
+  creation, ratings backend or functioning portion calculator. Navigation may use demo destinations.
+  Use the reference to ground the visual/product context; these scope decisions come from this brief.
+  Then use the sections skill to create exactly one section: id recipes, title Recipes,
+  description "Browse recipes and follow their ingredients and preparation steps", order 1.
+  Do not create components or a recipe screen yet.
+assert:
+- type: javascript
+  value: output.completedWorkflows['vision']?.state?.status === 'completed'
+- type: javascript
+  value: output.fileContents['designbook/vision.yml']?.product_name === 'Cooks Delight'
+- type: javascript
+  value: output.completedWorkflows['sections']?.state?.status === 'completed'

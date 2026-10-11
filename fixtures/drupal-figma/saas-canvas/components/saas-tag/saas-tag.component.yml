@@ -1,0 +1,19 @@
+$schema: >-
+  https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: saas-tag
+status: experimental
+group: Data Display
+description: Small outlined pill used as eyebrow above headings or as a plan badge.
+variants:
+  default:
+    title: Default
+    description: Hairline dark border, black label (light surfaces).
+  inverse:
+    title: Inverse
+    description: Hairline white border with spectrum-gradient label (dark surfaces).
+slots:
+  label:
+    title: Label
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

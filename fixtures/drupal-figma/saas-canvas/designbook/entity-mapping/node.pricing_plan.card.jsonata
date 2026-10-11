@@ -1,0 +1,27 @@
+(
+  /* Scene slot strings starting with "$" are $variable placeholders, so the
+     currency sign is emitted as the HTML entity &#36;. */
+  $dark := field_highlighted = true;
+  {
+    "component": "test_integration_drupal:saas-pricing-card",
+    "props": { "variant": $dark ? "highlighted" : "default" },
+    "slots": {
+      "name": title,
+      "badge": field_badge ? [{
+        "component": "test_integration_drupal:saas-tag",
+        "props": { "variant": "inverse" },
+        "slots": { "label": field_badge }
+      }] : [],
+      "price": $replace(field_price, "$", "&#36;"),
+      "period": field_period,
+      "action": [{
+        "component": "test_integration_drupal:saas-button",
+        "props": { "variant": $dark ? "light" : "default", "label": field_cta.title, "url": field_cta.url, "full_width": true }
+      }],
+      "features": [{
+        "component": "test_integration_drupal:saas-check-list",
+        "props": { "variant": $dark ? "inverse" : "default", "items": [field_plan_features] }
+      }]
+    }
+  }
+)

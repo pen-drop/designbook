@@ -1,0 +1,24 @@
+{% macro menu_links(items, variant, separator_src) %}
+  {% import _self as menus %}
+  <ul class="{{ (variant == 'footer'
+    ? ['flex', 'flex-wrap', 'items-center', 'justify-center', 'gap-xs']
+    : ['grid', 'grid-cols-2', 'justify-items-center', 'items-center', 'gap-x-md', 'gap-y-xs', 'md:flex', 'md:flex-nowrap', 'md:justify-center', 'md:gap-lg'])|join(' ') }}">
+    {% for item in items %}
+      {% if variant == 'footer' and separator_src and not loop.first %}
+        <li aria-hidden="true"><img src="{{ separator_src }}" alt="" width="16" height="1"></li>
+      {% endif %}
+      {% set link_classes = variant == 'footer'
+        ? ['block', 'font-body', 'text-button', 'uppercase', 'no-underline', 'text-inverse-foreground']
+        : ['block', 'whitespace-nowrap', 'px-xs', 'py-xs', 'border-b-4', 'font-body', 'text-button', 'uppercase', 'no-underline', 'text-foreground', item.in_active_trail ? 'border-accent' : 'border-transparent opacity-40'] %}
+      <li>
+        <a href="{{ item.url }}" class="{{ link_classes|join(' ') }}"{% if item.in_active_trail %} aria-current="page"{% endif %}>{{ item.title }}</a>
+        {% if item.below %}{{ menus.menu_links(item.below, variant, separator_src) }}{% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{% endmacro %}
+{% import _self as menus %}
+{% set variant = variant|default('main') %}
+<nav{{ attributes.addClass(['flex', 'justify-center']) }} aria-label="{{ variant == 'footer' ? 'Footer' : 'Main' }}">
+  {{ menus.menu_links(items, variant, separator_src) }}
+</nav>

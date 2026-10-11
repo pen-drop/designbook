@@ -510,10 +510,9 @@ test("generated main/verify configs isolate setup and preserve paths", async (t)
     return yaml.load(await readFile(path, "utf8"));
   };
   const main = await generate([]);
-  assert.match(main.prompts[0], /`ephemeral` \| `persist` \| `ask`/);
-  assert.match(main.prompts[0], /--ephemeral/);
-  assert.match(main.prompts[0], /plans\/\.ephemeral\//);
-  assert.match(main.prompts[0], /do not delete an ephemeral plan/);
+  assert.match(main.prompts[0], /Read .*SKILL\.md/);
+  assert.doesNotMatch(main.prompts[0], /MD-plan engine|_debo plan build/);
+  assert.match(main.prompts[0], /Preserve saved plans until scoring/);
   const mainIntake = yaml.load(await readFile(main.tags.intake_config, "utf8"));
   assert.equal(mainIntake.tests[0].vars.case, "design-shell");
   assert.equal(main.tests[0].vars.case, undefined);
@@ -568,7 +567,7 @@ test("generated main/verify configs isolate setup and preserve paths", async (t)
   );
 });
 
-test("run-single Plan boilerplate covers vision ephemeral and persist cases", async (t) => {
+test("run-single delegates to skills while retaining case execution modes", async (t) => {
   const { root, workspace } = await fixture(t);
   for (const name of ["vision", "vision-persist"]) {
     const path = execFileSync(
@@ -587,8 +586,8 @@ test("run-single Plan boilerplate covers vision ephemeral and persist cases", as
       { encoding: "utf8" },
     ).trim();
     const config = yaml.load(await readFile(path, "utf8"));
-    assert.match(config.prompts[0], /`ephemeral` \| `persist` \| `ask`/);
-    assert.match(config.prompts[0], /--ephemeral/);
+    assert.match(config.prompts[0], /Read .*SKILL\.md/);
+    assert.doesNotMatch(config.prompts[0], /Plan: follow the shared builder/);
     if (name === "vision")
       assert.match(config.prompts[0], /Default mode is ephemeral/);
     else assert.match(config.prompts[0], /Mode: persist/);

@@ -1,0 +1,129 @@
+- id: lemon-garlic-roasted-chicken
+  title: Lemon Garlic Roasted Chicken
+  field_category: recipe
+  field_description: >-
+    Welcome to Cooks Delight, where culinary dreams come alive! Today, we embark
+    on a journey of flavors with a dish that promises to elevate your dining
+    experience – our Citrus Infusion Delight: Lemon Garlic Roasted Chicken.
+  field_recipe_image:
+    src: /images/recipes/lemon-garlic-roasted-chicken.png
+    alt: >-
+      Lemon garlic roasted chicken in a cast-iron pan with roasted potatoes,
+      lemon slices and thyme
+  field_prep_minutes: 20
+  field_cook_minutes: 40
+  field_difficulty: hard
+  field_servings: 4
+  body: >-
+    <p>Picture succulent chicken infused with the bright notes of lemon and the
+    aromatic richness of garlic. It's a symphony of flavors that will have your
+    taste buds dancing. Join us as we delve into the art of roasting and uncover
+    the secrets behind creating a masterpiece that's not just a meal but a
+    celebration of culinary craftsmanship.</p><p>As you preheat your oven,
+    envision the kitchen filling with the tantalizing aroma of herbs and citrus,
+    setting the stage for a delightful meal that transcends the ordinary. The
+    anticipation builds as the chicken roasts to golden perfection, promising a
+    dining experience that marries simplicity with sophistication. Whether
+    you're a seasoned chef or a kitchen novice, this recipe invites you to
+    become a culinary artist, creating a masterpiece that will leave a lasting
+    impression on your guests and loved ones.</p><h3>Let’s go over the basics–
+    the do’s, and the don’ts– for How to Cook a
+    chicken</h3><h4>Do’s:</h4><p><strong>Thoroughly Clean Hands and
+    Surfaces:</strong><br>Before and after handling raw chicken, ensure your
+    hands, utensils, and surfaces are clean to prevent
+    cross-contamination.</p><p><strong>Use Separate Cutting
+    Boards:</strong><br>Dedicate specific cutting boards for raw chicken to
+    avoid the spread of bacteria to other foods.</p><p><strong>Check Internal
+    Temperature:</strong><br>Invest in a reliable meat thermometer to ensure the
+    chicken reaches the safe internal temperature of 165°F
+    (74°C).</p><h4>Don'ts:</h4><p><strong>Thaw Chicken at Room
+    Temperature:</strong><br>Avoid thawing chicken on the counter. Instead, thaw
+    it in the refrigerator to prevent bacterial growth.</p><p><strong>Overcrowd
+    the Pan:</strong><br>When roasting, ensure the chicken pieces have space
+    between them for even cooking. Overcrowding can lead to unevenly cooked
+    chicken.</p>
+  field_ingredients:
+    - lemon-garlic-roasted-chicken-ingredient-1
+    - lemon-garlic-roasted-chicken-ingredient-2
+    - lemon-garlic-roasted-chicken-ingredient-3
+    - lemon-garlic-roasted-chicken-ingredient-4
+    - lemon-garlic-roasted-chicken-ingredient-5
+    - lemon-garlic-roasted-chicken-ingredient-6
+    - lemon-garlic-roasted-chicken-ingredient-7
+  field_equipment:
+    - Roasting pan
+    - Meat thermometer
+    - Cutting board
+    - Kitchen twine
+  field_nutrition_basis: 'Per serving (based on a 4-pound chicken):'
+  field_nutrition:
+    - 'Calories: ~250'
+    - 'Protein: ~30g'
+    - 'Total Fat: ~13g'
+    - 'Carbohydrates: ~5g'
+  field_instructions_intro: >-
+    This recipe goes beyond the basics, inviting you to savor the richness of a
+    creamy tomato basil sauce that clings to each strand of perfectly cooked
+    pasta. It's a celebration of simplicity, where every ingredient plays a
+    crucial role in creating a dish that is as comforting as it is delightful.
+
+
+    Allow the chicken to rest for 10 minutes before carving. This brief resting
+    period is essential; it allows the juices to redistribute, ensuring each
+    slice is succulent and bursting with flavor. As you carve into the golden
+    exterior, be prepared for the enticing aroma that fills the air, signaling
+    that your Citrus Infusion Delight is ready to be savored.
+  field_steps:
+    - lemon-garlic-roasted-chicken-step-preheat-and-prepare
+    - lemon-garlic-roasted-chicken-step-citrus-infusion
+    - lemon-garlic-roasted-chicken-step-herb-blend
+    - lemon-garlic-roasted-chicken-step-roast-to-perfection
+  field_serving_notes: >-
+    <h4>Pairing Suggestions</h4><ol><li>Side Dish: Serve alongside roasted
+    vegetables or a simple green salad.</li><li>Wine: Pair with a crisp white
+    wine or a light rosé for a well-balanced meal.</li></ol><p><u>Roasted
+    Vegetables:</u> The vibrant flavors of the roasted chicken complement
+    beautifully with seasonal vegetables.</p><p><u>Herb-infused Quinoa:</u>
+    Create a wholesome meal by serving it alongside a bed of herb-infused
+    quinoa.</p><p>The combination of fresh lemon and aromatic garlic creates a
+    citrus-infused masterpiece that takes the classic roast chicken to a whole
+    new level. The acidity of the lemons not only adds brightness but also helps
+    to tenderize the meat, resulting in a juicy and flavorful
+    dish.</p><p>Whether you're hosting a family dinner or looking for a
+    show-stopping centerpiece for a special celebration, this Lemon Garlic
+    Roasted Chicken is the answer. The simplicity of the ingredients allows the
+    natural flavors to shine, making it a versatile and impressive dish.</p>
+  field_author: isabella-russo
+  field_related_recipes:
+    - savory-herb-infused-chicken
+    - decadent-chocolate-mousse
+  __designbook:
+    section: recipes
+- id: savory-herb-infused-chicken
+  title: Savory Herb-Infused Chicken
+  field_description: >-
+    Indulge in the rich and savory symphony of flavors with our Savory
+    Herb-Infused Chicken
+  field_recipe_image:
+    src: /images/recipes/savory-herb-infused-chicken.png
+    alt: Golden herb-infused chicken breasts with rosemary on a white plate
+  field_prep_minutes: 10
+  field_cook_minutes: 30
+  field_difficulty: easy
+  field_servings: 3
+  __designbook:
+    section: recipes
+- id: decadent-chocolate-mousse
+  title: Decadent Chocolate Mousse
+  field_description: >-
+    Dive into the velvety indulgence of our Decadent Chocolate Mousse. A dessert
+    that transcends sweetness!
+  field_recipe_image:
+    src: /images/recipes/decadent-chocolate-mousse.png
+    alt: Glasses of chocolate mousse topped with raspberries and mint
+  field_prep_minutes: 30
+  field_cook_minutes: 0
+  field_difficulty: medium
+  field_servings: 4
+  __designbook:
+    section: recipes

@@ -1,0 +1,13 @@
+{% set variant = variant|default('default') %}
+{% set total = (prep_minutes|default(0)) + (cook_minutes|default(0)) %}
+{% set hours = (total / 60)|round(0, 'floor') %}{% set minutes = total % 60 %}
+{% set duration = hours == 0 ? total ~ ' min' : (hours ~ (hours > 1 ? ' hours' : ' hour') ~ (minutes > 0 ? ' ' ~ minutes ~ ' min' : '')) %}
+{% if variant == 'compact' %}
+<p{{ attributes.addClass(['meta-line', 'meta-line--compact', 'font-body', 'text-small', 'uppercase', 'text-foreground']) }}><time datetime="PT{{ total }}M">{{ duration }}</time> - {% if difficulty %}{{ difficulty }} {% endif %}prep - {{ servings }} serves</p>
+{% else %}
+<ul{{ attributes.addClass(['meta-line', 'flex', 'flex-wrap', 'items-center', 'justify-center', 'gap-x-lg', 'gap-y-xs', 'font-heading', 'text-subtitle', 'uppercase', 'text-foreground']) }}>
+  <li class="flex items-center gap-xs"><img src="/images/icons/timer.svg" alt="" width="24" height="24"><span class="sr-only">Total time:</span> <time datetime="PT{{ total }}M">{{ duration }}</time></li>
+  <li class="flex items-center gap-lg"><img src="/images/icons/dot.svg" alt="" width="4" height="4"><span class="flex items-center gap-xs"><img src="/images/icons/weight.svg" alt="" width="24" height="24">{% if difficulty %}{{ difficulty }} {% endif %}prep</span></li>
+  <li class="flex items-center gap-lg"><img src="/images/icons/dot.svg" alt="" width="4" height="4"><span class="flex items-center gap-xs"><img src="/images/icons/serving-dome.svg" alt="" width="24" height="24">{{ servings }} serves</span></li>
+</ul>
+{% endif %}

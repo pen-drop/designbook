@@ -1,0 +1,32 @@
+component: test_integration_drupal:saas-pricing-card
+name: Default
+slots:
+  name:
+    - type: element
+      tag: span
+      value: Free
+  price:
+    - type: element
+      tag: span
+      value: $0
+  period:
+    - type: element
+      tag: span
+      value: /monthly
+  action:
+    - type: component
+      component: test_integration_drupal:saas-button
+      props:
+        label: Get started for free
+        url: /signup?plan=free
+        full_width: true
+  features:
+    - type: component
+      component: test_integration_drupal:saas-check-list
+      props:
+        items:
+          - Up to 5 project members
+          - Unlimited tasks and projects
+          - 2GB storage
+          - Integrations
+          - Basic support

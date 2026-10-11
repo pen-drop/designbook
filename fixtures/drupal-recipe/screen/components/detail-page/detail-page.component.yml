@@ -1,0 +1,75 @@
+$schema: >-
+  https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Detail page
+status: experimental
+group: Layout
+provider: test_integration_drupal
+description: >-
+  Recipe detail layout: bordered article with hero (page-hero + meta-line),
+  editorial body, instructions and steps, author, sidebar cards (aside-card),
+  followed by the related-cards band (card-row).
+props:
+  type: object
+  properties:
+    prep_minutes:
+      type: integer
+      minimum: 0
+    cook_minutes:
+      type: integer
+      minimum: 0
+    servings:
+      type: integer
+      minimum: 0
+    equipment:
+      type: array
+      items:
+        type: string
+      title: Equipment lines
+    nutrition:
+      type: array
+      items:
+        type: string
+      title: 'Nutrition ''Label: value'' lines'
+slots:
+  category:
+    title: Category
+    description: Rendered category term.
+  title:
+    title: Title
+    description: Title text.
+  description:
+    title: Description
+    description: Intro text.
+  image:
+    title: Image
+    description: Hero ImageNode.
+  difficulty:
+    title: Difficulty
+    description: Rendered difficulty term.
+  body:
+    title: Body
+    description: Editorial formatted text.
+  ingredients:
+    title: Ingredients
+    description: Rendered ingredient paragraphs (<li> items).
+  nutrition_basis:
+    title: Nutrition basis
+    description: Nutrition basis text.
+  instructions_intro:
+    title: Instructions intro
+    description: Instructions intro text.
+  steps:
+    title: Steps
+    description: Rendered recipe_step paragraphs.
+  serving_notes:
+    title: Serving notes
+    description: Pairing suggestions formatted text.
+  author:
+    title: Author
+    description: Rendered author term.
+  related:
+    title: Related
+    description: Rendered related recipe teasers.
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

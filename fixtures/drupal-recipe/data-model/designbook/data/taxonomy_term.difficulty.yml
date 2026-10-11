@@ -1,0 +1,12 @@
+- id: easy
+  name: Easy
+  __designbook:
+    section: recipes
+- id: medium
+  name: Medium
+  __designbook:
+    section: recipes
+- id: hard
+  name: Hard
+  __designbook:
+    section: recipes

@@ -1,0 +1,24 @@
+{#
+/**
+ * @file
+ * SaaS kit pricing card.
+ *
+ * Available variables:
+ * - variant: default | highlighted
+ * - name, badge, price, period, action, features: Slots
+ */
+#}
+{% set variant = variant|default('default') %}
+{% set dark = variant == 'highlighted' %}
+<article{{ attributes.addClass(['flex', 'w-full', 'flex-col', 'gap-8', 'rounded-3xl', 'border', 'p-10', 'shadow-sm', 'font-body', 'lg:self-end']|merge(dark ? ['bg-brand-ink', 'border-brand-ink'] : ['bg-brand-surface', 'border-brand-border'])) }}>
+  <div class="flex items-center justify-between gap-4">
+    {% if name %}<h3 class="font-brand text-card-title font-bold tracking-tight {{ dark ? 'text-brand-surface/60' : 'text-brand-muted' }}">{{ name }}</h3>{% endif %}
+    {% if badge %}{{ badge }}{% endif %}
+  </div>
+  <div class="flex items-baseline gap-1 font-brand font-bold">
+    {% if price %}<span class="text-section-title tracking-tighter {{ dark ? 'text-brand-surface' : 'text-brand-ink' }}">{{ price }}</span>{% endif %}
+    {% if period %}<span class="text-card-title tracking-tight {{ dark ? 'text-brand-subtle' : 'text-brand-muted' }}">{{ period }}</span>{% endif %}
+  </div>
+  {% if action %}<div>{{ action }}</div>{% endif %}
+  {% if features %}<div>{{ features }}</div>{% endif %}
+</article>

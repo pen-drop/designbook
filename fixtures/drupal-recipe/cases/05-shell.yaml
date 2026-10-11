@@ -1,0 +1,40 @@
+workflow: design-shell
+fixtures:
+  - empty
+  - reference
+  - vision
+  - data-model
+  - tokens
+prompt: |
+  You are working in {{workspace}}. This is the Cooks Delight recipe demo.
+  Use the installed Designbook skills and the configured Drupal / SDC / Tailwind integration.
+  Read the actual SKILL.md for each skill named below and follow its instructions.
+  Execute only this case and its explicitly named prerequisite skills.
+  Preserve all completed earlier steps and the published reference. Do not sync to Drupal.
+  Do not launch Promptfoo or rebuild this prepared workspace from inside the case.
+  If required evidence, access or approval is missing, stop with the exact blocker; never invent it.
+  Read the published Figma reference in designbook/references/ under the configured
+  Designbook home. Use only the captured Lemon Garlic Roasted Chicken recipe frame,
+  its actual native locators, screenshot, assets and observations. Do not fetch a
+  website equivalent or replace the reference with an imagined layout.
+  Build the shell and show the shell.
+  Use the design-shell skill using the existing approved published reference, generated tokens
+  and CSS. During intake, inspect the existing reference and present its real region/native
+  locator bindings. Do not recapture it as a website and do not change reference bytes.
+  Create only the header/navigation and footer visible in the recipe frame, plus the page
+  container and exactly one content injection point. No recipe body, fake placeholder
+  recipe, newsletter feature outside the selected shell regions, or unrelated homepage.
+  Use design-system/design-system.scenes.yml, scene shell (canonical design-system:shell).
+  Match the desktop reference at its recorded viewport. Also inspect at 390px for overflow;
+  this mobile layout is an adaptation unless a genuine mobile reference was captured.
+  Start Storybook through its CLI, build Storybook, show the standalone shell and capture it
+  before adding the recipe screen. Save its real story URL and screenshot path in the final
+  response so this intermediate result can be used in the video. Verify only the selected
+  header/footer reference regions, not the missing recipe body, with the configured threshold.
+  If reference approval is absent, report the blocker rather than synthesizing approval.
+assert:
+- type: javascript
+  value: output.completedWorkflows['design-shell']?.state?.status === 'completed'
+- type: javascript
+  value: output.fileContents['designbook/design-system/design-system.scenes.yml']?.scenes?.filter(s =>
+    s.name === 'shell').length === 1

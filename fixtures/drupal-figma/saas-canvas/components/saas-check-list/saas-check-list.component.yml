@@ -1,0 +1,24 @@
+$schema: >-
+  https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: saas-check-list
+status: experimental
+group: Data Display
+description: Vertical list of included items, each preceded by a check icon.
+variants:
+  default:
+    title: Default
+    description: Black check and text on light surfaces.
+  inverse:
+    title: Inverse
+    description: White check and text on dark surfaces.
+props:
+  type: object
+  properties:
+    items:
+      type: array
+      title: Items
+      items:
+        type: string
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

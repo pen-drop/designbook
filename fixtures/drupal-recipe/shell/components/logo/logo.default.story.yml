@@ -1,0 +1,11 @@
+component: "test_integration_drupal:logo"
+name: "Default"
+props:
+  href: "/"
+  label: "Cooks Delight"
+slots:
+  media:
+    - type: "image"
+      uri: "/images/shell/logo.svg"
+      attributes:
+        alt: ""

@@ -55,7 +55,12 @@ export interface BuildResult {
 
 function sealComposition(composition: CompositionInputs, config: Record<string, unknown>): CompositionInputs {
   const namespace = config['component.namespace'];
-  return typeof namespace === 'string' && namespace ? { ...composition, namespace } : composition;
+  const data = config.data;
+  return {
+    ...composition,
+    ...(typeof namespace === 'string' && namespace ? { namespace } : {}),
+    ...(typeof data === 'string' && data ? { data_dir: data } : {}),
+  };
 }
 
 export async function buildPlan(taskList: TaskList, opts: ResolveIntakeOptions = {}): Promise<BuildResult> {

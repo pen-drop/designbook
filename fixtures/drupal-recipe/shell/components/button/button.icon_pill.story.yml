@@ -1,0 +1,12 @@
+component: "test_integration_drupal:button"
+name: "Icon pill"
+variant: "icon_pill"
+props:
+  label: "Search"
+  href: "#search"
+slots:
+  icon:
+    - type: "image"
+      uri: "/images/shell/search.svg"
+      attributes:
+        alt: ""

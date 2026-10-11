@@ -724,6 +724,9 @@ CompositionInputs:
         Configured component namespace. `plan build` seals it from `component.namespace`;
         it qualifies bare planned component writes.
       examples: [test_integration_drupal]
+    data_dir:
+      type: string
+      description: Configured Designbook data root, sealed by plan build to resolve scene filesystem aliases from frozen snapshots.
 
 Variant:
   type: object

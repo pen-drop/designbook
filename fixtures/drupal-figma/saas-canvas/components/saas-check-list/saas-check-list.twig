@@ -1,0 +1,17 @@
+{#
+/**
+ * @file
+ * SaaS kit check list.
+ *
+ * Available variables:
+ * - variant: default | inverse
+ * - items: Array of item labels
+ */
+#}
+{% set variant = variant|default('default') %}
+{% set icon = variant == 'inverse' ? '/saas-kit/icon-check-light.svg' : '/saas-kit/icon-check-dark.svg' %}
+<ul{{ attributes.addClass(['flex', 'flex-col', 'gap-5', 'font-body', 'text-sm', variant == 'inverse' ? 'text-brand-surface' : 'text-brand-ink']) }}>
+  {% for item in items %}
+    <li class="flex items-center gap-4"><img src="{{ icon }}" alt="" class="size-6 shrink-0" aria-hidden="true">{{ item }}</li>
+  {% endfor %}
+</ul>

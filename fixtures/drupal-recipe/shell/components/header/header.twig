@@ -1,0 +1,22 @@
+<header{{ attributes.addClass([
+  'flex',
+  'flex-wrap',
+  'items-center',
+  'justify-between',
+  'gap-y-sm',
+  'lg:grid',
+  'lg:grid-cols-(--grid-cols--25x50x25)',
+  'w-full',
+  'max-w-[var(--container-2xl)]',
+  'mx-auto',
+  'bg-background',
+  'inset-ring',
+  'inset-ring-outline',
+  'rounded-xl',
+  'px-lg',
+  'py-md',
+]) }}>
+  <div class="flex items-center">{% if logo %}{{ logo }}{% endif %}</div>
+  <div class="order-last w-full lg:order-none lg:w-auto lg:justify-self-center">{{ navigation }}</div>
+  <div class="flex items-center gap-md justify-self-end">{% if actions %}{{ actions }}{% endif %}</div>
+</header>

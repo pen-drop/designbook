@@ -1,0 +1,12 @@
+component: "test_integration_drupal:logo"
+name: "Inverse"
+variant: "inverse"
+props:
+  href: "/"
+  label: "Cooks Delight"
+slots:
+  media:
+    - type: "image"
+      uri: "/images/shell/logo-footer.svg"
+      attributes:
+        alt: ""

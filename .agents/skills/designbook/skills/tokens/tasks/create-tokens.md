@@ -5,15 +5,17 @@ domain: [tokens]
 title: Create Design Tokens
 params:
   type: object
-  required: [reference_dir, vision]
+  required: [vision]
   properties:
-    reference_dir: { type: string }
+    reference_dir:
+      type: string
+      description: Absolute published revision directory when deriving tokens from a reference.
     vision:
       path: $DESIGNBOOK_DATA/vision.yml
       workflow: /debo-vision
       type: object
     extract:
-      path: "{{ reference_dir }}/extract.json"
+      description: Bounded token observations queried from the selected published subjects, views and states.
       $ref: ../../../design/schemas.yml#/DesignReference
       type: object
     design_tokens:
@@ -30,13 +32,5 @@ result:
 
 # Design Tokens
 
-Derive a W3C Design Token YAML. When the `extract` param is present, it is the authoritative source — see the `extract-mapping` rule for value-origin constraints and completeness requirements. Use the agreed intake decisions when there is no reference extract.
-
-
-Follow the embedded output schema for required token structure, including component groups contributed by blueprints. Use the css-naming blueprint in the task context for token group names and CSS variable mapping. Apply any renderer-hints rule included in that context.
-
-## Result: design_tokens
-
-Three fixed levels per schema: `primitive` → `semantic` → `component`. Each leaf is a `TokenLeaf` with `$value` and `$type`.
-
-`semantic.color` and `semantic.typography` are required. When `extract` is present, every entry in `extract.typography[]` must be represented in `semantic.typography.*`, and every key in `extract.tokens.colors` must be present in `semantic.color.*`.
+Produce design tokens from the selected reference observations, or from the
+explicit intake decisions when the request has no reference.

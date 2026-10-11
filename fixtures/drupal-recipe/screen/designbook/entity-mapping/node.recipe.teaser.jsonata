@@ -1,0 +1,19 @@
+(
+  $fields := $;
+  [
+    {
+      "component": "test_integration_drupal:teaser-card",
+      "props": {
+        "prep_minutes": $fields.field_prep_minutes,
+        "cook_minutes": $fields.field_cook_minutes,
+        "servings": $fields.field_servings
+      },
+      "slots": {
+        "image": [$map($fields.field_recipe_image, function($image) { { "image": "ratio_77_40", "src": $image.src, "alt": $image.alt } })],
+        "title": $fields.title,
+        "description": $fields.field_description,
+        "difficulty": [$map($fields.field_difficulty, function($id) { { "entity": "taxonomy_term.difficulty", "view_mode": "default", "record": $lookup({"easy":0,"medium":1,"hard":2}, $string($id)) } })]
+      }
+    }
+  ]
+)

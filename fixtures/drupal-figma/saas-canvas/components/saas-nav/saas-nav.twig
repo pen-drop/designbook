@@ -1,0 +1,29 @@
+{#
+/**
+ * @file
+ * SaaS kit navigation.
+ *
+ * Available variables:
+ * - variant: main | footer
+ * - items: Drupal menu tree (title, url, in_active_trail, below)
+ */
+#}
+{% set variant = variant|default('main') %}
+{% if variant == 'footer' %}
+<nav{{ attributes.addClass(['grid', 'grid-cols-2', 'gap-10', 'font-body', 'text-sm', 'sm:flex', 'sm:gap-12']) }}>
+  {% for group in items %}
+    <div class="flex flex-col items-start gap-5">
+      <span class="font-bold text-brand-surface">{{ group.title }}</span>
+      {% for item in group.below %}
+        <a href="{{ item.url }}" class="text-brand-inverse-muted transition-colors hover:text-brand-surface">{{ item.title }}</a>
+      {% endfor %}
+    </div>
+  {% endfor %}
+</nav>
+{% else %}
+<nav{{ attributes.addClass(['flex', 'items-center', 'gap-6', 'font-body', 'text-base', 'tracking-tight']) }}>
+  {% for item in items %}
+    <a href="{{ item.url }}" class="{{ item.in_active_trail ? 'text-brand-ink' : 'text-brand-ink/60' }} transition-colors hover:text-brand-ink">{{ item.title }}</a>
+  {% endfor %}
+</nav>
+{% endif %}

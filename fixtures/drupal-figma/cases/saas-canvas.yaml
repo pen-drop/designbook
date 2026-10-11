@@ -1,0 +1,23 @@
+workflow: design-screen
+config: saas-canvas.yml
+fixtures:
+  - saas-canvas
+
+prompt: |
+  You are working in {{workspace}}.
+  Rebuild and verify the existing Figma SaaS Canvas screen using design-screen.
+  Preserve the captured design: hero, product showcase and pricing, with the SaaS shell.
+  The screen is sections/saas-demo/saas-demo.section.scenes.yml, scene landing.
+  Its content root must be canvas_page.landing_page, view mode full, record 0.
+  Canvas stores an inline component tree in components; do not add EntityNodes
+  inside it and do not create node.landing or a separate root Homepage section.
+  node.feature and node.pricing_plan are independent entity-mapping examples.
+  Reuse the supplied components, local fonts, assets and published Figma reference
+  b038c7169c872214/3d439654bc63bcfd. No live Figma fetch is required.
+  Build Storybook and inspect the screen at desktop and mobile sizes.
+  Do not sync to Drupal.
+
+assert:
+  - type: javascript
+    value: |
+      return Object.keys(output.completedWorkflows || {}).some((id) => id.startsWith('design-screen'));

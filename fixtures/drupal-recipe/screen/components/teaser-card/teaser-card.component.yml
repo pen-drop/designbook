@@ -1,0 +1,37 @@
+$schema: >-
+  https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Teaser card
+status: experimental
+group: Data Display
+provider: test_integration_drupal
+description: >-
+  Card with top image, H3 title, short text and compact metadata line (includes
+  meta-line compact).
+props:
+  type: object
+  properties:
+    prep_minutes:
+      type: integer
+      minimum: 0
+    cook_minutes:
+      type: integer
+      minimum: 0
+    servings:
+      type: integer
+      minimum: 0
+slots:
+  image:
+    title: Image
+    description: Card ImageNode.
+  title:
+    title: Title
+    description: Title text.
+  description:
+    title: Description
+    description: Teaser text.
+  difficulty:
+    title: Difficulty
+    description: Rendered difficulty label forwarded to meta-line.
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

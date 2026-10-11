@@ -1,0 +1,52 @@
+- id: lemon-garlic-roasted-chicken-step-preheat-and-prepare
+  field_step_title: Preheat and Prepare
+  field_step_items:
+    - Preheat your oven to 375°F (190°C).
+    - Rinse the chicken inside and out, then pat it dry with paper towels.
+  __designbook:
+    section: recipes
+- id: lemon-garlic-roasted-chicken-step-citrus-infusion
+  field_step_title: Citrus Infusion
+  field_step_items:
+    - >-
+      Carefully lift the skin of the chicken and rub minced garlic directly onto
+      the meat.
+    - >-
+      Place lemon slices under the skin, ensuring they cover as much surface as
+      possible.
+  field_step_image:
+    src: /images/recipes/lemon-garlic-step-citrus-infusion.jpeg
+    alt: Whole raw chicken on a wooden board with lemon halves and herbs
+  __designbook:
+    section: recipes
+- id: lemon-garlic-roasted-chicken-step-herb-blend
+  field_step_title: Herb Blend
+  field_step_items:
+    - >-
+      In a small bowl, mix olive oil, dried thyme, dried rosemary, salt, and
+      black pepper to create a herb-infused mixture.
+    - >-
+      Brush the entire chicken with the herb-infused mixture, making sure it's
+      evenly coated.
+    - Season the exterior with additional salt and black pepper to taste.
+  field_step_image:
+    src: /images/recipes/lemon-garlic-step-herb-blend.jpeg
+    alt: Carving a golden roasted chicken with a knife and fork
+  __designbook:
+    section: recipes
+- id: lemon-garlic-roasted-chicken-step-roast-to-perfection
+  field_step_title: Roast to Perfection
+  field_step_items:
+    - Place the chicken in a roasting pan, breast side up.
+    - >-
+      Roast in the preheated oven for approximately 1 hour or until the internal
+      temperature reaches 165°F (74°C).
+    - Allow the chicken to rest for 10 minutes before carving.
+    - >-
+      Serve with the pan juices and roasted lemon slices for an extra burst of
+      flavor.
+  field_step_image:
+    src: /images/recipes/lemon-garlic-step-roast-to-perfection.png
+    alt: Plated herb-roasted chicken pieces with rosemary and pan juices
+  __designbook:
+    section: recipes

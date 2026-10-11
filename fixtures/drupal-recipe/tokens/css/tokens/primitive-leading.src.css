@@ -1,0 +1,5 @@
+@theme static {
+  --leading-none: 1;
+  --leading-snug: 1.2;
+  --leading-relaxed: 1.4;
+}

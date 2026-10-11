@@ -1,0 +1,18 @@
+$schema: >-
+  https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: saas-feature
+status: experimental
+group: Data Display
+description: 'Capability highlight: line icon, bold title, short summary and a text link.'
+slots:
+  icon:
+    title: Icon
+  title:
+    title: Title
+  summary:
+    title: Summary
+  link:
+    title: Link
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

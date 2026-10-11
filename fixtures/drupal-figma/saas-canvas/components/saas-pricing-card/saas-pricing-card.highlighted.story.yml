@@ -1,0 +1,47 @@
+component: test_integration_drupal:saas-pricing-card
+name: Highlighted
+variant: highlighted
+slots:
+  name:
+    - type: element
+      tag: span
+      value: Pro
+  badge:
+    - type: component
+      component: test_integration_drupal:saas-tag
+      props:
+        variant: inverse
+      slots:
+        label:
+          - type: element
+            tag: span
+            value: Most Popular
+  price:
+    - type: element
+      tag: span
+      value: $9
+  period:
+    - type: element
+      tag: span
+      value: /monthly
+  action:
+    - type: component
+      component: test_integration_drupal:saas-button
+      props:
+        variant: light
+        label: Sign up now
+        url: /signup?plan=pro
+        full_width: true
+  features:
+    - type: component
+      component: test_integration_drupal:saas-check-list
+      props:
+        variant: inverse
+        items:
+          - Up to 50 project members
+          - Unlimited tasks and projects
+          - 50GB storage
+          - Integrations
+          - Priority support
+          - Advanced support
+          - Export support

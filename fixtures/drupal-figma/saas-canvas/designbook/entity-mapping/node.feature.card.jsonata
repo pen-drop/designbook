@@ -1,0 +1,12 @@
+{
+  "component": "test_integration_drupal:saas-feature",
+  "slots": {
+    "icon": [{ "image": "ratio_1_1", "src": field_icon.src, "alt": field_icon.alt }],
+    "title": title,
+    "summary": field_summary,
+    "link": field_link ? [{
+      "component": "test_integration_drupal:saas-button",
+      "props": { "variant": "text", "label": field_link.title, "url": field_link.url }
+    }] : []
+  }
+}

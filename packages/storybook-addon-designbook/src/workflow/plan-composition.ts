@@ -4,6 +4,8 @@
  */
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
+import { dirname, isAbsolute, relative } from 'node:path';
+import { substitute } from '../scene-model/builders/scene-builder.js';
 import type { Plan, PlanTask } from './plan-document.js';
 
 export const WRITING_DESIGN_WORKFLOWS = new Set(['design-entity', 'design-component', 'design-screen', 'design-shell']);
@@ -43,6 +45,8 @@ export interface CompositionInputs {
   data_model: Record<string, unknown>;
   /** Configured `component.namespace`, sealed by plan build; qualifies bare planned writes. */
   namespace?: string;
+  /** Configured data root, sealed for resolving filesystem scene aliases from snapshots. */
+  data_dir?: string;
 }
 
 export type CompositionStatus = 'neu' | 'geändert' | 'wiederverwendet';
@@ -146,6 +150,17 @@ function isImageType(type: unknown): boolean {
   return type === 'image';
 }
 
+export function imageFieldStyle(
+  model: Record<string, unknown>,
+  entityType: string,
+  bundleName: string,
+  fieldName: string,
+): string | undefined {
+  const bundle = getBundle(model, entityType, bundleName);
+  const field = bundle && bundleFields(bundle)[fieldName];
+  return isObj(field) && isImageType(field.type) ? asString(fieldSettings(field).image_style) : undefined;
+}
+
 function declaredTargetBundles(settings: Record<string, unknown>): string[] {
   const out: string[] = [];
   const one = asString(settings.target_bundle);
@@ -216,8 +231,13 @@ function qualify(name: string, known: Iterable<string>): string {
 
 function contractProps(contract: Record<string, unknown>): Record<string, unknown> {
   const props = contract.props;
-  if (!isObj(props) || !isObj(props.properties)) return {};
-  return props.properties;
+  const properties = isObj(props) && isObj(props.properties) ? props.properties : {};
+  const variants = Array.isArray(contract.variants)
+    ? contract.variants.map((variant) => (isObj(variant) ? asString(variant.id) : '')).filter(Boolean)
+    : isObj(contract.variants)
+      ? Object.keys(contract.variants)
+      : [];
+  return variants.length ? { ...properties, variant: { type: 'string', enum: variants } } : properties;
 }
 
 function contractSlots(contract: Record<string, unknown>): Record<string, unknown> {
@@ -225,6 +245,7 @@ function contractSlots(contract: Record<string, unknown>): Record<string, unknow
 }
 
 function literalTypeOk(schema: unknown, value: unknown): boolean {
+  if (isObj(schema) && Array.isArray(schema.enum) && !schema.enum.includes(value)) return false;
   if (!isObj(schema) || schema.type == null) return true;
   const t = schema.type;
   if (t === 'boolean') return typeof value === 'boolean';
@@ -468,7 +489,14 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
       const rawField = fields[b.field];
       const field = isObj(rawField) ? rawField : {};
       if (b.field in fields && isImageType(field.type)) {
-        errors.push(`${prefix(p)}: image field ${b.field} cannot be expressed`);
+        const style = imageFieldStyle(model, rec.entity_type, rec.bundle, b.field);
+        const styles = isObj(model.config) && isObj(model.config.image_style) ? model.config.image_style : {};
+        if (!b.slot || b.prop || b.entity || b.path?.length) {
+          errors.push(`${prefix(p)}: image field ${b.field} requires a slot binding without prop, entity or path`);
+        }
+        if (!style || !(style in styles)) {
+          errors.push(`${prefix(p)}: image field ${b.field} requires a declared settings.image_style`);
+        }
       }
       if (b.prop && b.slot) errors.push(`${prefix(p)}: names both prop and slot`);
       if (b.prop) {
@@ -627,6 +655,18 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
   for (const snap of composition.scenes) {
     const id = asString(snap.file.id) || snap.path;
     sceneFiles.set(id, { path: snap.path, file: snap.file });
+    if (composition.data_dir) {
+      const path = isAbsolute(snap.path) ? relative(composition.data_dir, snap.path) : snap.path;
+      if (!path.startsWith('..') && path.endsWith('.scenes.yml')) {
+        const aliases = [path.slice(0, -'.scenes.yml'.length), dirname(path)].filter((alias) => alias !== '.');
+        for (const alias of aliases) {
+          const existing = sceneFiles.get(alias);
+          if (existing && existing.path !== snap.path)
+            errors.push(`composition.scenes: ambiguous scene alias ${alias}`);
+          else sceneFiles.set(alias, { path: snap.path, file: snap.file });
+        }
+      }
+    }
   }
   const sceneTasks: IndexedTask[] = [];
   for (const it of tasks) {
@@ -691,7 +731,10 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
         source: b.field,
         children: [],
       };
-      if (b.entity) {
+      const imageStyle = imageFieldStyle(model, rec.entity_type, rec.bundle, b.field);
+      if (imageStyle !== undefined) {
+        node.children.push({ kind: 'image', identity: imageStyle, source: b.field, children: [] });
+      } else if (b.entity) {
         node.count = selectedCount(rec, b, recordIndex);
         const childKey = `${b.entity.entity_type}.${b.entity.bundle}:view:${b.entity.view_mode}`;
         const child = mappings.get(childKey);
@@ -824,7 +867,8 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
           return;
         }
         const found = findScene(sceneRef);
-        const children = found ? walkItems(found.items, [...chain, sceneRef], step, task, `${itemPath}.scene`) : [];
+        const items = found && isObj(item.with) ? (substitute(found.items, item.with) as unknown[]) : found?.items;
+        const children = items ? walkItems(items, [...chain, sceneRef], step, task, `${itemPath}.scene`) : [];
         if (!found && !sceneTasks.some((s) => s.task.params.scene_name === sceneRef.split(':')[1])) {
           errors.push(`${loc(step, task, `${itemPath}.scene`)}: unknown scene ${sceneRef}`);
         }

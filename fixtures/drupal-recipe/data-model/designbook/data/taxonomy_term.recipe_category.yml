@@ -1,0 +1,4 @@
+- id: recipe
+  name: Recipe
+  __designbook:
+    section: recipes

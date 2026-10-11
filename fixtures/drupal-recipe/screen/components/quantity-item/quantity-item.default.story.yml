@@ -1,0 +1,10 @@
+component: test_integration_drupal:quantity-item
+name: Default
+props:
+  quantity: '6'
+  unit: cloves
+slots:
+  name:
+    - type: element
+      tag: span
+      value: garlic, minced

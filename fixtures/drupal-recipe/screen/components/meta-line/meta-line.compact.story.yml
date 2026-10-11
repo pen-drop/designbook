@@ -1,0 +1,12 @@
+component: test_integration_drupal:meta-line
+name: Compact
+variant: compact
+props:
+  prep_minutes: 10
+  cook_minutes: 30
+  servings: 3
+slots:
+  difficulty:
+    - type: element
+      tag: span
+      value: Easy

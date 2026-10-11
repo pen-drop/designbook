@@ -1,0 +1,7 @@
+<article{{ attributes.addClass(['teaser-card', 'flex', 'h-full', 'flex-col', 'overflow-hidden', 'rounded-lg']) }}>
+  {% if image %}<div class="overflow-hidden">{{ image }}</div>{% endif %}
+  <div class="flex flex-1 flex-col justify-between gap-xl rounded-b-lg border border-t-0 border-outline-subtle bg-surface px-lg pt-lg pb-md">
+    <div class="flex flex-col gap-sm"><h3 class="font-heading text-heading-3 text-foreground">{{ title }}</h3>{% if description %}<p class="font-body text-paragraph-2 text-body-text">{{ description }}</p>{% endif %}</div>
+    {% include 'test_integration_drupal:meta-line' with { attributes: create_attribute(), variant: 'compact', prep_minutes: prep_minutes, cook_minutes: cook_minutes, servings: servings, difficulty: difficulty } only %}
+  </div>
+</article>

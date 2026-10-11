@@ -31,11 +31,8 @@ export function executorConfig(base, { repo, runDir, workflowPath, executor }) {
   }));
   config.tests[0].vars = { workspace: base.tests[0].vars.workspace };
   config.prompts = [
-    `You are the execution agent. In ${JSON.stringify(base.tests[0].vars.workspace)}, set up the CLI once: \`_debo() { npx storybook-addon-designbook "$@"; }\` then \`eval "$(_debo config)"\`.\n` +
-      `A sealed MD plan already exists at ${JSON.stringify(workflowPath)}. Use the installed execute-workflow skill to execute it: attempt in-scope fixes, append persistent defects to the sibling .problems.md beside the plan, continue through remaining tasks, then report plan summary plus the problems inventory. Do NOT re-plan, run intake, or edit the plan's definition.\n` +
-      `Loop through the Designbook CLI one step at a time: \`plan steps <plan>\` to see steps and checkbox state, \`plan instructions <plan> --step <id>\` for a step's context and contracts, produce each task's declared outputs, then \`plan done <plan> --task <name> --data-file <result.json>\` (add \`--title\` when a step repeats a task name). The skill owns the loop. Preserve the saved plan. Use only this workspace and its inputs; do not read earlier test runs or provision fixtures.\n` +
-      `The plan's \`index_url\` points at the Storybook the planning phase started; check \`storybook status\` first and reuse that running server — its live URL is the plan's index_url. Only run \`storybook start\` if none is running. Never assume a fixed port.\n` +
-      `Finish by reporting \`plan summary <plan>\`.`,
+    `You are the execution agent in ${JSON.stringify(base.tests[0].vars.workspace)}. Read .agents/skills/designbook/skills/execute-workflow/SKILL.md and invoke that skill with the saved plan ${JSON.stringify(workflowPath)}. Follow its referenced executor instructions until complete or blocked.\n` +
+      `Preserve the sealed definition and reference inputs. Do not re-plan or provision fixtures. The skill owns task execution, recovery and problem reporting. Use only this workspace and its inputs; do not read earlier test runs. Report the final plan summary and problems inventory.`,
   ];
   return config;
 }
@@ -86,19 +83,15 @@ export function runModelPipeline({
   }));
   const blockade = base.tests[0].vars.blockade;
   const intakeSetup =
-    `Set up the CLI once: \`_debo() { npx storybook-addon-designbook "$@"; }\` then \`eval "$(_debo config)"\`.\n` +
-    `Read the intake handoff at ${JSON.stringify(intakeHandoff)} — it records the workspace and any published reference from the completed capture phase. Reuse those exact bindings; do not recapture.\n` +
-    `Follow the installed ${JSON.stringify(workflowId)} domain intake and \`.agents/skills/designbook/resources/workflow-building.md\`: run \`_debo intake ${workflowId} --palette\` and read the applicable intake rules. If intake yields a named \`ReferenceNeed\` or \`PrerequisiteNeed\`, report that YAML and stop — skip \`tasks.json\` and \`plan build\`.`;
+    `Read .agents/skills/designbook/SKILL.md and the installed domain SKILL.md for ${JSON.stringify(workflowId)}. The skill owns discovery, intake and plan creation.\n` +
+    `Read the intake handoff at ${JSON.stringify(intakeHandoff)}. Reuse its exact published reference bindings, subjects and selectors, preserving the captured bytes and approval requirements.\n` +
+    `If intake yields a named \`ReferenceNeed\` or \`PrerequisiteNeed\`, report it and stop without creating or executing a plan.\n`;
   plan.prompts = [
     blockade
-      ? `You are the planning model, already inside Promptfoo. Complete domain intake in this invocation. Workflow tasks wait for a later executor.\n` +
-        `Goal:\n${requestPrompt}\n\n` +
-        `${intakeSetup}\n`
-      : `You are the planning model, already inside Promptfoo. Seal the plan with the Designbook CLI in this invocation. A chat-only markdown brief is not a sealed plan — do not paste plan.md into the reply. Do NOT execute the sealed plan's tasks.\n` +
-        `Goal for the executor:\n${requestPrompt}\n\n` +
-        `${intakeSetup} Author the COMPLETE \`tasks.json\` — one entry per concrete task covering every step, each \`params\` satisfying that task's \`params_schema\`, and every open selector resolved.\n` +
-        `Continue \`.agents/skills/designbook/resources/workflow-building.md\` from that task list through sealing. \`_debo plan build ${workflowId} --tasks <tasks.json> --name ${JSON.stringify(workflowId)} --format json\` writes the plan to exactly ${JSON.stringify(workflowPath)}. It validates each task's params, embeds every body once, freezes the contracts and definitions, and computes the digest (auto-sealed). Fix any reported unmet param or missing step in \`tasks.json\` and re-run until it returns ok.\n` +
-        `End after that seal returns ok and the sealed plan exists at ${JSON.stringify(workflowPath)}. Do NOT run \`plan done\`, write component/scene output files, invoke execute-workflow, or provision fixtures. The following executor invocation executes it.\n`,
+      ? `You are the planning model, already inside Promptfoo. Complete domain intake in this invocation. Workflow tasks wait for a later executor.\nGoal:\n${requestPrompt}\n\n${intakeSetup}`
+      : `You are the planning model, already inside Promptfoo. Use the domain skill in persist / planning-only mode with initiative name ${JSON.stringify(workflowId)}. Seal the plan through the skill's CLI procedure in this invocation; a chat-only markdown brief is not a sealed plan. Do NOT execute its tasks.\n` +
+        `Goal for the executor:\n${requestPrompt}\n\n${intakeSetup}` +
+        `The runner's expected saved plan is ${JSON.stringify(workflowPath)}. Return its actual path. Stop after the complete plan is sealed; do not write component/scene output files or provision fixtures. A separate execute-workflow skill invocation executes the saved plan.`,
   ];
   const intakeArtifacts = JSON.parse(
     readFileSync(base.tags.intake_report, "utf8"),

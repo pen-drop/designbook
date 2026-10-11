@@ -1,0 +1,20 @@
+component: test_integration_drupal:step-block
+name: Default
+props:
+  items:
+    - >-
+      Carefully lift the skin of the chicken and rub minced garlic directly onto
+      the meat.
+    - >-
+      Place lemon slices under the skin, ensuring they cover as much surface as
+      possible.
+slots:
+  title:
+    - type: element
+      tag: span
+      value: Citrus Infusion
+  image:
+    - type: image
+      uri: /images/recipes/lemon-garlic-step-citrus-infusion.jpeg
+      attributes:
+        alt: Whole raw chicken on a wooden board

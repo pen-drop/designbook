@@ -11,6 +11,7 @@ import { planDigest, type Plan, type PlanTask } from '../plan-document.js';
 import { compilePlannedMapping, validateCompositionResult } from '../plan-composition-result.js';
 import type { DesignbookConfig } from '../../shared/config.js';
 import jsonata from 'jsonata';
+import { deriveComposition, renderCompositionTree } from '../plan-composition.js';
 
 const agents = resolve(process.cwd(), '../../.agents');
 const vueOpts = {
@@ -46,6 +47,53 @@ async function buildSignage(list: TaskList = fixture): Promise<Plan> {
 }
 
 describe('compilePlannedMapping', () => {
+  it('compiles styled image slots and preserves image data for zero, one and many images', async () => {
+    const list = structuredClone(fixture);
+    const model = list.composition!.data_model as {
+      content: { paragraph: { signage: { fields: Record<string, unknown> } } };
+      config: Record<string, unknown>;
+    };
+    model.content.paragraph.signage.fields.field_image = { type: 'image', settings: { image_style: 'hero' } };
+    model.config = { ...model.config, image_style: { hero: {} } };
+    const write = list.tasks.find((t) => t.step === 'write-component' && t.title === 'signage')!;
+    (write.params!.component as { slots: Record<string, unknown> }).slots.image = {
+      description: 'Image',
+      required: false,
+    };
+    const map = list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage')!;
+    (map.params!.bindings as unknown[]).push({ field: 'field_image', slot: 'image' });
+    const plan = await buildSignage(list);
+    expect(renderCompositionTree(deriveComposition(plan).tree)).toContain('image hero');
+    const expr = jsonata(compilePlannedMapping(findTask(plan, 'map-entity', 'signage'), plan));
+    for (const images of [
+      undefined,
+      [],
+      { src: '/chicken.png', alt: 'Chicken' },
+      [{ alt: 'Placeholder' }, { src: '/salad.png', alt: '' }],
+    ]) {
+      const result = await expr.evaluate({ field_image: images });
+      const expected = images == null ? [] : Array.isArray(images) ? images : [images];
+      expect(result[0].slots.image).toEqual(expected.map((image) => ({ image: 'hero', ...image })));
+    }
+    model.content.paragraph.signage.fields.field_image = { type: 'image', settings: { image_style: 'missing' } };
+    expect((await buildPlan(list, vueOpts)).errors.join('\n')).toContain('declared settings.image_style');
+  });
+
+  it('keeps reference slots as arrays for zero, one and many selected records', async () => {
+    const plan = await buildSignage();
+    const expr = jsonata(compilePlannedMapping(findTask(plan, 'map-entity', 'signage'), plan));
+    for (const ids of [[], ['1'], ['1', '2']]) {
+      const result = await expr.evaluate({ field_signage_item: ids });
+      expect(result[0].slots.items).toEqual(
+        ids.map((id) => ({
+          entity: 'paragraph.signage_item',
+          view_mode: 'full',
+          record: Number(id) - 1,
+        })),
+      );
+    }
+  });
+
   it('emits field paths and a lookup by stable record id, not numeric id minus one', async () => {
     const list = structuredClone(fixture);
     const sample = list.tasks.find((t) => t.step === 'create-sample-data' && t.title === 'signage_item')!;

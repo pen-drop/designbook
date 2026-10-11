@@ -1,0 +1,30 @@
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap");
+@import "./tailwind.config.pcss";
+
+/**
+ * We include tailwindcss into an own layer
+ * to prevent wrong layer ordering
+ *
+ * @see https://github.com/tailwindlabs/tailwindcss/issues/15864
+ */
+@import "tailwindcss" source(none);
+
+
+/**
+ * Include design tokens
+ */
+@import "./tokens/index.src.css";
+
+/**
+ * Include additional plugins here
+ */
+@import "./plugins/_tailwindcss.typography.config.src.css";
+
+/**
+ * Declare all source files to take into account all utility classes used in the theme for the build process.
+ */
+@source "../templates/**/*.{twig,js}";
+@source "../components/**/*.{twig,js,yml}";
+@source "../*.ui_styles.yml";
+@source "../ui_examples/*.yml";
+@source "./safelist.txt";
