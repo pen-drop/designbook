@@ -10,7 +10,10 @@ trigger:
 Identify the exact Storybook story, bound reference revision, selected views/states
 and comparison criteria. After the shared builder's source reference prerequisite
 passes, use the **`extract-reference` skill** with source `storybook` and role
-`actual`. Bind both completed revisions and explicit source-to-actual
+`actual`, or reuse a published actual capture when it still matches the current
+implementation and requested scope. Follow the capture skill's role-specific
+closeout. Bind the approved source reference and validated actual revision with
+explicit source-to-actual
 subject/view/state correspondences; native locators may differ. Decide CSS
 regeneration and prerequisites before planning comparison tasks. The check
 produces the complete issue list for the verification handoff.

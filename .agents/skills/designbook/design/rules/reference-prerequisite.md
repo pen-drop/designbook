@@ -7,7 +7,7 @@ trigger:
 
 # Bind a published reference during intake
 
-Applies when consuming source reference evidence. The explicitly requested
+Applies only when consuming source evidence with role `reference`. The explicitly requested
 `extract-reference` skill produces that evidence and is outside this prerequisite.
 
 1. Bind a published revision with approval for the requested scope. A URL,
@@ -18,7 +18,10 @@ Applies when consuming source reference evidence. The explicitly requested
    Never start extraction or its source tools implicitly from a consuming skill.
 
    Verification may use that skill with role `actual` to capture the current
-   implementation after its source `reference` prerequisite passes.
+   implementation after its source `reference` prerequisite passes. Role `actual`
+   is measured implementation evidence, not a design approval: validate its
+   publication, scope, locators and screenshots through the capture closeout;
+   no screenshot approval or suitability answer is required for that role.
 2. When the needed revision is missing, pending, rejected, fingerprint-drifted,
    or under-scoped, return a **ReferenceNeed YAML block** in the final response
    and stop before sealing the consuming plan. Fill every field below with the
@@ -59,7 +62,7 @@ Applies when consuming source reference evidence. The explicitly requested
    approval gate in step 4 passes: suitability confirms purpose, screenshot
    approval confirms the captured evidence. Completion: the recorded decision names
    the revision, scope, answer and links, and every bound revision has `answer: yes`.
-4. Before `plan build` for any workflow that depends on a published revision, run
+4. Before `plan build` for a workflow consuming a source `reference` revision, run
    `_debo reference approval-check --reference <revisionDir> --need <json>`
    ([CLI workflow](../../resources/cli-workflow.md)). Exit 0 with matching
    fingerprint and covering scope is required; otherwise retain the ReferenceNeed

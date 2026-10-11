@@ -69,7 +69,16 @@ After sealing, run [execute-workflow](../../execute-workflow/SKILL.md) for this
 capture plan per the builder's chosen mode. This workflow stays a separate start
 from design execute.
 
-After publish succeeds, close out **screenshot approval** before ending the run:
+After publish succeeds, close out according to the captured role:
+
+- **`actual`:** Run `reference validate`, verify the requested subjects, views,
+  states and locators, and inspect the screenshots for the intended rendered
+  content (not an error page or access placeholder). Report the revision and
+  capture paths, then return the validated evidence to the caller. Publication
+  and these checks complete the capture; no user approval or suitability question
+  is needed. Leave any existing approval record unchanged; never fabricate one.
+- **`reference`:** Complete the screenshot approval and suitability steps below.
+
 
 1. Name the published revision to the user: the full revision directory and what
    it holds. `_debo reference validate --reference <revision-dir>` prints the
@@ -93,7 +102,7 @@ After publish succeeds, close out **screenshot approval** before ending the run:
    Dependent design planning is a later start that runs `reference approval-check`;
    this closeout does not invoke a design workflow.
 
-Completion: the user has the revision directory, a per-subject account of its
+Completion for role `reference`: the user has the revision directory, a per-subject account of its
 states, views, screenshots and asset files, one Storybook link per capture tuple,
 an `approval.yml` reflecting pending→approved/rejected, and a reported suitability
 answer with its scope.

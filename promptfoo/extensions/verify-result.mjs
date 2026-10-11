@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 // design-verify writes its deterministic fidelity score to a file
-// (`_debo verify score --output …/plans/design-verify.score.json`): { score,
+// (`_debo verify score --output …/verify-score.json`): { score,
 // passed, issue_count, checks }. The harness reads that file rather than the plan,
 // since the MD-plan engine no longer stores task results in the plan.
 function findScoreFile(root) {
@@ -19,7 +19,7 @@ function findScoreFile(root) {
       if (entry.name === "node_modules" || entry.name === ".git") continue;
       const path = join(dir, entry.name);
       if (entry.isDirectory()) stack.push(path);
-      else if (entry.name === "design-verify.score.json") return path;
+      else if (entry.name === "verify-score.json") return path;
     }
   }
   return null;
