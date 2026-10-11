@@ -66,7 +66,7 @@ evidence and authors the complete definition. Fresh executor calls then carry ou
 one complete step each, receiving only the resolved work order for that step. Capture/asset/catalogue
 bytes remain fixed, including meta.yml and extract.json. Completed capture
 workflow documents also remain unchanged throughout planning and execution. The main gate checks the native intake
-presentation before workflow creation and checks the declared selector scope.
+presentation before execution and checks the declared selector scope.
 
 Only the first part provisions fixtures. For other workflows this is main.
 The provider rebuilds the workspace with `setup-workspace.sh`, layers fixtures

@@ -47,22 +47,15 @@ verification. Reference-free requests use their concrete inputs.
    satisfy that task's `params_schema`. A writing-design list carries `composition`
    matching the palette `$ref` to `CompositionInputs`. Cover every step the palette lists.
    Completion: one entry per concrete task, params filled.
-3. **Writing-design workflows** are `design-entity`, `design-component`,
-   `design-screen` and `design-shell`. For these four only, present the selector
-   inventory from the resolved `design-write-planning` rule, then
-   run `plan tree <tasks.json> --workflow <id> --config-dir <workspace>`.
-   The next user-visible reply is that command's unmodified stdout, even when
-   execution was requested without questions. Completion: the inventory and
-   composition tree have been shown. All other workflows, including
-   `design-verify`, proceed directly to step 4.
-4. Choose an **execution mode** and run `plan build` accordingly.
-   Caller override always wins over workflow defaults.
+3. Choose an **execution mode** and save the sealed plan with `plan build`.
+   Caller override always wins over workflow defaults. Writing-design workflows
+   are `design-entity`, `design-component`, `design-screen` and `design-shell`.
 
-   | Mode | Persist durable plan? | Start execute? |
+   | Mode | Plan storage | Start execution? |
    |---|---|---|
-   | `ephemeral` | No (temp under `plans/.ephemeral/`) | Yes |
-   | `persist` | Yes (folder `plans_dir/<date>-<slug>/plan.md`, `--name` required) | No |
-   | `ask` | After user choice | After user choice |
+   | `ephemeral` | Temporary, under `plans/.ephemeral/` | After presentation |
+   | `persist` | Durable | No; hand off the saved path |
+   | `ask` | Durable, before asking | Only after the user's choice |
 
    **Defaults when unset:**
 
@@ -72,32 +65,38 @@ verification. Reference-free requests use their concrete inputs.
      bounded; otherwise stop and resolve the wider scope.
    - Other workflows → `ephemeral`.
 
-   **Mode actions:**
-
-   - **`persist`:** `plan build <workflow> --tasks tasks.json --name <concrete
-     initiative name> --format json` (durable default). Stop after `ok`. Hand the
-     CLI's returned `plan` path out — do **not** invoke `execute-workflow` in this
-     start.
-   - **`ephemeral`:** `plan build <workflow> --tasks tasks.json --ephemeral
-     --format json`. The CLI writes `$DESIGNBOOK_DATA/plans/.ephemeral/<unique>.md`
-     and returns JSON with `ephemeral: true` and `plan`. Invoke
-     `execute-workflow <ephemeral-plan-path>` in a separate execution invocation.
-     After successful completion or explicit abandon, delete that ephemeral plan
-     file after caller/tester inspection when scoring needs the sealed plan;
-     result artifacts remain. Interrupted ephemeral runs have no durable
-     resume — re-intake and rebuild, or switch to `persist` first.
-   - **`ask`:** After the applicable presentation, offer three choices: run here
-     (`ephemeral`), hand off without executing (`persist`), or cancel. For workflows
-     without a composition tree, present the planned scope and outputs instead.
-     Follow the chosen mode.
+   For `persist` and `ask`, run `plan build <workflow> --tasks tasks.json
+   --name <concrete initiative name> --format json`. For `ephemeral`, run
+   `plan build <workflow> --tasks tasks.json --ephemeral --format json`.
+   Use the returned `plan` path in all subsequent commands.
 
    `plan build` validates each task's params against its `params_schema` and that
    every required step is covered, embeds each rule/blueprint/task body once,
    freezes the output contracts and definitions, computes the digest (auto-sealed),
-   and writes the plan. It reports each unmet param or missing step precisely —
-   fix `tasks.json` and re-run with `--format json` until it returns `ok`. Sealing is identical for
-   ephemeral and durable paths. Completion: sealed plan exists at the mode's path;
-   execute started only when the mode says so.
+   and writes the plan. Fix reported errors in `tasks.json` and rebuild until it
+   returns `ok`. Completion: the sealed plan is saved; execution has not started.
+4. **Present the saved plan.** For these four only, present the selector inventory
+   from the resolved `design-write-planning` rule, then run `plan tree <plan-path>`.
+   Include that command's unmodified stdout in a user-visible reply before asking
+   for execution confirmation or starting execution, even when execution was
+   requested without questions. Other workflows, including `design-verify`,
+   present their planned scope and outputs when the mode is `ask`.
+   Completion: the user can review the saved plan before execution.
+5. **Hand off or execute the saved path.**
+
+   - **`persist`:** Return the saved `plan` path and stop.
+   - **`ephemeral`:** Invoke `execute-workflow <plan-path>` in a separate execution
+     invocation. After successful completion or explicit abandon, delete the
+     ephemeral plan after caller/tester inspection when scoring needs it; result
+     artifacts remain. Interrupted ephemeral runs have no durable resume —
+     re-intake and rebuild, or switch to `persist` first.
+   - **`ask`:** Offer three choices: execute the saved plan here, hand off without
+     executing, or cancel execution. Execute the saved path only after the run
+     choice; the other choices retain the plan and stop. Saving the plan itself
+     requires no confirmation.
+
+   Completion: execution started only when the selected mode and any required
+   confirmation authorize it.
 
 Keep the palette and task-list authoring out of the executor conversation. The
 plan is the single source of truth for execution. Reference transport: keep raw

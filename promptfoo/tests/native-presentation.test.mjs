@@ -23,7 +23,7 @@ const tree = `Scene "Signage" (standalone) sections/signage/signage.section.scen
          └─ prop buttonAuthenticated ← field_button_authenticated`;
 
 const choices =
-  "Choose: run here (ephemeral), hand off (persist without execute), or cancel.";
+  "Choose: execute the saved plan here, hand off without executing, or cancel execution.";
 const build =
   "_debo plan build design-entity --tasks tasks.json --name design-entity --format json";
 
@@ -73,26 +73,23 @@ test("rejects a missing tree, including a no-questions request", () => {
   assert.match(result.reason, /missing|not presented/i);
 });
 
-test("rejects a tree presented after the first plan build", () => {
+test("accepts a tree presented after plan build", () => {
   const result = compositionPresentation(
     [command(build), message(tree)],
     tree,
   );
-  assert.equal(result.ok, false);
-  assert.match(result.reason, /after|late|before/i);
+  assert.equal(result.ok, true, result.reason);
 });
 
-test("rejects a tree sent only in the sealed-plan wrap-up", () => {
-  const result = compositionPresentation(
-    [
-      command("_debo plan tree tasks.json --workflow design-entity"),
-      command(build),
-      message(tree),
-    ],
-    tree,
-  );
-  assert.equal(result.ok, false);
-  assert.match(result.reason, /after|late|before/i);
+test("rejects a tree presented after execution starts", () => {
+  for (const execution of ["execute-workflow plan.md", "_debo plan done plan.md --task write-scene"]) {
+    const result = compositionPresentation(
+      [command(build), command(execution), message(tree)],
+      tree,
+    );
+    assert.equal(result.ok, false);
+    assert.match(result.reason, /after execution/i);
+  }
 });
 
 test("rejects a paraphrased or keyword-only tree", () => {
@@ -121,13 +118,13 @@ test("rejects a paraphrased or keyword-only tree", () => {
 
 test("in ask mode the tree precedes the three choices", () => {
   const ok = compositionPresentation(
-    [message(tree), message(choices), command(build)],
+    [command(build), message(tree), message(choices)],
     tree,
     { ask: true },
   );
   assert.equal(ok.ok, true, ok.reason);
   const late = compositionPresentation(
-    [message(choices), message(tree), command(build)],
+    [command(build), message(choices), message(tree)],
     tree,
     { ask: true },
   );
@@ -186,12 +183,9 @@ test("design intakes use CLI context without duplicating shared planning", () =>
   assert.match(building, /"composition"/);
   assert.match(building, /unmodified stdout/);
   assert.match(building, /user-visible reply/);
-  assert.match(
-    building,
-    /next user-visible reply is that command's unmodified stdout/,
-  );
+  assert.match(building, /plan tree <plan-path>/);
   assert.match(building, /For these four only/);
-  assert.match(building, /`design-verify`, proceed directly to step 4/);
+  assert.match(building, /Saving the plan itself\s+requires no confirmation/);
   assert.match(building, /ask/i);
   const fieldMap = readFileSync(
     join(

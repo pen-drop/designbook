@@ -25,14 +25,14 @@ function normalize(text) {
     .trimEnd();
 }
 
-function isPlanBuild(command) {
-  return /\bplan\s+build\b/.test(command || "");
+function isExecution(command) {
+  return /\b(?:execute-workflow|plan\s+done)\b/.test(command || "");
 }
 
 function isAskChoices(text) {
   const body = String(text || "").toLowerCase();
   return (
-    (body.includes("ephemeral") || body.includes("run here")) &&
+    (body.includes("ephemeral") || body.includes("run here") || body.includes("execute the saved plan")) &&
     (body.includes("persist") || body.includes("hand off")) &&
     body.includes("cancel")
   );
@@ -40,7 +40,7 @@ function isAskChoices(text) {
 
 /**
  * Require the exact expected composition tree in assistant prose before the
- * first `plan build`, and in ask mode before the three execution-mode choices.
+ * first execution command, and in ask mode before the execution choices.
  */
 export function compositionPresentation(events, expectedTree, options = {}) {
   const tree = normalize(expectedTree);
@@ -55,11 +55,11 @@ export function compositionPresentation(events, expectedTree, options = {}) {
       ok: false,
       reason: "expected composition tree was not presented in assistant prose",
     };
-  const firstBuild = entries.findIndex((entry) => isPlanBuild(entry.command));
-  if (firstBuild >= 0 && presented > firstBuild)
+  const firstExecution = entries.findIndex((entry) => isExecution(entry.command));
+  if (firstExecution >= 0 && presented > firstExecution)
     return {
       ok: false,
-      reason: "composition tree was presented after the first plan build",
+      reason: "composition tree was presented after execution started",
     };
   if (options.ask) {
     const choices = entries.findIndex(
