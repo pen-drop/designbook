@@ -1,10 +1,30 @@
 <!doctype html>
 <html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Designbook · Rezept-Film</title>
-<style>body{margin:0;background:#121b20;color:#edf4f0;font:17px/1.6 system-ui,sans-serif}main{max-width:1200px;margin:auto;padding:36px 24px}h1{font-size:clamp(30px,5vw,54px);line-height:1.1;letter-spacing:-.04em}p{max-width:800px;color:#b1c9cc}video{display:block;width:100%;background:#121b20;border-radius:12px}a{color:#a9ebce;text-underline-offset:4px}a:focus-visible{outline:3px solid #ff795e;outline-offset:4px}footer{margin-top:32px;font-size:14px}</style>
-<main><h1>Vom Design zum funktionierenden System.</h1>
-<p>15 Sekunden: Figma-Referenz → Vision → Datenmodell → Tokens → Shell → Rezeptseite. Echte Produktaufnahmen und gekennzeichnete Auszüge aus Claude-Läufen.</p>
-<video controls playsinline preload="metadata" poster="recipe/poster.png" aria-label="Designbook Rezept-Film, 15 Sekunden, ohne Ton" aria-describedby="transcript"><source src="recipe/intro.mp4" type="video/mp4"></video>
-<p><a href="recipe/intro.mp4" download="designbook-recipe-intro.mp4">MP4 herunterladen</a> · <a href="STORYTELLING.md">Storytelling lesen</a></p>
-<p id="transcript">Der Figma-Entwurf bildet den Einstieg. Vision, Datenmodell-Graph und Tokens erscheinen mit kurzen Original-Ausgaben von Claude. Anschließend zeigt Storybook den gemeinsamen Header und Footer, dann die fertige Rezeptseite. Schluss: „Not a design tool. A working design system.“</p>
-<footer>Stummer Entwurf. Einstieg: gespeicherter Figma-Frame, kein Figma-Editor. Früheres Pricing-Konzept: <a href="astra/intro.mp4">Astra</a> · <a href="opus/intro.mp4">Opus</a>.</footer></main></html>
+<title>Designbook · Rezept-Animatic</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#111b22;color:#edf4f0;font:17px/1.6 system-ui,sans-serif}main{max-width:1280px;margin:auto;padding:32px 24px}h1{font-size:clamp(30px,5vw,52px);line-height:1.1;letter-spacing:-.04em}p{max-width:900px;color:#b1c9cc}video{display:block;width:100%;background:#111b22;border-radius:12px}a{color:#a9ebce;text-underline-offset:4px}a:focus-visible,button:focus-visible{outline:3px solid #ff795e;outline-offset:4px}footer{margin-top:32px;font-size:14px}.note{border-left:3px solid #da895e;padding:10px 18px;background:#1c2932}.frames{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:24px 0}.frames button{border:1px solid #42525d;border-radius:8px;overflow:hidden;background:#1c2932;color:#edf4f0;cursor:pointer;padding:0;text-align:left;font:inherit}.frames img{width:100%;display:block}.frames span{display:block;padding:8px 12px;font-size:14px}
+</style>
+<main><h1>Vom Design zum System — sichtbar aufgebaut.</h1>
+<p>20-Sekunden-Animatic: KI-Aufträge, Daten und Tokens, dann die Scene. Erst erscheinen die Entities, danach die Komponenten — jeweils gleichzeitig auf der Seite und links im Baum.</p>
+<p class="note">Arbeitsfassung für Schnitt und Kamera. Der echte Figma-Editor fehlt noch (Zugriff liefert 403); Szene 1 ist sichtbar als Platzhalter markiert. Das Claude-Terminal zeigt ein Replay echter Prompt-Auszüge. Lichtimpulse sind noch nicht final gestaltet.</p>
+<video id="film" controls playsinline preload="metadata" poster="recipe/poster.png" aria-label="Designbook Animatic, 20 Sekunden, ohne Ton" aria-describedby="transcript"><source src="recipe/intro.mp4" type="video/mp4"></video>
+<p><a href="recipe/intro.mp4" download="designbook-recipe-animatic.mp4">MP4 herunterladen</a> · <a href="STORYTELLING.md">Genaue Schnittvorlage</a></p>
+<h2>Schlüsselbilder — zum Zeitpunkt springen</h2>
+<div class="frames">
+<button type="button" data-time="0"><img src="recipe/frames/0.png" alt=""><span>0:00 · Figma — Aufnahme fehlt</span></button>
+<button type="button" data-time="2.8"><img src="recipe/frames/2.8.png" alt=""><span>0:02.8 · KI-Auftrag</span></button>
+<button type="button" data-time="4.6"><img src="recipe/frames/4.6.png" alt=""><span>0:04.6 · Datenmodell</span></button>
+<button type="button" data-time="6.5"><img src="recipe/frames/6.5.png" alt=""><span>0:06.5 · Tokens</span></button>
+<button type="button" data-time="8.2"><img src="recipe/frames/8.2.png" alt=""><span>0:08.2 · KI baut die Scene</span></button>
+<button type="button" data-time="10.3"><img src="recipe/frames/10.3.png" alt=""><span>0:10.3 · Recipe-Entity</span></button>
+<button type="button" data-time="12.9"><img src="recipe/frames/12.9.png" alt=""><span>0:12.9 · Author-Entity</span></button>
+<button type="button" data-time="15.8"><img src="recipe/frames/15.8.png" alt=""><span>0:15.8 · Quantity-item-Komponente</span></button>
+<button type="button" data-time="17.3"><img src="recipe/frames/17.3.png" alt=""><span>0:17.3 · Profile-card-Komponente</span></button>
+<button type="button" data-time="19"><img src="recipe/frames/19.png" alt=""><span>0:19 · Ergebnis</span></button>
+</div>
+<p id="transcript">Bring your design. Let AI do the building. Extract your data and tokens. Build your scene. Structure your content. Reveal your components. Not a design tool. AI builds your design system.</p>
+<footer>Die Sidebar wird aus echten Storybook-Zeilen für den Film zusammengesetzt. Das Pop-in erklärt den Aufbau und stellt kein echtes Storybook-Ladeverhalten dar. Frühere Pricing-Entwürfe: <a href="astra/intro.mp4">Astra</a> · <a href="opus/intro.mp4">Opus</a>.</footer></main>
+<script>
+const film=document.querySelector('#film');
+for(const button of document.querySelectorAll('[data-time]'))button.addEventListener('click',()=>{film.pause();film.currentTime=Number(button.dataset.time);film.scrollIntoView({block:'center'});});
+</script></html>

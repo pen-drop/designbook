@@ -39,6 +39,7 @@ try {
     if (name === 'model') {
       await frame.getByText('Data Model',{exact:true}).first().click();
       await frame.getByRole('button',{name:'Graph',exact:true}).click();
+      await frame.getByRole('img',{name:'Data model graph',exact:true}).screenshot({path:new URL('screenshots/model-graph.png',root).pathname});
     }
     await page.waitForTimeout(700);
     await page.screenshot({path:new URL(`screenshots/${name}.png`,root).pathname});
