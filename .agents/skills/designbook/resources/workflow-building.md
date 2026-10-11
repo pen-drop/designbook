@@ -40,17 +40,13 @@ sealing. Every mode uses the same sealed-plan assembly and the same
    satisfy that task's `params_schema`. A writing-design list carries `composition`
    matching the palette `$ref` to `CompositionInputs`. Cover every step the palette lists.
    Completion: one entry per concrete task, params filled.
-3. Before `plan build` for a **design-*** workflow that depends on a published
-   revision: confirm that revision is approved for the needed scope. Run
-   `reference approval-check --reference <revisionDir> --need <json>` (see
-   [CLI workflow](cli-workflow.md)). A missing, pending, rejected, fingerprint-
-   drifted, or under-scoped approval is a blockade — emit or retain a
-   `ReferenceNeed` and stop; do not seal a design plan that skips the gate.
-   Capture and screenshot approval are a separate start (`extract-reference`
-   closeout writes `approval.yml`); design intake does not chain them. Text-only
-   work that needs no new visuals does not invent a ReferenceNeed. Completion:
-   either the dependent revision is approved for the need, or a precise blockade /
-   ReferenceNeed is reported.
+3. For any workflow consuming source reference evidence, complete the
+   [reference intake](../design/resources/reference-intake.md) before planning
+   dependent tasks. This includes foundation and import workflows. Completion:
+   the published revision passes the approval gate for the requested scope, or
+   the caller receives a `ReferenceNeed` and planning stops. An explicitly
+   requested `extract-reference` run owns source capture; reference-free work
+   uses its concrete request and retained artifacts.
 4. For a **design-*** workflow, run `plan tree <tasks.json> --workflow <id>
    --config-dir <workspace>`. The next assistant message's body is that
    command's unmodified stdout. In `ask` mode that same unmodified stdout precedes

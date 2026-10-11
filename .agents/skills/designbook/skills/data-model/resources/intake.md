@@ -5,6 +5,10 @@ description: Domain decisions required before planning data-model artifacts.
 
 # data-model intake
 
+When the request depends on a visual source, follow the shared
+[reference intake](../../../design/resources/reference-intake.md) before deriving
+artifact decisions from that source.
+
 Read the vision and existing model. Agree on all content and configuration entity types, bundles, fields, references and cardinalities. Include referenced media and taxonomy entities. Decide each view/form mode, its template and settings, and bundle purpose using the effective integration rules. Present the complete model for any unresolved decisions before planning.
 
 Use the request, existing project artifacts, and the saved intake context as input. Ask only questions not answered by those inputs.

@@ -5,6 +5,10 @@ description: Domain decisions required before planning sections artifacts.
 
 # sections intake
 
+When the request depends on a visual source, follow the shared
+[reference intake](../../../design/resources/reference-intake.md) before deriving
+artifact decisions from that source.
+
 Read the vision. Propose coherent product sections with stable IDs, titles, descriptions and order. Resolve missing scope decisions with the user. Freeze the complete section list before creating one concrete artifact task for each section.
 
 Use the request, existing project artifacts, and the saved intake context as input. Ask only questions not answered by those inputs.

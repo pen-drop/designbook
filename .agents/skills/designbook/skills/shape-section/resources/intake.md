@@ -5,6 +5,10 @@ description: Domain decisions required before planning shape-section artifacts.
 
 # shape-section intake
 
+When the request depends on a visual source, follow the shared
+[reference intake](../../../design/resources/reference-intake.md) before deriving
+artifact decisions from that source.
+
 Identify the section and read its vision and current specification. Resolve audience, user flows, entry/exit conditions, UI requirements, dependencies and exclusions. Freeze the section scope before planning its specification artifact.
 
 Use the request, existing project artifacts, and the saved intake context as input. Ask only questions not answered by those inputs.

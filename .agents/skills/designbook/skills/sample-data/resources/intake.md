@@ -5,6 +5,10 @@ description: Domain decisions required before planning sample-data artifacts.
 
 # sample-data intake
 
+When the request depends on a visual source, follow the shared
+[reference intake](../../../design/resources/reference-intake.md) before deriving
+artifact decisions from that source.
+
 Read the data model and section scope. Enumerate all entity/bundle targets, sample counts, stable identifiers, cross-entity references and section tags. Resolve required media inputs before planning one concrete task per selected target.
 
 Use the request, existing project artifacts, and the saved intake context as input. Ask only questions not answered by those inputs.

@@ -5,15 +5,16 @@ description: Domain decisions required before planning tokens artifacts.
 
 # tokens intake
 
-When the request names a reference or a published revision already exists, reuse
-that revision. Fix its subjects, views and states, then use the `tokens` package
+When the request depends on a visual source, follow the shared
+[reference intake](../../../design/resources/reference-intake.md) before deriving
+tokens or preparing reference queries.
+
+For reference-derived tokens, reuse the revision bound by that intake. Fix its subjects, views and states, then use the `tokens` package
 through [reference queries](../../../design/resources/reference-packages.md).
 Populate the task's `extract` with the bounded `DesignReference` observations
 returned by the query and `reference_dir` with the selected revision directory.
-Keep the prepared request and fingerprint with the plan. A supplied reference
-with missing observations blocks token planning; it is not a no-reference case.
-Only when a new capture is needed, use the standalone
-[extract-reference intake](../../extract-reference/resources/intake.md).
+Keep the prepared request and fingerprint with the plan. Missing observations
+follow the shared intake’s `ReferenceNeed` handoff.
 
 Derive the palette, typography and scales from those observations. Semantic names
 and grouping are planning decisions; distinguish them from measured values.

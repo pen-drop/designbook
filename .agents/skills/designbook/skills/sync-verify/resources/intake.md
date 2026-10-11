@@ -14,14 +14,13 @@ description: Domain decisions required before planning sync-verify artifacts.
    Select corresponding subjects, native views, explicit breakpoint mappings and
    interaction states. A missing story, backend subject or required state blocks
    preparation; a whole-page fallback cannot replace an intended isolated subject.
-3. Follow the [shared capture intake](../../extract-reference/resources/intake.md)
-   twice, enabling the installed `storybook` and `website` extensions in the
-   effective capture configuration: the Storybook integration captures the current story with role
-   `reference`; the website integration captures the resolved backend render with
-   role `actual`. Each capture has its own source identity, fixed workflow,
-   revision and common observed-data outputs through `plan done`.
-   Preserve backend access and locator instructions in the selected website
-   capture tasks. Complete both capture workflows before continuing.
+3. Bind an already published Storybook revision with role `reference` through
+   the [reference intake](../../../design/resources/reference-intake.md).
+   Once that prerequisite passes, follow the
+   [shared capture intake](../../extract-reference/resources/intake.md) with the
+   installed `website` extension and role `actual` for the resolved backend
+   render. Preserve backend access and locator instructions in those capture
+   tasks. Complete the actual capture before continuing.
 4. Prepare one frozen observation query per side of each explicit comparison.
    Bind the published directories, subject/view/state identities and fingerprints
    in `comparison.reference_query` and `comparison.actual_query`. IDs and locators

@@ -3,17 +3,30 @@ name: reference-intake
 description: Consume a completed observation revision before fixing the design inventory.
 ---
 
-# Prepare the design reference during intake
+# Bind a published reference during intake
+
+This contract applies to every workflow that consumes source reference evidence,
+including foundation and import skills. A source URL, node ID or screenshot is
+a locator for a separate capture, not a completed revision. Emit `ReferenceNeed`
+and return control when evidence is missing; never invoke `extract-reference`,
+its source capture tools, or capture tasks implicitly from a consuming skill.
+Resume that skill only after a separately requested capture has published the
+required approved revision.
+
+Verification may capture the current implementation with role `actual` as part
+of its explicit verification request. This does not authorize capturing or
+refreshing its source `reference`; check that prerequisite before actual capture.
 
 1. Prefer an already published revision whose selected scope supports the
    request and whose `approval.yml` is approved for that need. When none fits
    (or a refresh is required), emit a ReferenceNeed (step 2) and leave capture
    plus screenshot approval to a separate
    [extract-reference](../../skills/extract-reference/resources/intake.md) start.
-   Design intake resumes after that start leaves an approved revision.
+   The consuming intake resumes after that start leaves an approved revision.
 2. When the needed revision is missing, pending, rejected, fingerprint-drifted,
-   or under-scoped, emit a transportable **ReferenceNeed** and stop before
-   sealing the design plan. Shape (single contract — same fields the CLI
+   or under-scoped, return a **ReferenceNeed YAML block** in the final response
+   and stop before sealing the consuming plan. Fill every field below with the
+   caller’s scope and unresolved decisions so another start can resume it. Shape (single contract — same fields the CLI
    `reference approval-check --need` covers):
 
    ```yaml
@@ -51,7 +64,7 @@ description: Consume a completed observation revision before fixing the design i
    approval gate in step 4 passes: suitability confirms purpose, screenshot
    approval confirms the captured evidence. Completion: the recorded decision names
    the revision, scope, answer and links, and every bound revision has `answer: yes`.
-4. Before `plan build` for a design that depends on a published revision, run
+4. Before `plan build` for any workflow that depends on a published revision, run
    `_debo reference approval-check --reference <revisionDir> --need <json>`
    ([CLI workflow](../../resources/cli-workflow.md)). Exit 0 with matching
    fingerprint and covering scope is required; otherwise retain the ReferenceNeed

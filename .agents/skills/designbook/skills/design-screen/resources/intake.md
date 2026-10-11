@@ -5,7 +5,7 @@ description: Domain decisions for creating or changing the selected screen artif
 
 # Screen intake
 
-For a supplied design reference, first follow [reference intake](../../../design/resources/reference-intake.md): load the effective extraction instructions and complete analysis before selecting the structure below. Text-only requests use their concrete acceptance criteria and retained artifacts.
+For a supplied design reference, first follow [reference intake](../../../design/resources/reference-intake.md): bind the approved published revision and inspect its observations before selecting the structure below. Text-only requests use their concrete acceptance criteria and retained artifacts.
 
 Select one exact SceneFile path and SceneDef.name within a section. Keep file ID, scene name and Storybook URL distinct. Inspect the complete file, sibling scenes, metadata, shell inheritance, route-bearing main content, mappings, sample records and component usages. Resolve multiple matches or conflicting selectors before planning.
 

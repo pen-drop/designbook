@@ -5,7 +5,7 @@ description: Domain decisions for creating or changing the selected shell artifa
 
 # Shell intake
 
-For a supplied design reference, first follow [reference intake](../../../design/resources/reference-intake.md): load the effective extraction instructions and complete analysis before selecting the structure below. Text-only requests use their concrete acceptance criteria and retained artifacts.
+For a supplied design reference, first follow [reference intake](../../../design/resources/reference-intake.md): bind the approved published revision and inspect its observations before selecting the structure below. Text-only requests use their concrete acceptance criteria and retained artifacts.
 
 Select the canonical `design-system:shell` target in `design-system/design-system.scenes.yml`, preserving its file identity and the existing scene named `shell`. Inspect the page/header/footer composition, navigation labels and destinations, slots, scripting, responsive behavior and every consuming screen.
 

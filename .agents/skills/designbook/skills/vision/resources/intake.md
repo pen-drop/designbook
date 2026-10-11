@@ -5,6 +5,10 @@ description: Domain decisions required before planning vision artifacts.
 
 # vision intake
 
+When the request depends on a visual source, follow the shared
+[reference intake](../../../design/resources/reference-intake.md) before deriving
+artifact decisions from that source.
+
 Read existing vision if present. Resolve product name, purpose, audience, problems, and features from the request. Ask together for missing required fields from the discovered Vision schema. Finish the product conversation before planning the artifact task.
 
 Use the request, existing project artifacts, and the saved intake context as input. Ask only questions not answered by those inputs.

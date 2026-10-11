@@ -5,7 +5,7 @@ description: Domain decisions for creating or changing the selected entity artif
 
 # Entity intake
 
-For a supplied design reference, first follow [reference intake](../../../design/resources/reference-intake.md): load the effective extraction instructions and complete analysis before selecting the structure below. Text-only requests use their concrete acceptance criteria and retained artifacts.
+For a supplied design reference, first follow [reference intake](../../../design/resources/reference-intake.md): bind the approved published revision and inspect its observations before selecting the structure below. Text-only requests use their concrete acceptance criteria and retained artifacts.
 
 Select entity type, bundle and exactly one view-mode or form-mode identity. Inspect its current mapping, data model, selected mode's template/display settings, sample pool, component inventory and standalone preview. Include neighboring view/form modes and bundles in the preservation baseline.
 
