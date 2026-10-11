@@ -1,10 +1,40 @@
-# Intro-Video: Astra / Opus
+# Intro-Video: Rezept
+
+Die aktuelle [15-Sekunden-Fassung](recipe/intro.mp4) zeigt den Rezept-Entwurf,
+Vision, Datenmodell, Tokens, Shell und das fertige Ergebnis in Storybook.
+[Video ansehen](index.html) · [Storytelling](STORYTELLING.md)
+
+Alle verwendeten Aufnahmen liegen unter `recipe/screenshots/`. Die Log-Auszüge
+stammen aus echten Promptfoo-Claude-Läufen; `recipe/excerpts.json` nennt die Quellen.
+Es sind nachträglich gesetzte Auszüge, keine Aufnahme einer neuen Terminal-Session.
+
+Erneut rendern (mit vorhandenen Bildern, ohne laufendes Storybook):
+
+```bash
+node docs/media/intro-video/recipe/render.mjs
+```
+
+Neu aufnehmen benötigt den fertig aufgebauten Rezept-Workspace und die ursprünglichen,
+gitignored Promptfoo-Reports für die Auszüge:
+
+```bash
+STORYBOOK_URL=http://localhost:34211 node docs/media/intro-video/recipe/capture.mjs
+```
+
+Voraussetzungen: installierte Repository-/Integration-Abhängigkeiten, Playwright
+Chromium und `ffmpeg`. Der Renderer prüft Browserfehler, sechs Szenen, eine stehende
+letzte Sekunde und erfolgreichen Export: 450 Frames, 1280 × 720, 30 fps, ohne Ton.
+
+Lokal ansehen: `python3 -m http.server 4187 --directory docs/media/intro-video`.
+Die Landingpage bleibt bis zur Auswahl der Filmfassung bei ihrer bisherigen Einbindung.
+
+## Frühere Pricing-Entwürfe
 
 Zwei eigenständige, stumme 15-Sekunden-Fassungen des
-[gemeinsamen Storytellings](STORYTELLING.md). Alle Bilder stammen aus der echten,
+früheren Pricing-Storytellings. Alle Bilder stammen aus der echten,
 bereinigten Figma-Canvas-Fixture. Kamera und Lichtimpulse sind nachträglich animiert.
 
-[Beide Filme vergleichen](index.html)
+[Astra](astra/intro.mp4) · [Opus](opus/intro.mp4)
 
 | Fassung | Film | Umsetzung | Neu rendern |
 | --- | --- | --- | --- |

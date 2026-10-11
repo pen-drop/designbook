@@ -1,19 +1,10 @@
 <!doctype html>
-<html lang="de">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Designbook — Intro-Video: Astra / Opus</title>
-<style>
-*{box-sizing:border-box}body{margin:0;background:#f5f3ee;color:#153e45;font:16px/1.6 system-ui,sans-serif}main{max-width:1440px;margin:auto;padding:48px 28px}header{max-width:850px;margin-bottom:36px}small{font-weight:650;letter-spacing:.1em;text-transform:uppercase}h1{font-size:clamp(30px,4vw,52px);line-height:1.12;letter-spacing:-.04em;margin:12px 0 18px}p{color:#51666b}section{display:grid;grid-template-columns:1fr 1fr;gap:24px}article{background:white;border:1px solid #d3dedb;border-radius:14px;overflow:hidden}article h2{margin:0;font-size:24px}article div{padding:22px 24px}video{width:100%;aspect-ratio:16/9;display:block;background:#0f1820}a{color:#12454e;text-underline-offset:4px}a:focus-visible,summary:focus-visible{outline:3px solid #e97964;outline-offset:5px}article p{margin:6px 0 12px}details{margin-top:32px;max-width:850px}summary{cursor:pointer;font-weight:650}footer{margin-top:36px;font-size:14px;color:#51666b}@media(max-width:900px){section{grid-template-columns:1fr}main{padding:28px 18px}}
-</style>
-</head>
-<body><main>
-<header><small>Designbook · zwei Filmfassungen</small><h1>Ein Ablauf.<br>Zwei Inszenierungen.</h1><p>Je 15 Sekunden: von der fertigen Webseite über Storybook und die Komponenten bis zur Entity, ihrem Mapping und dem Datenfeld. Ohne KI-Szenen. Mit dynamischer Kamera und gezielten Lichtimpulsen.</p></header>
-<section aria-label="Videovergleich">
-<article><video controls playsinline preload="metadata" poster="astra/poster.png" aria-label="Astra-Version" aria-describedby="walkthrough"><source src="astra/intro.mp4" type="video/mp4"></video><div><h2>Astra</h2><p>Eigenständig umgesetzt mit GPT-6 Astra.</p><a href="astra/intro.mp4" download="designbook-intro-astra.mp4">MP4 herunterladen</a></div></article>
-<article><video controls playsinline preload="metadata" poster="opus/poster.png" aria-label="Opus-Version" aria-describedby="walkthrough"><source src="opus/intro.mp4" type="video/mp4"></video><div><h2>Opus</h2><p>Eigenständig umgesetzt mit Claude Opus.</p><a href="opus/intro.mp4" download="designbook-intro-opus.mp4">MP4 herunterladen</a></div></article>
-</section>
-<details id="walkthrough"><summary>Den gemeinsamen Ablauf lesen</summary><p>Zuerst ist die Webseite bildfüllend zu sehen. Beim Herauszoomen erscheint die Storybook-Seitenleiste. Komponenten auf der Seite und passende Menüeinträge werden gemeinsam hervorgehoben. Der Blick wandert zur Pricing Card und wechselt zur separaten Pricing-Entity. Unten öffnet sich das Structure-Panel mit dem Mapping. Schließlich folgt die Kamera der Zuordnung zum entsprechenden Datenfeld. Die letzte Sekunde bleibt ruhig.</p><p>Die Canvas Page enthält inline Komponenten. Der Wechsel zur Entity-Story ist ein eigener Schritt; der Film zeigt keinen Entity-Verweis innerhalb der Canvas Page.</p></details>
-<footer>Beide Fassungen sind stumm. Die Aufnahme zeigt die tatsächliche Demo-Oberfläche; Kamerabewegungen und Hervorhebungen sind nachträglich animiert.</footer>
-</main></body></html>
+<html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Designbook · Rezept-Film</title>
+<style>body{margin:0;background:#121b20;color:#edf4f0;font:17px/1.6 system-ui,sans-serif}main{max-width:1200px;margin:auto;padding:36px 24px}h1{font-size:clamp(30px,5vw,54px);line-height:1.1;letter-spacing:-.04em}p{max-width:800px;color:#b1c9cc}video{display:block;width:100%;background:#121b20;border-radius:12px}a{color:#a9ebce;text-underline-offset:4px}a:focus-visible{outline:3px solid #ff795e;outline-offset:4px}footer{margin-top:32px;font-size:14px}</style>
+<main><h1>Vom Design zum funktionierenden System.</h1>
+<p>15 Sekunden: Figma-Referenz → Vision → Datenmodell → Tokens → Shell → Rezeptseite. Echte Produktaufnahmen und gekennzeichnete Auszüge aus Claude-Läufen.</p>
+<video controls playsinline preload="metadata" poster="recipe/poster.png" aria-label="Designbook Rezept-Film, 15 Sekunden, ohne Ton" aria-describedby="transcript"><source src="recipe/intro.mp4" type="video/mp4"></video>
+<p><a href="recipe/intro.mp4" download="designbook-recipe-intro.mp4">MP4 herunterladen</a> · <a href="STORYTELLING.md">Storytelling lesen</a></p>
+<p id="transcript">Der Figma-Entwurf bildet den Einstieg. Vision, Datenmodell-Graph und Tokens erscheinen mit kurzen Original-Ausgaben von Claude. Anschließend zeigt Storybook den gemeinsamen Header und Footer, dann die fertige Rezeptseite. Schluss: „Not a design tool. A working design system.“</p>
+<footer>Stummer Entwurf. Einstieg: gespeicherter Figma-Frame, kein Figma-Editor. Früheres Pricing-Konzept: <a href="astra/intro.mp4">Astra</a> · <a href="opus/intro.mp4">Opus</a>.</footer></main></html>
