@@ -31,7 +31,7 @@ trigger:
    `triage-config` and `outtake`. All comparison results and issues use explicit
    predecessor inputs. Every issue identifies the backend configuration that
    produced the actual render; the Storybook component remains the reference.
-   Follow the [shared builder](../../../resources/workflow-building.md) for sealing and execution modes (`ephemeral` | `persist` | `ask`); caller override wins.
+   Follow the [shared builder](../../../resources/workflow-building.md) for sealing and execution modes.
 
 Completion: both capture revisions are published, every selected pair is explicit,
 and the report accounts for every comparison. After this check completes, follow

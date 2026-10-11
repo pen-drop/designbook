@@ -14,6 +14,8 @@ prompt: |
   Designbook home. Use only the captured Lemon Garlic Roasted Chicken recipe frame,
   its actual native locators, screenshot, assets and observations. Do not fetch a
   website equivalent or replace the reference with an imagined layout.
+  For this test, the published revision 60fbf0acb79bd59d/266781d6753e3a35
+  is confirmed suitable for the requested vision and section scope.
   Build the product vision from this screen.
   Use the vision skill with product name Cooks Delight.
   Audience: home cooks who want to follow a recipe without hunting for quantities or timings.
@@ -34,3 +36,5 @@ assert:
   value: output.fileContents['designbook/vision.yml']?.product_name === 'Cooks Delight'
 - type: javascript
   value: output.completedWorkflows['sections']?.state?.status === 'completed'
+- type: javascript
+  value: Object.keys(output.completedWorkflows || {}).every(id => ['vision', 'sections'].includes(id))

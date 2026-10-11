@@ -1,6 +1,6 @@
 ---
 name: reference-intake
-description: Consume a completed observation revision before fixing the design inventory.
+description: Bind approved source observations or return a missing-reference handoff.
 trigger:
   domain: design.intake
 ---
@@ -49,8 +49,7 @@ Applies when consuming source reference evidence. The explicitly requested
    `<id>/<revision>`, the capture tuples (subject · view · state) relevant to the
    request, and one link `<url>/?path=/story/<storyId>` per tuple. Then ask:
    „Passt diese Referenz für den vorliegenden Anwendungsfall?"
-   Record the **suitability** decision in the user-visible intake beside the
-   selector inventory ([write planning](../resources/write-planning.md) step 3): `reference`
+   Record the **suitability** decision in the user-visible intake: `reference`
    (`<id>/<revision>`), `scope` (subjects, views, states), `answer` (`yes` | `no`),
    `rationale`, and the links. An explicit answer already given for the same
    revision and scope — in the request or an earlier closeout — is reused without
@@ -65,19 +64,13 @@ Applies when consuming source reference evidence. The explicitly requested
    ([CLI workflow](../../resources/cli-workflow.md)). Exit 0 with matching
    fingerprint and covering scope is required; otherwise retain the ReferenceNeed
    blockade with the check's exact reason.
-5. Inspect bounded observations and the associated images from that approved
-   revision. Confirm every source locator identifies the intended subject and
-   state, not merely an existing node. Establish explicit correspondences with
-   planned implementation selectors and views. Clarify required missing evidence.
-6. The design planner now decides component decomposition, target structure,
-   concrete styling, assets and behavior. Store these decisions in task work orders
-   and context; the immutable extract contains only observed facts. Use
-   [reference packages](../resources/reference-packages.md) for typed read-only bindings.
-7. Present the selected source locators, implementation selectors, views, states
-   and evidence through [write planning](../resources/write-planning.md). Save the exact
-   completed revision binding with the design definition and bind each consuming
-   task directly through its frozen reference query. Design execution consumes the completed revision without resubmitting captured
-   metadata, extract or binary files.
+5. Inspect the bounded observations and associated images needed by the request.
+   Confirm each source locator identifies the intended subject and state. Bind
+   the revision and requested scope through
+   [reference packages](../resources/reference-packages.md), retaining the query
+   and fingerprint with the consuming plan. Missing observations return the
+   handoff in step 2. Completion: the consumer has approved, scoped source facts;
+   its own intake determines the artifact decisions.
 
 A deliberately reference-free request records its limitation explicitly and uses
 concrete build/browser criteria. A requested visual comparison requires valid

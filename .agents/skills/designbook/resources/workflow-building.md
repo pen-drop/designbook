@@ -18,9 +18,11 @@ verification. Reference-free requests use their concrete inputs.
    task names and each task's `params_schema`, the `open_selectors` with their
    `gated` tasks, and `plans_dir` (the plans directory). Read the applicable intake rules
    (their sources are in the full `intake <workflow>` output if you need to consult
-   one) and complete the structural decisions. Resolve every open selector — pick
-   each variant; its gated tasks join the palette. Completion: every target, param
-   and selector choice is known.
+   one). Use the request, existing artifacts and saved intake context; ask only
+   for unresolved inputs. Resolve every open selector — pick each variant; its
+   gated tasks join the palette. Completion: all targets, requested changes,
+   preserved content, acceptance criteria, parameters, dependencies and applicable
+   rules are fixed. Intake creates no run task or progress entry.
 2. Author `tasks.json` — the **complete** task list, nothing left for the CLI to
    invent:
    ```json
@@ -45,11 +47,15 @@ verification. Reference-free requests use their concrete inputs.
    satisfy that task's `params_schema`. A writing-design list carries `composition`
    matching the palette `$ref` to `CompositionInputs`. Cover every step the palette lists.
    Completion: one entry per concrete task, params filled.
-3. For a **design-*** workflow, run `plan tree <tasks.json> --workflow <id>
-   --config-dir <workspace>`. The next assistant message's body is that
-   command's unmodified stdout. In `ask` mode that same unmodified stdout precedes
-   the three choices. Completion: the next user-visible reply is that command's unmodified stdout.
-4. After that user-visible reply is sent, choose an **execution mode** and run `plan build` accordingly.
+3. **Writing-design workflows** are `design-entity`, `design-component`,
+   `design-screen` and `design-shell`. For these four only, present the selector
+   inventory from [write planning](../design/resources/write-planning.md), then
+   run `plan tree <tasks.json> --workflow <id> --config-dir <workspace>`.
+   The next user-visible reply is that command's unmodified stdout, even when
+   execution was requested without questions. Completion: the inventory and
+   composition tree have been shown. All other workflows, including
+   `design-verify`, proceed directly to step 4.
+4. Choose an **execution mode** and run `plan build` accordingly.
    Caller override always wins over workflow defaults.
 
    | Mode | Persist durable plan? | Start execute? |
@@ -58,15 +64,13 @@ verification. Reference-free requests use their concrete inputs.
    | `persist` | Yes (folder `plans_dir/<date>-<slug>/plan.md`, `--name` required) | No |
    | `ask` | After user choice | After user choice |
 
-   **Defaults when unset** (per-workflow intakes may restate; override still wins):
+   **Defaults when unset:**
 
-   - `vision` and similarly simple foundation flows → `ephemeral`
-   - `design-*` **create / rebuild** with no override → `ask`
-   - `design-*` **change** of an existing named target → may `ephemeral`; blockade
-     if the work cannot stay bounded (would add undeclared targets/tasks or widen
-     scope)
-   - Explicit plan/save, GAIA handoff that must leave an executable plan, or caller
-     persist → `persist`
+   - Explicit plan/save or a GAIA handoff requiring an executable plan → `persist`.
+   - Writing-design **create / rebuild** → `ask`.
+   - Writing-design **change** → `ephemeral` only while targets and scope stay
+     bounded; otherwise stop and resolve the wider scope.
+   - Other workflows → `ephemeral`.
 
    **Mode actions:**
 
@@ -82,9 +86,10 @@ verification. Reference-free requests use their concrete inputs.
      file after caller/tester inspection when scoring needs the sealed plan;
      result artifacts remain. Interrupted ephemeral runs have no durable
      resume — re-intake and rebuild, or switch to `persist` first.
-   - **`ask`:** The user-visible reply is the unmodified stdout of `plan tree`,
-     then the three choices (run here / ephemeral, hand off / persist without
-     execute, or cancel). Follow the chosen mode.
+   - **`ask`:** After the applicable presentation, offer three choices: run here
+     (`ephemeral`), hand off without executing (`persist`), or cancel. For workflows
+     without a composition tree, present the planned scope and outputs instead.
+     Follow the chosen mode.
 
    `plan build` validates each task's params against its `params_schema` and that
    every required step is covered, embeds each rule/blueprint/task body once,

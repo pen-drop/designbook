@@ -3,7 +3,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { resolve, join } from 'node:path';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { Command } from 'commander';
 import { register as registerIntake } from '../intake.js';
@@ -81,7 +81,7 @@ describe('intake <workflow>', () => {
                 .read_order.map((key: string) => resolved.context[key]);
           const instructions = entries.filter((entry) => entry.source.endsWith(`/rules/${workflow}-intake.md`));
           expect(instructions).toHaveLength(1);
-          expect(instructions[0]!.content).toContain('Completion:');
+          expect(instructions[0]!.content).toBe(readFileSync(instructions[0]!.source, 'utf8'));
           expect(entries.filter((entry) => entry.source.endsWith('/rules/reference-prerequisite.md'))).toHaveLength(1);
           expect(entries.some((entry) => entry.source.endsWith('/rules/vision-intake.md'))).toBe(false);
         }

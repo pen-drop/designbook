@@ -13,46 +13,23 @@ Select entity type, bundle and exactly one view-mode or form-mode identity. Insp
 
 Record the requested field-output delta, concrete acceptance criteria and preserved content. A clear text request is sufficient; a visual reference is optional. Reuse a component that already satisfies the mapping. Reuse a sufficient sample pool; declare only necessary record/field changes, retaining existing IDs and section tags. Limit mapping/model/display edits to the selected mode and preserve unrelated configuration and data. Use the existing standalone preview convention, with its exact story URL and mapped-field observations. Declare every affected consumer and required prerequisite before planning.
 
-Use the request, existing artifacts, and the saved intake context as input. For reference handling, preserved inputs, fixed dependencies and build/browser evidence, follow the [write planning contract](../../../design/resources/write-planning.md).
+For reference handling, preserved inputs, fixed dependencies and build/browser evidence, follow the [write planning contract](../../../design/resources/write-planning.md).
 
-Completion: all identities, requested deltas, preserved content, acceptance criteria, consumer targets, outputs, dependencies and applicable rules are fixed in the plan's task parameters. Clarify unresolved identity or scope before saving a runnable plan.
+Follow the [shared builder](../../../resources/workflow-building.md) for sealing and execution modes.
 
-Follow the [shared builder](../../../resources/workflow-building.md) for sealing and execution modes (caller override wins):
+If a prerequisite below is missing, leave the plan unsealed and return this
+handoff with the matching skill and reason. The prerequisite skill runs separately.
 
-- **create / rebuild** → default `ask`
-- **change** of an existing named target → may `ephemeral`; blockade when the work would add undeclared targets/tasks or widen scope
-
-When this entity work requires typography tokens the project does not yet have,
-the planning output is this YAML and the design-entity plan stays unsealed; start `tokens` separately. Shape:
-
-```yaml
-kind: PrerequisiteNeed
-workflow: design-entity
-need:
-  workflow: tokens
-  reason: missing typography tokens
-```
-
-When a required font family has no `@font-face` coverage in project CSS, the
-planning output is this YAML and the design-entity plan stays unsealed; start
-`css-generate` separately. A typography token name is not coverage. Shape:
+| Missing prerequisite | Skill | Reason |
+|---|---|---|
+| Required typography tokens | `tokens` | missing typography tokens |
+| `@font-face` coverage for a required family; a token name is not coverage | `css-generate` | missing font face |
+| A `config.image_style` bundle required by the mapping's ImageNode | `data-model` | missing config.image_style bundle required by image-fields |
 
 ```yaml
 kind: PrerequisiteNeed
 workflow: design-entity
 need:
-  workflow: css-generate
-  reason: missing font face
-```
-
-When a required image style is missing (`config.image_style` has no bundle the
-mapping's ImageNode can name), the planning output is this YAML and the
-design-entity plan stays unsealed; start `data-model` separately. Shape:
-
-```yaml
-kind: PrerequisiteNeed
-workflow: design-entity
-need:
-  workflow: data-model
-  reason: missing config.image_style bundle required by image-fields
+  workflow: <skill from table>
+  reason: <reason from table>
 ```

@@ -175,10 +175,9 @@ test("all four design intakes reach write-planning.md and do not duplicate the t
     join(repo, ".agents/skills/designbook/design/resources/write-planning.md"),
     "utf8",
   );
-  assert.match(planning, /plan tree/);
+  assert.doesNotMatch(planning, /plan tree/);
   assert.match(planning, /composition snapshot/);
-  assert.match(planning, /unmodified stdout/);
-  assert.match(planning, /user-visible reply/);
+  assert.match(planning, /shared builder for tree presentation/);
   const building = readFileSync(
     join(repo, ".agents/skills/designbook/resources/workflow-building.md"),
     "utf8",
@@ -189,8 +188,10 @@ test("all four design intakes reach write-planning.md and do not duplicate the t
   assert.match(building, /user-visible reply/);
   assert.match(
     building,
-    /Completion: the next user-visible reply is that command's unmodified stdout/,
+    /next user-visible reply is that command's unmodified stdout/,
   );
+  assert.match(building, /For these four only/);
+  assert.match(building, /`design-verify`, proceed directly to step 4/);
   assert.match(building, /ask/i);
   const fieldMap = readFileSync(
     join(
