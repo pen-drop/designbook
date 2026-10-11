@@ -56,6 +56,41 @@ describe('intake <workflow>', () => {
     }
   });
 
+  it.each([false, true])(
+    'includes workflow instructions and one shared reference gate (palette=%s)',
+    async (palette) => {
+      const dir = mkdtempSync(join(tmpdir(), 'intake-instructions-'));
+      const configPath = join(dir, 'config.json');
+      writeFileSync(configPath, JSON.stringify(config));
+      try {
+        for (const workflow of ['tokens', 'design-shell', 'extract-reference']) {
+          const out = await runIntake([
+            'intake',
+            workflow,
+            ...(palette ? ['--palette'] : []),
+            '--config-dir',
+            workspaceRoot,
+            '--config',
+            configPath,
+          ]);
+          const resolved = JSON.parse(out);
+          const entries: Array<{ source: string; content: string }> = palette
+            ? resolved.intake_context
+            : resolved.steps
+                .find((step: { name: string }) => step.name === `${workflow}:intake`)
+                .read_order.map((key: string) => resolved.context[key]);
+          const instructions = entries.filter((entry) => entry.source.endsWith(`/rules/${workflow}-intake.md`));
+          expect(instructions).toHaveLength(1);
+          expect(instructions[0]!.content).toContain('Completion:');
+          expect(entries.filter((entry) => entry.source.endsWith('/rules/reference-prerequisite.md'))).toHaveLength(1);
+          expect(entries.some((entry) => entry.source.endsWith('/rules/vision-intake.md'))).toBe(false);
+        }
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    },
+  );
+
   it('exposes CompositionInputs on the writing-design palette', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'intake-palette-'));
     const configPath = join(dir, 'config.json');

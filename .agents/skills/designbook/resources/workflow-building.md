@@ -9,6 +9,11 @@ sealing. Every mode uses the same sealed-plan assembly and the same
 `execute-workflow` / `plan done` validation — there is no contract shortcut for
 “plan-free” runs.
 
+Before making reference-dependent intake decisions, apply the source reference
+prerequisite from the resolved intake context.
+This applies to every consuming workflow, including foundation, import and
+verification. Reference-free requests use their concrete inputs.
+
 1. Run `intake <workflow> --palette`. The palette is small: per execution step the
    task names and each task's `params_schema`, the `open_selectors` with their
    `gated` tasks, and `plans_dir` (the plans directory). Read the applicable intake rules
@@ -40,18 +45,11 @@ sealing. Every mode uses the same sealed-plan assembly and the same
    satisfy that task's `params_schema`. A writing-design list carries `composition`
    matching the palette `$ref` to `CompositionInputs`. Cover every step the palette lists.
    Completion: one entry per concrete task, params filled.
-3. For any workflow consuming source reference evidence, complete the
-   [reference intake](../design/resources/reference-intake.md) before planning
-   dependent tasks. This includes foundation and import workflows. Completion:
-   the published revision passes the approval gate for the requested scope, or
-   the caller receives a `ReferenceNeed` and planning stops. An explicitly
-   requested `extract-reference` run owns source capture; reference-free work
-   uses its concrete request and retained artifacts.
-4. For a **design-*** workflow, run `plan tree <tasks.json> --workflow <id>
+3. For a **design-*** workflow, run `plan tree <tasks.json> --workflow <id>
    --config-dir <workspace>`. The next assistant message's body is that
    command's unmodified stdout. In `ask` mode that same unmodified stdout precedes
    the three choices. Completion: the next user-visible reply is that command's unmodified stdout.
-5. After that user-visible reply is sent, choose an **execution mode** and run `plan build` accordingly.
+4. After that user-visible reply is sent, choose an **execution mode** and run `plan build` accordingly.
    Caller override always wins over workflow defaults.
 
    | Mode | Persist durable plan? | Start execute? |
@@ -69,8 +67,6 @@ sealing. Every mode uses the same sealed-plan assembly and the same
      scope)
    - Explicit plan/save, GAIA handoff that must leave an executable plan, or caller
      persist → `persist`
-   - `extract-reference` remains its own workflow; it does not silently chain into
-     design execute
 
    **Mode actions:**
 

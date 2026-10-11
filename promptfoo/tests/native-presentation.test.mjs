@@ -163,9 +163,9 @@ test("all four design intakes reach write-planning.md and do not duplicate the t
       join(repo, `.agents/skills/designbook/skills/${name}/SKILL.md`),
       "utf8",
     );
-    assert.match(skill, /resources\/intake\.md/);
+    assert.match(skill, new RegExp(`intake ${name}`));
     const intake = readFileSync(
-      join(repo, `.agents/skills/designbook/skills/${name}/resources/intake.md`),
+      join(repo, `.agents/skills/designbook/skills/${name}/rules/${name}-intake.md`),
       "utf8",
     );
     assert.match(intake, /write-planning\.md/);

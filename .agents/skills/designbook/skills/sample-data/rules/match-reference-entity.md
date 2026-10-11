@@ -10,7 +10,7 @@ must carry that record's observed field values. Otherwise the comparison measure
 content drift as well as appearance drift.
 
 Use the record identity, rendered values and assets from the bound published
-revision. Apply the [reference intake](../../../design/resources/reference-intake.md)
+revision. Apply the [reference intake](../../../design/rules/reference-prerequisite.md)
 when the identity or required observations are missing. Source record inspection
 and rendered-DOM capture belong to that separate reference preparation.
 

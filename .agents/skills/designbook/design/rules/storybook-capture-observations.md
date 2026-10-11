@@ -52,7 +52,7 @@ contract](../resources/reference-packages.md).
 contained images and font families. Confirm every selected locator in each
 selected state before freezing the capture block: `subject.found` is true and
 the returned subject and subtree establish the intended identity. Follow the
-[intake resolution sequence](../../skills/extract-reference/resources/intake.md)
+resolved `extract-reference` intake context
 when a correction changes the revision directory. `playwright-cli` covers one purpose here — diagnosing
 a capture that produced nothing — and that use is named with its purpose in the
 intake.

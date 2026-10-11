@@ -13,10 +13,8 @@ prompts:
         _debo() { npx storybook-addon-designbook "$@"; }
         eval "$(_debo config)"
 
-      Read `.agents/skills/designbook/skills/extract-reference/SKILL.md` and its
-      `resources/intake.md`, plus `.agents/skills/designbook/resources/`
-      (`cli-workflow.md`, `workflow-building.md`, `workflow-execution.md`) and the
-      capture-observation rule for a website source. Follow them exactly.
+      Use the installed `extract-reference` skill. Follow the resolved CLI intake
+      context and its applicable instructions.
 
       Request: extract a fixed REFERENCE from the website `https://example.com`.
       One subject `main` = the main content container (`body > div`), one view
