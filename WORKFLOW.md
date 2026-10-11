@@ -24,7 +24,7 @@ starts and following it together with this file and `AGENTS.md`.
 
 | When | Skill |
 |---|---|
-| Any Designbook design-system workflow or UI artifact | `debo` |
+| Any Designbook design-system workflow or UI artifact | The matching domain skill, such as `design-component`, `design-screen`, `design-shell`, `tokens` or `data-model` |
 | Creating or editing a task, rule, blueprint, workflow, or `schemas.yml` under `.agents/skills/designbook/`, `.agents/skills/designbook-*/`, or the skill creator's own guarded directories | `designbook-skill-creator` |
 | Changing the Storybook addon TypeScript package | `designbook-addon-skills` |
 | Changing Drupal integration behavior | `designbook-drupal` |
@@ -74,7 +74,7 @@ another method.
 - **`AGENTS.md` is the primary project-policy source and every rule in it binds.** In particular,
   existing generated/on-disk artifacts are disposable across format changes; never add migrations,
   backward compatibility, or legacy-artifact repair. Run `pnpm check` before committing.
-- **Designbook is the design surface.** UI artifacts go through the applicable `debo` workflow
+- **Designbook is the design surface.** UI artifacts go through the applicable domain skill
   (`design-entity`, `design-component`, `sections`, or `design-screen`); do not hand-code a parallel
   component implementation outside that workflow.
 - **Skill architecture is four-level.** Core and integration skills separate workflow → stage →

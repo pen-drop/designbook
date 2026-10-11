@@ -180,8 +180,9 @@ test("executor receives only a saved path and keeps all final assertions", (t) =
   assert.equal(config.providers[0].config.model, "gpt-5.6-luna");
   assert.equal(config.providers[0].config.intakeHandoffInput, undefined);
   assert.deepEqual(config.tests[0].assert, f.base.tests[0].assert);
-  assert.match(config.prompts[0], /execute-workflow/);
-  assert.match(config.prompts[0], /continue through remaining tasks/);
+  assert.match(config.prompts[0], /Read .*execute-workflow\/SKILL\.md/);
+  assert.doesNotMatch(config.prompts[0], /plan steps|plan instructions|plan done/);
+  assert.match(config.prompts[0], /until complete or blocked/);
   assert.doesNotMatch(
     config.prompts[0],
     /ENTIRE ORIGINAL CASE|Assigned step|native_work_order/,
@@ -204,7 +205,8 @@ test("non-blockade planning prompt requires CLI plan build, not a chat brief", (
       return 0;
     },
   });
-  assert.match(planPrompt, /_debo plan build design-shell --tasks/);
+  assert.match(planPrompt, /Seal the plan through the skill's CLI procedure/);
+  assert.match(planPrompt, /Read .*SKILL\.md/);
   assert.match(planPrompt, /chat-only markdown brief is not a sealed plan/);
   assert.doesNotMatch(
     planPrompt,
@@ -228,7 +230,7 @@ test("blockade planning prompt follows intake without naming the expected need",
       return 0;
     },
   });
-  assert.match(planPrompt, /_debo intake design-shell --palette/);
+  assert.match(planPrompt, /Read .*SKILL\.md/);
   assert.match(planPrompt, /Complete domain intake in this invocation/);
   assert.match(planPrompt, /ReferenceNeed` or `PrerequisiteNeed/);
   assert.doesNotMatch(planPrompt, /This case expects a named PrerequisiteNeed/);
@@ -246,6 +248,8 @@ for (const planExit of [0, 100]) {
       evaluate(path) {
         const config = yaml.load(readFileSync(path, "utf8"));
         calls.push(config);
+        assert.match(config.prompts[0], /Read .*SKILL\.md/);
+        assert.doesNotMatch(config.prompts[0], /_debo intake|_debo plan build|author.*tasks\.json/i);
         return config.tags.phase === "plan" ? planExit : 100;
       },
     });

@@ -1,0 +1,38 @@
+component: test_integration_drupal:saas-hero
+name: Default
+slots:
+  eyebrow:
+    - type: component
+      component: test_integration_drupal:saas-tag
+      slots:
+        label:
+          - type: element
+            tag: span
+            value: Version 2.0 is here
+  title:
+    - type: element
+      tag: span
+      value: Pathway to productivity
+  lead:
+    - type: element
+      tag: span
+      value: >-
+        Celebrate the joy of accomplishment with an app designed to track your
+        progress, motivate your efforts, and celebrate your successes.
+  actions:
+    - type: component
+      component: test_integration_drupal:saas-button
+      props:
+        label: Get for free
+        url: /signup
+    - type: component
+      component: test_integration_drupal:saas-button
+      props:
+        variant: text
+        label: Learn more
+        url: /features
+  media:
+    - type: image
+      uri: /saas-kit/hero-visual.png
+      attributes:
+        alt: Iridescent blue 3D starburst

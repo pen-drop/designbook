@@ -1,0 +1,26 @@
+{#
+/**
+ * @file
+ * SaaS kit landing section.
+ *
+ * Available variables:
+ * - variant: showcase | plain
+ * - header, media, items: Slots
+ */
+#}
+{% set variant = variant|default('showcase') %}
+{% set section_body %}
+  <div class="relative flex flex-col items-center gap-10 py-20 lg:py-24">
+    {% if header %}{{ header }}{% endif %}
+    {% if media %}<div class="w-full shadow-2xl">{{ media }}</div>{% endif %}
+    {% if items %}<div class="w-full">{{ items }}</div>{% endif %}
+  </div>
+{% endset %}
+{% set bg = variant == 'plain' ? ['bg-brand-surface'] : ['bg-linear-to-b', 'from-brand-surface', 'from-30%', 'to-brand-tint-strong'] %}
+<section{{ attributes.addClass(['relative', 'overflow-hidden']|merge(bg)) }}>
+  {% if variant == 'showcase' %}
+    <img src="/saas-kit/product-pyramid.png" alt="" class="pointer-events-none absolute top-1/3 -right-16 hidden w-64 lg:block" aria-hidden="true">
+    <img src="/saas-kit/product-torus.png" alt="" class="pointer-events-none absolute top-1/2 -left-20 hidden w-60 lg:block" aria-hidden="true">
+  {% endif %}
+  {% include 'test_integration_drupal:container' with { max_width: 'xl', padding_top: 'none', padding_bottom: 'none', content: section_body } only %}
+</section>

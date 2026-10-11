@@ -1,0 +1,5 @@
+component: "test_integration_drupal:button"
+name: "Default"
+props:
+  label: "subscribe"
+  href: "#subscribe"

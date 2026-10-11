@@ -223,6 +223,73 @@ describe('deriveComposition — signage fixture', () => {
     expect(text).toContain('neu');
   });
 
+  it('accepts declared SDC variants and rejects unknown variant selections', async () => {
+    const plan = await buildSignage();
+    plan.composition!.components.push({
+      id: 'test_integration_vue:logo',
+      source: '',
+      hash: '',
+      contract: { variants: { full: { title: 'Full' }, inverse: { title: 'Inverse' } } },
+    });
+    const item = { component: 'test_integration_vue:logo', props: { variant: 'inverse' } };
+    sceneTask(plan).params.items = [item];
+    expect(deriveComposition(plan).errors).toEqual([]);
+    item.props.variant = 'missing';
+    expect(deriveComposition(plan).errors.join('\n')).toContain('props.variant');
+    item.props.variant = 'full';
+    plan.composition!.components.at(-1)!.contract.variants = [{ id: 'full', title: 'Full' }];
+    expect(deriveComposition(plan).errors).toEqual([]);
+    item.props.variant = 'inverse';
+    expect(deriveComposition(plan).errors.join('\n')).toContain('props.variant');
+    plan.composition!.components.at(-1)!.contract.variants = {};
+    expect(deriveComposition(plan).errors.join('\n')).toContain('unknown prop variant');
+  });
+
+  it('expands shell content using runtime filesystem aliases and with variables', async () => {
+    const plan = await buildSignage();
+    plan.composition!.scenes = [
+      {
+        path: join(String(vueOpts.config.data), 'design-system/design-system.scenes.yml'),
+        file: {
+          id: 'debo-design-system',
+          title: 'Shell',
+          scenes: [
+            {
+              name: 'shell',
+              items: [
+                {
+                  component: 'test_integration_vue:signage',
+                  slots: { items: '$content' },
+                },
+              ],
+            },
+          ],
+        },
+      },
+    ];
+    sceneTask(plan).params.items = [
+      {
+        scene: 'design-system:shell',
+        with: {
+          content: [{ entity: 'paragraph.signage_item', view_mode: 'full', record: 0 }],
+        },
+      },
+    ];
+    const result = deriveComposition(plan);
+    expect(result.errors).toEqual([]);
+    expect(renderCompositionTree(result.tree)).toContain('paragraph.signage_item');
+    expect(JSON.stringify(plan.composition!.scenes)).toContain('$content');
+    sceneTask(plan).params.items = [
+      {
+        scene: 'design-system:shell',
+        with: {
+          content: [{ component: 'missing:component' }],
+        },
+      },
+    ];
+    expect(deriveComposition(plan).errors.join('\n')).toContain('no contract for missing:component');
+  });
+
   it('resolves scene references with substitutions and terminates cycles', async () => {
     const signagePlan = await buildSignage();
     const withRef = structuredClone(signagePlan);
@@ -581,7 +648,7 @@ describe('buildPlan composition sealing', () => {
     }
   });
 
-  it('rejects an image-field slot binding without an entity descriptor', async () => {
+  it('rejects an image-field slot binding without a declared image style', async () => {
     const list = structuredClone(fixture);
     const model = list.composition!.data_model as {
       content: { paragraph: { signage: { fields: Record<string, unknown> } } };
@@ -598,7 +665,7 @@ describe('buildPlan composition sealing', () => {
     expect(plan).toBeNull();
     expect(errors.join('\n')).toMatch(/bindings\[\d+\]/);
     expect(errors.join('\n')).toMatch(/field_image/);
-    expect(errors.join('\n')).toMatch(/cannot be expressed/);
+    expect(errors.join('\n')).toMatch(/image field/);
   });
 
   it('accepts a string field bound to a slot', async () => {
@@ -646,7 +713,7 @@ describe('buildPlan composition sealing', () => {
     expect(plan).toBeNull();
     expect(errors.join('\n')).toMatch(/bindings\[\d+\]/);
     expect(errors.join('\n')).toMatch(/field_image/);
-    expect(errors.join('\n')).toMatch(/cannot be expressed/);
+    expect(errors.join('\n')).toMatch(/image field/);
   });
 
   it('rejects a top-level data_model shape that is not content-keyed', async () => {

@@ -1,0 +1,32 @@
+{#
+/**
+ * @file
+ * SaaS kit site footer.
+ *
+ * Available variables:
+ * - description: Brand blurb
+ * - social_links: Array of { label, url, icon }
+ * - logo, navigation: Slots
+ */
+#}
+<footer{{ attributes.addClass(['bg-brand-ink', 'font-body']) }}>
+  {% set row_1 %}
+      <div class="flex flex-col gap-12 py-10 lg:flex-row lg:justify-between">
+        <div class="flex flex-col gap-12 lg:gap-28">
+          <div class="flex flex-col items-start gap-5">
+            {% if logo %}{{ logo }}{% endif %}
+            {% if description %}<p class="w-60 text-sm text-brand-inverse-text">{{ description }}</p>{% endif %}
+          </div>
+          {% if social_links %}
+            <ul class="flex items-center gap-3">
+              {% for link in social_links %}
+                <li><a href="{{ link.url }}" aria-label="{{ link.label }}" class="block opacity-80 transition-opacity hover:opacity-100"><img src="{{ link.icon }}" alt="" class="size-6"></a></li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </div>
+        {% if navigation %}<div>{{ navigation }}</div>{% endif %}
+      </div>
+    {% endset %}
+    {% include 'test_integration_drupal:container' with { max_width: 'xl', padding_top: 'none', padding_bottom: 'none', content: row_1 } only %}
+</footer>

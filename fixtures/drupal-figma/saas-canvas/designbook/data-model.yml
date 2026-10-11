@@ -1,0 +1,97 @@
+config:
+  image_style:
+    ratio_16_9:
+      aspect_ratio: '16:9'
+    ratio_4_3:
+      aspect_ratio: '4:3'
+    ratio_1_1:
+      aspect_ratio: '1:1'
+    ratio_8_5:
+      aspect_ratio: '8:5'
+content:
+  canvas_page:
+    landing_page:
+      title: Landing Page
+      description: Figma SaaS landing screen stored as an inline Canvas component tree.
+      purpose: layout-builder
+      view_modes:
+        full:
+          template: canvas
+      fields:
+        components:
+          type: component_tree
+          title: Components
+          description: Inline component tree managed by Canvas
+          required: true
+          multiple: false
+  node:
+    feature:
+      title: Feature
+      description: One product capability highlight (icon, title, summary, link).
+      view_modes:
+        card:
+          template: field-map
+      fields:
+        field_icon:
+          type: image
+          title: Icon
+          description: 24px line icon
+          required: true
+          multiple: false
+          settings:
+            image_style: ratio_1_1
+        field_summary:
+          type: text
+          title: Summary
+          description: Short capability description
+          required: true
+          multiple: false
+        field_link:
+          type: link
+          title: Link
+          description: Learn-more link
+          required: false
+          multiple: false
+    pricing_plan:
+      title: Pricing plan
+      description: One subscription plan with price, call to action and included features.
+      view_modes:
+        card:
+          template: field-map
+      fields:
+        field_price:
+          type: string
+          title: Price
+          description: Display price including currency (e.g. $9)
+          required: true
+          multiple: false
+        field_period:
+          type: string
+          title: Billing period
+          description: Billing period suffix (e.g. /monthly)
+          required: true
+          multiple: false
+        field_cta:
+          type: link
+          title: Call to action
+          description: Plan signup button
+          required: true
+          multiple: false
+        field_plan_features:
+          type: string
+          title: Included features
+          description: One line per included feature
+          required: false
+          multiple: true
+        field_highlighted:
+          type: boolean
+          title: Highlighted
+          description: Render as the emphasised (dark) plan
+          required: false
+          multiple: false
+        field_badge:
+          type: string
+          title: Badge
+          description: Optional badge label (e.g. Most Popular)
+          required: false
+          multiple: false

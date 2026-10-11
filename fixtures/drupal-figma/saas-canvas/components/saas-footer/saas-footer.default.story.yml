@@ -1,0 +1,128 @@
+component: test_integration_drupal:saas-footer
+name: Default
+props:
+  description: >-
+    Effortlessly turn your ideas into a fully functional, responsive, no-code
+    SaaS website.
+  social_links:
+    - label: X
+      url: https://x.com
+      icon: /saas-kit/social-6.svg
+    - label: Instagram
+      url: https://instagram.com
+      icon: /saas-kit/social-1.svg
+    - label: Pinterest
+      url: https://pinterest.com
+      icon: /saas-kit/social-5.svg
+    - label: LinkedIn
+      url: https://linkedin.com
+      icon: /saas-kit/social-3.svg
+    - label: TikTok
+      url: https://tiktok.com
+      icon: /saas-kit/social-4.svg
+    - label: YouTube
+      url: https://youtube.com
+      icon: /saas-kit/social-2.svg
+slots:
+  logo:
+    - type: component
+      component: test_integration_drupal:saas-logo
+      props:
+        variant: mark_only
+        href: /
+        src: /saas-kit/logo-saas.png
+        alt: SaaS
+  navigation:
+    - type: component
+      component: test_integration_drupal:saas-nav
+      props:
+        variant: footer
+        items:
+          - title: Product
+            url: /product
+            in_active_trail: false
+            below:
+              - title: Features
+                url: /features
+                in_active_trail: false
+                below: []
+              - title: Integrations
+                url: /integrations
+                in_active_trail: false
+                below: []
+              - title: Updates
+                url: /updates
+                in_active_trail: false
+                below: []
+              - title: FAQ
+                url: /faq
+                in_active_trail: false
+                below: []
+              - title: Pricing
+                url: /pricing
+                in_active_trail: false
+                below: []
+          - title: Company
+            url: /company
+            in_active_trail: false
+            below:
+              - title: About
+                url: /about
+                in_active_trail: false
+                below: []
+              - title: Blog
+                url: /blog
+                in_active_trail: false
+                below: []
+              - title: Careers
+                url: /careers
+                in_active_trail: false
+                below: []
+              - title: Manifesto
+                url: /manifesto
+                in_active_trail: false
+                below: []
+              - title: Press
+                url: /press
+                in_active_trail: false
+                below: []
+              - title: Contact
+                url: /contact
+                in_active_trail: false
+                below: []
+          - title: Resources
+            url: /resources
+            in_active_trail: false
+            below:
+              - title: Examples
+                url: /examples
+                in_active_trail: false
+                below: []
+              - title: Community
+                url: /community
+                in_active_trail: false
+                below: []
+              - title: Guides
+                url: /guides
+                in_active_trail: false
+                below: []
+              - title: Docs
+                url: /docs
+                in_active_trail: false
+                below: []
+          - title: Legal
+            url: /legal
+            in_active_trail: false
+            below:
+              - title: Privacy
+                url: /privacy
+                in_active_trail: false
+                below: []
+              - title: Terms
+                url: /terms
+                in_active_trail: false
+                below: []
+              - title: Security
+                url: /security
+                in_active_trail: false
+                below: []

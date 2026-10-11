@@ -1,0 +1,37 @@
+{#
+/**
+ * @file
+ * SaaS kit site header.
+ *
+ * Available variables:
+ * - announcement, announcement_link_label, announcement_url: Top bar content
+ * - logo, navigation, actions: Slots
+ */
+#}
+<header{{ attributes.addClass(['w-full', 'font-body']) }}>
+  {% if announcement %}
+    <div class="bg-brand-ink">
+      {% set row_1 %}
+          <div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 py-3 text-center text-sm text-brand-surface/60">
+            <span>{{ announcement }}</span>
+            {% if announcement_url %}
+              <a href="{{ announcement_url }}" class="inline-flex items-center gap-1 font-medium text-brand-surface">{{ announcement_link_label }}<img src="/saas-kit/icon-arrow-b.svg" alt="" class="size-4 invert" aria-hidden="true"></a>
+            {% endif %}
+          </div>
+        {% endset %}
+    {% include 'test_integration_drupal:container' with { max_width: 'xl', padding_top: 'none', padding_bottom: 'none', content: row_1 } only %}
+    </div>
+  {% endif %}
+  <div class="bg-brand-tint backdrop-blur-sm">
+    {% set row_2 %}
+        <div class="flex items-center justify-between gap-6 py-5">
+          {% if logo %}<div class="flex shrink-0 items-center">{{ logo }}</div>{% endif %}
+          <div class="flex items-center gap-6">
+            {% if navigation %}<div class="hidden md:block">{{ navigation }}</div>{% endif %}
+            {% if actions %}<div class="flex items-center gap-4">{{ actions }}</div>{% endif %}
+          </div>
+        </div>
+      {% endset %}
+    {% include 'test_integration_drupal:container' with { max_width: 'xl', padding_top: 'none', padding_bottom: 'none', content: row_2 } only %}
+  </div>
+</header>

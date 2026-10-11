@@ -1,0 +1,34 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: "Footer"
+status: "experimental"
+group: "Shell"
+provider: "test_integration_drupal"
+description: "Dark rounded footer: logo, footer navigation, social icons, copyright."
+props:
+  type: "object"
+  properties:
+    copyright:
+      type: "string"
+      title: "Copyright"
+    social_links:
+      type: "array"
+      title: "Social links"
+      items:
+        type: "object"
+        properties:
+          title:
+            type: "string"
+          url:
+            type: "string"
+          icon:
+            type: "string"
+slots:
+  logo:
+    title: "Logo"
+    description: "Inverse site logo."
+  navigation:
+    title: "Navigation"
+    description: "Footer navigation component (required)."
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

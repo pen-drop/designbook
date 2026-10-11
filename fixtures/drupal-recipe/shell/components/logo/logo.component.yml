@@ -1,0 +1,30 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: "Logo"
+status: "experimental"
+group: "Data Display"
+provider: "test_integration_drupal"
+description: "Cooks Delight brand mark: SVG symbol plus two-line wordmark, linked to home."
+variants:
+  full:
+    title: "Full"
+    description: "Dark wordmark for the light header bar."
+  inverse:
+    title: "Inverse"
+    description: "Light wordmark for the dark footer."
+props:
+  type: "object"
+  properties:
+    href:
+      type: "string"
+      title: "Link target"
+      default: "/"
+    label:
+      type: "string"
+      title: "Wordmark text"
+slots:
+  media:
+    title: "Media"
+    description: "Brand symbol image."
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

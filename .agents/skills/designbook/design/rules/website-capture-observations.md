@@ -54,7 +54,7 @@ comparison, not selection by list position. If identity remains ambiguous,
 report the unresolved subject and stop finalizing the definition.
 
 Confirm every selected locator in each selected state before freezing the
-capture block. Follow the [intake resolution sequence](../../skills/extract-reference/resources/intake.md)
+capture block. Follow the resolved `extract-reference` intake context
 when a correction changes the revision directory. A locator that resolves to
 no node yields an empty projection at publication.
 

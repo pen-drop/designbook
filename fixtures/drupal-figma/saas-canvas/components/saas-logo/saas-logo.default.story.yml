@@ -1,0 +1,9 @@
+component: test_integration_drupal:saas-logo
+name: Default
+props:
+  href: /
+  src: /saas-kit/logo-saas.png
+  alt: SaaS
+  credit_label: made by
+  credit_src: /saas-kit/logo-framer.svg
+  credit_alt: Framer

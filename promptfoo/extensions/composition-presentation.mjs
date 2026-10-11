@@ -62,6 +62,6 @@ export default function compositionPresentationAssert(output, context) {
     ask: Boolean(context?.vars?.ask),
   });
   return result.ok
-    ? { pass: true, score: 1, reason: "Composition tree presented before plan build" }
+    ? { pass: true, score: 1, reason: "Composition tree presented before execution" }
     : fail(result.reason);
 }

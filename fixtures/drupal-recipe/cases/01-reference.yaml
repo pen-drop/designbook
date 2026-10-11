@@ -1,0 +1,29 @@
+workflow: extract-reference
+fixtures:
+  - empty
+prompt: |
+  You are working in {{workspace}}. This is the Cooks Delight recipe demo.
+  Use the installed Designbook skills and the configured Drupal / SDC / Tailwind integration.
+  Read the actual SKILL.md for each skill named below and follow its instructions.
+  Execute only this case and its explicitly named prerequisite skills.
+  Preserve all completed earlier steps and the published reference. Do not sync to Drupal.
+  Do not launch Promptfoo or rebuild this prepared workspace from inside the case.
+  If required evidence, access or approval is missing, stop with the exact blocker; never invent it.
+  Show the Figma file: capture the recipe reference.
+  Use the extract-reference skill for this actual Figma source:
+  https://www.figma.com/design/jNxa1mBeUyh2eoAQrjcvhd/-FREE--Cooking---Recipes-Blog-Template--Community-?node-id=0-1
+  File key: jNxa1mBeUyh2eoAQrjcvhd. Node 0:1 is the supplied starting page, not an assumed recipe frame.
+  Use the host Figma MCP to inspect its children and select the single desktop recipe-detail
+  frame headed "Lemon Garlic Roasted Chicken". If multiple frames match, report their
+  names and native IDs and stop for selection. Do not select the home/listing page.
+  Capture the complete frame, header and footer, recipe metadata, ingredients and
+  instructions, its actual dimensions, typography, fills and original image assets.
+  Publish a fixed reference with source kind figma, native figma-node locators, subject
+  recipe, view desktop and state rest. Record the actual file version, or null if unavailable.
+  Report the selected node URL, reference directory and screenshot for human inspection.
+  Do not fabricate reference approval. Stop after capture; no vision or UI creation.
+assert:
+- type: javascript
+  value: output.completedWorkflows['extract-reference']?.state?.status === 'completed'
+- type: javascript
+  value: Object.keys(output.fileHashes || {}).some(f => /^designbook\/references\/.*\/publication\.json$/.test(f))

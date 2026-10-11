@@ -6,7 +6,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import jsonata from 'jsonata';
 import { load as parseYaml } from 'js-yaml';
 import type { Plan, PlanTask } from './plan-document.js';
-import { componentTreeFields, overlaySampleRecords } from './plan-composition.js';
+import { componentTreeFields, imageFieldStyle, overlaySampleRecords } from './plan-composition.js';
 
 interface Binding {
   field: string;
@@ -48,6 +48,22 @@ export function compilePlannedMapping(task: PlanTask, plan: Plan): string {
   const slots: string[] = [];
   for (const binding of bindings) {
     const fieldExpr = fieldAccess(binding);
+    const mapping = task.params.mapping as { entity_type: string; bundle: string };
+    const imageStyle = imageFieldStyle(
+      plan.composition?.data_model ?? {},
+      mapping.entity_type,
+      mapping.bundle,
+      binding.field,
+    );
+    if (imageStyle !== undefined) {
+      if (!imageStyle || !binding.slot || binding.prop || binding.entity || binding.path?.length) {
+        throw new Error(`invalid image binding for field ${binding.field}`);
+      }
+      slots.push(
+        `${JSON.stringify(binding.slot)}: [$map(${fieldExpr}, function($image) { { "image": ${JSON.stringify(imageStyle)}, "src": $image.src, "alt": $image.alt } })]`,
+      );
+      continue;
+    }
     if (binding.prop) {
       props.push(`${JSON.stringify(binding.prop)}: ${fieldExpr}`);
       continue;
@@ -56,7 +72,7 @@ export function compilePlannedMapping(task: PlanTask, plan: Plan): string {
       const index = indexById(plan, binding.entity.entity_type, binding.entity.bundle);
       const entity = `${binding.entity.entity_type}.${binding.entity.bundle}`;
       slots.push(
-        `${JSON.stringify(binding.slot)}: $map(${fieldExpr}, function($id) { { "entity": ${JSON.stringify(entity)}, "view_mode": ${JSON.stringify(binding.entity.view_mode)}, "record": $lookup(${JSON.stringify(index)}, $string($id)) } })`,
+        `${JSON.stringify(binding.slot)}: [$map(${fieldExpr}, function($id) { { "entity": ${JSON.stringify(entity)}, "view_mode": ${JSON.stringify(binding.entity.view_mode)}, "record": $lookup(${JSON.stringify(index)}, $string($id)) } })]`,
       );
       continue;
     }

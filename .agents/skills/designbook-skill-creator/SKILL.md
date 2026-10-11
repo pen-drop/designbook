@@ -10,17 +10,19 @@ metadata:
 
 Authoritative reference for authoring and maintaining Designbook skills. Load this skill before modifying any file under `.agents/skills/`.
 
-## Required Writing Skill
+## Required Authoring Skills
 
-Before creating, editing, or reviewing agent-facing skill instructions, load and
-apply `writing-for-agents` (installed as `matt-skills-curated:writing-for-agents`)
-from the available skill catalog. This is a mandatory prerequisite: its writing
-principles govern the prose; the file-type rules below govern Designbook structure.
-If the skill cannot be found, report the missing dependency before authoring.
+Before creating, editing, or reviewing skill instructions, load and apply these
+skills from the available catalog:
 
-Load [rules/writing-files.md](rules/writing-files.md) alongside it for the
+- `writing-for-agents` — instruction writing and placement.
+- `ponytail` — smallest complete change (default `full`; user override wins).
+
+If either skill is unavailable, report the missing dependency before authoring.
+
+Load [rules/writing-files.md](rules/writing-files.md) alongside them for the
 Designbook-specific writing checks (`WRITE-01` .. `WRITE-04`). Before completing
-the work, review every changed instruction against both and resolve findings or
+the work, review every changed instruction against the loaded skills and these checks; resolve findings or
 report those that remain; for a review-only request, report findings without edits.
 
 ## Three-Part Project Architecture

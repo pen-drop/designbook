@@ -1,0 +1,11 @@
+component: test_integration_drupal:meta-line
+name: Default
+props:
+  prep_minutes: 20
+  cook_minutes: 40
+  servings: 4
+slots:
+  difficulty:
+    - type: element
+      tag: span
+      value: Hard

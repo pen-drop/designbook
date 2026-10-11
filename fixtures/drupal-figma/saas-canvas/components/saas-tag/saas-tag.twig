@@ -1,0 +1,19 @@
+{#
+/**
+ * @file
+ * SaaS kit tag / badge.
+ *
+ * Available variables:
+ * - variant: default | inverse
+ * - label: Slot with the tag text
+ */
+#}
+{% set variant = variant|default('default') %}
+{% set classes = ['inline-flex', 'items-center', 'rounded-lg', 'border', 'px-3', 'py-1', 'font-body', 'text-sm', 'font-medium', 'tracking-tight', 'whitespace-nowrap'] %}
+{% if variant == 'inverse' %}
+<span{{ attributes.addClass(classes|merge(['border-brand-surface/20'])) }}>
+  <span class="bg-linear-90 from-brand-spectrum-start via-brand-spectrum-mid to-brand-spectrum-end bg-clip-text text-transparent">{{ label }}</span>
+</span>
+{% else %}
+<span{{ attributes.addClass(classes|merge(['border-brand-ink/10', 'text-brand-ink'])) }}>{{ label }}</span>
+{% endif %}

@@ -1,0 +1,24 @@
+workflow: design-verify
+fixtures:
+  - empty
+  - reference
+  - vision
+  - data-model
+  - tokens
+  - shell
+  - screen
+prompt: |
+  Read and use the installed design-verify SKILL.md in {{workspace}}.
+  Verify the saved recipe-detail scene in sections/recipes/recipes.section.scenes.yml
+  against the approved recipe/rest/desktop reference 60fbf0acb79bd59d/266781d6753e3a35.
+  Resolve the actual story from the index. Compare the full desktop screen at 1440px
+  width; use 390px for overflow and readability checks only. Use the configured
+  comparison threshold. Report differences honestly; do not modify the design.
+  The snapshot has known visual differences and standalone SDC variant-preview issues.
+  Inspect the Structure panel: one full recipe, seven ingredient entities, four step
+  entities, one author, two teaser recipes and seven image components. Select the
+  full recipe mapping and hero image to verify source fields, image path and alt text.
+  Preserve reference, model, samples, tokens, components, mappings and scenes.
+assert:
+  - type: javascript
+    value: output.completedWorkflows['design-verify']?.state?.status === 'completed'

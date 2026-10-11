@@ -1,0 +1,7 @@
+component: test_integration_drupal:saas-tag
+name: Default
+slots:
+  label:
+    - type: element
+      tag: span
+      value: Version 2.0 is here

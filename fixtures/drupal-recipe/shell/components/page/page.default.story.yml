@@ -1,0 +1,21 @@
+component: "test_integration_drupal:page"
+name: "Default"
+slots:
+  header:
+    - type: "element"
+      tag: "div"
+      value: ""
+      attributes:
+        style: "height:70px"
+  content:
+    - type: "element"
+      tag: "div"
+      value: ""
+      attributes:
+        style: "height:240px"
+  footer:
+    - type: "element"
+      tag: "div"
+      value: ""
+      attributes:
+        style: "height:136px"

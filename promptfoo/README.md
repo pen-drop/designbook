@@ -216,6 +216,12 @@ git diff --name-only        # see what changed
 
 ### Design pipeline responsibilities
 
+Generated prompts load the installed domain, extract-reference, execute-workflow and
+design-verify `SKILL.md` files. The runner supplies phase boundaries, input/output paths
+and evidence requirements; it does not duplicate the skills’ CLI planning/execution
+recipes or force a reference source kind. Case `workflow` metadata still identifies
+results and enables verification, including numbered cases such as `05-shell`.
+
 Promptfoo provisions the workspace, selects the planner and executor models,
 starts one executor agent for the complete saved workflow, and records native logs, tokens and
 results. Installed skills own intake presentation, reference selection/capture,

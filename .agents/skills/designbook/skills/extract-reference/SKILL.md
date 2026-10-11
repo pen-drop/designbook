@@ -7,8 +7,4 @@ description: >
   Run `_debo` / `npx storybook-addon-designbook`; the CLI stdout is the intake context.
 ---
 
-First command: `intake extract-reference`. Then follow
-[capture intake](resources/intake.md) and the
-[shared builder](../../resources/workflow-building.md). Website and Storybook
-observation are core capture rules. The Figma integration contributes an
-additional source task.
+Run `intake extract-reference` and follow the resolved intake context in its output.

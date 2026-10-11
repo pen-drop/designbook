@@ -1,0 +1,29 @@
+component: test_integration_drupal:saas-nav
+name: Footer
+variant: footer
+props:
+  items:
+    - title: Product
+      url: /product
+      in_active_trail: false
+      below:
+        - title: Features
+          url: /features
+          in_active_trail: false
+          below: []
+        - title: Pricing
+          url: /pricing
+          in_active_trail: false
+          below: []
+    - title: Company
+      url: /company
+      in_active_trail: false
+      below:
+        - title: About
+          url: /about
+          in_active_trail: false
+          below: []
+        - title: Contact
+          url: /contact
+          in_active_trail: false
+          below: []

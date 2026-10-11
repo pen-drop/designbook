@@ -1,0 +1,5 @@
+@theme static {
+  --layout-spacing-sm: var(--spacing-lg);
+  --layout-spacing-md: var(--spacing-xl);
+  --layout-spacing-lg: var(--spacing-4xl);
+}

@@ -1,0 +1,35 @@
+{% set category_out %}{% block category %}{{ category }}{% endblock %}{% endset %}
+{% set title_out %}{% block title %}{{ title }}{% endblock %}{% endset %}
+{% set description_out %}{% block description %}{{ description }}{% endblock %}{% endset %}
+{% set image_out %}{% block image %}{{ image }}{% endblock %}{% endset %}
+{% set difficulty_out %}{% block difficulty %}{{ difficulty }}{% endblock %}{% endset %}
+{% set ingredients_out %}{% block ingredients %}{{ ingredients }}{% endblock %}{% endset %}
+{% set nutrition_basis_out %}{% block nutrition_basis %}{{ nutrition_basis }}{% endblock %}{% endset %}
+{% set related_out %}{% block related %}{{ related }}{% endblock %}{% endset %}
+<div{{ attributes.addClass(['detail-page', 'flex', 'flex-col', 'gap-xl', 'px-md', 'pt-md', 'pb-xl', 'md:px-4xl']) }}>
+  <article class="mx-auto flex w-full max-w-[var(--container-2xl)] flex-col gap-xl rounded-xl border border-outline px-md py-xl md:px-xl md:py-4xl">
+    {% set meta %}{% include 'test_integration_drupal:meta-line' with { attributes: create_attribute(), prep_minutes: prep_minutes, cook_minutes: cook_minutes, servings: servings, difficulty: difficulty_out|trim is not empty ? difficulty_out : null } only %}{% endset %}
+    {% include 'test_integration_drupal:page-hero' with { attributes: create_attribute(), category: category_out|trim is not empty ? category_out : null, title: title_out, description: description_out|trim is not empty ? description_out : null, meta: meta, image: image_out|trim is not empty ? image_out : null } only %}
+    <div class="flex flex-col gap-xl lg:flex-row lg:items-start lg:gap-3xl lg:pl-4xl">
+      <aside class="flex flex-col gap-md rounded-lg bg-background px-md pt-xl pb-md lg:order-last lg:flex-1">
+        {% set ingredients_list %}<ul class="list-disc pl-lg font-body text-paragraph-1 text-foreground">{{ ingredients_out }}</ul>{% endset %}
+        {% include 'test_integration_drupal:aside-card' with { attributes: create_attribute(), heading: 'Ingredients', content: ingredients_list } only %}
+        {% if equipment %}{% set equipment_list %}<ul class="list-disc pl-lg font-body text-bold-text text-foreground">{% for item in equipment %}<li>{{ item }}</li>{% endfor %}</ul>{% endset %}
+        {% include 'test_integration_drupal:aside-card' with { attributes: create_attribute(), heading: 'Equipment Needed for Preparation', content: equipment_list } only %}{% endif %}
+        {% if nutrition %}{% set nutrition_list %}{% if nutrition_basis_out|trim is not empty %}<p class="font-body text-paragraph-2 text-body-text">{{ nutrition_basis_out }}</p>{% endif %}<ul class="flex flex-col font-body text-paragraph-2 text-body-text">{% for line in nutrition %}{% set part = line|split(':', 2) %}<li><strong class="text-bold-text text-foreground">{{ part[0] }}:</strong>{{ part[1] }}</li>{% endfor %}</ul>{% endset %}
+        {% include 'test_integration_drupal:aside-card' with { attributes: create_attribute(), heading: 'Nutritional Value', content: nutrition_list } only %}{% endif %}
+      </aside>
+      <div class="flex min-w-0 flex-col gap-xl lg:max-w-[var(--container-md)]">
+        {% block body %}{% if body %}<div class="prose max-w-none font-body text-paragraph-2 text-body-text prose-headings:font-heading prose-headings:text-foreground prose-h3:text-heading-3 prose-h4:text-subtitle prose-h4:uppercase prose-h4:text-accent prose-strong:text-foreground">{{ body }}</div>{% endif %}{% endblock %}
+        <section class="flex flex-col gap-xl">
+          <h2 class="font-heading text-heading-2 uppercase text-foreground">Instructions</h2>
+          {% block instructions_intro %}{% if instructions_intro %}<div class="whitespace-pre-line font-body text-paragraph-2 text-body-text">{{ instructions_intro }}</div>{% endif %}{% endblock %}
+          <div class="flex flex-col gap-xl">{% block steps %}{{ steps }}{% endblock %}</div>
+          {% block serving_notes %}{% if serving_notes %}<div class="prose max-w-none font-body text-paragraph-2 text-body-text prose-h4:font-heading prose-h4:text-subtitle prose-h4:uppercase prose-h4:text-accent">{{ serving_notes }}</div>{% endif %}{% endblock %}
+        </section>
+        {% block author %}{% if author %}<div class="border-t border-outline pt-xl">{{ author }}</div>{% endif %}{% endblock %}
+      </div>
+    </div>
+  </article>
+  {% if related_out|trim is not empty %}{% include 'test_integration_drupal:card-row' with { attributes: create_attribute(), heading: 'Similar recipes', items: related_out } only %}{% endif %}
+</div>

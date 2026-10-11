@@ -1,0 +1,36 @@
+$schema: >-
+  https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: saas-button
+status: experimental
+group: Action
+description: >-
+  Call-to-action link of the SaaS kit: solid dark, solid light (on dark
+  surfaces) or text link with trailing arrow.
+variants:
+  default:
+    title: Default
+    description: Solid black button with white label.
+  light:
+    title: Light
+    description: Solid white button with black label, used on dark surfaces.
+  text:
+    title: Text
+    description: Borderless text link with a trailing arrow icon.
+props:
+  type: object
+  required:
+    - label
+  properties:
+    label:
+      type: string
+      title: Label
+    url:
+      type: string
+      title: URL
+    full_width:
+      type: boolean
+      title: Full width
+      description: Stretch to the width of the parent (pricing cards).
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

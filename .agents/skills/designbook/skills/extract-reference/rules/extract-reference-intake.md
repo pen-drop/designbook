@@ -1,0 +1,108 @@
+---
+name: extract-reference-intake
+description: Domain decisions for a fixed source observation workflow.
+trigger:
+  steps: [extract-reference:intake]
+---
+
+# Capture the selected scope
+
+Select one source from the saved intake context. Website and Storybook
+blocks are always present; a missing Figma block means that source is not
+configured. Competing sources remain separate references.
+
+Select source kind, identity, revision (explicit null when unavailable), subjects,
+candidate native locators, views, states, the session each state is observed as, and role
+(`reference` or `actual`) from the request. A view has a breakpoint only when
+that mapping is explicitly established. A state name identifies one page load
+across the whole revision, so it carries one session and gets one dump; a
+subject seen both signed out and signed in is two states, not one. Present the
+selected source, subjects, candidate locators, views, states and sessions to the
+user before saving the capture plan.
+
+Order the resolution steps so each one has what it needs:
+
+1. Author the prelude module in the project repository when the source needs
+   preparing before it can be observed, and take its `{ path, digest }` from
+   `_debo reference prelude --path <file>`.
+2. Assemble a draft capture block — role, source, optional `prelude` pair, and
+   the selected scope with candidate locators and a session on every cell.
+3. Resolve its directory with `_debo reference capture-location --capture
+   <capture.json> --workflow-id <id>`. The revision digest covers the scope and
+   the prelude; changing either requires resolving the directory again.
+4. Read the source catalogue from `_debo reference save --reference
+   <revision-dir> --url <source-identity> --state <name> --session <name>`
+   stdout, once per declared state. Pass the prelude and state steps required
+   by the selected source's observation rule so each dump shows that state.
+   Before trusting the dump, positively confirm the declared state is the one
+   that was actually observed, per
+   [authenticated-capture-parity.md](../../../design/rules/authenticated-capture-parity.md):
+   a login page, a same-status redirect to an unexpected page, or an empty/
+   access-guard placeholder means the save did not capture the declared state.
+   Abort saving that state — do not proceed to locator confirmation or
+   publication for it, and record no diff score for the cell.
+5. Confirm every selected locator against the saved dump with `_debo reference
+   inspect --reference <revision-dir> --state <name> --locator <css>` in every
+   state selected for its subject. Completion: every response has
+   `subject.found: true` and identifies the intended subject. If a locator
+   changes, update the draft and repeat steps 3–5, saving the declared states
+   into the newly resolved directory. An unresolved or ambiguous subject blocks
+   finalizing the plan.
+6. Author the MD plan with the observe, capture-file/capture-image and
+   publish-capture steps, their outputs in the resolved revision directory.
+   Carry the confirmed capture block as the publish-capture task's params, and
+   embed `Reference`, `DesignReference` and their transitive definitions in the
+   plan's `## Schemas`: later design workflows derive the published revision's
+   query contract from the publication. Follow the
+   [shared builder](../../../resources/workflow-building.md) to write and seal
+   the plan. The publish-capture step writes the selected-scope metadata to the
+   `reference` result path first, then runs `_debo reference publish --capture
+   <capture.json> --workflow-id <id> --owner <plan-path> --contract
+   <contract.json>` (contract = `{ referenceSchema: <Reference>, definitions }`)
+   to seal every revision file including that metadata, then records the already
+   written result with `plan done`. Completion: the sealed plan carries the
+   capture block in the publish task params, matching output paths, and the
+   query schemas. The published `publication.json` names `id`, `revision`,
+   `files` and `contract` only.
+
+After sealing, run [execute-workflow](../../execute-workflow/SKILL.md) for this
+capture plan per the builder's chosen mode. This workflow stays a separate start
+from design execute.
+
+After publish succeeds, close out according to the captured role:
+
+- **`actual`:** Run `reference validate`, verify the requested subjects, views,
+  states and locators, and inspect the screenshots for the intended rendered
+  content (not an error page or access placeholder). Report the revision and
+  capture paths, then return the validated evidence to the caller. Publication
+  and these checks complete the capture; no user approval or suitability question
+  is needed. Leave any existing approval record unchanged; never fabricate one.
+- **`reference`:** Complete the screenshot approval and suitability steps below.
+
+
+1. Name the published revision to the user: the full revision directory and what
+   it holds. `_debo reference validate --reference <revision-dir>` prints the
+   binding directory, every fingerprinted file, and the covered subjects, cells
+   and queryable packages.
+2. Present the revision's screenshots (actual PNG paths from the publication) to
+   the user for the selected subjects, states and views.
+3. Write `approval.yml` beside the revision with
+   `_debo reference approval-write --reference <revision-dir> --status pending
+   --scope <json>` (scope = subjects/states and views/breakpoints as needed), then
+   update it to `approved` or `rejected` with the user's decision (optional
+   `--note`). See [CLI workflow](../../../resources/cli-workflow.md).
+4. Link the published revision's entries and ask the purpose question separately
+   from the screenshot approval, per the
+   [reference intake](../../../design/rules/reference-prerequisite.md) suitability
+   step (links and question). Screenshot approval says the capture is correct;
+   the suitability answer says it fits the intended use case. Report the answer
+   with its revision and scope in the closeout; a resumed design intake reuses it
+   as the explicit answer for that revision and scope.
+5. Stop after the approval record is written and the suitability answer reported.
+   Dependent design planning is a later start that runs `reference approval-check`;
+   this closeout does not invoke a design workflow.
+
+Completion for role `reference`: the user has the revision directory, a per-subject account of its
+states, views, screenshots and asset files, one Storybook link per capture tuple,
+an `approval.yml` reflecting pending→approved/rejected, and a reported suitability
+answer with its scope.

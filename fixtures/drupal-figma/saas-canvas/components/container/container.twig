@@ -1,0 +1,73 @@
+{#
+/**
+ * @file
+ * Container component — structural wrapper with max-width, padding, and header.
+ *
+ * Available variables:
+ * - max_width: Container max-width (sm, md, lg, xl, full)
+ * - padding_top: Top padding (auto, none, sm, md, lg)
+ * - padding_bottom: Bottom padding (auto, none, sm, md, lg)
+ * - display_header: Whether to display the header
+ * - theme: Visual theme
+ * - header: Header slot
+ * - background: Background slot
+ * - content: Main content slot
+ */
+#}
+{% set max_width = max_width|default('md') %}
+{% set padding_top = padding_top|default('auto') %}
+{% set padding_bottom = padding_bottom|default('auto') %}
+{% set display_header = display_header is defined ? display_header : true %}
+
+{% set wrapper_attributes = create_attribute() %}
+
+{# Background detection (needed for auto padding) #}
+{% set has_background = background|default('')|trim|striptags %}
+
+{# Resolve auto padding #}
+{% if padding_top == 'auto' %}
+  {% set padding_top = has_background or theme ? 'md' : 'none' %}
+{% endif %}
+{% if padding_bottom == 'auto' %}
+  {% set padding_bottom = 'md' %}
+{% endif %}
+
+{# Max-width #}
+{% if max_width != 'full' %}
+  {% set wrapper_attributes = wrapper_attributes.addClass('max-w-' ~ max_width).addClass('mx-auto') %}
+{% endif %}
+
+{# Padding-inline (always — keeps content away from browser edges) #}
+{% set wrapper_attributes = wrapper_attributes.addClass('px-4 md:px-6 lg:px-8') %}
+
+{# Padding top/bottom via section-spacing tokens #}
+{% if padding_top != 'none' %}
+  {% set wrapper_attributes = wrapper_attributes.addClass('pt-[var(--layout-spacing-' ~ padding_top ~ ')]') %}
+{% endif %}
+{% if padding_bottom != 'none' %}
+  {% set wrapper_attributes = wrapper_attributes.addClass('pb-[var(--layout-spacing-' ~ padding_bottom ~ ')]') %}
+{% endif %}
+
+{# Theme #}
+{% if theme %}
+  {% set wrapper_attributes = wrapper_attributes.setAttribute('data-theme', theme) %}
+{% endif %}
+
+{# Background flag #}
+{% if has_background or theme %}
+  {% set wrapper_attributes = wrapper_attributes.setAttribute('data-on-background', 'true') %}
+{% endif %}
+
+<div{{ wrapper_attributes.addClass('container-component') }}>
+{% if has_background %}
+  <div class="layout-background">
+    {{ background }}
+  </div>
+{% endif %}
+{% if display_header and header is not empty %}
+  <div class="container-header">
+    {{ header }}
+  </div>
+{% endif %}
+  {{ content }}
+</div>

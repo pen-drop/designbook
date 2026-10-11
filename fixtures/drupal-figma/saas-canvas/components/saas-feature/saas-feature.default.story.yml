@@ -1,0 +1,24 @@
+component: test_integration_drupal:saas-feature
+name: Default
+slots:
+  icon:
+    - type: image
+      uri: /saas-kit/feature-icon-1.svg
+      attributes:
+        alt: ''
+        class: size-6
+  title:
+    - type: element
+      tag: span
+      value: Integration ecosystem
+  summary:
+    - type: element
+      tag: span
+      value: Track your progress and motivate your efforts everyday.
+  link:
+    - type: component
+      component: test_integration_drupal:saas-button
+      props:
+        variant: text
+        label: Learn more
+        url: /features/integrations

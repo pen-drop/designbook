@@ -27,7 +27,7 @@ import type {
 } from '../types';
 
 /** Recursively substitute $variable placeholders in a raw YAML object. */
-function substitute(obj: unknown, vars: Record<string, unknown>): unknown {
+export function substitute(obj: unknown, vars: Record<string, unknown>): unknown {
   if (typeof obj === 'string' && obj.startsWith('$')) {
     const key = obj.slice(1);
     return key in vars ? vars[key] : obj;

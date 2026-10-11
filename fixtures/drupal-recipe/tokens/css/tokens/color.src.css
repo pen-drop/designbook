@@ -1,0 +1,21 @@
+@theme static {
+  --color-background: var(--color-neutral-100);
+  --color-surface: var(--color-neutral-50);
+  --color-surface-muted: var(--color-neutral-950-8);
+  --color-foreground: var(--color-neutral-950);
+  --color-foreground-muted: var(--color-neutral-950-60);
+  --color-body-text: var(--color-neutral-800-80);
+  --color-primary: var(--color-green-400);
+  --color-secondary: var(--color-orange-400);
+  --color-accent: var(--color-red-400);
+  --color-on-accent: var(--color-neutral-50);
+  --color-link: var(--color-red-400);
+  --color-inverse-surface: var(--color-neutral-950);
+  --color-inverse-foreground: var(--color-neutral-100);
+  --color-inverse-outline: var(--color-neutral-100-8);
+  --color-outline: var(--color-neutral-950-24);
+  --color-outline-subtle: var(--color-neutral-950-16);
+  --color-outline-strong: var(--color-neutral-950);
+  --color-media-outline: var(--color-neutral-800-40);
+  --color-overlay: var(--color-black-20);
+}

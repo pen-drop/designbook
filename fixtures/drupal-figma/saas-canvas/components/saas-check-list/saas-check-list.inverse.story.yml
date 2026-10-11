@@ -1,0 +1,8 @@
+component: test_integration_drupal:saas-check-list
+name: Inverse
+variant: inverse
+props:
+  items:
+    - Up to 50 project members
+    - Unlimited tasks and projects
+    - 50GB storage

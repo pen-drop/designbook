@@ -1,0 +1,30 @@
+$schema: >-
+  https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: saas-header
+status: experimental
+group: Shell
+description: >-
+  Two-row site header: black announcement bar above a light brand bar with logo,
+  navigation and actions.
+props:
+  type: object
+  properties:
+    announcement:
+      type: string
+      title: Announcement text
+    announcement_link_label:
+      type: string
+      title: Announcement link label
+    announcement_url:
+      type: string
+      title: Announcement link URL
+slots:
+  logo:
+    title: Logo
+  navigation:
+    title: Navigation
+  actions:
+    title: Actions
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

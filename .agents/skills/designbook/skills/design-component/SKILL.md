@@ -2,7 +2,9 @@
 name: design-component
 user-invocable: true
 description: >
-  Create or change a UI component. Explicit invocation only; incidental component mentions do not trigger this skill.
+  Create or modify a Designbook component, including styling-only fixes to existing
+  components. Use for component markup, CSS, utility classes, layout, responsive
+  behavior, props, slots, variants or stories.
 ---
 
-First command: `intake design-component`. Then follow [intake](resources/intake.md).
+First command: `intake design-component`. Follow the resolved intake context in its output.

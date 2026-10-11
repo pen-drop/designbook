@@ -1,0 +1,23 @@
+$schema: >-
+  https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: saas-hero
+status: experimental
+group: Data Display
+description: >-
+  Landing hero on a soft-to-saturated blue gradient: eyebrow, gradient display
+  title, lead, actions and a large visual; decorative floating cylinder on
+  desktop.
+slots:
+  eyebrow:
+    title: Eyebrow
+  title:
+    title: Title
+  lead:
+    title: Lead
+  actions:
+    title: Actions
+  media:
+    title: Media
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

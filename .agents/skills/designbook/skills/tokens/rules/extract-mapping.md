@@ -3,34 +3,34 @@ trigger:
   steps: [create-tokens]
 ---
 
-# Extract-Driven Token Derivation
+# Reference-derived tokens
 
-When the `extract` param (a `DesignReference`) is present, it is the **authoritative** source for token values. Fall back to vision or user input only when extract is missing.
+The task's `extract` is the authoritative `DesignReference` for the selected
+subjects, views and states. Observed values live in
+`subjects[].samples[].observations`, with font dependencies in `fonts[]`.
+The source's material keys remain source-specific; preserve their meaning and
+units instead of assuming a flat color or typography table.
 
-## Values from an extract
+## Values and provenance
 
-When an extract is present, values placed in `primitive.*` MUST be limited to the union of values actually observed in `extract`:
+Every primitive value must be supported by the selected observations: colors
+and opacity, font families, sizes and weights, line heights, spacing and radii.
+A line-height ratio may be calculated from observed line height and font size;
+preserve its precision. Semantic names and grouping may be inferred, but new
+primitive values require explicit intake decisions identified as additions.
+Record the selected revision and scope, and distinguish observations, calculated
+values and additions in token descriptions or Designbook extensions.
 
-- `primitive.fontSize.*` — only values found in `extract.typography[].font_size`
-- `primitive.fontWeight.*` — only values found in `extract.typography[].font_weight` (union with `extract.fonts[].weights` is allowed for declared but unused weights)
-- `primitive.lineHeight.*` — computed as `line_height / font_size` from each `extract.typography[]` entry (rounded to 1 decimal); only the resulting distinct ratios
-- `primitive.spacing.*` — values from `extract.tokens.spacing[]` (fall back to `extract.spacing.values[]`)
-- `primitive.radius.*` — values from `extract.tokens.radii[]`
-- `primitive.color.*` — union of `extract.colors[].hex` and `extract.tokens.colors` values
-- `primitive.fontFamily.*` — `extract.fonts[].family` and `extract.tokens.fonts` values
+## Coverage
 
-Do NOT add typical-scale values (e.g. `xs`, `2xl`, `3xl`) that do not appear in the extract.
+Represent every observed text treatment in `semantic.typography` and every named
+observed color in `semantic.color`. Typography roles reference matching primitives
+for family, size, weight, line height and color wherever those values are observed.
+Figma text styles are treatments even when no HTML element name is available.
+Resolve missing required values during intake; an observation gap is not evidence
+for a conventional default. Preserve differences between selected views and states.
 
-## Typography Completeness
+## Reference-free input
 
-Every entry in `extract.typography[]` MUST be represented in `semantic.typography.*`. The mapping from HTML element to semantic role is not prescribed — choose role names that reflect usage (`heading`, `display`, `body`, `link`, `button`, etc.), but coverage is mandatory.
-
-For each role, `$value` MUST reference primitives for `fontFamily`, `fontSize`, `fontWeight`, `lineHeight`, and include `color` — either as a direct primitive reference or through a `semantic.color.*` alias derived from `extract.typography[].color`.
-
-## Semantic Color Completeness
-
-Every named key in `extract.tokens.colors` MUST be present in `semantic.color.*`, referencing a matching `primitive.color.*` entry.
-
-## Values from intake
-
-When no extract is present, use the palette, fonts, and scales recorded in the task params during intake. These decisions are the source for primitive values and semantic roles. Do not reopen the dialogue during execution. If a required decision is missing, block the task and report the missing value so intake can author a complete new definition.
+Only a request without a reference uses the palette, fonts and scales recorded
+as intake decisions. A missing or invalid supplied reference blocks the task.

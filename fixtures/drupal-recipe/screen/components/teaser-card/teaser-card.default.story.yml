@@ -1,0 +1,26 @@
+component: test_integration_drupal:teaser-card
+name: Default
+props:
+  prep_minutes: 10
+  cook_minutes: 30
+  servings: 3
+slots:
+  title:
+    - type: element
+      tag: span
+      value: Savory Herb-Infused Chicken
+  description:
+    - type: element
+      tag: span
+      value: >-
+        Indulge in the rich and savory symphony of flavors with our Savory
+        Herb-Infused Chicken
+  difficulty:
+    - type: element
+      tag: span
+      value: Easy
+  image:
+    - type: image
+      uri: /images/recipes/savory-herb-infused-chicken.png
+      attributes:
+        alt: Golden herb-infused chicken

@@ -13,9 +13,8 @@ prompts:
         _debo() { npx storybook-addon-designbook "$@"; }
         eval "$(_debo config)"
 
-      Read `.agents/skills/designbook/skills/design-shell/SKILL.md`,
-      `resources/intake.md`, and `.agents/skills/designbook/resources/`
-      (`cli-workflow.md`, `workflow-building.md`). Follow them exactly.
+      Use the installed `design-shell` skill. Follow the resolved CLI intake
+      context and its applicable instructions.
 
       Request: create the application shell — a `header` component (site title +
       primary navigation) and a `footer` component (copyright + secondary links),

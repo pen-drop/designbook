@@ -1,0 +1,22 @@
+$schema: >-
+  https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Aside card
+status: experimental
+group: Data Display
+provider: test_integration_drupal
+description: Light rounded sidebar card with an accent uppercase heading and free content.
+props:
+  type: object
+  properties:
+    heading:
+      type: string
+      title: Heading
+  required:
+    - heading
+slots:
+  content:
+    title: Content
+    description: Card body (lists, text).
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

@@ -1,0 +1,25 @@
+workflow: data-model
+fixtures:
+  - empty
+  - reference
+  - vision
+  - data-model
+prompt: |
+  You are working in {{workspace}}. Read the installed data-model SKILL.md and use
+  that skill to correct the existing model. Execute its plan in this invocation.
+  The user authorized fixing blockers found while building the recipe screen.
+  Add explicit mapped Drupal base fields in data-model.yml: name (string, required)
+  on taxonomy_term.difficulty, taxonomy_term.recipe_category and taxonomy_term.author;
+  description (text, optional) on taxonomy_term.author. Their values already exist
+  in the sample data and are visible in the approved Figma reference.
+  Preserve all other model fields, view modes, image styles, sample records, tokens,
+  shell, assets and published reference. No regeneration of sample data, reference
+  capture, Drupal sync, or screen construction. Do not run workspace setup or Promptfoo.
+  Validate the corrected model and report the changed fields and saved plan.
+assert:
+  - type: javascript
+    value: output.completedWorkflows['data-model']?.state?.status === 'completed'
+  - type: javascript
+    value: "['difficulty', 'recipe_category', 'author'].every(b => output.fileContents['designbook/data-model.yml']?.content?.taxonomy_term?.[b]?.fields?.name?.type === 'string')"
+  - type: javascript
+    value: "output.fileContents['designbook/data-model.yml']?.content?.taxonomy_term?.author?.fields?.description?.type === 'text'"

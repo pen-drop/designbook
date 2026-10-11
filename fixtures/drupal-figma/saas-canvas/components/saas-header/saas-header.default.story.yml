@@ -1,0 +1,48 @@
+component: test_integration_drupal:saas-header
+name: Default
+props:
+  announcement: This page is included in a free SaaS Website Kit.
+  announcement_link_label: View the complete Kit
+  announcement_url: /kit
+slots:
+  logo:
+    - type: component
+      component: test_integration_drupal:saas-logo
+      props:
+        href: /
+        src: /saas-kit/logo-saas.png
+        alt: SaaS
+        credit_label: made by
+        credit_src: /saas-kit/logo-framer.svg
+        credit_alt: Framer
+  navigation:
+    - type: component
+      component: test_integration_drupal:saas-nav
+      props:
+        items:
+          - title: About
+            url: /about
+            in_active_trail: false
+            below: []
+          - title: Features
+            url: /features
+            in_active_trail: false
+            below: []
+          - title: Customers
+            url: /customers
+            in_active_trail: false
+            below: []
+          - title: Updates
+            url: /updates
+            in_active_trail: false
+            below: []
+          - title: Help
+            url: /help
+            in_active_trail: false
+            below: []
+  actions:
+    - type: component
+      component: test_integration_drupal:saas-button
+      props:
+        label: Get for free
+        url: /signup

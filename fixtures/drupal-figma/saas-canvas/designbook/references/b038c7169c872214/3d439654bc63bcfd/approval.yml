@@ -1,0 +1,14 @@
+decided_at: '2026-10-10T18:05:46.647Z'
+fingerprint: 92b0142b35139ac8a054a933a3fa61a084c411cff762b77349c85b0c23548bde
+note: 'User explicitly approved and requested execution of these exact Figma captures (nodes 1:2, 28:1211, 14:615, 28:1209 of ErxLeXHIKYIBLlu0L4HUCY) shown in the tunnel. Revision PNGs are native-resolution (maxDimension) re-renders of the same nodes via live get_screenshot; earlier tunnel copies were Figma-downscaled to 1024px. Suitability: landing-page screen (hero, product/features, pricing; nav/footer from page 1:2) — answer yes per user''s request.'
+scope:
+  states:
+    - rest
+  subjects:
+    - scene-page
+    - scene-hero
+    - scene-product
+    - scene-pricing
+  views:
+    - desktop
+status: approved
