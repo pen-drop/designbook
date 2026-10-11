@@ -159,7 +159,7 @@ prompt +=
     ? `\nUse distinct saved definition IDs ${JSON.stringify(workflowId + "-1")} through ${JSON.stringify(workflowId + "-" + caseDoc.repeat.count)} for the ordered repetitions in this single evaluation. Setup occurs once.`
     : `\nUse ${JSON.stringify(workflowId)} as the primary saved workflow definition.id for this phase.`;
 prompt +=
-  "\nYou are already inside Promptfoo in a provisioned workspace. Read .agents/skills/designbook/SKILL.md, select the domain skill requested by this case, and read its complete SKILL.md before doing the work. Invoke that skill and follow its referenced instructions; the skill owns intake, planning and execution. Do not replace it with a hand-written workflow or CLI recipe.\n" +
+  "\nYou are already inside Promptfoo in a provisioned workspace. Read the complete SKILL.md of the installed domain skill requested by this case before doing the work. Invoke that skill and follow its referenced instructions; the skill owns intake, planning and execution. Do not replace it with a hand-written workflow or CLI recipe.\n" +
   "Use this workspace's inputs and copied skills, including outputs of earlier cases when the workspace was explicitly prepared. Do not read or copy other test workspaces or reports. Do not invoke debo-test run, Promptfoo or workspace setup again.\n" +
   "Honor the case's requested scope and execution mode. Preserve saved plans until scoring has collected them. Report the actual saved paths, results, failures and unanswered inputs. If required inputs or approvals are missing, report the blocker and stop; do not fabricate an answer or approval.";
 if (caseDoc.evidence && opts.phase === "main") {

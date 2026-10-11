@@ -13,11 +13,8 @@ prompts:
         _debo() { npx storybook-addon-designbook "$@"; }
         eval "$(_debo config)"
 
-      Read `.agents/skills/designbook/SKILL.md` and its resources
-      `resources/cli-workflow.md`, `resources/workflow-building.md`,
-      `resources/workflow-execution.md`. Follow them exactly. The engine surface is:
-      `_debo intake <workflow>` → author an MD plan → `_debo plan validate <plan>`
-      → `_debo plan seal <plan>` → `_debo plan done <plan> --task <name> --data-file <r.json>`.
+      Use the installed `vision` and `data-model` skills directly. Follow their
+      CLI intake and saved-plan execution instructions.
 
       Do this for TWO workflows, in order:
 

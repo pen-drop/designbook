@@ -63,7 +63,8 @@ describe('intake <workflow>', () => {
       const configPath = join(dir, 'config.json');
       writeFileSync(configPath, JSON.stringify(config));
       try {
-        for (const workflow of ['tokens', 'design-shell', 'extract-reference']) {
+        const writers = ['design-component', 'design-entity', 'design-screen', 'design-shell'];
+        for (const workflow of [...writers, 'tokens', 'vision', 'design-verify', 'extract-reference']) {
           const out = await runIntake([
             'intake',
             workflow,
@@ -83,7 +84,10 @@ describe('intake <workflow>', () => {
           expect(instructions).toHaveLength(1);
           expect(instructions[0]!.content).toBe(readFileSync(instructions[0]!.source, 'utf8'));
           expect(entries.filter((entry) => entry.source.endsWith('/rules/reference-prerequisite.md'))).toHaveLength(1);
-          expect(entries.some((entry) => entry.source.endsWith('/rules/vision-intake.md'))).toBe(false);
+          expect(entries.filter((entry) => entry.source.endsWith('/rules/design-write-planning.md'))).toHaveLength(
+            writers.includes(workflow) ? 1 : 0,
+          );
+          expect(entries.some((entry) => entry.source.endsWith('/rules/vision-intake.md'))).toBe(workflow === 'vision');
         }
       } finally {
         rmSync(dir, { recursive: true, force: true });

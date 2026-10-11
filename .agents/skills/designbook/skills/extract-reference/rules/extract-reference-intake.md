@@ -17,8 +17,8 @@ candidate native locators, views, states, the session each state is observed as,
 that mapping is explicitly established. A state name identifies one page load
 across the whole revision, so it carries one session and gets one dump; a
 subject seen both signed out and signed in is two states, not one. Present the
-selected scope through the
-[intake contract](../../../design/resources/write-planning.md).
+selected source, subjects, candidate locators, views, states and sessions to the
+user before saving the capture plan.
 
 Order the resolution steps so each one has what it needs:
 

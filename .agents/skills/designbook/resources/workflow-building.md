@@ -49,7 +49,7 @@ verification. Reference-free requests use their concrete inputs.
    Completion: one entry per concrete task, params filled.
 3. **Writing-design workflows** are `design-entity`, `design-component`,
    `design-screen` and `design-shell`. For these four only, present the selector
-   inventory from [write planning](../design/resources/write-planning.md), then
+   inventory from the resolved `design-write-planning` rule, then
    run `plan tree <tasks.json> --workflow <id> --config-dir <workspace>`.
    The next user-visible reply is that command's unmodified stdout, even when
    execution was requested without questions. Completion: the inventory and

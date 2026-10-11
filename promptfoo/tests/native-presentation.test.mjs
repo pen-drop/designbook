@@ -157,7 +157,7 @@ const workflows = [
   "design-shell",
 ];
 
-test("all four design intakes reach write-planning.md and do not duplicate the tree", () => {
+test("design intakes use CLI context without duplicating shared planning", () => {
   for (const name of workflows) {
     const skill = readFileSync(
       join(repo, `.agents/skills/designbook/skills/${name}/SKILL.md`),
@@ -168,11 +168,11 @@ test("all four design intakes reach write-planning.md and do not duplicate the t
       join(repo, `.agents/skills/designbook/skills/${name}/rules/${name}-intake.md`),
       "utf8",
     );
-    assert.match(intake, /write-planning\.md/);
+    assert.doesNotMatch(intake, /write-planning\.md/);
     assert.doesNotMatch(intake, /plan tree/);
   }
   const planning = readFileSync(
-    join(repo, ".agents/skills/designbook/design/resources/write-planning.md"),
+    join(repo, ".agents/skills/designbook/design/rules/design-write-planning.md"),
     "utf8",
   );
   assert.doesNotMatch(planning, /plan tree/);

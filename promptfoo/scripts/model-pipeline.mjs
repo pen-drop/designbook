@@ -83,7 +83,7 @@ export function runModelPipeline({
   }));
   const blockade = base.tests[0].vars.blockade;
   const intakeSetup =
-    `Read .agents/skills/designbook/SKILL.md and the installed domain SKILL.md for ${JSON.stringify(workflowId)}. The skill owns discovery, intake and plan creation.\n` +
+    `Read the installed domain SKILL.md for ${JSON.stringify(workflowId)}. The skill owns discovery, intake and plan creation.\n` +
     `Read the intake handoff at ${JSON.stringify(intakeHandoff)}. Reuse its exact published reference bindings, subjects and selectors, preserving the captured bytes and approval requirements.\n` +
     `If intake yields a named \`ReferenceNeed\` or \`PrerequisiteNeed\`, report it and stop without creating or executing a plan.\n`;
   plan.prompts = [

@@ -17,6 +17,7 @@ for (const name of ['01-reference', '02-vision', '03-data-model', '04-tokens', '
     const config = yaml.load(readFileSync(file, 'utf8'));
     assert.deepEqual(config.tests[0].vars, { workspace: join(dir, 'workspace') });
     assert.match(config.prompts[0], /Read .*SKILL\.md/);
+    assert.doesNotMatch(config.prompts[0], /\.agents\/skills\/designbook\/SKILL\.md/);
     assert.doesNotMatch(config.prompts[0], /MD-plan engine|_debo intake|_debo plan build|plan done|author.*tasks\.json/i);
     if (name === '05-shell' || name === '06-screen') {
       assert.ok(config.tags.verify_config, 'Numbered design case must retain automatic verification');
