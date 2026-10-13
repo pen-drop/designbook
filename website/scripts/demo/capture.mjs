@@ -38,8 +38,8 @@ const hideChrome = async (page) => {
   await page.waitForTimeout(500)
 }
 
-// Opens a stage view. With `reference`, the imported reference is opened first so References stays
-// expanded in the sidebar, as it is once the reference exists.
+// Opens a stage view. With `reference`, the imported reference itself is opened (References expanded);
+// every other view keeps the sidebar at the four Designbook entries.
 async function open (page, url, { story, tab, wait, reference }) {
   if (reference) {
     const index = await (await fetch(`${url}/index.json`)).json()
@@ -70,10 +70,10 @@ const views = [
   ['START_URL', 'empty-vision.png', { story: FOUNDATION, wait: 'No vision defined yet' }],
   ['VISION_URL', 'vision.png', { story: FOUNDATION, wait: 'Cooks Delight' }],
   ['REFERENCE_URL', 'reference-page.png', { reference: true, wait: 'recipe · desktop · rest' }],
-  ['REFERENCE_URL', 'empty-model.png', { reference: true, story: FOUNDATION, tab: 'Data Model', wait: 'No data model defined yet' }],
-  ['MODEL_URL', 'model.png', { reference: true, story: FOUNDATION, tab: 'Data Model', wait: 'Graph', graph: true }],
-  ['MODEL_URL', 'empty-tokens.png', { reference: true, story: DESIGN_SYSTEM, wait: 'No design tokens defined yet' }],
-  ['TOKENS_URL', 'tokens.png', { reference: true, story: DESIGN_SYSTEM, wait: 'Design Tokens' }],
+  ['REFERENCE_URL', 'empty-model.png', { story: FOUNDATION, tab: 'Data Model', wait: 'No data model defined yet' }],
+  ['MODEL_URL', 'model.png', { story: FOUNDATION, tab: 'Data Model', wait: 'Graph', graph: true }],
+  ['MODEL_URL', 'empty-tokens.png', { story: DESIGN_SYSTEM, wait: 'No design tokens defined yet' }],
+  ['TOKENS_URL', 'tokens.png', { story: DESIGN_SYSTEM, wait: 'Design Tokens' }],
 ]
 const browser = await chromium.launch()
 try {
