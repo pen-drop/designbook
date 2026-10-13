@@ -44,8 +44,8 @@ try {
     assert.ok(box.x >= 0 && box.y >= 0 && box.x + box.width <= reference[0] && box.y + box.height <= reference[1], id + ' outside reference')
   }
   const pairs = [
-    ['header', 36.6], ['recipe', 37.7], ['detail', 38.8], ['ingredient', 39.9], ['quantity', 41.0],
-    ['step', 42.1], ['step-block', 43.2], ['author', 44.3], ['profile', 45.4],
+    ['header', 38.3], ['recipe', 39.3], ['detail', 40.3], ['ingredient', 41.3], ['quantity', 42.3],
+    ['step', 43.3], ['step-block', 44.3], ['author', 45.3], ['profile', 46.3],
   ]
   for (const [id, at] of pairs) {
     await setTime(at - 0.01)
@@ -56,8 +56,15 @@ try {
       const b = await page.locator(`${s}[data-id="${id}"]`).boundingBox()
       assert.ok(b.x >= 0 && b.y >= 0 && b.x + b.width <= 1280 && b.y + b.height <= 720, `${id} ${s} outside frame`)
     }
+    // The row pops up in its real tree position: below a visible parent group, in the captured order.
+    const rows = await page.locator('.tree-row').evaluateAll((els) => els.map((e) => ({ id: e.dataset.treeId, top: parseFloat(e.style.top), on: getComputedStyle(e).opacity })))
+    const visible = rows.filter((r) => r.on !== '0')
+    assert.deepEqual(visible.map((r) => r.top), [...visible.map((r) => r.top)].sort((a, b) => a - b), id + ' tree order')
+    const row = await page.locator(`.pair-row[data-id="${id}"]`).getAttribute('data-tree-id')
+    const parent = rows.filter((r) => row.startsWith(r.id + '-')).sort((a, b) => b.id.length - a.id.length)[0]
+    assert.ok(parent && parent.on === '1' && parent.top < rows.find((r) => r.id === row).top, id + ' below its group')
   }
-  for (const t of [0, 10, 33, 52]) {
+  for (const t of [0, 8, 16, 20, 33, 37, 52]) {
     await setTime(t)
     assert.doesNotMatch(await page.evaluate(() => document.body.innerText), /Penpot|Screenshot/i)
   }
@@ -65,7 +72,7 @@ try {
     await setTime(t)
     assert.equal(await opacity('.illustration-tag'), '1', 'Illustration tag at ' + t)
   }
-  for (const [t, title] of [[6, 'Explain your vision'], [16, 'Data model'], [24, 'Tokens'], [31, 'Import your screen'], [50, 'Sync to Drupal']]) {
+  for (const [t, title] of [[6, 'Explain your vision'], [14, 'Import your reference'], [22, 'Data model'], [30, 'Tokens'], [37, 'Design your screen'], [50, 'Sync to Drupal']]) {
     await setTime(t)
     assert.equal(await page.locator('.chapter-title:visible').innerText(), title)
   }
@@ -89,7 +96,7 @@ try {
   }
   ffmpeg.stdin.end()
   assert.equal((await finished)[0], 0, 'Video encoding failed')
-  await setTime(46)
+  await setTime(47)
   await page.screenshot({ path: output + 'poster.png' })
   assert.deepEqual(errors, [])
   console.log('Rendered 1800 frames; 60 seconds; 1920 × 1080; silent.')

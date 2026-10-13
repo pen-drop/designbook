@@ -95,13 +95,17 @@ const shot = computed(() => shots[selected.value])
           Designbook is not another design tool. <strong>Explain your vision:</strong> in an empty
           Designbook you tell your AI agent what you want to build and where the design lives —
           Figma, Stitch or a website URL. The agent writes the product vision.
-          <strong>Data model:</strong> the agent derives the content model from the screen: a recipe
-          with ingredients, steps, an author, a category and a difficulty. <strong>Tokens:</strong> it
-          extracts the design tokens. <strong>Import your screen:</strong> Designbook scans the
-          reference and rebuilds it as a real Storybook screen. Every area is mapped to an entity or a
-          component: header, recipe, ingredient, recipe step, author. <strong>Sync to Drupal:</strong>
-          the result is synced to a Drupal Canvas page (shown as an illustration). The video is an
-          edited explanation, not a recording of elapsed build time.
+          <strong>Import your reference:</strong> the agent captures the Figma design; Designbook
+          scans it and publishes it as a reference in Storybook. <strong>Data model:</strong> the
+          agent derives the content model from the screen: a recipe with ingredients, steps, an
+          author, a category and a difficulty. <strong>Tokens:</strong> it extracts the design
+          tokens. <strong>Design your screen:</strong> the agent rebuilds the recipe screen as a real
+          Storybook screen. Each part appears in the Storybook sidebar where it belongs — entities
+          such as recipe, ingredient, recipe step and author, components such as header, detail
+          page, quantity item, step block and profile card — and is mapped to its area of the
+          screen. <strong>Sync to Drupal:</strong> the result is synced to a Drupal Canvas page
+          (shown as an illustration). The video is an edited explanation, not a recording of elapsed
+          build time.
         </p>
       </details>
     </section>

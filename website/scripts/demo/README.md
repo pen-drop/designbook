@@ -10,12 +10,12 @@ build time.
 | Time | Chapter title | Picture | Chat prompt |
 |---|---|---|---|
 | 0–5 s | — | Logo with "another design tool"; "NOT" drops in front of it | — |
-| 5–15 s | Explain your vision | Empty Vision page, then the real vision. The source word rotates Figma → Stitch → URL and locks on Figma | `I want to migrate my project. The design is in Figma.` |
-| 15–23 s | Data model | Empty Data Model page, then the recipe graph builds node by node | `Build the data model based on the screen.` |
-| 23–30 s | Tokens | Empty Tokens page, then a wipe reveals the real token page | `Build the tokens based on the screen.` |
-| 30–36 s | Import your screen | A scan line passes the Figma reference; five regions light up | `Design the recipe screen and show the result.` |
-| 36–49 s | Import your screen | Sidebar rows and screen areas appear together, with outline and connector | — |
-| 49–56 s | Sync to Drupal | Drupal Canvas page mockup with an `Illustration` tag | `Sync the recipe screen to Drupal.` |
+| 5–13 s | Explain your vision | Empty Vision page, then the real vision. The source word rotates Figma → Stitch → URL and locks on Figma | `I want to migrate my project. The design is in Figma.` |
+| 13–21 s | Import your reference | A scan line passes the Figma reference and five regions light up. The imported reference then opens in Storybook under References | `Capture the recipe reference from Figma.` |
+| 21–29 s | Data model | Empty Data Model page, then the recipe graph builds node by node | `Build the data model based on the screen.` |
+| 29–36 s | Tokens | Empty Tokens page, then a wipe reveals the real token page | `Build the tokens based on the screen.` |
+| 36–49 s | Design your screen | The real Storybook sidebar of the finished workspace: each entry pops up at its tree position (its group expands, rows below shift) while its screen area appears with an outline and connector | `Design the recipe screen and show the result.` |
+| 49–56 s | Sync to Drupal | Drupal Canvas page mockup with an `Illustration` tag on every frame | `Sync the recipe screen to Drupal.` |
 | 56–60 s | — | End card "NOT another design tool." | — |
 
 ## Sources
@@ -23,7 +23,9 @@ build time.
 - `film.html` — deterministic timeline; `window.setTime(t)` is a pure function of `t`.
 - `render.mjs` — asserts the timeline, renders 1800 frames and encodes the MP4 and
   poster into `docs/assets/logo/demo/`.
-- `capture-empty.mjs` — captures the real empty states into `screenshots/`.
+- `capture.mjs` — captures the real empty states and the imported reference from a
+  reference-stage workspace, and the sidebar rows (`screenshots/tree/`, real order in
+  `screenshots/tree.json`) from a finished-screen workspace.
 - `reference-regions.json` — scan highlight boxes in `reference.png` pixels.
 - Recipe captures and the measured row/area pairs are read from
   `docs/media/intro-video/recipe/` (`screenshots/`, `pairs.json`), not copied.
@@ -31,13 +33,17 @@ build time.
 ## Rebuild
 
 Run from the repository root with dependencies installed, a Playwright Chromium
-browser and `ffmpeg` on PATH. The empty states need a reference-stage workspace:
+browser and `ffmpeg` on PATH. The captures need two `drupal-recipe` workspaces:
 
 ```bash
-./scripts/setup-workspace.sh drupal-recipe --into /tmp/designbook-empty
-./scripts/setup-test.sh drupal-recipe 02-vision --into /tmp/designbook-empty
-(cd /tmp/designbook-empty/web/themes/custom/test_integration_drupal && npx storybook-addon-designbook storybook start --force)
-STORYBOOK_URL=http://localhost:<port> node website/scripts/demo/capture-empty.mjs
+./scripts/setup-workspace.sh drupal-recipe --into /tmp/designbook-reference
+./scripts/setup-test.sh drupal-recipe 02-vision --into /tmp/designbook-reference      # empty + reference
+./scripts/setup-workspace.sh drupal-recipe --into /tmp/designbook-final
+./scripts/setup-test.sh drupal-recipe verify-screen --into /tmp/designbook-final      # finished screen
+# in each workspace's web/themes/custom/test_integration_drupal:
+npx storybook-addon-designbook storybook start --force
+STORYBOOK_URL=http://localhost:<reference-port> FINAL_STORYBOOK_URL=http://localhost:<final-port> \
+  node website/scripts/demo/capture.mjs
 
 node website/scripts/demo/render.mjs
 ffprobe -v error -show_entries format=duration:stream=width,height,codec_type -of compact docs/assets/logo/demo/designbook-demo.mp4

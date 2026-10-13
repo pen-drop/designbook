@@ -833,9 +833,15 @@ test('video sources and posters are checked as local assets', () => {
   }
 })
 
-test('landing transcript covers every explainer chapter and prompt', () => {
+test('landing transcript covers every explainer chapter', () => {
   const vue = readFileSync(new URL('../.vitepress/theme/landing/LandingContent.vue', import.meta.url), 'utf8')
-  for (const s of ['Explain your vision', 'Data model', 'Tokens', 'Import your screen', 'Sync to Drupal',
-    'Figma', 'Stitch', 'URL', 'illustration', '60 seconds']) assert.match(vue, new RegExp(s, 'i'), s)
+  const film = readFileSync(new URL('./demo/film.html', import.meta.url), 'utf8')
+  const transcript = vue.match(/<details[^>]*id="film-transcript"[\s\S]*?<\/details>/)[0]
+  const titles = [...film.matchAll(/<h2 class="chapter-title"[^>]*>([^<]+)<\/h2>/g)].map((m) => m[1])
+  assert.equal(titles.length, 6)
+  for (const s of [...titles, 'Figma', 'Stitch', 'URL', 'illustration', 'not another design tool']) {
+    assert.match(transcript, new RegExp(s, 'i'), s)
+  }
+  assert.match(vue, /60 seconds/)
   assert.doesNotMatch(vue, /22 seconds|22-second/)
 })
