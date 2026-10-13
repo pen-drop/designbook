@@ -5,7 +5,7 @@ import postcssConfig from '../postcss.config.mjs'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import { dirname } from 'node:path'
-import { AREAS, SIDEBAR, SRC_EXCLUDE } from './manual.mjs'
+import { AREAS, LANDINGS, SIDEBAR, SRC_EXCLUDE } from './manual.mjs'
 
 const require = createRequire(import.meta.url)
 const vitepressRequire = createRequire(require.resolve('vitepress/package.json'))
@@ -14,10 +14,14 @@ const vueRoot = dirname(vitepressRequire.resolve('vue/package.json'))
 const BASE = '/designbook/'
 
 type Area = { label: string; link: string; icon: string }
+type Landing = { id: string; label: string; link: string; status: string; integration: string }
 
 type DocsThemeConfig = DefaultTheme.Config & {
   sidebarAreas: Area[]
+  landings: Landing[]
 }
+
+const readyLandings = LANDINGS.filter((entry: Landing) => entry.status === 'ready')
 
 export default withMermaid(
   defineConfigWithTheme<DocsThemeConfig>({
@@ -54,9 +58,13 @@ export default withMermaid(
       },
       siteTitle: 'Designbook',
       sidebarAreas: AREAS as Area[],
+      landings: LANDINGS as Landing[],
       outline: { level: [2, 3], label: 'On this page' },
       docFooter: { prev: 'Previous', next: 'Next' },
-      nav: AREAS.map((area) => ({ text: area.label, link: area.link })),
+      nav: [...readyLandings, ...AREAS].map((entry: { label: string; link: string }) => ({
+        text: entry.label,
+        link: entry.link,
+      })),
       sidebar: SIDEBAR,
       search: {
         provider: 'local',

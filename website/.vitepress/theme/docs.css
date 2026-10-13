@@ -1,5 +1,5 @@
 /* Sober documentation chrome: teal brand, coral accent, dark code in both modes. */
-html {
+html:root {
   --vp-c-brand-1: #12454e;
   --vp-c-brand-2: #0e3840;
   --vp-c-brand-3: #ee8b6b;
@@ -9,7 +9,7 @@ html {
   --vp-code-tab-bg: #1c1b22;
 }
 
-html.dark {
+html:root.dark {
   --vp-c-brand-1: #7eb8c0;
   --vp-c-brand-2: #a9d4d9;
   --vp-c-brand-3: #ee8b6b;
@@ -84,4 +84,326 @@ html.dark {
 .manual-card strong {
   display: block;
   margin-bottom: 4px;
+}
+
+.distro-links {
+  max-width: 1152px;
+  margin: 0 auto;
+  padding: 8px 24px 40px;
+}
+
+.distro-links__title {
+  margin: 0 0 12px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--vp-c-text-1);
+}
+
+.distro-links__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.distro-links__link {
+  display: block;
+  padding: 16px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  color: inherit;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.distro-links__link:hover,
+.distro-links__link:focus-visible {
+  border-color: var(--vp-c-brand-1);
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 1px;
+}
+
+/* Shared product story for the neutral and integration landings. */
+.landing-content {
+  margin: 0 auto;
+  max-width: 1200px;
+  padding: 24px 32px 64px;
+}
+.landing-section-heading {
+  max-width: 740px;
+  margin-bottom: 28px;
+}
+.landing-eyebrow {
+  color: var(--vp-c-brand-1);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin: 0 0 12px;
+}
+.landing-section-heading h2,
+.product-cta h2 {
+  font-size: clamp(28px, 4vw, 44px);
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+  font-weight: 650;
+  margin: 0 0 16px;
+}
+.landing-section-heading > p:last-child {
+  color: var(--vp-c-text-2);
+  font-size: 18px;
+  line-height: 1.6;
+}
+.product-film video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16/9;
+  border-radius: 16px;
+  background: #f5f3ee;
+  border: 1px solid var(--vp-c-divider);
+  box-shadow: 0 20px 60px #163c4210;
+}
+.film-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--vp-c-text-2);
+  margin: 14px 0;
+}
+.film-meta a,
+.film-transcript summary {
+  color: var(--vp-c-brand-1);
+}
+.film-meta a:hover {
+  text-decoration: underline;
+}
+.film-transcript {
+  font-size: 14px;
+  max-width: 800px;
+}
+.film-transcript summary {
+  cursor: pointer;
+  width: fit-content;
+}
+.film-transcript p {
+  color: var(--vp-c-text-2);
+  margin: 12px 0;
+  line-height: 1.7;
+}
+.product-gallery,
+.product-process {
+  margin-top: 104px;
+}
+.gallery-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.gallery-choices button {
+  padding: 12px 15px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  font-size: 14px;
+  transition: background 0.15s;
+}
+.gallery-choices button span {
+  margin-right: 9px;
+  opacity: 0.6;
+  font-size: 11px;
+}
+.gallery-choices button[aria-pressed="true"] {
+  background: var(--vp-c-brand-1);
+  color: var(--vp-c-bg);
+  border-color: var(--vp-c-brand-1);
+}
+.gallery-choices button:hover {
+  border-color: var(--vp-c-brand-1);
+}
+.gallery-choices button:focus-visible,
+.gallery-figure a:focus-visible,
+.film-meta a:focus-visible,
+.film-transcript summary:focus-visible {
+  outline: 3px solid var(--vp-c-brand-1);
+  outline-offset: 4px;
+}
+.gallery-figure {
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 14px;
+  background: var(--vp-c-bg-soft);
+}
+.gallery-figure > a {
+  display: block;
+}
+.gallery-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 8/5;
+  object-fit: contain;
+  background: #edf1f4;
+}
+.gallery-figure figcaption {
+  padding: 28px 32px;
+}
+.gallery-figure h3 {
+  font-size: 24px;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+.gallery-figure p {
+  max-width: 760px;
+  color: var(--vp-c-text-2);
+  line-height: 1.7;
+}
+.gallery-figure figcaption > span {
+  display: block;
+  font-size: 12px;
+  margin-top: 16px;
+  color: var(--vp-c-text-2);
+}
+.landing-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: landing-step;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+}
+.landing-steps__item {
+  counter-increment: landing-step;
+  position: relative;
+  padding: 56px 0 0;
+  border: 0;
+  border-radius: 0;
+  border-top: 1px solid var(--vp-c-divider);
+}
+.landing-steps__item::before {
+  content: counter(landing-step);
+  position: absolute;
+  color: var(--vp-c-brand-1);
+  font-weight: 700;
+  left: 0;
+  top: 18px;
+  background: transparent;
+  justify-content: flex-start;
+  font-size: 16px;
+}
+.landing-steps__title {
+  font-weight: 600;
+  font-size: 20px;
+  margin-bottom: 12px;
+}
+.landing-steps__text {
+  color: var(--vp-c-text-2);
+  line-height: 1.7;
+}
+.product-cta {
+  margin-top: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 40px;
+  border-radius: 16px;
+  background: var(--vp-c-bg-soft);
+}
+.product-cta h2 {
+  font-size: 30px;
+  margin: 0;
+}
+.product-cta .landing-cta__link {
+  flex-shrink: 0;
+}
+#demo {
+  scroll-margin-top: 90px;
+}
+@media (max-width: 640px) {
+  .landing-content {
+    padding: 16px 24px 40px;
+  }
+  .product-gallery,
+  .product-process {
+    margin-top: 64px;
+  }
+  .landing-steps {
+    grid-template-columns: 1fr;
+  }
+  .gallery-choices {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .gallery-choices button {
+    text-align: left;
+    padding: 11px 9px;
+    font-size: 12px;
+  }
+  .gallery-figure figcaption {
+    padding: 20px;
+  }
+  .gallery-figure h3 {
+    font-size: 21px;
+  }
+  .product-cta {
+    margin-top: 64px;
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 28px;
+  }
+  .product-film video {
+    border-radius: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gallery-choices button {
+    transition: none;
+  }
+}
+.VPHomeHero .image-bg {
+  display: none;
+}
+.VPHomeHero .image-src {
+  max-width: 540px;
+  max-height: 360px;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 10px;
+  box-shadow: 0 24px 60px #163c4220;
+}
+@media (min-width: 960px) {
+  .VPHomeHero .image-container {
+    width: 520px;
+  }
+}
+@media (max-width: 639px) {
+  .VPHomeHero .image-src {
+    max-width: 310px;
+    max-height: 220px;
+  }
+}
+
+.landing-cta__link {
+  display: inline-block;
+  padding: 12px 20px;
+  border-radius: 8px;
+  background: var(--vp-c-brand-1);
+  color: var(--vp-c-bg);
+  font-weight: 600;
+  text-decoration: none;
+}
+.landing-cta__link:hover,
+.landing-cta__link:focus-visible {
+  background: var(--vp-c-brand-2);
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 2px;
 }
