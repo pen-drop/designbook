@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, mkdirSync, writeFileSync, cpSync, rmSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, writeFileSync, cpSync, rmSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -831,4 +831,11 @@ test('video sources and posters are checked as local assets', () => {
   } finally {
     fixture.cleanup()
   }
+})
+
+test('landing transcript covers every explainer chapter and prompt', () => {
+  const vue = readFileSync(new URL('../.vitepress/theme/landing/LandingContent.vue', import.meta.url), 'utf8')
+  for (const s of ['Explain your vision', 'Data model', 'Tokens', 'Import your screen', 'Sync to Drupal',
+    'Figma', 'Stitch', 'URL', 'illustration', '60 seconds']) assert.match(vue, new RegExp(s, 'i'), s)
+  assert.doesNotMatch(vue, /22 seconds|22-second/)
 })

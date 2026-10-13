@@ -73,24 +73,35 @@ const shot = computed(() => shots[selected.value])
         playsinline
         preload="none"
         :poster="withBase(landing.demo.poster ?? '')"
-        aria-label="Designbook workflow in 22 seconds"
+        aria-label="Designbook explained in 60 seconds"
         aria-describedby="film-transcript"
       >
         <source :src="withBase(landing.demo.video)" type="video/mp4" />
         Your browser does not support this video.
       </video>
       <div v-if="landing.demo.video" class="film-meta">
-        <span>22 seconds · real project output · no sound needed</span>
+        <span>60 seconds · silent · real recipe project; final Drupal page illustrated</span>
+        <span>
+          Reference design:
+          <a href="https://www.figma.com/community/file/1331351586208563684/free-cooking-recipes-blog-template">[FREE] Cooking &amp; Recipes Blog Template</a>
+          by Ilia Bortnikov,
+          <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>
+        </span>
         <a :href="withBase(landing.demo.video)" download>Download video ↗</a>
       </div>
       <details v-if="landing.demo.video" id="film-transcript" class="film-transcript">
         <summary>Read the video walkthrough</summary>
         <p>
-          Designbook is not a design tool. Start with an existing design. The design’s typography, content and actions are mapped to
-          tokens, a data model and SDC components. Your AI agent follows Designbook workflows to
-          produce the implementation. Inspect the resulting Canvas page in Designbook, inside
-          Storybook. This edited sequence summarises the workflow; it does not show elapsed build
-          time.
+          Designbook is not another design tool. <strong>Explain your vision:</strong> in an empty
+          Designbook you tell your AI agent what you want to build and where the design lives —
+          Figma, Stitch or a website URL. The agent writes the product vision.
+          <strong>Data model:</strong> the agent derives the content model from the screen: a recipe
+          with ingredients, steps, an author, a category and a difficulty. <strong>Tokens:</strong> it
+          extracts the design tokens. <strong>Import your screen:</strong> Designbook scans the
+          reference and rebuilds it as a real Storybook screen. Every area is mapped to an entity or a
+          component: header, recipe, ingredient, recipe step, author. <strong>Sync to Drupal:</strong>
+          the result is synced to a Drupal Canvas page (shown as an illustration). The video is an
+          edited explanation, not a recording of elapsed build time.
         </p>
       </details>
     </section>
