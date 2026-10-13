@@ -39,6 +39,10 @@ try {
   const setTime = (t) => page.evaluate((t) => window.setTime(t), t)
   const opacity = (selector) => page.locator(selector).evaluate((e) => getComputedStyle(e).opacity)
 
+  const reference = await page.locator('#reference').evaluate((i) => [i.naturalWidth, i.naturalHeight])
+  for (const { id, box } of JSON.parse(await readFile(new URL('website/scripts/demo/reference-regions.json', repo), 'utf8'))) {
+    assert.ok(box.x >= 0 && box.y >= 0 && box.x + box.width <= reference[0] && box.y + box.height <= reference[1], id + ' outside reference')
+  }
   const pairs = [
     ['header', 36.6], ['recipe', 37.7], ['detail', 38.8], ['ingredient', 39.9], ['quantity', 41.0],
     ['step', 42.1], ['step-block', 43.2], ['author', 44.3], ['profile', 45.4],
@@ -57,7 +61,7 @@ try {
     await setTime(t)
     assert.doesNotMatch(await page.evaluate(() => document.body.innerText), /Penpot|Screenshot/i)
   }
-  for (const t of [49.5, 52, 55.9]) {
+  for (const t of [48.85, 49.5, 52, 55.9]) {
     await setTime(t)
     assert.equal(await opacity('.illustration-tag'), '1', 'Illustration tag at ' + t)
   }

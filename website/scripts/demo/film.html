@@ -327,7 +327,8 @@ window.setTime = (input) => {
   $('#drupal-page').style.opacity = ramp(t, 51.1, 51.9)
   $('#drupal-page').style.transform = `translateY(${-560 * ramp(t, 52.2, 55.6)}px)`
   for (const [i, el] of [...$('#drupal-tree').children].entries()) el.style.opacity = ramp(t, 51.3 + i * 0.25, 51.6 + i * 0.25)
-  $('.illustration-tag').style.opacity = Math.min(ramp(t, 49, 49.3), 1 - ramp(t, 55.95, 56.25))
+  // The mockup is never visible without its tag.
+  $('.illustration-tag').style.opacity = span(t, 49, 56) > 0 ? 1 : 0
 
   setChat(t)
 }
