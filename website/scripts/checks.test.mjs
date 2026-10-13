@@ -839,7 +839,7 @@ test('landing transcript covers every explainer chapter', () => {
   const transcript = vue.match(/<details[^>]*id="film-transcript"[\s\S]*?<\/details>/)[0].replace(/\s+/g, ' ')
   const titles = [...film.matchAll(/<h2 class="chapter-title"[^>]*>([^<]+)<\/h2>/g)].map((m) => m[1])
   assert.equal(titles.length, 6)
-  for (const s of [...titles, 'Designbook extracts your design', 'Figma', 'extract the reference', 'illustration', 'not another design tool']) {
+  for (const s of [...titles, 'Designbook extracts your design', 'Figma', 'extract the reference', 'view mode', 'not another design tool']) {
     assert.match(transcript, new RegExp(s, 'i'), s)
   }
   assert.match(vue, /60 seconds/)

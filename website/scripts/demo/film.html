@@ -38,30 +38,23 @@ html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#f5f3ee;
 .scan-hit{position:absolute;border:3px solid #2fae86;border-radius:8px;background:#2fae8622}
 /* Structure */
 .sidebar{position:absolute;left:40px;top:104px;width:300px;height:600px;border-radius:10px;background:#f6f9fc;border:1px solid #d3ddda}
-.tree-row{position:absolute;left:52px;width:236px;height:24px;border-radius:5px;opacity:0;transition:none}
-.tree-row img{display:block;width:236px;height:24px}
+.tree-row{position:absolute;left:52px;width:216px;height:22px;border-radius:5px;opacity:0;transition:none}
+.tree-row img{display:block;width:216px;height:22px}
 .tree-row.active.entity{box-shadow:0 0 0 2px #2fae86;background:#d9f5ea}
 .tree-row.active.component{box-shadow:0 0 0 2px #e98557;background:#ffeadf}
 .stage{position:absolute;left:360px;top:104px;width:880px;height:600px;overflow:hidden;border-radius:10px;background:#f0ebe1;border:1px solid #d3ddda}
 .stage img.full{position:absolute;left:0;top:0;width:880px}
 .stage img.ghost{opacity:.1;filter:grayscale(1)}
 .area{position:absolute;background-image:url(../../../docs/media/intro-video/recipe/screenshots/recipe-full.png);background-size:880px auto;background-repeat:no-repeat}
+.targets{position:absolute;left:360px;top:104px;width:880px;height:600px;overflow:hidden;pointer-events:none}
 .target{position:absolute;border:4px solid #2fae86;border-radius:9px;box-shadow:0 0 0 4px #fff9,0 0 26px #2fae8655;opacity:0}
 .target.component{border-color:#e98557;box-shadow:0 0 0 4px #fff9,0 0 26px #e9855766}
 .target span{position:absolute;left:-4px;top:-34px;background:#163c42;color:#fff;font:700 17px/28px Arial,sans-serif;padding:0 10px;border-radius:5px;white-space:nowrap}
 .target.below span{top:auto;bottom:-34px}
+.target.component span{top:auto;bottom:-34px}
+.target.right span{left:auto;right:-4px}
 .links{position:absolute;inset:0;width:1280px;height:720px;overflow:visible;pointer-events:none}
 .links path{fill:none;stroke-width:3;stroke-dasharray:7 5}
-/* Drupal illustration */
-.drupal{position:absolute;left:40px;top:104px;width:1200px;height:600px;border-radius:10px;overflow:hidden;background:#fff;border:1px solid #c9d2d0;box-shadow:0 18px 50px #173e421f}
-.drupal .bar{height:44px;background:#1f2329;color:#e9edf0;display:flex;align-items:center;gap:14px;padding:0 18px;font-size:15px}
-.drupal .bar b{font-size:16px}
-.drupal .bar span{color:#9aa6ad}
-.drupal aside{position:absolute;left:0;top:44px;bottom:0;width:230px;background:#f3f4f6;border-right:1px solid #dde1e4;padding:16px 14px}
-.drupal aside div{height:30px;margin-bottom:8px;border-radius:5px;background:#fff;border:1px solid #dde1e4;padding:0 10px;font-size:14px;line-height:28px;color:#3c4650}
-.drupal .canvas{position:absolute;left:230px;top:44px;right:0;bottom:0;overflow:hidden;background:#e9ecef}
-.drupal .canvas img{position:absolute;left:25px;top:20px;width:920px;box-shadow:0 6px 24px #0002}
-.illustration-tag{position:absolute;right:56px;top:116px;z-index:7;padding:6px 12px;border-radius:6px;background:#e2664c;color:#fff;font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:0}
 </style>
 
 <section class="scene" id="intro">
@@ -110,16 +103,10 @@ html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#f5f3ee;
     <img class="full ghost" src="../../../docs/media/intro-video/recipe/screenshots/recipe-full.png" alt="">
     <img class="full" id="recipe-full" src="../../../docs/media/intro-video/recipe/screenshots/recipe-full.png" alt="">
   </div>
+  <div class="targets" id="targets"></div>
   <svg class="links"><path id="connector"/></svg>
 </section>
 
-<section class="scene" id="drupal">
-  <div class="drupal">
-    <div class="bar"><b>Drupal Canvas</b><span>Lemon Garlic Roasted Chicken</span></div>
-    <aside id="drupal-tree"></aside>
-    <div class="canvas"><img id="drupal-page" src="../../../docs/media/intro-video/recipe/screenshots/recipe-full.png" alt=""></div>
-  </div>
-</section>
 
 <section class="scene" id="end">
   <div class="brand" style="top:200px"><img src="../../../docs/assets/logo/logo.svg" alt="Designbook"></div>
@@ -133,7 +120,6 @@ html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#f5f3ee;
 <p class="chapter-sub" data-chapter="reference">Designbook extracts your design.</p>
 <h2 class="chapter-title" data-chapter="screen">Design your screen</h2>
 <h2 class="chapter-title" data-chapter="drupal">Sync to Drupal</h2>
-<div class="illustration-tag">Illustration</div>
 <div class="chat" id="chat">
   <header><i></i>AI agent</header>
   <div class="log" id="log"></div>
@@ -149,7 +135,7 @@ const ramp = (t, a, b) => ease((t - a) / (b - a))
 const span = (t, a, b, f = 0.2) => Math.min(ramp(t, a - f, a + f), 1 - ramp(t, b - f, b + f))
 const show = (el, v) => { el.style.opacity = v; el.style.visibility = v > 0 ? 'visible' : 'hidden' }
 
-const T = { intro: [-1, 4], vision: [4, 12.5], 'reference-scene': [12.5, 19.5], model: [19.5, 28], tokens: [28, 35.5], structure: [35.5, 52], drupal: [52, 57], end: [57, 99] }
+const T = { intro: [-1, 4], vision: [4, 12.5], 'reference-scene': [12.5, 19.5], model: [19.5, 28], tokens: [28, 35.5], structure: [35.5, 57], end: [57, 99] }
 const titles = { vision: [4, 12.5], reference: [12.5, 19.5], model: [19.5, 28], tokens: [28, 35.5], screen: [35.5, 52], drupal: [52, 57] }
 // Each chapter's view is on screen before its chat starts. A message is typed by 👤 or posted by 🤖;
 // `working` shows the agent's dots after the last message until the chat closes.
@@ -180,12 +166,12 @@ const chats = [
 // The data model graph builds node by node; every edge appears with its target node.
 const GRAPH = { k: 960 / 1440, order: ['recipe', 'ingredient', 'recipe_step', 'author', 'recipe_category', 'difficulty'], from: 23.9, step: 0.5 }
 // Entities first, then components; one calm camera pass each.
-const ORDER = [['recipe', 40], ['ingredient', 41.3], ['step', 42.6], ['author', 43.9], ['header', 45.6], ['detail', 46.8], ['quantity', 48], ['step-block', 49.2], ['profile', 50.4]]
+const ORDER = [['recipe', 40], ['ingredient', 41.3], ['step', 42.6], ['author', 43.9], ['header', 45.8], ['detail', 47], ['quantity', 48.2], ['step-block', 49.4], ['profile', 50.6]]
 // Each pair's real row in the finished Storybook sidebar (screenshots/tree.json keeps the real order).
-const TREE_ROW = { header: 'test-integration-drupal-shell-header', recipe: 'entities-node-recipe', detail: 'test-integration-drupal-layout-detail-page',
-  ingredient: 'entities-paragraph-ingredient', quantity: 'test-integration-drupal-data-display-quantity-item', step: 'entities-paragraph-recipe-step',
-  'step-block': 'test-integration-drupal-data-display-step-block', author: 'entities-taxonomy-term-author', profile: 'test-integration-drupal-data-display-profile-card' }
-const LAST = 51.1 // the last outline holds until the camera returns to the top
+const TREE_ROW = { header: 'test-integration-drupal-shell-header', recipe: 'entities-node-recipe--full', detail: 'test-integration-drupal-layout-detail-page',
+  ingredient: 'entities-paragraph-ingredient--default', quantity: 'test-integration-drupal-data-display-quantity-item', step: 'entities-paragraph-recipe-step--default',
+  'step-block': 'test-integration-drupal-data-display-step-block', author: 'entities-taxonomy-term-author--default', profile: 'test-integration-drupal-data-display-profile-card' }
+const LAST = 51.3 // the last outline holds until the camera returns to the top
 const K = 880 / 1140 // recipe-full.png → stage
 const SCAN = { from: 13, to: 16.6, depth: 5600, k: 960 / 1440 }
 let pairs = [], regions = [], tree = [], graph = null
@@ -241,12 +227,12 @@ window.ready = Promise.all([
     const area = document.createElement('div'); area.className = 'area'; area.dataset.id = pair.id
     area.style.cssText = `left:${pair.box.x * K}px;width:${pair.box.width * K}px;height:${pair.box.height * K}px;background-position:${-pair.box.x * K}px ${-pair.box.y * K}px`
     $('#stage').append(area)
-    const target = document.createElement('div'); target.className = `target ${pair.kind}${pair.id === 'header' ? ' below' : ''}`; target.dataset.id = pair.id
-    const label = document.createElement('span'); label.textContent = `${pair.kind === 'entity' ? 'Entity' : 'Component'} · ${pair.name}`
-    target.append(label); $('#structure').append(target)
-  }
-  for (const name of ['Header', 'Detail page', 'Quantity item', 'Step block', 'Profile card']) {
-    const el = document.createElement('div'); el.textContent = name; $('#drupal-tree').append(el)
+    const target = document.createElement('div'); target.dataset.id = pair.id
+    target.className = `target ${pair.kind}${pair.id === 'header' ? ' below' : ''}${pair.box.x * K > 440 ? ' right' : ''}`
+    // An entity is shown with the view mode its mapping renders (node.recipe.full.jsonata → full).
+    const label = document.createElement('span')
+    label.textContent = pair.kind === 'entity' ? `Entity · ${pair.name} · ${pair.mapping.split('.')[2]}` : `Component · ${pair.name}`
+    target.append(label); $('#targets').append(target)
   }
   await Promise.all([...document.images].map((i) => i.decode()))
   window.setTime(0)
@@ -335,44 +321,40 @@ window.setTime = (input) => {
   let active = null
   for (const [i, pair] of pairs.entries()) {
     const on = ramp(t, pair.at, pair.at + 0.18)
-    // The outline leaves before the camera moves to the next pair, so it never points out of frame.
+    // Frames stay until the end of the chapter; the connector only follows the newest entry
+    // and leaves before the camera moves on.
     const end = i + 1 < pairs.length ? pairs[i + 1].at : LAST + 0.6
+    const kept = Math.min(on, 1 - ramp(t, LAST - 0.1, LAST + 0.2))
     const current = Math.min(on, 1 - ramp(t, end - 0.72, end - 0.58))
     if (current > 0) active = { pair, current }
     const area = $(`.area[data-id="${pair.id}"]`)
     area.style.top = `${(pair.box.y - y) * K}px`
     area.style.opacity = on
     const target = $(`.target[data-id="${pair.id}"]`)
-    target.style.cssText = `left:${360 + pair.box.x * K - 6}px;top:${104 + (pair.box.y - y) * K - 6}px;width:${pair.box.width * K + 12}px;height:${pair.box.height * K + 12}px;opacity:${current}`
+    const pad = pair.kind === 'component' && pair.id !== 'header' ? -4 : 6 // components sit inside their entity frame
+    target.style.cssText = `left:${pair.box.x * K - pad}px;top:${(pair.box.y - y) * K - pad}px;width:${pair.box.width * K + 2 * pad}px;height:${pair.box.height * K + 2 * pad}px;opacity:${kept}`
   }
   // Sidebar tree: a row grows into its real position; rows below it shift down.
-  let cursor = 116
+  let cursor = 112
   for (const [i, row] of tree.entries()) {
     const grow = row.at < 0 ? 1 : ramp(t, row.at, row.at + 0.18)
     const fade = row.at < 0 ? 1 : ramp(t, row.at, row.at + 0.18)
-    if (row.kind === 'root' && i > 0) cursor += 10 * grow
+    if (row.kind === 'root' && i > 0) cursor += 8 * grow
     row.el.style.top = `${cursor}px`
     row.el.style.opacity = fade
     row.el.classList.toggle('active', !!row.pair && active?.pair === row.pair)
     row.y = cursor
-    cursor += 24 * grow
+    cursor += 22 * grow
   }
   const connector = $('#connector')
   if (active) {
     const { pair, current } = active
-    const rowRight = 288
-    const y1 = tree.find((row) => row.pair === pair).y + 12, x2 = 360 + pair.box.x * K - 6, y2 = 104 + (pair.box.y - y + pair.box.height / 2) * K
+    const rowRight = 268
+    const y1 = tree.find((row) => row.pair === pair).y + 11, x2 = 360 + pair.box.x * K - 6, y2 = 104 + (pair.box.y - y + pair.box.height / 2) * K
     connector.setAttribute('d', `M ${rowRight} ${y1} C ${rowRight + 60} ${y1}, ${x2 - 60} ${y2}, ${x2} ${y2}`)
     connector.style.stroke = pair.kind === 'entity' ? '#2fae86' : '#e98557'
     connector.style.opacity = current
   } else connector.style.opacity = 0
-
-  // Drupal illustration: content arrives after the prompt is sent, then scrolls slowly.
-  $('#drupal-page').style.opacity = ramp(t, 53.8, 54.5)
-  $('#drupal-page').style.transform = `translateY(${-480 * ramp(t, 54.6, 56.7)}px)`
-  for (const [i, el] of [...$('#drupal-tree').children].entries()) el.style.opacity = ramp(t, 53.9 + i * 0.2, 54.2 + i * 0.2)
-  // The mockup is never visible without its tag.
-  $('.illustration-tag').style.opacity = span(t, 52, 57) > 0 ? 1 : 0
 
   setChat(t)
 }

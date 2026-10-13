@@ -80,7 +80,7 @@ const shot = computed(() => shots[selected.value])
         Your browser does not support this video.
       </video>
       <div v-if="landing.demo.video" class="film-meta">
-        <span>60 seconds · silent · real recipe project; final Drupal page illustrated</span>
+        <span>60 seconds · silent · real recipe project</span>
         <span>
           Reference design:
           <a href="https://www.figma.com/community/file/1331351586208563684/free-cooking-recipes-blog-template">[FREE] Cooking &amp; Recipes Blog Template</a>
@@ -102,11 +102,12 @@ const shot = computed(() => shots[selected.value])
           difficulty. <strong>Tokens:</strong> it previews the colors, fonts, sizes and spacing it
           found in the reference, and creates the design tokens after your “Yes”.
           <strong>Design your screen:</strong> it lists the entities and components it would build,
-          and after your “Yes” it rebuilds the recipe screen in Storybook. The entities appear first — recipe, ingredient, recipe step
-          and author — then the components: header, detail page, quantity item, step block and
-          profile card. Each one appears where it belongs in the Storybook sidebar and is mapped to
-          its area of the screen. <strong>Sync to Drupal:</strong> the result is synced to a Drupal
-          Canvas page (shown as an illustration). The video is an edited explanation, not a
+          and after your “Yes” it rebuilds the recipe screen in Storybook. First the entities appear
+          with their view mode — recipe (full), ingredient, recipe step and author (default) — then
+          the components inside them: detail page, quantity item, step block and profile card, plus
+          the header of the page shell. Each one appears where it belongs in the Storybook sidebar
+          and is mapped to its area of the screen. <strong>Sync to Drupal:</strong> finally you ask
+          the agent to sync the recipe screen to Drupal. The video is an edited explanation, not a
           recording of elapsed build time.
         </p>
       </details>

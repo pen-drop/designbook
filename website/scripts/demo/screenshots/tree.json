@@ -32,6 +32,10 @@
     "kind": "component"
   },
   {
+    "id": "entities-node-recipe--full",
+    "kind": "story"
+  },
+  {
     "id": "entities-paragraph",
     "kind": "group"
   },
@@ -40,8 +44,16 @@
     "kind": "component"
   },
   {
+    "id": "entities-paragraph-ingredient--default",
+    "kind": "story"
+  },
+  {
     "id": "entities-paragraph-recipe-step",
     "kind": "component"
+  },
+  {
+    "id": "entities-paragraph-recipe-step--default",
+    "kind": "story"
   },
   {
     "id": "entities-taxonomy-term",
@@ -50,6 +62,10 @@
   {
     "id": "entities-taxonomy-term-author",
     "kind": "component"
+  },
+  {
+    "id": "entities-taxonomy-term-author--default",
+    "kind": "story"
   },
   {
     "id": "test-integration-drupal",

@@ -46,7 +46,7 @@ try {
   const pairs = [
     // entities first, then components
     ['recipe', 40], ['ingredient', 41.3], ['step', 42.6], ['author', 43.9],
-    ['header', 45.6], ['detail', 46.8], ['quantity', 48], ['step-block', 49.2], ['profile', 50.4],
+    ['header', 45.8], ['detail', 47], ['quantity', 48.2], ['step-block', 49.4], ['profile', 50.6],
   ]
   for (const [id, at] of pairs) {
     await setTime(at - 0.01)
@@ -69,9 +69,16 @@ try {
     await setTime(t)
     assert.doesNotMatch(await page.evaluate(() => document.body.innerText), /Penpot|Screenshot/i)
   }
-  for (const t of [51.85, 52.5, 55, 56.9]) {
+  // Sync to Drupal shows no Drupal screen; entities keep their frames while the components appear;
+  // each entity row is its real view-mode story.
+  for (const t of [52.5, 55]) {
     await setTime(t)
-    assert.equal(await opacity('.illustration-tag'), '1', 'Illustration tag at ' + t)
+    assert.doesNotMatch(await page.evaluate(() => document.body.innerText), /Drupal Canvas|Illustration/i)
+  }
+  await setTime(49)
+  for (const id of ['recipe', 'ingredient', 'step', 'author']) assert.equal(await opacity(`.target[data-id="${id}"]`), '1', id + ' frame kept')
+  for (const [id, mode] of [['recipe', 'full'], ['ingredient', 'default'], ['step', 'default'], ['author', 'default']]) {
+    assert.match(await page.locator(`.pair-row[data-id="${id}"]`).getAttribute('data-tree-id'), new RegExp(`--${mode}$`), id + ' view mode row')
   }
   for (const [t, title] of [[5, 'Explain your vision'], [13.5, 'Scan your design'], [21, 'Data model'], [29, 'Tokens'], [37, 'Design your screen'], [53, 'Sync to Drupal']]) {
     await setTime(t)

@@ -22,8 +22,10 @@ await mkdir(new URL('tree/', out), { recursive: true })
 // Sidebar rows of the finished screen: every mapped entry with its section header and group.
 const TREE = [
   'designbook', 'designbook-foundation--foundation', 'designbook-design-system', 'designbook-sections', 'designbook-references',
-  'entities', 'entities-node', 'entities-node-recipe', 'entities-paragraph', 'entities-paragraph-ingredient',
-  'entities-paragraph-recipe-step', 'entities-taxonomy-term', 'entities-taxonomy-term-author',
+  'entities', 'entities-node', 'entities-node-recipe', 'entities-node-recipe--full', 'entities-paragraph',
+  'entities-paragraph-ingredient', 'entities-paragraph-ingredient--default', 'entities-paragraph-recipe-step',
+  'entities-paragraph-recipe-step--default', 'entities-taxonomy-term', 'entities-taxonomy-term-author',
+  'entities-taxonomy-term-author--default',
   'test-integration-drupal', 'test-integration-drupal-data-display', 'test-integration-drupal-data-display-profile-card',
   'test-integration-drupal-data-display-quantity-item', 'test-integration-drupal-data-display-step-block',
   'test-integration-drupal-layout', 'test-integration-drupal-layout-detail-page', 'test-integration-drupal-shell',
@@ -116,7 +118,10 @@ try {
     // A group is expanded when its first captured child row is rendered.
     for (const [group, child] of [['entities-node', 'entities-node-recipe'], ['entities-paragraph', 'entities-paragraph-ingredient'],
       ['entities-taxonomy-term', 'entities-taxonomy-term-author'], ['test-integration-drupal-data-display', 'test-integration-drupal-data-display-profile-card'],
-      ['test-integration-drupal-layout', 'test-integration-drupal-layout-detail-page'], ['test-integration-drupal-shell', 'test-integration-drupal-shell-header']]) {
+      ['test-integration-drupal-layout', 'test-integration-drupal-layout-detail-page'], ['test-integration-drupal-shell', 'test-integration-drupal-shell-header'],
+    // each entity's view mode story
+    ['entities-node-recipe', 'entities-node-recipe--full'], ['entities-paragraph-ingredient', 'entities-paragraph-ingredient--default'],
+    ['entities-paragraph-recipe-step', 'entities-paragraph-recipe-step--default'], ['entities-taxonomy-term-author', 'entities-taxonomy-term-author--default']]) {
       if (!(await tree.locator(`[data-item-id="${child}"]`).count())) await tree.locator(`[data-item-id="${group}"]`).click()
       await tree.locator(`[data-item-id="${child}"]`).waitFor()
     }

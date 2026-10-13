@@ -2,9 +2,8 @@
 
 The landing page film is a silent, 60-second English explainer: 1920 × 1080, 30 fps,
 H.264. It follows the recipe project from an empty Designbook to a mapped Storybook
-screen. All Storybook pictures are real captures from the `drupal-recipe` fixture.
-The final Drupal Canvas page is an **illustration** and carries a visible
-`Illustration` tag. The film is an edited explanation, not a recording of elapsed
+screen and ends with the request to sync it to Drupal; no Drupal screen is shown. All Storybook
+pictures are real captures from the `drupal-recipe` fixture. The film is an edited explanation, not a recording of elapsed
 build time.
 
 The approved storyline, scene by scene, is in [STORYLINE.md](STORYLINE.md).
@@ -62,4 +61,3 @@ pnpm --filter website build
   The community page states: "Licensed under CC BY 4.0"
   ([licence](https://creativecommons.org/licenses/by/4.0/)), verified 2026-10-13.
   CC BY 4.0 requires attribution; the landing page credits the template below the film.
-- The Drupal Canvas shot is an illustration, not a capture of a running Drupal site.
