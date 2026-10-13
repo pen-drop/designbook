@@ -7,16 +7,7 @@ The final Drupal Canvas page is an **illustration** and carries a visible
 `Illustration` tag. The film is an edited explanation, not a recording of elapsed
 build time.
 
-| Time | Chapter title | Picture | Chat prompt |
-|---|---|---|---|
-| 0–5 s | — | Logo with "another design tool"; "NOT" drops in front of it | — |
-| 5–13 s | Explain your vision | Empty Vision page, then the real vision. The source word rotates Figma → Stitch → URL and locks on Figma | `I want to migrate my project. The design is in Figma.` |
-| 13–21 s | Import your reference | A scan line passes the Figma reference and five regions light up. The imported reference then opens in Storybook under References | `Capture the recipe reference from Figma.` |
-| 21–29 s | Data model | Empty Data Model page, then the recipe graph builds node by node | `Build the data model based on the screen.` |
-| 29–36 s | Tokens | Empty Tokens page, then a wipe reveals the real token page | `Build the tokens based on the screen.` |
-| 36–49 s | Design your screen | The real Storybook sidebar of the finished workspace: each entry pops up at its tree position (its group expands, rows below shift) while its screen area appears with an outline and connector | `Design the recipe screen and show the result.` |
-| 49–56 s | Sync to Drupal | Drupal Canvas page mockup with an `Illustration` tag on every frame | `Sync the recipe screen to Drupal.` |
-| 56–60 s | — | End card "NOT another design tool." | — |
+The approved storyline, scene by scene, is in [STORYLINE.md](STORYLINE.md).
 
 ## Sources
 
