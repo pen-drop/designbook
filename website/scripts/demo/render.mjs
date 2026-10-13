@@ -44,8 +44,9 @@ try {
     assert.ok(box.x >= 0 && box.y >= 0 && box.x + box.width <= reference[0] && box.y + box.height <= reference[1], id + ' outside reference')
   }
   const pairs = [
-    ['header', 38.3], ['recipe', 39.3], ['detail', 40.3], ['ingredient', 41.3], ['quantity', 42.3],
-    ['step', 43.3], ['step-block', 44.3], ['author', 45.3], ['profile', 46.3],
+    // entities first, then components
+    ['recipe', 38.2], ['ingredient', 39.7], ['step', 41.2], ['author', 42.7],
+    ['header', 44.7], ['detail', 46.1], ['quantity', 47.5], ['step-block', 48.9], ['profile', 50.3],
   ]
   for (const [id, at] of pairs) {
     await setTime(at - 0.01)
@@ -64,18 +65,28 @@ try {
     const parent = rows.filter((r) => row.startsWith(r.id + '-')).sort((a, b) => b.id.length - a.id.length)[0]
     assert.ok(parent && parent.on === '1' && parent.top < rows.find((r) => r.id === row).top, id + ' below its group')
   }
-  for (const t of [0, 8, 16, 20, 33, 37, 52]) {
+  for (const t of [0, 8, 10, 16, 20, 25, 33, 37, 54]) {
     await setTime(t)
     assert.doesNotMatch(await page.evaluate(() => document.body.innerText), /Penpot|Screenshot/i)
   }
-  for (const t of [48.85, 49.5, 52, 55.9]) {
+  for (const t of [51.85, 52.5, 55, 56.9]) {
     await setTime(t)
     assert.equal(await opacity('.illustration-tag'), '1', 'Illustration tag at ' + t)
   }
-  for (const [t, title] of [[6, 'Explain your vision'], [14, 'Import your reference'], [22, 'Data model'], [30, 'Tokens'], [37, 'Design your screen'], [50, 'Sync to Drupal']]) {
+  for (const [t, title] of [[6, 'Explain your vision'], [15, 'Scan your design'], [23, 'Data model'], [30, 'Tokens'], [37, 'Design your screen'], [53, 'Sync to Drupal']]) {
     await setTime(t)
     assert.equal(await page.locator('.chapter-title:visible').innerText(), title)
   }
+  // Each chapter's (empty) view is fully on screen before its chat appears.
+  for (const [t, scene] of [[5.5, '#vision'], [22.5, '#model'], [29.5, '#tokens']]) {
+    await setTime(t)
+    assert.equal(await opacity(scene), '1', scene + ' view before chat')
+    assert.equal(await opacity('#chat'), '0', scene + ' chat waits for the view')
+  }
+  // No reference before it is extracted; the vision prompt names Figma and the agent asks first.
+  await setTime(12)
+  assert.equal(await opacity('#reference-page'), '0')
+  assert.match(await page.locator('#chat').innerText(), /Can I extract the reference\? \[Y\/n\][\s\S]*Y/)
   await setTime(59)
   const held = await page.screenshot()
   await setTime(59.97)
@@ -96,7 +107,7 @@ try {
   }
   ffmpeg.stdin.end()
   assert.equal((await finished)[0], 0, 'Video encoding failed')
-  await setTime(47)
+  await setTime(51)
   await page.screenshot({ path: output + 'poster.png' })
   assert.deepEqual(errors, [])
   console.log('Rendered 1800 frames; 60 seconds; 1920 × 1080; silent.')

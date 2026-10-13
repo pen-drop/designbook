@@ -14,9 +14,9 @@ The approved storyline, scene by scene, is in [STORYLINE.md](STORYLINE.md).
 - `film.html` — deterministic timeline; `window.setTime(t)` is a pure function of `t`.
 - `render.mjs` — asserts the timeline, renders 1800 frames and encodes the MP4 and
   poster into `docs/assets/logo/demo/`.
-- `capture.mjs` — captures the real empty states and the imported reference from a
-  reference-stage workspace, and the sidebar rows (`screenshots/tree/`, real order in
-  `screenshots/tree.json`) from a finished-screen workspace.
+- `capture.mjs` — captures every Storybook view from a workspace at the matching stage, the
+  data model geometry (`screenshots/model-graph.json`) and the sidebar rows of the finished screen
+  (`screenshots/tree/`, real order in `screenshots/tree.json`).
 - `reference-regions.json` — scan highlight boxes in `reference.png` pixels.
 - Recipe captures and the measured row/area pairs are read from
   `docs/media/intro-video/recipe/` (`screenshots/`, `pairs.json`), not copied.
@@ -24,17 +24,25 @@ The approved storyline, scene by scene, is in [STORYLINE.md](STORYLINE.md).
 ## Rebuild
 
 Run from the repository root with dependencies installed, a Playwright Chromium
-browser and `ffmpeg` on PATH. The captures need two `drupal-recipe` workspaces:
+browser and `ffmpeg` on PATH. Every chapter is captured from a `drupal-recipe` workspace at the
+stage it shows. The unused sections layer is removed so the sidebar holds only the Designbook
+folders and, once extracted, the reference:
 
 ```bash
-./scripts/setup-workspace.sh drupal-recipe --into /tmp/designbook-reference
-./scripts/setup-test.sh drupal-recipe 02-vision --into /tmp/designbook-reference      # empty + reference
-./scripts/setup-workspace.sh drupal-recipe --into /tmp/designbook-final
-./scripts/setup-test.sh drupal-recipe verify-screen --into /tmp/designbook-final      # finished screen
+ws() { ./scripts/setup-workspace.sh drupal-recipe --into /tmp/db-$1 && ./scripts/setup-test.sh drupal-recipe $2 --into /tmp/db-$1; }
+ws start 01-reference        # empty workspace (no reference)
+ws vision 03-data-model      # + reference + vision
+ws model 04-tokens           # + data model
+ws tokens 05-shell           # + tokens
+ws final verify-screen       # finished screen
+for w in vision model tokens; do rm -rf /tmp/db-$w/web/themes/custom/test_integration_drupal/designbook/sections; done
 # in each workspace's web/themes/custom/test_integration_drupal:
 npx storybook-addon-designbook storybook start --force
-STORYBOOK_URL=http://localhost:<reference-port> FINAL_STORYBOOK_URL=http://localhost:<final-port> \
-  node website/scripts/demo/capture.mjs
+
+START_URL=http://localhost:<start> node website/scripts/demo/capture.mjs
+cp fixtures/drupal-recipe/vision/designbook/vision.yml /tmp/db-start/web/themes/custom/test_integration_drupal/designbook/
+VISION_URL=http://localhost:<start> REFERENCE_URL=http://localhost:<vision> MODEL_URL=http://localhost:<model> \
+  TOKENS_URL=http://localhost:<tokens> FINAL_URL=http://localhost:<final> node website/scripts/demo/capture.mjs
 
 node website/scripts/demo/render.mjs
 ffprobe -v error -show_entries format=duration:stream=width,height,codec_type -of compact docs/assets/logo/demo/designbook-demo.mp4

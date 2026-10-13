@@ -93,19 +93,19 @@ const shot = computed(() => shots[selected.value])
         <summary>Read the video walkthrough</summary>
         <p>
           Designbook is not another design tool. <strong>Explain your vision:</strong> in an empty
-          Designbook you tell your AI agent what you want to build and where the design lives —
-          Figma, Stitch or a website URL. The agent writes the product vision.
-          <strong>Import your reference:</strong> the agent captures the Figma design; Designbook
-          scans it and publishes it as a reference in Storybook. <strong>Data model:</strong> the
-          agent derives the content model from the screen: a recipe with ingredients, steps, an
-          author, a category and a difficulty. <strong>Tokens:</strong> it extracts the design
-          tokens. <strong>Design your screen:</strong> the agent rebuilds the recipe screen as a real
-          Storybook screen. Each part appears in the Storybook sidebar where it belongs — entities
-          such as recipe, ingredient, recipe step and author, components such as header, detail
-          page, quantity item, step block and profile card — and is mapped to its area of the
-          screen. <strong>Sync to Drupal:</strong> the result is synced to a Drupal Canvas page
-          (shown as an illustration). The video is an edited explanation, not a recording of elapsed
-          build time.
+          Designbook you tell your AI agent: “We created this famous recipe page in Figma. Make a
+          Drupal page.” The agent writes the product vision and asks whether it may extract the
+          reference. <strong>Scan your design:</strong> Designbook extracts your design — it scans
+          the Figma page and publishes it as a reference in Storybook. <strong>Data model:</strong>
+          based on the reference, the agent derives the content model: a recipe with ingredients,
+          steps, an author, a category and a difficulty. <strong>Tokens:</strong> it extracts the
+          design tokens from the reference. <strong>Design your screen:</strong> the agent rebuilds
+          the recipe screen in Storybook. The entities appear first — recipe, ingredient, recipe step
+          and author — then the components: header, detail page, quantity item, step block and
+          profile card. Each one appears where it belongs in the Storybook sidebar and is mapped to
+          its area of the screen. <strong>Sync to Drupal:</strong> the result is synced to a Drupal
+          Canvas page (shown as an illustration). The video is an edited explanation, not a
+          recording of elapsed build time.
         </p>
       </details>
     </section>

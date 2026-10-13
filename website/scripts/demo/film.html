@@ -6,6 +6,7 @@
 *{box-sizing:border-box}
 html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#f5f3ee;color:#163c42;font-family:Arial,Helvetica,sans-serif}
 .scene{position:absolute;inset:0;opacity:0}
+.chapter-sub{position:absolute;left:42px;top:80px;margin:0;font-size:19px;color:#557075;opacity:0;visibility:hidden;z-index:5}
 .chapter-title{position:absolute;left:40px;top:30px;margin:0;font-size:42px;letter-spacing:-1.4px;font-weight:700;opacity:0;visibility:hidden;z-index:5}
 .frame{position:absolute;left:40px;top:104px;width:960px;height:600px;overflow:hidden;border-radius:10px;background:#fff;border:1px solid #d3ddda;box-shadow:0 18px 50px #173e421f}
 .frame>img,.frame .layer{position:absolute;left:0;top:0;width:960px;height:600px}
@@ -14,10 +15,9 @@ html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#f5f3ee;
 .brand img{width:460px}
 .claim{position:absolute;left:0;right:0;top:420px;text-align:center;font-size:54px;font-weight:700;letter-spacing:-1.6px;white-space:nowrap}
 .claim .not{display:inline-block;overflow:visible;white-space:nowrap;color:#e2664c;vertical-align:bottom}
-/* Data model graph build-up: graph capture sits at (379,274) inside model.png */
-.graph{position:absolute;left:252.667px;top:182.667px;width:982px;height:601px;transform:scale(.666667);transform-origin:0 0}
-.graph .mask{position:absolute;inset:2px;background:#fff}
-.graph .part{position:absolute;inset:0;background:url(../../../docs/media/intro-video/recipe/screenshots/model-graph.png) 0 0/982px 601px}
+/* Data model graph build-up: parts of the real model capture, cut along the measured nodes and edges */
+.graph-mask{position:absolute;background:#fff}
+.part{position:absolute;left:0;top:0;width:960px;height:600px;background:url(screenshots/model.png) 0 0/960px 600px}
 .wipe-edge{position:absolute;left:0;width:960px;height:3px;background:#e2664c;box-shadow:0 0 18px #e2664c}
 /* Chat widget */
 .chat{position:absolute;right:32px;bottom:32px;width:380px;border-radius:16px;background:#fff;border:1px solid #d3ddda;box-shadow:0 22px 60px #173e4233;opacity:0;z-index:6;overflow:hidden}
@@ -25,11 +25,11 @@ html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#f5f3ee;
 .chat header i{width:9px;height:9px;border-radius:50%;background:#2fae86}
 .chat .log{min-height:74px;padding:14px 16px 4px;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
 .chat .bubble{max-width:320px;padding:10px 13px;border-radius:13px 13px 3px 13px;background:#12454e;color:#fff;font-size:17px;line-height:1.35}
+.chat .bubble.agent{align-self:flex-start;border-radius:13px 13px 13px 3px;background:#eef3f1;color:#163c42}
 .chat .dots{align-self:flex-start;font-size:22px;letter-spacing:3px;color:#8aa0a4}
 .chat .input{display:flex;align-items:center;gap:10px;margin:8px 12px 12px;padding:10px 12px;border:1px solid #cfdad7;border-radius:11px;font-size:18px;line-height:1.35;min-height:48px}
 .chat .typed{flex:1}
 .chat .caret{display:inline-block;width:2px;height:20px;margin-left:1px;background:#12454e;vertical-align:-3px}
-.chat .word{display:inline-block;border-radius:5px;padding:0 3px;margin:0 -3px}
 .chat .send{width:30px;height:30px;border-radius:50%;background:#e2664c;color:#fff;display:grid;place-items:center;font-size:16px;flex:none}
 /* Scan */
 .ref-page{position:absolute;left:0;top:0;width:960px;height:600px;opacity:0;z-index:3}
@@ -38,7 +38,7 @@ html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#f5f3ee;
 .scan-hit{position:absolute;border:3px solid #2fae86;border-radius:8px;background:#2fae8622}
 /* Structure */
 .sidebar{position:absolute;left:40px;top:104px;width:300px;height:600px;border-radius:10px;background:#f6f9fc;border:1px solid #d3ddda}
-.tree-row{position:absolute;left:52px;width:236px;height:24px;border-radius:5px;opacity:0}
+.tree-row{position:absolute;left:52px;width:236px;height:24px;border-radius:5px;opacity:0;transition:none}
 .tree-row img{display:block;width:236px;height:24px}
 .tree-row.active.entity{box-shadow:0 0 0 2px #2fae86;background:#d9f5ea}
 .tree-row.active.component{box-shadow:0 0 0 2px #e98557;background:#ffeadf}
@@ -72,7 +72,7 @@ html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#f5f3ee;
 <section class="scene" id="vision">
   <div class="frame">
     <img id="vision-empty" src="screenshots/empty-vision.png" alt="">
-    <img id="vision-full" src="../../../docs/media/intro-video/recipe/screenshots/vision.png" alt="" style="transform-origin:50% 0">
+    <img id="vision-full" src="screenshots/vision.png" alt="" style="transform-origin:50% 0">
   </div>
 </section>
 
@@ -80,8 +80,9 @@ html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#f5f3ee;
   <div class="frame">
     <img id="model-empty" src="screenshots/empty-model.png" alt="">
     <div class="layer" id="model-page">
-      <img src="../../../docs/media/intro-video/recipe/screenshots/model.png" alt="" style="width:960px">
-      <div class="graph" id="graph"><div class="mask"></div></div>
+      <img src="screenshots/model.png" alt="" style="width:960px">
+      <div class="graph-mask" id="graph-mask"></div>
+      <div id="graph"></div>
     </div>
   </div>
 </section>
@@ -89,7 +90,7 @@ html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#f5f3ee;
 <section class="scene" id="tokens">
   <div class="frame">
     <img src="screenshots/empty-tokens.png" alt="">
-    <img id="tokens-full" src="../../../docs/media/intro-video/recipe/screenshots/tokens.png" alt="">
+    <img id="tokens-full" src="screenshots/tokens.png" alt="">
     <div class="wipe-edge" id="wipe-edge"></div>
   </div>
 </section>
@@ -128,13 +129,14 @@ html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#f5f3ee;
 <h2 class="chapter-title" data-chapter="vision">Explain your vision</h2>
 <h2 class="chapter-title" data-chapter="model">Data model</h2>
 <h2 class="chapter-title" data-chapter="tokens">Tokens</h2>
-<h2 class="chapter-title" data-chapter="reference">Import your reference</h2>
+<h2 class="chapter-title" data-chapter="reference">Scan your design</h2>
+<p class="chapter-sub" data-chapter="reference">Designbook extracts your design.</p>
 <h2 class="chapter-title" data-chapter="screen">Design your screen</h2>
 <h2 class="chapter-title" data-chapter="drupal">Sync to Drupal</h2>
 <div class="illustration-tag">Illustration</div>
 <div class="chat" id="chat">
   <header><i></i>AI agent</header>
-  <div class="log"><div class="bubble" id="bubble"></div><div class="dots" id="dots"></div></div>
+  <div class="log" id="log"></div>
   <div class="input"><span class="typed" id="typed"></span><span class="send" id="send">↑</span></div>
 </div>
 
@@ -147,39 +149,37 @@ const ramp = (t, a, b) => ease((t - a) / (b - a))
 const span = (t, a, b, f = 0.2) => Math.min(ramp(t, a - f, a + f), 1 - ramp(t, b - f, b + f))
 const show = (el, v) => { el.style.opacity = v; el.style.visibility = v > 0 ? 'visible' : 'hidden' }
 
-const T = { intro: [-1, 5], vision: [5, 13], 'reference-scene': [13, 21], model: [21, 29], tokens: [29, 36], structure: [36, 49], drupal: [49, 56], end: [56, 99] }
-const titles = { vision: [5, 13], reference: [13, 21], model: [21, 29], tokens: [29, 36], screen: [36, 49], drupal: [49, 56] }
-const ROTATION = [[7.1, 'Figma'], [7.8, 'Stitch'], [8.5, 'URL'], [9.2, 'Figma']]
+const T = { intro: [-1, 5], vision: [5, 14], 'reference-scene': [14, 22], model: [22, 29], tokens: [29, 36], structure: [36, 52], drupal: [52, 57], end: [57, 99] }
+const titles = { vision: [5, 14], reference: [14, 22], model: [22, 29], tokens: [29, 36], screen: [36, 52], drupal: [52, 57] }
+// Each chapter's view is on screen before its chat starts. A message is typed by 👤 or posted by 🤖;
+// `working` shows the agent's dots after the last message until the chat closes.
 const chats = [
-  { a: 5.3, b: 13, type: [5.7, 7], send: 9.7, text: 'I want to migrate my project. The design is in ', rotate: true },
-  { a: 13.3, b: 21, type: [13.7, 14.6], send: 14.8, text: 'Capture the recipe reference from Figma.' },
-  { a: 21.3, b: 29, type: [21.7, 22.6], send: 22.9, text: 'Build the data model based on the screen.' },
-  { a: 29.3, b: 36, type: [29.7, 30.6], send: 30.9, text: 'Build the tokens based on the screen.' },
-  { a: 36.2, b: 38.3, type: [36.5, 37.3], send: 37.5, text: 'Design the recipe screen and show the result.' },
-  { a: 49.3, b: 56, type: [49.7, 50.5], send: 50.8, text: 'Sync the recipe screen to Drupal.' },
+  { a: 5.8, b: 19.6, working: true, messages: [
+    { who: 'user', text: 'We created this famous recipe page in Figma. Make a Drupal page.', type: [6.2, 7.9], send: 8.1 },
+    { who: 'agent', text: 'Can I extract the reference? [Y/n]', send: 9.6 },
+    { who: 'user', text: 'Y', type: [10.5, 10.6], send: 10.9 },
+  ] },
+  { a: 22.8, b: 29, messages: [{ who: 'user', text: 'Build the data model based on the reference.', type: [23.2, 24.1], send: 24.3 }] },
+  { a: 29.8, b: 36, messages: [{ who: 'user', text: 'Build the tokens based on the reference.', type: [30.2, 31], send: 31.2 }] },
+  { a: 36.2, b: 38.4, messages: [{ who: 'user', text: 'Design the recipe screen and show the result.', type: [36.5, 37.3], send: 37.5 }] },
+  { a: 52.3, b: 57, messages: [{ who: 'user', text: 'Sync the recipe screen to Drupal.', type: [52.6, 53.3], send: 53.5 }] },
 ]
-// Node boxes and edge end points in model-graph.png pixels; each edge appears with its target node.
-const nodes = [
-  { at: 23.6, boxes: [[448, 270, 214, 70], [618, 246, 66, 56], [874, 6, 104, 36]] },
-  { at: 24.2, boxes: [[334, 487, 214, 70]], edge: [[538, 338], [460, 490]] },
-  { at: 24.8, boxes: [[524, 45, 214, 70]], edge: [[566, 273], [617, 112]] },
-  { at: 25.4, boxes: [[293, 82, 214, 70]], edge: [[528, 273], [430, 149]] },
-  { at: 26, boxes: [[201, 295, 214, 70]], edge: [[451, 316], [412, 321]] },
-  { at: 26.6, boxes: [[567, 477, 214, 70]], edge: [[574, 338], [656, 480]] },
-]
-const ORDER = [['header', 38.3], ['recipe', 39.3], ['detail', 40.3], ['ingredient', 41.3], ['quantity', 42.3], ['step', 43.3], ['step-block', 44.3], ['author', 45.3], ['profile', 46.3]]
-// Each pair's real row in the finished Storybook sidebar (screenshots/tree.json keeps the real order).
+// The data model graph builds node by node; every edge appears with its target node.
+const GRAPH = { k: 960 / 1440, order: ['recipe', 'ingredient', 'recipe_step', 'author', 'recipe_category', 'difficulty'], from: 24.6, step: 0.6 }
+// Entities first, then components; one calm camera pass each.
+const ORDER = [['recipe', 38.2], ['ingredient', 39.7], ['step', 41.2], ['author', 42.7], ['header', 44.7], ['detail', 46.1], ['quantity', 47.5], ['step-block', 48.9], ['profile', 50.3]]
 const TREE_ROW = { header: 'test-integration-drupal-shell-header', recipe: 'entities-node-recipe', detail: 'test-integration-drupal-layout-detail-page',
   ingredient: 'entities-paragraph-ingredient', quantity: 'test-integration-drupal-data-display-quantity-item', step: 'entities-paragraph-recipe-step',
   'step-block': 'test-integration-drupal-data-display-step-block', author: 'entities-taxonomy-term-author', profile: 'test-integration-drupal-data-display-profile-card' }
-const LAST = 47.4 // the last outline holds until the camera returns to the top
+const LAST = 51.0 // the last outline holds until the camera returns to the top
 const K = 880 / 1140 // recipe-full.png → stage
-const SCAN = { from: 15, to: 18.4, depth: 5600, k: 960 / 1440 }
-let pairs = [], regions = [], tree = []
+const SCAN = { from: 14.6, to: 18.4, depth: 5600, k: 960 / 1440 }
+let pairs = [], regions = [], tree = [], graph = null
 
-function edgeClip ([[x1, y1], [x2, y2]]) {
-  const len = Math.hypot(x2 - x1, y2 - y1), ux = (x2 - x1) / len, uy = (y2 - y1) / len, w = 10
-  const ex = x2 + ux * 6, ey = y2 + uy * 6
+function edgeClip ([x1, y1], [x2, y2]) {
+  ;[x1, y1, x2, y2] = [x1, y1, x2, y2].map((v) => v * GRAPH.k)
+  const len = Math.hypot(x2 - x1, y2 - y1), ux = (x2 - x1) / len, uy = (y2 - y1) / len, w = 7
+  const ex = x2 + ux * 4, ey = y2 + uy * 4
   return `polygon(${x1 - uy * w}px ${y1 + ux * w}px, ${ex - uy * w}px ${ey + ux * w}px, ${ex + uy * w}px ${ey - ux * w}px, ${x1 + uy * w}px ${y1 - ux * w}px)`
 }
 
@@ -187,7 +187,8 @@ window.ready = Promise.all([
   fetch('../../../docs/media/intro-video/recipe/pairs.json').then((r) => r.json()),
   fetch('reference-regions.json').then((r) => r.json()),
   fetch('screenshots/tree.json').then((r) => r.json()),
-]).then(async ([p, r, t]) => {
+  fetch('screenshots/model-graph.json').then((r) => r.json()),
+]).then(async ([p, r, t, g]) => {
   pairs = ORDER.map(([id, at]) => ({ ...p.find((x) => x.id === id), at }))
   regions = r
   // A tree row appears with the first pair below it; parent = the longest other id prefixing it.
@@ -201,17 +202,23 @@ window.ready = Promise.all([
     const img = document.createElement('img'); img.src = `screenshots/tree/${row.id}.png`; img.alt = ''; el.append(img)
     $('#structure').append(el); row.el = el
   }
-  for (const [i, node] of nodes.entries()) {
-    node.els = node.boxes.map(([x, y, w, h]) => {
-      const el = document.createElement('div'); el.className = 'part'
-      el.style.clipPath = `inset(${y}px ${982 - x - w}px ${601 - y - h}px ${x}px round 6px)`
-      $('#graph').append(el); return el
-    })
-    if (node.edge) {
-      node.edgeEl = document.createElement('div'); node.edgeEl.className = 'part'
-      node.edgeEl.style.clipPath = edgeClip(node.edge); $('#graph').append(node.edgeEl)
-    }
-  }
+  // Graph parts in screenshot pixels: a node box, plus the edge that points to it (nearest end point).
+  const k = GRAPH.k, inset = ({ x, y, width, height }, m = 4) => `inset(${(y - m) * k}px ${960 - (x + width + m) * k}px ${600 - (y + height + m) * k}px ${(x - m) * k}px round 6px)`
+  const near = ([x, y]) => g.nodes.reduce((a, n) => {
+    const d = Math.hypot(x - (n.box.x + n.box.width / 2), y - (n.box.y + n.box.height / 2))
+    return d < a.d ? { d, id: n.id } : a
+  }, { d: Infinity }).id
+  const part = (clip) => { const el = document.createElement('div'); el.className = 'part'; el.style.clipPath = clip; $('#graph').append(el); return el }
+  const a = g.area
+  $('#graph-mask').style.cssText = `left:${(a.x + 2) * k}px;top:${(a.y + 2) * k}px;width:${(a.width - 4) * k}px;height:${(a.height - 4) * k}px`
+  graph = GRAPH.order.map((id, i) => {
+    const node = g.nodes.find((n) => n.id === id)
+    if (!node) throw new Error('Graph node missing: ' + id)
+    const els = [part(inset(node.box))]
+    for (const e of g.edges.filter((e) => near(e.to) === id)) els.push(near(e.from) === id ? part(inset(e.box, 6)) : part(edgeClip(e.from, e.to)))
+    if (i === 0) els.push(part(inset({ x: a.x + a.width - 112, y: a.y + 8, width: 104, height: 36 })))
+    return { at: GRAPH.from + i * GRAPH.step, els }
+  })
   for (const region of regions) {
     const el = document.createElement('div'); el.className = 'scan-hit'; el.dataset.id = region.id
     $('#scan-frame').append(el)
@@ -235,38 +242,43 @@ window.ready = Promise.all([
 function structureScroll (t) {
   const stop = (pair) => clamp(pair.box.y - 140, 0, 6020 - 600 / K)
   let y = 0, prev = 0
-  for (const pair of pairs) { const next = stop(pair); y = prev + (next - prev) * ramp(t, pair.at - 0.35, pair.at - 0.02); if (t < pair.at) return y; prev = next }
-  return prev * (1 - ramp(t, LAST, LAST + 0.6))
+  for (const pair of pairs) { const next = stop(pair); y = prev + (next - prev) * ramp(t, pair.at - 0.55, pair.at - 0.02); if (t < pair.at) return y; prev = next }
+  return prev * (1 - ramp(t, LAST, LAST + 0.5))
 }
 
 function setChat (t) {
   const chat = chats.find((c) => t >= c.a - 0.3 && t < c.b + 0.3)
   if (!chat) { $('#chat').style.opacity = 0; return }
   $('#chat').style.opacity = span(t, chat.a, chat.b, 0.25)
-  const [t0, t1] = chat.type
-  let typed = chat.text.slice(0, Math.floor(chat.text.length * clamp((t - t0) / (t1 - t0))))
-  let word = ''
-  if (chat.rotate && t >= ROTATION[0][0]) {
-    const step = ROTATION.findLast(([at]) => t >= at), locked = step === ROTATION.at(-1)
-    const enter = ramp(t, step[0], step[0] + 0.22)
-    word = `<span class="word" style="opacity:${enter};transform:translateY(${(1 - enter) * 10}px);background:${locked ? `rgba(226,102,76,${0.18 * enter})` : 'transparent'}">${step[1]}</span>${locked ? '.' : ''}`
+  const posted = chat.messages.filter((m) => t >= m.send)
+  const typing = chat.messages.find((m) => m.who === 'user' && t < m.send)
+  // The agent's dots show after a sent user message while a reply or work is pending.
+  const lastPosted = posted.at(-1)
+  const waiting = lastPosted?.who === 'user' && t >= lastPosted.send + 0.4
+  const esc = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+  $('#log').innerHTML = posted.map((m) => `<div class="bubble ${m.who}" style="opacity:${ramp(t, m.send, m.send + 0.2)}">${esc(m.text)}</div>`).join('') +
+    (waiting ? `<div class="dots">${'•••'.slice(0, 1 + Math.floor((t * 3) % 3))}</div>` : '')
+  let typed = ''
+  if (typing && t >= (typing.type?.[0] ?? Infinity)) {
+    const [t0, t1] = typing.type
+    typed = typing.text.slice(0, Math.ceil(typing.text.length * clamp((t - t0) / (t1 - t0))))
   }
-  const sent = t >= chat.send
-  const full = chat.rotate ? chat.text + 'Figma.' : chat.text
-  $('#bubble').textContent = full
-  $('#bubble').style.display = sent ? 'block' : 'none'
-  $('#bubble').style.opacity = ramp(t, chat.send, chat.send + 0.2)
-  $('#dots').textContent = sent && t >= chat.send + 0.4 ? '•••'.slice(0, 1 + Math.floor((t * 3) % 3)) : ''
-  const caret = !sent && Math.floor(t * 2.5) % 2 === 0 ? '<span class="caret"></span>' : ''
-  $('#typed').innerHTML = sent ? '' : typed.replace(/&/g, '&amp;').replace(/</g, '&lt;') + word + caret
-  const pulse = Math.sin(clamp((t - chat.send + 0.15) / 0.4) * Math.PI)
+  const caret = Math.floor(t * 2.5) % 2 === 0 ? '<span class="caret"></span>' : ''
+  $('#typed').innerHTML = esc(typed) + caret
+  const sent = [...chat.messages].reverse().find((m) => m.who === 'user' && t >= m.send - 0.15)
+  const pulse = sent ? Math.sin(clamp((t - sent.send + 0.15) / 0.4) * Math.PI) : 0
   $('#send').style.transform = `scale(${1 + 0.3 * pulse})`
 }
 
 window.setTime = (input) => {
   const t = clamp(input, 0, 60)
   for (const [id, [a, b]] of Object.entries(T)) $('#' + id).style.opacity = span(t, a, b)
-  for (const [id, [a, b]] of Object.entries(titles)) show($(`.chapter-title[data-chapter="${id}"]`), Math.min(ramp(t, a, a + 0.35), 1 - ramp(t, b - 0.35, b)))
+  for (const [id, [a, b]] of Object.entries(titles)) {
+    const v = Math.min(ramp(t, a, a + 0.35), 1 - ramp(t, b - 0.35, b))
+    show($(`.chapter-title[data-chapter="${id}"]`), v)
+    const sub = $(`.chapter-sub[data-chapter="${id}"]`)
+    if (sub) show(sub, Math.min(v, ramp(t, a + 0.4, a + 0.8)))
+  }
 
   // Intro: "NOT" drops into place in front of the slogan.
   const drop = ramp(t, 2, 2.5)
@@ -275,26 +287,20 @@ window.setTime = (input) => {
   $('#not').style.transform = `translateY(${(1 - drop) * -70}px)`
 
   // Vision: empty state, then the real vision with a slow push-in.
-  const vision = ramp(t, 10.1, 10.9)
-  $('#vision-full').style.opacity = vision
-  $('#vision-full').style.transform = `scale(${1 + 0.05 * ramp(t, 10.9, 13)})`
+  $('#vision-full').style.opacity = ramp(t, 8.5, 9.3)
 
   // Data model: empty state, then the real graph node by node.
-  $('#model-page').style.opacity = ramp(t, 23, 23.5)
-  for (const node of nodes) {
-    const on = ramp(t, node.at, node.at + 0.35)
-    for (const el of node.els) el.style.opacity = on
-    if (node.edgeEl) node.edgeEl.style.opacity = on
-  }
+  $('#model-page').style.opacity = ramp(t, 24.4, 24.6)
+  for (const node of graph) for (const el of node.els) el.style.opacity = ramp(t, node.at, node.at + 0.4)
 
   // Tokens: top-to-bottom wipe.
-  const wipe = ramp(t, 31.3, 33.4)
+  const wipe = ramp(t, 31.6, 33.8)
   $('#tokens-full').style.clipPath = `inset(0 0 ${(1 - wipe) * 100}% 0)`
   $('#wipe-edge').style.top = `${wipe * 600 - 2}px`
   $('#wipe-edge').style.opacity = wipe > 0 && wipe < 1 ? 1 : 0
 
   // Reference: the line scans the Figma frame, then the imported reference opens in Storybook.
-  $('#reference-page').style.opacity = ramp(t, 18.6, 19.3)
+  $('#reference-page').style.opacity = ramp(t, 18.6, 19.4)
   const lineY = SCAN.depth * clamp((t - SCAN.from) / (SCAN.to - SCAN.from))
   const scroll = clamp(lineY - 450, 0, 6847 - 900)
   $('#reference').style.transform = `translateY(${-scroll * SCAN.k}px)`
@@ -310,14 +316,14 @@ window.setTime = (input) => {
   // Structure: each sidebar row and its screen area appear in the same frame.
   const y = structureScroll(t)
   $('#recipe-full').style.transform = `translateY(${-y * K}px)`
-  $('#recipe-full').style.opacity = ramp(t, LAST + 0.4, LAST + 1)
+  $('#recipe-full').style.opacity = ramp(t, LAST + 0.3, LAST + 0.7)
   $('.ghost').style.transform = `translateY(${-y * K}px)`
   let active = null
   for (const [i, pair] of pairs.entries()) {
     const on = ramp(t, pair.at, pair.at + 0.18)
     // The outline leaves before the camera moves to the next pair, so it never points out of frame.
-    const end = i + 1 < pairs.length ? pairs[i + 1].at : LAST + 0.4
-    const current = Math.min(on, 1 - ramp(t, end - 0.52, end - 0.4))
+    const end = i + 1 < pairs.length ? pairs[i + 1].at : LAST + 0.6
+    const current = Math.min(on, 1 - ramp(t, end - 0.72, end - 0.58))
     if (current > 0) active = { pair, current }
     const area = $(`.area[data-id="${pair.id}"]`)
     area.style.top = `${(pair.box.y - y) * K}px`
@@ -329,10 +335,10 @@ window.setTime = (input) => {
   let cursor = 116
   for (const [i, row] of tree.entries()) {
     const grow = row.at < 0 ? 1 : ramp(t, row.at, row.at + 0.18)
+    const fade = row.at < 0 ? 1 : ramp(t, row.at, row.at + 0.18)
     if (row.kind === 'root' && i > 0) cursor += 10 * grow
     row.el.style.top = `${cursor}px`
-    row.el.style.opacity = grow
-    row.el.style.transform = `translateX(${(1 - grow) * -16}px)`
+    row.el.style.opacity = fade
     row.el.classList.toggle('active', !!row.pair && active?.pair === row.pair)
     row.y = cursor
     cursor += 24 * grow
@@ -348,11 +354,11 @@ window.setTime = (input) => {
   } else connector.style.opacity = 0
 
   // Drupal illustration: content arrives after the prompt is sent, then scrolls slowly.
-  $('#drupal-page').style.opacity = ramp(t, 51.1, 51.9)
-  $('#drupal-page').style.transform = `translateY(${-560 * ramp(t, 52.2, 55.6)}px)`
-  for (const [i, el] of [...$('#drupal-tree').children].entries()) el.style.opacity = ramp(t, 51.3 + i * 0.25, 51.6 + i * 0.25)
+  $('#drupal-page').style.opacity = ramp(t, 53.8, 54.5)
+  $('#drupal-page').style.transform = `translateY(${-480 * ramp(t, 54.6, 56.7)}px)`
+  for (const [i, el] of [...$('#drupal-tree').children].entries()) el.style.opacity = ramp(t, 53.9 + i * 0.2, 54.2 + i * 0.2)
   // The mockup is never visible without its tag.
-  $('.illustration-tag').style.opacity = span(t, 49, 56) > 0 ? 1 : 0
+  $('.illustration-tag').style.opacity = span(t, 52, 57) > 0 ? 1 : 0
 
   setChat(t)
 }
