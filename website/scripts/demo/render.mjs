@@ -45,8 +45,8 @@ try {
   }
   const pairs = [
     // entities first, then components
-    ['recipe', 38.2], ['ingredient', 39.7], ['step', 41.2], ['author', 42.7],
-    ['header', 44.7], ['detail', 46.1], ['quantity', 47.5], ['step-block', 48.9], ['profile', 50.3],
+    ['recipe', 40], ['ingredient', 41.3], ['step', 42.6], ['author', 43.9],
+    ['header', 45.6], ['detail', 46.8], ['quantity', 48], ['step-block', 49.2], ['profile', 50.4],
   ]
   for (const [id, at] of pairs) {
     await setTime(at - 0.01)
@@ -73,12 +73,12 @@ try {
     await setTime(t)
     assert.equal(await opacity('.illustration-tag'), '1', 'Illustration tag at ' + t)
   }
-  for (const [t, title] of [[6, 'Explain your vision'], [15, 'Scan your design'], [23, 'Data model'], [30, 'Tokens'], [37, 'Design your screen'], [53, 'Sync to Drupal']]) {
+  for (const [t, title] of [[5, 'Explain your vision'], [13.5, 'Scan your design'], [21, 'Data model'], [29, 'Tokens'], [37, 'Design your screen'], [53, 'Sync to Drupal']]) {
     await setTime(t)
     assert.equal(await page.locator('.chapter-title:visible').innerText(), title)
   }
   // Each chapter's (empty) view is fully on screen before its chat appears.
-  for (const [t, scene] of [[5.5, '#vision'], [22.5, '#model'], [29.5, '#tokens']]) {
+  for (const [t, scene] of [[4.5, '#vision'], [20, '#model'], [28.5, '#tokens']]) {
     await setTime(t)
     assert.equal(await opacity(scene), '1', scene + ' view before chat')
     assert.equal(await opacity('#chat'), '0', scene + ' chat waits for the view')
@@ -87,6 +87,15 @@ try {
   await setTime(12)
   assert.equal(await opacity('#reference-page'), '0')
   assert.match(await page.locator('#chat').innerText(), /Can I extract the reference\? \[Y\/n\][\s\S]*Y/)
+  // The agent previews what it would build; the result only appears after the user's "Yes.".
+  for (const [t, preview, result] of [[23.3, /node › recipe/, '#model-page'], [39, /components: header/, '.pair-row[data-id="recipe"]']]) {
+    await setTime(t)
+    assert.match(await page.locator('#chat').innerText(), preview)
+    assert.equal(await opacity(result), '0', result + ' before Yes')
+  }
+  await setTime(31.7)
+  assert.match(await page.locator('#chat').innerText(), /fonts: Montserrat/)
+  assert.match(await page.locator('#tokens-full').evaluate((e) => e.style.clipPath), /^inset\(0px 0px 100%/, 'tokens before Yes')
   await setTime(59)
   const held = await page.screenshot()
   await setTime(59.97)

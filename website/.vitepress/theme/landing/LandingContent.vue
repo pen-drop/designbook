@@ -97,10 +97,12 @@ const shot = computed(() => shots[selected.value])
           Drupal page.” The agent writes the product vision and asks whether it may extract the
           reference. <strong>Scan your design:</strong> Designbook extracts your design — it scans
           the Figma page and publishes it as a reference in Storybook. <strong>Data model:</strong>
-          based on the reference, the agent derives the content model: a recipe with ingredients,
-          steps, an author, a category and a difficulty. <strong>Tokens:</strong> it extracts the
-          design tokens from the reference. <strong>Design your screen:</strong> the agent rebuilds
-          the recipe screen in Storybook. The entities appear first — recipe, ingredient, recipe step
+          based on the reference, the agent first shows what it would create; after your “Yes” it
+          builds the content model: a recipe with ingredients, steps, an author, a category and a
+          difficulty. <strong>Tokens:</strong> it previews the colors, fonts, sizes and spacing it
+          found in the reference, and creates the design tokens after your “Yes”.
+          <strong>Design your screen:</strong> it lists the entities and components it would build,
+          and after your “Yes” it rebuilds the recipe screen in Storybook. The entities appear first — recipe, ingredient, recipe step
           and author — then the components: header, detail page, quantity item, step block and
           profile card. Each one appears where it belongs in the Storybook sidebar and is mapped to
           its area of the screen. <strong>Sync to Drupal:</strong> the result is synced to a Drupal

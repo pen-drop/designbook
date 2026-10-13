@@ -25,7 +25,7 @@ html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#f5f3ee;
 .chat header i{width:9px;height:9px;border-radius:50%;background:#2fae86}
 .chat .log{min-height:74px;padding:14px 16px 4px;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
 .chat .bubble{max-width:320px;padding:10px 13px;border-radius:13px 13px 3px 13px;background:#12454e;color:#fff;font-size:17px;line-height:1.35}
-.chat .bubble.agent{align-self:flex-start;border-radius:13px 13px 13px 3px;background:#eef3f1;color:#163c42}
+.chat .bubble.agent{align-self:flex-start;border-radius:13px 13px 13px 3px;background:#eef3f1;color:#163c42;white-space:pre-line;font-size:15px}
 .chat .dots{align-self:flex-start;font-size:22px;letter-spacing:3px;color:#8aa0a4}
 .chat .input{display:flex;align-items:center;gap:10px;margin:8px 12px 12px;padding:10px 12px;border:1px solid #cfdad7;border-radius:11px;font-size:18px;line-height:1.35;min-height:48px}
 .chat .typed{flex:1}
@@ -149,31 +149,45 @@ const ramp = (t, a, b) => ease((t - a) / (b - a))
 const span = (t, a, b, f = 0.2) => Math.min(ramp(t, a - f, a + f), 1 - ramp(t, b - f, b + f))
 const show = (el, v) => { el.style.opacity = v; el.style.visibility = v > 0 ? 'visible' : 'hidden' }
 
-const T = { intro: [-1, 5], vision: [5, 14], 'reference-scene': [14, 22], model: [22, 29], tokens: [29, 36], structure: [36, 52], drupal: [52, 57], end: [57, 99] }
-const titles = { vision: [5, 14], reference: [14, 22], model: [22, 29], tokens: [29, 36], screen: [36, 52], drupal: [52, 57] }
+const T = { intro: [-1, 4], vision: [4, 12.5], 'reference-scene': [12.5, 19.5], model: [19.5, 28], tokens: [28, 35.5], structure: [35.5, 52], drupal: [52, 57], end: [57, 99] }
+const titles = { vision: [4, 12.5], reference: [12.5, 19.5], model: [19.5, 28], tokens: [28, 35.5], screen: [35.5, 52], drupal: [52, 57] }
 // Each chapter's view is on screen before its chat starts. A message is typed by 👤 or posted by 🤖;
 // `working` shows the agent's dots after the last message until the chat closes.
+// Before building, the agent previews what it would create (taken from the real fixture output).
 const chats = [
-  { a: 5.8, b: 19.6, working: true, messages: [
-    { who: 'user', text: 'We created this famous recipe page in Figma. Make a Drupal page.', type: [6.2, 7.9], send: 8.1 },
-    { who: 'agent', text: 'Can I extract the reference? [Y/n]', send: 9.6 },
-    { who: 'user', text: 'Y', type: [10.5, 10.6], send: 10.9 },
+  { a: 5, b: 17.8, working: true, messages: [
+    { who: 'user', text: 'We created this famous recipe page in Figma. Make a Drupal page.', type: [5.3, 6.8], send: 7 },
+    { who: 'agent', text: 'Can I extract the reference? [Y/n]', send: 8.6 },
+    { who: 'user', text: 'Y', type: [9.4, 9.5], send: 9.7 },
   ] },
-  { a: 22.8, b: 29, messages: [{ who: 'user', text: 'Build the data model based on the reference.', type: [23.2, 24.1], send: 24.3 }] },
-  { a: 29.8, b: 36, messages: [{ who: 'user', text: 'Build the tokens based on the reference.', type: [30.2, 31], send: 31.2 }] },
-  { a: 36.2, b: 38.4, messages: [{ who: 'user', text: 'Design the recipe screen and show the result.', type: [36.5, 37.3], send: 37.5 }] },
+  { a: 20.4, b: 28, working: true, messages: [
+    { who: 'user', text: 'Build the data model based on the reference.', type: [20.7, 21.5], send: 21.65 },
+    { who: 'agent', text: "From the reference I'd create:\n• node › recipe (title, ingredients, steps, author …)\n• paragraph › ingredient, recipe_step\n• taxonomy › author, recipe_category, difficulty\nShall I?", send: 22.3 },
+    { who: 'user', text: 'Yes.', type: [23, 23.15], send: 23.35 },
+  ] },
+  { a: 28.9, b: 35.5, working: true, messages: [
+    { who: 'user', text: 'Build the tokens based on the reference.', type: [29.2, 29.9], send: 30.05 },
+    { who: 'agent', text: "From the reference I'd create:\n• colors: neutral, red, orange, green\n• fonts: Montserrat (headings), Roboto (body)\n• sizes 12–80 px, spacing 8–64 px\nShall I?", send: 30.7 },
+    { who: 'user', text: 'Yes.', type: [31.4, 31.55], send: 31.75 },
+  ] },
+  { a: 36, b: 39.8, working: true, messages: [
+    { who: 'user', text: 'Design the recipe screen and show the result.', type: [36.3, 37.1], send: 37.3 },
+    { who: 'agent', text: "For the recipe screen I'd build:\n• entities: recipe, ingredient, recipe step, author\n• components: header, detail page, quantity item, step block, profile card …\nShall I?", send: 38 },
+    { who: 'user', text: 'Yes.', type: [38.7, 38.85], send: 39.05 },
+  ] },
   { a: 52.3, b: 57, messages: [{ who: 'user', text: 'Sync the recipe screen to Drupal.', type: [52.6, 53.3], send: 53.5 }] },
 ]
 // The data model graph builds node by node; every edge appears with its target node.
-const GRAPH = { k: 960 / 1440, order: ['recipe', 'ingredient', 'recipe_step', 'author', 'recipe_category', 'difficulty'], from: 24.6, step: 0.6 }
+const GRAPH = { k: 960 / 1440, order: ['recipe', 'ingredient', 'recipe_step', 'author', 'recipe_category', 'difficulty'], from: 23.9, step: 0.5 }
 // Entities first, then components; one calm camera pass each.
-const ORDER = [['recipe', 38.2], ['ingredient', 39.7], ['step', 41.2], ['author', 42.7], ['header', 44.7], ['detail', 46.1], ['quantity', 47.5], ['step-block', 48.9], ['profile', 50.3]]
+const ORDER = [['recipe', 40], ['ingredient', 41.3], ['step', 42.6], ['author', 43.9], ['header', 45.6], ['detail', 46.8], ['quantity', 48], ['step-block', 49.2], ['profile', 50.4]]
+// Each pair's real row in the finished Storybook sidebar (screenshots/tree.json keeps the real order).
 const TREE_ROW = { header: 'test-integration-drupal-shell-header', recipe: 'entities-node-recipe', detail: 'test-integration-drupal-layout-detail-page',
   ingredient: 'entities-paragraph-ingredient', quantity: 'test-integration-drupal-data-display-quantity-item', step: 'entities-paragraph-recipe-step',
   'step-block': 'test-integration-drupal-data-display-step-block', author: 'entities-taxonomy-term-author', profile: 'test-integration-drupal-data-display-profile-card' }
-const LAST = 51.0 // the last outline holds until the camera returns to the top
+const LAST = 51.1 // the last outline holds until the camera returns to the top
 const K = 880 / 1140 // recipe-full.png → stage
-const SCAN = { from: 14.6, to: 18.4, depth: 5600, k: 960 / 1440 }
+const SCAN = { from: 13, to: 16.6, depth: 5600, k: 960 / 1440 }
 let pairs = [], regions = [], tree = [], graph = null
 
 function edgeClip ([x1, y1], [x2, y2]) {
@@ -281,26 +295,26 @@ window.setTime = (input) => {
   }
 
   // Intro: "NOT" drops into place in front of the slogan.
-  const drop = ramp(t, 2, 2.5)
+  const drop = ramp(t, 1.6, 2.1)
   $('#not').style.maxWidth = `${drop * 140}px`
   $('#not').style.opacity = drop
   $('#not').style.transform = `translateY(${(1 - drop) * -70}px)`
 
   // Vision: empty state, then the real vision with a slow push-in.
-  $('#vision-full').style.opacity = ramp(t, 8.5, 9.3)
+  $('#vision-full').style.opacity = ramp(t, 7.2, 8)
 
   // Data model: empty state, then the real graph node by node.
-  $('#model-page').style.opacity = ramp(t, 24.4, 24.6)
+  $('#model-page').style.opacity = ramp(t, 23.6, 23.8)
   for (const node of graph) for (const el of node.els) el.style.opacity = ramp(t, node.at, node.at + 0.4)
 
   // Tokens: top-to-bottom wipe.
-  const wipe = ramp(t, 31.6, 33.8)
+  const wipe = ramp(t, 32.1, 34.2)
   $('#tokens-full').style.clipPath = `inset(0 0 ${(1 - wipe) * 100}% 0)`
   $('#wipe-edge').style.top = `${wipe * 600 - 2}px`
   $('#wipe-edge').style.opacity = wipe > 0 && wipe < 1 ? 1 : 0
 
   // Reference: the line scans the Figma frame, then the imported reference opens in Storybook.
-  $('#reference-page').style.opacity = ramp(t, 18.6, 19.4)
+  $('#reference-page').style.opacity = ramp(t, 16.8, 17.5)
   const lineY = SCAN.depth * clamp((t - SCAN.from) / (SCAN.to - SCAN.from))
   const scroll = clamp(lineY - 450, 0, 6847 - 900)
   $('#reference').style.transform = `translateY(${-scroll * SCAN.k}px)`
