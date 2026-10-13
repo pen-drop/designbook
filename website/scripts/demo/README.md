@@ -1,34 +1,60 @@
-# Designbook demo film
+# Designbook explainer film
 
-Two new 15-second versions and their sources are available in
-[Intro video: Astra / Opus](../../../docs/media/intro-video/README.md), following the
-[agreed storytelling](../../../docs/media/intro-video/STORYTELLING.md).
-The instructions below describe the existing 22-second landing-page film;
-selecting its replacement is a separate decision.
+The landing page film is a silent, 60-second English explainer: 1920 × 1080, 30 fps,
+H.264. It follows the recipe project from an empty Designbook to a mapped Storybook
+screen. All Storybook pictures are real captures from the `drupal-recipe` fixture.
+The final Drupal Canvas page is an **illustration** and carries a visible
+`Illustration` tag. The film is an edited explanation, not a recording of elapsed
+build time.
 
-The 22-second silent film uses real captures from the Figma SaaS Canvas fixture.
-Its animated highlights and connections map semantic design regions without slicing
-the source image. Screenshots keep their full aspect ratio. This is explanatory
-motion graphics, not a recording of elapsed
-build time. The Claude image is a formatted reading view of the real run log.
+| Time | Chapter title | Picture | Chat prompt |
+|---|---|---|---|
+| 0–5 s | — | Logo with "another design tool"; "NOT" drops in front of it | — |
+| 5–15 s | Explain your vision | Empty Vision page, then the real vision. The source word rotates Figma → Stitch → URL and locks on Figma | `I want to migrate my project. The design is in Figma.` |
+| 15–23 s | Data model | Empty Data Model page, then the recipe graph builds node by node | `Build the data model based on the screen.` |
+| 23–30 s | Tokens | Empty Tokens page, then a wipe reveals the real token page | `Build the tokens based on the screen.` |
+| 30–36 s | Import your screen | A scan line passes the Figma reference; five regions light up | `Design the recipe screen and show the result.` |
+| 36–49 s | Import your screen | Sidebar rows and screen areas appear together, with outline and connector | — |
+| 49–56 s | Sync to Drupal | Drupal Canvas page mockup with an `Illustration` tag | `Sync the recipe screen to Drupal.` |
+| 56–60 s | — | End card "NOT another design tool." | — |
 
-Media lives in `docs/assets/logo/demo/`, the existing VitePress public asset root.
-`film.html` contains the timeline; `render.mjs` captures deterministic frames and
-encodes H.264 with fast-start playback. It also captures the poster at 15 seconds.
+## Sources
 
-Rebuild from the repository root with repository/integration dependencies installed,
-a Playwright Chromium browser installed and `ffmpeg` on PATH:
+- `film.html` — deterministic timeline; `window.setTime(t)` is a pure function of `t`.
+- `render.mjs` — asserts the timeline, renders 1800 frames and encodes the MP4 and
+  poster into `docs/assets/logo/demo/`.
+- `capture-empty.mjs` — captures the real empty states into `screenshots/`.
+- `reference-regions.json` — scan highlight boxes in `reference.png` pixels.
+- Recipe captures and the measured row/area pairs are read from
+  `docs/media/intro-video/recipe/` (`screenshots/`, `pairs.json`), not copied.
+
+## Rebuild
+
+Run from the repository root with dependencies installed, a Playwright Chromium
+browser and `ffmpeg` on PATH. The empty states need a reference-stage workspace:
 
 ```bash
+./scripts/setup-workspace.sh drupal-recipe --into /tmp/designbook-empty
+./scripts/setup-test.sh drupal-recipe 02-vision --into /tmp/designbook-empty
+(cd /tmp/designbook-empty/web/themes/custom/test_integration_drupal && npx storybook-addon-designbook storybook start --force)
+STORYBOOK_URL=http://localhost:<port> node website/scripts/demo/capture-empty.mjs
+
 node website/scripts/demo/render.mjs
-ffprobe -v error -show_entries format=duration,size docs/assets/logo/demo/designbook-demo.mp4
+ffprobe -v error -show_entries format=duration:stream=width,height,codec_type -of compact docs/assets/logo/demo/designbook-demo.mp4
 ffmpeg -v error -i docs/assets/logo/demo/designbook-demo.mp4 -f null -
 pnpm --filter website build
 ```
 
-Source: Figma SaaS Website UI Kit (Community), file ErxLeXHIKYIBLlu0L4HUCY,
-hero node 28:1211. The output screenshots use the clean `drupal-figma/saas-canvas`
-fixture. To refresh them, rebuild that fixture following its README, navigate to
-its Tokens, Foundation → Data Model, and SaaS Demo → Landing / Structure views,
-and capture them with the real browser. Never mock the product UI for these shots.
-The gallery keeps the full-size captures available for inspection.
+## Rights
+
+- All Storybook captures come from this repository's `drupal-recipe` fixture.
+- The Designbook logo is the project's own.
+- No third-party logos. Tool names (Figma, Stitch) appear only as plain text in the
+  chat prompt. No fonts beyond those the site already ships.
+- The reference frame comes from the Figma Community file
+  [[FREE] Cooking & Recipes Blog Template](https://www.figma.com/community/file/1331351586208563684/free-cooking-recipes-blog-template)
+  by Ilia Bortnikov (@88design), duplicated as file `jNxa1mBeUyh2eoAQrjcvhd`.
+  The community page states: "Licensed under CC BY 4.0"
+  ([licence](https://creativecommons.org/licenses/by/4.0/)), verified 2026-10-13.
+  CC BY 4.0 requires attribution; the landing page credits the template below the film.
+- The Drupal Canvas shot is an illustration, not a capture of a running Drupal site.
