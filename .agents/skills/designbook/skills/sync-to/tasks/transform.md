@@ -9,15 +9,13 @@ domain:
 params:
   type: object
   required:
-    - units
+    - unit
     - backend_cmd
     - sync_target_dir
   properties:
-    units:
-      type: array
-      description: Ordered list of sync units resolved at intake.
-      items:
-        $ref: ../schemas.yml#/SyncUnit
+    unit:
+      $ref: ../schemas.yml#/SyncUnit
+      description: The one sync unit this task writes (intake plans one transform task per unit).
     backend_cmd:
       type: object
       resolve: backend_cmd
