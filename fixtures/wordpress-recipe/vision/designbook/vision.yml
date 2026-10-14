@@ -1,0 +1,47 @@
+product_name: Cooks Delight
+description: >-
+  Cooks Delight is a recipe site for home cooks who want to follow a recipe
+  without hunting for quantities or timings. It presents one readable recipe at
+  a time — exemplified by the Lemon Garlic Roasted Chicken detail screen — with
+  ingredients, ordered instructions, preparation and cooking times, difficulty,
+  servings, and related (similar) recipes where present. Scope: recipe browsing
+  and a recipe detail screen. Out of scope: user accounts, checkout, AI recipe
+  creation, a ratings backend and a functioning portion calculator; navigation
+  (Home, recipes, cooking tips, about us, subscribe) may point to demo
+  destinations.
+problems:
+  - title: Scattered recipe information
+    solution: >-
+      Clear recipe metadata near the title (duration, difficulty, servings) and
+      structured content: an ingredient list with quantities and instruction
+      steps in order, so cooks never hunt through prose.
+  - title: Unclear timing
+    solution: >-
+      Separate preparation-time and cooking-time fields, with the total duration
+      derived from those two time fields and shown in the recipe metadata.
+features:
+  - >-
+    Recipe browsing with recipe teasers showing duration, difficulty and
+    servings
+  - Recipe detail screen with title, category label, intro and hero image
+  - >-
+    Recipe metadata: total duration derived from preparation and cooking time,
+    difficulty, servings
+  - Structured ingredient list with quantities
+  - >-
+    Ordered instruction steps grouped under named stages with optional step
+    images
+  - Related (similar) recipes on the detail screen
+  - >-
+    Demo navigation destinations and newsletter subscribe call-to-action as
+    presented in the reference
+design_reference:
+  type: figma
+  url: https://www.figma.com/design/jNxa1mBeUyh2eoAQrjcvhd?node-id=58-2
+  label: Cooks Delight — Lemon Garlic Roasted Chicken recipe frame (Figma node 58:2)
+references:
+  - type: folder
+    url: designbook/references/60fbf0acb79bd59d/266781d6753e3a35
+    label: >-
+      Published Figma reference revision 266781d6753e3a35 (recipe, rest state,
+      desktop 1440px): screenshot, extract, assets

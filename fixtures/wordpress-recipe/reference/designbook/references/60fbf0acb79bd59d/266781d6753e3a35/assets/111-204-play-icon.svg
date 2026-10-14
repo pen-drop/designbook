@@ -1,0 +1,12 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Icon">
+<g clip-path="url(#clip0_0_51)">
+<path id="Exclude" fill-rule="evenodd" clip-rule="evenodd" d="M32 64C49.6731 64 64 49.6731 64 32C64 14.3269 49.6731 0 32 0C14.3269 0 0 14.3269 0 32C0 49.6731 14.3269 64 32 64ZM45.0517 33.9065C46.224 33.1133 46.224 31.3867 45.0517 30.5935L26.6207 18.1235C25.2926 17.2249 23.5 18.1764 23.5 19.7799L23.5 44.7201C23.5 46.3236 25.2926 47.2751 26.6207 46.3765L45.0517 33.9065Z" fill="#EE6352"/>
+</g>
+</g>
+<defs>
+<clipPath id="clip0_0_51">
+<rect width="64" height="64" rx="32" fill="white"/>
+</clipPath>
+</defs>
+</svg>

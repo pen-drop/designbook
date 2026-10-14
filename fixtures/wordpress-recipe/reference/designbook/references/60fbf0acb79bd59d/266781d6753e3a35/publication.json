@@ -1,0 +1,827 @@
+{
+  "id": "60fbf0acb79bd59d",
+  "revision": "266781d6753e3a35",
+  "files": {
+    "assets/111-204-play-icon.svg": "9c5a8865f29f3fa5dc77f684c2b7ba8a272efba7bca879c720640f108b5b1e32",
+    "assets/144-253-arrow-left.svg": "852d95564a7982eb13556fa01191bfae6ed8811707108b1f5e88081d74a256e6",
+    "assets/144-256-arrow-right.svg": "cf5b7da0537624e09768274a4e6d6eaf2a3c4f9ed4906cf845241f5586889e75",
+    "assets/144-261--fill-1.png": "40fa9cd52f06da0aaa79032d29db2cb1bd2ce81212cc5b8be4e62952d379a7d9",
+    "assets/144-261--fill-2.png": "a0fa406a90bd324d847e55c8254a8d90fb63256db7891023f68626b18688e1fc",
+    "assets/144-271--fill-1.png": "6428115841161b9482f12a92567394e851a648be362b3fcd910572d3af35cec7",
+    "assets/144-271--fill-2.png": "8773033c89e6d8c6b449e14d4b2520330c3495a30b53195265304c74a04f2d7d",
+    "assets/144-281-tag-icon.svg": "10d863992357722de0f56a7c46e5c28ccff73effbea75c4af03c317039c105a2",
+    "assets/146-1518-logo.svg": "ea3870dee1d18bff4c78d50deda8e259608cc9a8168629c50bad735606201162",
+    "assets/146-1534-search-icon.svg": "788fccec426f0757e7d31c95a75fdf4056d5b70d4360fd653633e1102f63d1ee",
+    "assets/146-1593-cta-bg.svg": "738720f9e2abd10f009244cc7bea0ff3ba5b3c80a1fe965f2b082da70e0639a4",
+    "assets/146-1610-logo-footer.svg": "e12060c25f8513e93984a29b6fe12290d1fb7187759e2ef7a2a616b2564c0466",
+    "assets/146-1617-footer-separator.svg": "9b4df3612432aa56d29887b65f9649885efa4a06e2cd347e93a1f09acff8f926",
+    "assets/146-1624-tiktok.svg": "6b66a3bb94272261d760661e4f8ea7965f9570ce36f50b37008da33853982d34",
+    "assets/146-1626-social-icon.svg": "f978760a8dd1f1d266d3f3d1c685a6329fef91eb54a5d549f398ab4f7f21c1b1",
+    "assets/146-1628-social-icon.svg": "22bd7136dfff7524dd1373d2e5a21b1ffc4170fb436ee7c9852665d9e44fc45d",
+    "assets/146-1630-social-icon.svg": "6dd547282c9720f897da39a05e9ec2e3ac416d6155d8785052c48e30c58eb31c",
+    "assets/146-1726-serving-dome.svg": "f2d4eb84e24514625634a05b32c0108f15c6c92e3910789c3a45add05d6086da",
+    "assets/146-1731-weight.svg": "aa78a9a261a66daf2e402eed8f1f6abe5f69bd250c76a540ba1aa7f027628a58",
+    "assets/146-1733-mdi-timer.svg": "555a36cfdfb789f1ff987245df28e0f9ed0611e5dc83927ebfd6a99243a126a2",
+    "assets/146-1735-ellipse.svg": "c29c8609c06f29a16eca3c054e0507d292b209f9bb5d0ebcca7b015fa3c8795c",
+    "assets/60-384--fill-1.png": "e66281a0d28f42a0d14507282b27961dda9b7197c9676ab11f09a8762ea9c75a",
+    "assets/60-384--fill-2.png": "5a25ab81bb52fcd9cb5ef07d975cad7ceda08716d64e204e2ae00c32df3f3e04",
+    "assets/60-386--fill-1.png": "38c175435511248c0b33cabd079ac451926b2a59aeea16c6ea18aa930735bbdb",
+    "assets/60-386--fill-2.png": "3091746e47d48b34ba5d14df6a9a7f82c1a10583bcc65c973d8b24564689dfe8",
+    "assets/75-2--fill-1.jpeg": "d225baeb86f5ee5c9cabbdd0d4e666a1e74ef771b3e3ed34103c87bf1bbf0866",
+    "assets/75-3--fill-1.jpeg": "62c84d558ce8015e946980bc98d371455741ac40cb06eb68624d80abdaa8e093",
+    "assets/83-190-separation-line.svg": "52dae37efbbbbb675046858b9dd4ffdfb80992f9d62935845c2216ffbf0c16c9",
+    "assets/83-191--fill-1.jpeg": "5927e67c5d9d6588ba48783c9266b2225c6e98f550c59e7ca33b28ab46d32d70",
+    "assets/83-203-share-icon.svg": "521c41e79b10cf41559d676e74b9b826e132d0d1f9463313329305ebcb44f116",
+    "assets/83-205-share-icon.svg": "5b2f4553271c4353807710d76af67cbb2275d5eb5ddd5af6cac919e8d99d35b7",
+    "assets/83-207-share-icon.svg": "9b0df1ba0b880db38b81fad2391e3b7be3d906a534daa7aef587fb8cf4430246",
+    "desktop--recipe--rest.png": "6c7f57ce39475cd39e606269efc3a4c16db0dd699987ce755d82ddabe2405005",
+    "extract--rest.json": "03743a579394a4994ed314e8a43dc7c349a5e7f06642fad30b5e30a227aaed34",
+    "meta.yml": "6f52f0f3c6a14e97489c410ecbc3a3b5ca912d862a5a5514067e980a25360ee1"
+  },
+  "contract": {
+    "referenceSchema": {
+      "$ref": "#/definitions/Reference"
+    },
+    "definitions": {
+      "ObservationSource": {
+        "type": "object",
+        "title": "Source provenance",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "identity",
+          "revision"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Opaque source kind declared by its integration skill."
+          },
+          "identity": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Stable source identity supplied by the skill; may be a URL or file identity."
+          },
+          "revision": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Observed source version",
+            "or null when unavailable.": null
+          }
+        }
+      },
+      "ReferenceFolder": {
+        "type": "string",
+        "description": "Path to a scene's verification material — contains one source dump per declared state (`extract--<state>.json`), `meta.yml`, and one screenshot per view/element/state cell, named `<view>--<element>--<state>.png`. The leading segment is the view id the metadata declares; a view carries a breakpoint only where that mapping is established, and the file name stays on the view.\n",
+        "examples": [
+          "$DESIGNBOOK_DATA/references/hero",
+          "/tmp/refs/article"
+        ]
+      },
+      "SourceDump": {
+        "type": "object",
+        "title": "Stored source extract",
+        "description": "One browser dump for one state of a capture revision (`extract--<state>.json`): one page load, in one session, at that state. Agents consume it through `reference save` stdout, `reference inspect` and `reference query`, never by opening the file. Walker-specific extra keys on the dump object are allowed.\n",
+        "additionalProperties": true,
+        "required": [
+          "source_kind",
+          "source_ref",
+          "nodes"
+        ],
+        "properties": {
+          "source_kind": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Walker identity such as url-dom."
+          },
+          "source_ref": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Observed source identity, typically the URL."
+          },
+          "captured_at": {
+            "type": "string",
+            "description": "Capture timestamp."
+          },
+          "adapter_version": {
+            "type": "string",
+            "description": "Walker version string."
+          },
+          "nodes": {
+            "type": "array",
+            "description": "Observed nodes with native locators, boxes and styles. Extra walker keys are allowed.",
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "description": "One captured node. Keys include id, kind, locator, box and style."
+            }
+          }
+        }
+      },
+      "ElementId": {
+        "type": "string",
+        "description": "Stable label for the comparison subject, used in filenames and scores. Name the rendered surface, not the capture area: entity stories use `entity-<entity_type>-<bundle>-<view_mode>` (for example `entity-paragraph-signage-full`, where `full` is the view mode), scene regions use names such as `scene-header` or `scene-footer`, and components use `component-<name>`. Use `selector: \"\"` to capture the isolated story root; do not encode that capture mode as `id: full`. A trailing `full` in an entity id is valid when it is the entity view mode.\n"
+      },
+      "ObservationLocator": {
+        "type": "object",
+        "title": "Native source locator",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "value"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Integration-defined locator kind such as css or figma-node."
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Exact native identity; a Figma node is not a CSS selector."
+          }
+        }
+      },
+      "BreakpointId": {
+        "type": "string",
+        "description": "Viewport breakpoint identifier from `design-tokens.yml` (sm, md, lg, xl, ...). Determines the viewport width for capture/verify operations.\n",
+        "examples": [
+          "sm",
+          "md",
+          "lg",
+          "xl"
+        ]
+      },
+      "ReferenceStructure": {
+        "type": "object",
+        "title": "Observed source structure",
+        "additionalProperties": false,
+        "required": [
+          "roots",
+          "nodes"
+        ],
+        "description": "Observed hierarchy with native locators. Target component structure belongs in the plan.",
+        "properties": {
+          "roots": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "description": "Ordered observed root node IDs.",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "nodes": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Reachable observed nodes; IDs and ordered children preserve source relationships.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "kind",
+                "locator",
+                "children"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Unique local observed node ID."
+                },
+                "kind": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Observed native or normalized node category."
+                },
+                "locator": {
+                  "$ref": "#/definitions/ObservationLocator"
+                },
+                "children": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "description": "Ordered child node IDs, empty for leaves.",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "ReferenceMaterial": {
+        "type": "object",
+        "title": "Observed properties",
+        "description": "Measured source values keyed by their native or normalized property names. Contains observed facts, not planned implementation decisions.",
+        "additionalProperties": true
+      },
+      "ReferenceDependencies": {
+        "type": "object",
+        "title": "Exact observation dependencies",
+        "additionalProperties": false,
+        "required": [
+          "parent_ids",
+          "asset_ids",
+          "font_families"
+        ],
+        "properties": {
+          "parent_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "description": "Exact observed ancestor layout IDs.",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "asset_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "description": "Exact images[].url identities required by this sample.",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "font_families": {
+            "type": "array",
+            "uniqueItems": true,
+            "description": "Exact fonts[].family identities required by this sample.",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "ReferenceSample": {
+        "type": "object",
+        "title": "Observed subject condition",
+        "additionalProperties": false,
+        "required": [
+          "view",
+          "state",
+          "structure",
+          "observations",
+          "dependencies",
+          "unavailable"
+        ],
+        "properties": {
+          "view": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Exact selected view identity."
+          },
+          "state": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Exact observed state identity."
+          },
+          "breakpoint": {
+            "$ref": "#/definitions/BreakpointId"
+          },
+          "structure": {
+            "$ref": "#/definitions/ReferenceStructure"
+          },
+          "observations": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Measured facts only; raw unmapped properties remain available for targeted inspection.",
+            "properties": {
+              "layout": {
+                "$ref": "#/definitions/ReferenceMaterial"
+              },
+              "typography": {
+                "type": "array",
+                "description": "Observed text treatments.",
+                "items": {
+                  "$ref": "#/definitions/ReferenceMaterial"
+                }
+              },
+              "content": {
+                "type": "array",
+                "description": "Observed content in reading order.",
+                "items": {
+                  "$ref": "#/definitions/ReferenceMaterial"
+                }
+              },
+              "interactions": {
+                "type": "array",
+                "description": "Observed interaction evidence; absent states are recorded as unavailable.",
+                "items": {
+                  "$ref": "#/definitions/ReferenceMaterial"
+                }
+              },
+              "properties": {
+                "$ref": "#/definitions/ReferenceMaterial"
+              }
+            }
+          },
+          "dependencies": {
+            "$ref": "#/definitions/ReferenceDependencies"
+          },
+          "unavailable": {
+            "type": "array",
+            "description": "Explicit observation gaps; a required gap blocks publication.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "property",
+                "reason",
+                "required"
+              ],
+              "properties": {
+                "property": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Missing observation identity."
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Why the selected source cannot supply it."
+                },
+                "required": {
+                  "type": "boolean",
+                  "description": "Whether the agreed capture scope requires this information."
+                }
+              }
+            }
+          }
+        }
+      },
+      "ReferenceSubject": {
+        "type": "object",
+        "title": "Exact observed subject",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "locator",
+          "samples"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/definitions/ElementId"
+          },
+          "locator": {
+            "$ref": "#/definitions/ObservationLocator"
+          },
+          "samples": {
+            "type": "array",
+            "minItems": 1,
+            "description": "One sample for each selected view and state; duplicate cells are invalid.",
+            "items": {
+              "$ref": "#/definitions/ReferenceSample"
+            }
+          }
+        }
+      },
+      "ReferenceParentSample": {
+        "type": "object",
+        "title": "Observed ancestor condition",
+        "additionalProperties": false,
+        "required": [
+          "view",
+          "state",
+          "layout",
+          "asset_ids",
+          "font_families"
+        ],
+        "properties": {
+          "view": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Exact selected view identity."
+          },
+          "state": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Exact observed state identity."
+          },
+          "layout": {
+            "$ref": "#/definitions/ReferenceMaterial"
+          },
+          "asset_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "description": "Exact images[].url dependencies.",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "font_families": {
+            "type": "array",
+            "uniqueItems": true,
+            "description": "Exact fonts[].family dependencies.",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "ReferenceParent": {
+        "type": "object",
+        "title": "Observed ancestor layout",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "samples"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Exact observed dependency identity."
+          },
+          "parent": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Exact ancestor dependency identity when needed."
+          },
+          "samples": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Observed ancestor layout for the selected view and state.",
+            "items": {
+              "$ref": "#/definitions/ReferenceParentSample"
+            }
+          }
+        }
+      },
+      "ObservationCapture": {
+        "type": "object",
+        "title": "Captured visual evidence",
+        "additionalProperties": false,
+        "required": [
+          "subject",
+          "view",
+          "state",
+          "path",
+          "width",
+          "height"
+        ],
+        "properties": {
+          "subject": {
+            "$ref": "#/definitions/ElementId"
+          },
+          "view": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Exact selected view identity."
+          },
+          "state": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Exact observed state identity."
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Screenshot path relative to the CLI-owned revision directory."
+          },
+          "width": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "Actual image width in pixels."
+          },
+          "height": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "Actual image height in pixels."
+          }
+        }
+      },
+      "DesignReference": {
+        "type": "object",
+        "title": "Shared captured observations",
+        "additionalProperties": false,
+        "description": "Source and actual observations only. The design plan separately owns target structure, styling and implementation decisions.",
+        "required": [
+          "subjects",
+          "parents",
+          "images",
+          "fonts",
+          "captures"
+        ],
+        "properties": {
+          "subjects": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Selected subjects, each with observations for its declared views and states.",
+            "items": {
+              "$ref": "#/definitions/ReferenceSubject"
+            }
+          },
+          "parents": {
+            "type": "array",
+            "description": "Observed ancestor layout dependencies; empty when none.",
+            "items": {
+              "$ref": "#/definitions/ReferenceParent"
+            }
+          },
+          "captures": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Exact screenshot associations for selected subject, view and state cells.",
+            "items": {
+              "$ref": "#/definitions/ObservationCapture"
+            }
+          },
+          "fonts": {
+            "type": "array",
+            "description": "Web fonts the reference renders text with. Each family that is not a Google/system font must be downloaded — see `files[]`. Metadata alone (family/weights) is insufficient: a self-hosted family with no `files[]` leaves downstream CSS with an unresolvable family and a silent serif fallback. This is the concrete failure mode `files[]` exists to prevent.\n",
+            "items": {
+              "type": "object",
+              "required": [
+                "family",
+                "source"
+              ],
+              "properties": {
+                "family": {
+                  "type": "string",
+                  "description": "Exact font-family name as used in @font-face / CSS (e.g. \"Reef\", \"Inter\")."
+                },
+                "source": {
+                  "type": "string",
+                  "description": "Where the font is served from. `self-hosted` and `adobe`/`other` families MUST be downloaded into `files[]`; `google` also needs local binaries for offline execution; `system` needs no download.\n",
+                  "enum": [
+                    "self-hosted",
+                    "google",
+                    "adobe",
+                    "system",
+                    "other"
+                  ]
+                },
+                "weights": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "description": "Distinct numeric weights observed (e.g. [400, 700])."
+                },
+                "styles": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Distinct styles observed (e.g. [normal, italic])."
+                },
+                "files": {
+                  "type": "array",
+                  "description": "Downloaded font binaries for this family. Required when `source` is not `system`; frozen packages require offline binaries. Empty only when the font could not be downloaded.\n",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "local_path"
+                    ],
+                    "properties": {
+                      "weight": {
+                        "type": "number",
+                        "description": "Weight this file provides."
+                      },
+                      "style": {
+                        "type": "string",
+                        "description": "Style this file provides (normal, italic).",
+                        "examples": [
+                          "normal",
+                          "italic"
+                        ]
+                      },
+                      "format": {
+                        "type": "string",
+                        "description": "Font format.",
+                        "examples": [
+                          "woff2",
+                          "woff",
+                          "ttf"
+                        ]
+                      },
+                      "src_url": {
+                        "type": "string",
+                        "description": "Resolved absolute URL the binary was downloaded from."
+                      },
+                      "local_path": {
+                        "type": "string",
+                        "description": "Path (relative to the reference folder, typically under `{assets_dir}/fonts/`) where the binary was written.\n",
+                        "examples": [
+                          "assets/fonts/Reef-Regular.woff2"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "images": {
+            "type": "array",
+            "description": "Static images and brand assets detected in the design reference (logos, icons, illustrations).",
+            "items": {
+              "type": "object",
+              "required": [
+                "url",
+                "role"
+              ],
+              "properties": {
+                "reference_path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Downloaded asset path relative to the reference folder. Required by offline packages that reference this image's exact url identity; distinct from its public local_path URL.",
+                  "examples": [
+                    "assets/logo.svg"
+                  ]
+                },
+                "url": {
+                  "type": "string",
+                  "description": "Source URL or path of the image."
+                },
+                "role": {
+                  "type": "string",
+                  "description": "Visual role of the image.",
+                  "enum": [
+                    "logo",
+                    "icon",
+                    "hero",
+                    "background",
+                    "illustration",
+                    "avatar",
+                    "other"
+                  ]
+                },
+                "alt": {
+                  "type": "string",
+                  "description": "Alt text or accessible label if present."
+                },
+                "location": {
+                  "type": "string",
+                  "description": "Where the image appears: header, footer, main, sidebar."
+                },
+                "width": {
+                  "type": "string",
+                  "description": "Rendered width (px or CSS value)."
+                },
+                "height": {
+                  "type": "string",
+                  "description": "Rendered height (px or CSS value)."
+                },
+                "local_path": {
+                  "type": "string",
+                  "description": "Path (relative to the Storybook `public/` or configured static dir) where the asset has been downloaded. Empty if the asset could not be downloaded or is decorative-only. Scenes and components MUST reference this path (e.g. `<img src=\"/logo.svg\">`) instead of text placeholders when it is set.\n",
+                  "examples": [
+                    "/logo.svg",
+                    "/assets/partner-bmbf.svg"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "CaptureFile": {
+        "title": "Captured binary artifact",
+        "description": "Declared direct screenshot or asset file; plan done records its exact file integrity."
+      },
+      "ObservationView": {
+        "type": "object",
+        "title": "Selected source view",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "width",
+          "height"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Stable selected viewport or frame identity."
+          },
+          "width": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "Capture width in pixels."
+          },
+          "height": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "Capture height in pixels."
+          },
+          "breakpoint": {
+            "$ref": "#/definitions/BreakpointId",
+            "description": "Explicit responsive mapping when established during intake."
+          }
+        }
+      },
+      "ObservationElement": {
+        "type": "object",
+        "title": "Observed subject coverage",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "locator",
+          "states",
+          "views"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/definitions/ElementId"
+          },
+          "locator": {
+            "$ref": "#/definitions/ObservationLocator"
+          },
+          "states": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Explicit observed states; source-specific replay details belong in the source workflow. Each state has its own dump `extract--<name>.json`, so a state name identifies one page load in one session across the whole revision and cannot carry different observers on different subjects.\n",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "name",
+                "session"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Exact state identity."
+                },
+                "session": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Who observed this state. `anonymous` is the reserved name for a capture taken without a stored session; any other name must be a key of `sessions:` in designbook.config.yml, which resolves it to a Playwright storage state. Required so a published revision states its observer instead of defaulting to anonymous in silence.\n",
+                  "examples": [
+                    "anonymous",
+                    "member",
+                    "admin"
+                  ]
+                }
+              }
+            }
+          },
+          "views": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Selected views; no implicit frame-to-breakpoint mapping.",
+            "items": {
+              "$ref": "#/definitions/ObservationView"
+            }
+          }
+        }
+      },
+      "Reference": {
+        "type": "object",
+        "title": "Captured observation metadata",
+        "additionalProperties": false,
+        "description": "One source-neutral snapshot shared by reference and actual Storybook capture. Publication identity is supplied by the CLI binding manifest.",
+        "required": [
+          "source",
+          "role",
+          "elements",
+          "assets_dir"
+        ],
+        "properties": {
+          "source": {
+            "$ref": "#/definitions/ObservationSource"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "reference",
+              "actual"
+            ]
+          },
+          "elements": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Selected subjects with their observed state and view coverage.",
+            "items": {
+              "$ref": "#/definitions/ObservationElement"
+            }
+          },
+          "prelude_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "description": "SHA-256 of the prelude module that prepared every pass of this revision. Absent when the capture used no prelude. Fixing it here means a later prelude edit cannot silently redefine what was observed.\n"
+          },
+          "assets_dir": {
+            "type": "string",
+            "const": "assets",
+            "description": "Revision-relative asset directory."
+          }
+        }
+      }
+    }
+  }
+}
