@@ -41,6 +41,7 @@ sync_target_dir: ../..
 backend_cmd:
   cmd: "ddev wp"
   exists_cmd: "test -e"  # append the unit's absolute output path; exit 0 = already generated
+  validate_cmd: "npx storybook-addon-designbook twig check-includes"  # append unit name + file; checks component includes against <name>.schema.yml
   import: "ddev composer install -d wp-content/plugins/__NAMESPACE__-content && ddev wp plugin activate __NAMESPACE__-content && ddev wp theme activate __NAMESPACE__ && ddev wp rewrite flush"
   seed_cmd: "ddev wp eval-file"  # append the seed script path, relative to the WordPress root
   page_url_cmd: "ddev wp eval 'echo get_permalink(get_page_by_path(\"{scene}\"));'"

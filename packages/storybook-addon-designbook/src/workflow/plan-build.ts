@@ -127,6 +127,7 @@ export async function buildPlan(taskList: TaskList, opts: ResolveIntakeOptions =
               lenient: true,
               envMap: { DESIGNBOOK_DATA: String(intake.config.data ?? '') },
             }),
+            ...(out.validators?.length ? { validators: await renderValidators(out.validators, params) } : {}),
           }
         : out;
     }
@@ -211,4 +212,22 @@ export async function buildPlan(taskList: TaskList, opts: ResolveIntakeOptions =
   const plan = parsePlan(serializePlan(draft));
   plan.digest = planDigest(plan);
   return { plan, plans_dir: intake.plans_dir, errors: [] };
+}
+
+/**
+ * Renders `{{ param }}` templates in a contract's `cmd:` validators against the task's params.
+ * A validator that still references an absent param (an optional backend command left
+ * unconfigured) does not apply and is dropped; `{{ file }}` stays for validation time.
+ */
+export async function renderValidators(validators: string[], params: Record<string, unknown>): Promise<string[]> {
+  const rendered: string[] = [];
+  for (const validator of validators) {
+    if (!validator.startsWith('cmd:')) {
+      rendered.push(validator);
+      continue;
+    }
+    const cmd = await interpolate(validator, { ...params, file: '{{ file }}' }, { lenient: true });
+    if (!/\{\{(?!\s*file\s*\}\})[^}]*\}\}/.test(cmd)) rendered.push(cmd);
+  }
+  return rendered;
 }

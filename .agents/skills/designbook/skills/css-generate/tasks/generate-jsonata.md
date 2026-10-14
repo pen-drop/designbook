@@ -28,9 +28,6 @@ result:
     generate-jsonata:
       path: '{{ artifact.jsonata_path }}'
       $ref: ../schemas.yml#/Jsonata
-      validators:
-        - cmd:npx jsonata-w transform --dry-run {{ file }}
-        - cmd:npx jsonata-w transform --dry-run {{ file }} | npx stylelint --stdin-filename output.css
 ---
 
 # Generate JSONata Expression

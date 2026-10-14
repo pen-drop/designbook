@@ -33,7 +33,8 @@ params:
           type: string
           description: >
             Command prefix for validating a written output file. The engine appends the unit
-            name and file path before running.
+            name and file path before running; exit non-zero with the violations on stderr
+            when invalid.
         import:
           type: string
           description: Complete command run as-is by the sync stage. Not used by transform itself.
@@ -60,6 +61,8 @@ result:
         as: prepared
       generator:
         jsonata: $DESIGNBOOK_DATA/sync/{{ unit.name }}.jsonata
+      validators:
+        - 'cmd:{{ backend_cmd.validate_cmd }} {{ unit.name }} {{ file }}'
 ---
 
 # Transform
@@ -76,4 +79,4 @@ For the JSONata at the generator path, pick the guiding blueprint by this preced
 
 When a display unit's `def` carries `template: presenter` (a surface whose presentation the display output cannot express), follow the presenter-template blueprint **in addition to** the display-unit pattern: `transform` writes the **presenter-template** to the path and shape that blueprint directs, alongside the unit's file. A declaratively bindable surface (`template: field-map`) writes the unit's file only.
 
-Schema conformance for `output-file` is checked against `prepared` on completion when `schema_cmd` is configured. `backend_cmd.validate_cmd` is declared for live validation and currently unused by transform.
+Schema conformance for `output-file` is checked against `prepared` on completion when `schema_cmd` is configured. When `backend_cmd.validate_cmd` is configured, it runs on the written file at completion; a failure leaves the task open until the file passes.
