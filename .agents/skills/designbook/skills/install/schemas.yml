@@ -87,9 +87,12 @@ DesignbookConfig:
       properties:
         component:
           type: string
-          description: Markup/component framework identifier. Selects the integration skill (designbook-<component>) whose write-component task and blueprints drive component creation.
-          enum: [sdc, vue]
-          examples: [sdc, vue]
+          description: >-
+            Markup/component framework identifier. Selects the integration skill whose
+            write-component task and blueprints drive component creation. twig — plain Twig
+            templates rendered by Twing (Storybook) and by the backend's own Twig runtime.
+          enum: [sdc, vue, twig]
+          examples: [sdc, vue, twig]
         css:
           type: string
           description: CSS framework identifier, or `css` for plain CSS.

@@ -108,6 +108,7 @@
     "storybook": "^10.0.0",
     "ts-dedent": "^2.2.0",
     "tsup": "^8.5.0",
+    "twing": "^7.3.0",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.44.1",
     "vite": "^7.0.5",
@@ -118,6 +119,7 @@
   "peerDependencies": {
     "playwright": "^1.58.2",
     "storybook": "*",
+    "twing": "^7.3.0",
     "vite": "^5.0.0 || ^6.0.0 || ^7.0.0",
     "vue": "^3.0.0"
   },
@@ -126,6 +128,9 @@
       "optional": true
     },
     "storybook": {
+      "optional": true
+    },
+    "twing": {
       "optional": true
     },
     "vite": {
