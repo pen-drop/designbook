@@ -5,7 +5,8 @@ import { globSync } from 'glob';
 import type { Plugin } from 'vite';
 
 // `twing` is an optional peer: load it lazily, and through its CJS build — the ESM build
-// imports extension-less `locutus/*` paths that only a bundler (Vite) resolves.
+// imports extension-less `locutus/*` paths that only a bundler (Vite) resolves. The browser
+// module uses `twing/light`, the build without Node built-ins (`path`).
 const require = createRequire(import.meta.url);
 
 const ENV_ID = 'virtual:designbook-twig-env';
@@ -41,7 +42,7 @@ export function designbookTwigPlugin(opts: { componentsDir: string; namespace: s
       if (id === '\0' + ENV_ID) {
         for (const f of globSync('**/*.twig', { cwd: opts.componentsDir, absolute: true })) this.addWatchFile(f);
         return [
-          `import { createSynchronousArrayLoader, createSynchronousEnvironment } from 'twing';`,
+          `import { createSynchronousArrayLoader, createSynchronousEnvironment } from 'twing/light';`,
           `const templates = ${JSON.stringify(templateMap(opts.componentsDir, opts.namespace))};`,
           `export const env = createSynchronousEnvironment(createSynchronousArrayLoader(templates));`,
         ].join('\n');

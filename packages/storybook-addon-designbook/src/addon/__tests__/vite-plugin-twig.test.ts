@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { renderTwigForTest } from '../vite-plugin-twig.js';
+import { renderTwigForTest, designbookTwigPlugin } from '../vite-plugin-twig.js';
 
 describe('twig rendering', () => {
   const dir = mkdtempSync(join(tmpdir(), 'twigc-'));
@@ -22,5 +22,15 @@ describe('twig rendering', () => {
     expect(html).toBe(
       '<article>&lt;b&gt;x&lt;/b&gt;<span class="badge">New</span><div><strong>slot</strong></div></article>',
     );
+  });
+});
+
+describe('designbookTwigPlugin browser module', () => {
+  it('imports the browser build of twing (the default build imports node:path)', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'twigp-'));
+    const plugin = designbookTwigPlugin({ componentsDir: dir, namespace: 'ns' });
+    const load = plugin.load as (this: unknown, id: string) => string;
+    const code = load.call({ addWatchFile: () => {} }, '\0virtual:designbook-twig-env');
+    expect(code).toContain("from 'twing/light'");
   });
 });
