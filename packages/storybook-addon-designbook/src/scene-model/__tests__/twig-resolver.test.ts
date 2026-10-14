@@ -19,7 +19,12 @@ describe('defaultTwigResolver', () => {
     expect(defaultTwigResolver('ns:missing', designbookDir)).toBeNull();
     expect(defaultTwigResolver('nonamespace', designbookDir)).toBeNull();
   });
-  it('wraps the default export with merged props and slots', () => {
-    expect(defaultTwigWrapImport('C0')).toBe('{ render: (p, s) => C0.default({ ...p, ...s }) }');
+  it('wraps the default export with merged props and slots, joining multi-child slots', () => {
+    const mod = { default: (ctx: Record<string, unknown>) => `${ctx.title}|${ctx.content}` };
+    const wrapped = new Function('C0', `return ${defaultTwigWrapImport('C0')}`)(mod) as {
+      render: (p: object, s: object) => string;
+    };
+    expect(wrapped.render({ title: 'T' }, { content: ['<b>1</b>', '<i>2</i>'] })).toBe('T|<b>1</b><i>2</i>');
+    expect(wrapped.render({ title: 'T' }, { content: '<b>1</b>' })).toBe('T|<b>1</b>');
   });
 });

@@ -137,9 +137,12 @@ export function defaultTwigResolver(componentId: string, designbookDir: string):
   return null;
 }
 
-/** Twig modules export `(ctx) => html`; slots arrive pre-rendered as HTML strings. */
+/**
+ * Twig modules export `(ctx) => html`. Slots arrive pre-rendered; a multi-child slot is an
+ * array of HTML strings, joined here because Twig prints an array as `Array`.
+ */
 export function defaultTwigWrapImport(alias: string): string {
-  return `{ render: (p, s) => ${alias}.default({ ...p, ...s }) }`;
+  return `{ render: (p, s) => ${alias}.default({ ...p, ...Object.fromEntries(Object.entries(s).map(([k, v]) => [k, Array.isArray(v) ? v.join('') : v])) }) }`;
 }
 
 // ── Data loading ────────────────────────────────────────────────────────

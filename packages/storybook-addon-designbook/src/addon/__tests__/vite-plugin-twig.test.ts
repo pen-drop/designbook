@@ -34,3 +34,23 @@ describe('designbookTwigPlugin browser module', () => {
     expect(code).toContain("from 'twing/light'");
   });
 });
+
+describe('designbookTwigPlugin dev server', () => {
+  it('rebuilds the template map when a new .twig file is added', () => {
+    const plugin = designbookTwigPlugin({ componentsDir: '/c', namespace: 'ns' });
+    const handlers: Record<string, (f: string) => void> = {};
+    const invalidated: unknown[] = [];
+    const envModule = { id: '\0virtual:designbook-twig-env' };
+    const server = {
+      watcher: { on: (ev: string, fn: (f: string) => void) => (handlers[ev] = fn) },
+      moduleGraph: {
+        getModuleById: (id: string) => (id === envModule.id ? envModule : undefined),
+        invalidateModule: (m: unknown) => invalidated.push(m),
+      },
+    };
+    (plugin.configureServer as (s: unknown) => void)(server);
+    handlers.add!('/c/new-card/new-card.twig');
+    handlers.add!('/c/new-card/new-card.schema.yml');
+    expect(invalidated).toEqual([envModule]);
+  });
+});

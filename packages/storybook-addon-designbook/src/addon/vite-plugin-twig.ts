@@ -58,5 +58,13 @@ export function designbookTwigPlugin(opts: { componentsDir: string; namespace: s
       const mod = server.moduleGraph.getModuleById('\0' + ENV_ID);
       if (mod) server.moduleGraph.invalidateModule(mod);
     },
+    // A component written while the server runs is a new file, not a hot update.
+    configureServer(server) {
+      server.watcher.on('add', (file) => {
+        if (!file.endsWith('.twig')) return;
+        const mod = server.moduleGraph.getModuleById('\0' + ENV_ID);
+        if (mod) server.moduleGraph.invalidateModule(mod);
+      });
+    },
   };
 }
