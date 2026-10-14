@@ -16,3 +16,11 @@ css:
 component:
   namespace: 'test_integration_wordpress'
   src: components
+# Sync output root (wp-content), relative to the workspace root.
+sync_target_dir: wp-content
+backend_cmd:
+  cmd: "ddev wp"
+  exists_cmd: "test -e"
+  import: "ddev composer install -d wp-content/plugins/test_integration_wordpress-content && ddev wp plugin activate test_integration_wordpress-content && ddev wp theme activate test_integration_wordpress && ddev wp rewrite flush"
+  seed_cmd: "ddev wp eval-file"
+  page_url_cmd: "ddev wp eval 'echo get_permalink(get_page_by_path(\"{scene}\"));'"

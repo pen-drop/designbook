@@ -1,0 +1,30 @@
+workflow: sync-to
+fixtures:
+  - empty
+  - reference
+  - vision
+  - data-model
+  - tokens
+  - screen
+prompt: |
+  You are working in {{workspace}}. This is the Cooks Delight recipe demo.
+  Use the installed Designbook skills and the configured WordPress / Twig / Tailwind integration.
+  Read the actual SKILL.md for each skill named below and follow its instructions.
+  Execute only this case and its explicitly named prerequisite skills.
+  Preserve all completed earlier steps and the published reference.
+  Do not launch Promptfoo or rebuild this prepared workspace from inside the case.
+  If required evidence, access or approval is missing, stop with the exact blocker; never invent it.
+  The DDEV WordPress site of this workspace is already running (admin admin/admin).
+  Run the /debo sync-to workflow with an empty filter (the whole data model, no scene).
+  It generates the content plugin and the theme files below wp-content and applies them to the
+  live site with the configured import command. Report the generated unit names, the import
+  output and the site URL of a recipe.
+assert:
+- type: javascript
+  value: output.completedWorkflows['sync-to']?.state?.status === 'completed'
+- type: javascript
+  value: output.newFiles.some(f => f.endsWith('wp-content/plugins/test_integration_wordpress-content/fields/post-recipe.php'))
+- type: javascript
+  value: output.newFiles.some(f => f.endsWith('wp-content/plugins/test_integration_wordpress-content/post-types/recipe.php'))
+- type: javascript
+  value: output.newFiles.some(f => /views\/single-recipe\.twig$/.test(f))

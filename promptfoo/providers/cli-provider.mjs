@@ -103,10 +103,19 @@ class CliProvider {
       // agent always starts it via `storybook start`, which assigns a free port
       // and records it in storybook.json for `storybook status` to read back.
 
-      if (caseName.startsWith("sync-")) {
-        // Provision/import the committed DB baseline before the measured workflow.
+      if (/^(sync|seed)(-|$)/.test(caseName)) {
+        // Provision the live backend (Drupal: import the committed DB baseline) before
+        // the measured workflow.
+        const suiteCfg = join(repoRoot, "fixtures", suite, "designbook.config.yml");
+        const backend = existsSync(suiteCfg)
+          ? yaml.load(readFileSyncFs(suiteCfg, "utf-8"))?.backend
+          : undefined;
+        const startScript =
+          backend === "wordpress"
+            ? "start-wordpress-workspace.sh"
+            : "start-drupal-workspace.sh";
         execFileSync(
-          join(repoRoot, "scripts", "start-drupal-workspace.sh"),
+          join(repoRoot, "scripts", startScript),
           ["--workspace", workspaceDir],
           {
             cwd: repoRoot,
