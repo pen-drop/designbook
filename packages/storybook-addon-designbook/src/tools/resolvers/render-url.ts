@@ -7,8 +7,8 @@ import type { ParamResolver, ResolverContext, ResolverResult } from './types.js'
  * Backend-neutral: the resolver runs whatever command string the project's
  * designbook config supplies as `renderUrlCommand`, substituting `{config_id}`
  * with the input (e.g. an entity-view-display id), and returns the printed URL.
- * It never mentions any specific backend — the Drupal integration supplies the
- * drush command via config; core adds no backend code.
+ * It never mentions any specific backend — the backend integration supplies the
+ * command via config; core adds no backend code.
  *
  * Defensive passthrough: the config-verify workflow seeds this param from the
  * config id (`from: config`), so `input` is normally a config id. Should a caller
