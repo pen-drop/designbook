@@ -46,7 +46,7 @@ Starting point for the config units `sync-to` emits when a Scene's page uses
   bundle the Scene uses, plus view config for any `views_block` / `block_plugin`, expanded
   through the standard content-bundle and config-slice rules.
 
-The Scene still drives *which* bundles and views become config units (resolve-filter). The
+The Scene still drives *which* bundles and views become config units (sync-to intake). The
 section *composition* for a `layout-builder` template is not authored into the display YAML;
 tests that need a reachable rendered page seed the override layout after import (fixture seed).
 This is an overridable starting point — a project whose Layout-Builder export differs replaces it.

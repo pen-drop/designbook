@@ -1,4 +1,4 @@
-# Sync concern schemas — output shapes for Drupal config export transforms.
+# Sync concern schemas — units and results of a backend sync.
 
 ExportSlice:
   type: object
@@ -16,8 +16,7 @@ ExportSlice:
     entity_type:
       type: string
       description: >
-        Drupal entity type machine name (e.g. "node", "media", "taxonomy_term").
-        Present when kind is "content".
+        Entity type key from the data model. Present when kind is "content".
       examples: [node, media, taxonomy_term, block_content]
     bundle:
       type: string
@@ -46,115 +45,102 @@ ExportSummary:
   type: object
   title: Export Summary
   description: >
-    Summary of the Drupal config files written in one export run.
-    Produced by the outtake stage from the transform stage results.
-  required: [config_names, count]
+    Summary of the backend files written in one sync run. Produced by the outtake stage from
+    the transform stage results.
+  required: [unit_names, count]
   properties:
-    config_names:
+    unit_names:
       type: array
-      description: Sorted list of Drupal config names (without .yml extension) written in this run.
+      description: Sorted list of the unit names whose output file this run wrote.
       items:
         type: string
-        description: Drupal config name, e.g. "node.type.article".
-        pattern: '^[a-z0-9_]+(\.[a-z0-9_]+)+$'
+        description: Unit name, e.g. "node.type.article" or "post_type.recipe".
+        pattern: '^[a-z0-9_-]+(\.[a-z0-9_-]+)+$'
     count:
       type: integer
-      description: Total number of config YAML files written.
+      description: Total number of output files written.
     presenter_templates:
       type: array
       description: >
         Paths of the presenter-template files this run wrote — one per surface
         (`template: presenter`) whose presentation the display config cannot express. Empty when
-        every surface was declaratively bindable (`template: field-map`). Makes the contract
-        widening (config, plus a presenter-template) visible in the run summary. The concrete
-        markup form (e.g. Twig) and theme path are a Drupal concern — the paths here are opaque.
+        every surface was declaratively bindable (`template: field-map`). The concrete markup
+        form and path are a backend concern — the paths here are opaque.
       items:
         type: string
-        description: Path of one written presenter-template (theme-relative on a Drupal backend), e.g. "templates/views/views-view.html.twig".
+        description: Path of one written presenter-template.
     uncovered_units:
       type: array
       description: >
-        Config names that reached blueprint-precedence stage 4 (authored from `prepared` alone,
-        with no matching blueprint). Empty in the normal case — every unit kind occurring today
-        has a covering blueprint. A non-empty list is the reported, visible signal that a new
-        unit kind needs a blueprint; it never fails the run silently.
+        Unit names that reached blueprint-precedence stage 4 (authored with no matching
+        blueprint). Empty in the normal case. A non-empty list is the reported, visible signal
+        that a new unit kind needs a blueprint; it never fails the run silently.
       items:
         type: string
-        description: Drupal config name that hit stage 4, e.g. "some.new.config_type".
-        pattern: '^[a-z0-9_]+(\.[a-z0-9_]+)+$'
+        description: Unit name that hit stage 4.
+        pattern: '^[a-z0-9_-]+(\.[a-z0-9_-]+)+$'
     page_url:
       type: string
       description: >
-        Reachable URL of the synced page, present only on the scene branch
-        (absent for a config/data-model run). Resolved at outtake time from the synced
-        page's config-derived identity (Layout-Builder canonical entity URL /
-        Display-Builder `page_layout` route) and expected to answer HTTP 200.
-      examples: ["https://drupal.ddev.site/node/1"]
+        Reachable URL of the synced page, present only on the scene branch (absent for a
+        config/data-model run). Resolved at outtake time through `backend_cmd.page_url_cmd` and
+        expected to answer HTTP 200.
+      examples: ["https://site.ddev.site/landing"]
 
 SyncResult:
   type: object
   title: Sync Result
   description: >
-    Outcome of applying config to the live Drupal site via drush config:import.
-    Captures the drush command summary text and the list of config names applied.
-  required: [drush_summary, applied_config_names, cim_ok]
+    Outcome of applying the generated output to the live backend with `backend_cmd.import`.
+  required: [summary, applied, ok]
   properties:
-    drush_summary:
+    summary:
       type: string
-      description: >
-        Full stdout/stderr output from the drush config:import invocation,
-        captured verbatim. Used for reporting and error surfacing.
-    applied_config_names:
+      description: Full stdout/stderr of the import command, captured verbatim.
+    applied:
       type: array
-      description: >
-        List of Drupal config names that drush reported as imported/applied
-        during this run. Derived from the drush output.
+      description: Unit names the import reported as applied, parsed from its output.
       items:
         type: string
-        description: Drupal config name, e.g. "node.type.article".
-        pattern: '^[a-z0-9_]+(\.[a-z0-9_]+)+$'
-    cim_ok:
+        description: Unit name, e.g. "node.type.article".
+        pattern: '^[a-z0-9_-]+(\.[a-z0-9_-]+)+$'
+    ok:
       type: boolean
       const: true
-      description: True when the drush config:import (--partial) invocation exited 0.
+      description: True when the import command exited 0.
 
-ConfigNameUnit:
+SyncUnit:
   type: object
-  title: Config Name Unit
+  title: Sync Unit
   description: >
-    One Drupal configuration object name together with the data-model context
-    needed to author its generator JSONata. Emitted by resolve-filter (one unit
-    per Drupal config file a slice yields) and consumed by transform (one result
-    per unit).
-  required: [config_name]
+    One output file of a backend sync together with the data-model context needed to author
+    it. Emitted at intake (the active backend's sync-unit rule defines the expansion) and
+    consumed by transform (one result per unit).
+  required: [name, path]
   additionalProperties: false
   properties:
-    config_name:
+    name:
       type: string
       description: >
-        Drupal configuration object name matching the config/sync filename without
-        the .yml extension. Dot-separated lowercase segments
-        (e.g. node.type.article, field.storage.node.field_body,
-        field.field.node.article.field_body, core.entity_view_display.node.article.teaser).
-      pattern: '^[a-z0-9_]+(\.[a-z0-9_]+)+$'
+        Unit id — dot-separated lowercase segments naming the backend object the file defines
+        (e.g. node.type.article, field.field.node.article.field_body, post_type.recipe).
+      pattern: '^[a-z0-9_-]+(\.[a-z0-9_-]+)+$'
+    path:
+      type: string
+      description: Output file relative to the sync target directory, with its extension.
+      examples: [node.type.article.yml, plugins/acme-content/post-types/recipe.php]
     entity_type:
       type: string
-      description: >
-        Drupal entity type machine name. Present for content-derived units
-        (e.g. "node", "media", "taxonomy_term", "block_content").
-      examples: [node, media, taxonomy_term, block_content]
+      description: Entity type key from the data model. Present for content-derived units.
+      examples: [node, post, term]
     bundle:
       type: string
-      description: >
-        Bundle machine name within the entity type. Present for content-derived
-        units (e.g. "article", "image", "tag").
-      examples: [article, page, image, tag]
+      description: Bundle key within the entity type. Present for content-derived units.
+      examples: [article, recipe, image]
     field_name:
       type: string
-      description: >
-        Field machine name. Present for field.storage.* and field.field.* units.
-        Absent for bundle-type and view-display units.
-      examples: [field_body, field_subtitle, field_image]
+      description: Field name. Present for per-field units.
+      examples: [field_body, prep_minutes]
     config_key:
       type: string
       description: >
@@ -164,17 +150,17 @@ ConfigNameUnit:
     def:
       type: object
       description: >
-        The relevant definition object from the data model — bundle def (fields,
-        view_modes, purpose, etc.) for content-derived units, or config def for
-        config-slice units. Used by the generator to author the JSONata transform.
+        The relevant definition object from the data model — bundle def (fields, view_modes,
+        purpose, etc.) for content-derived units, or config def for config-slice units. Used by
+        the generator to author the transform.
     build_form:
       type: string
       description: >
-        Page build form for a Scene-derived config unit — the presentation surface the page's
-        config is authored against. Taken (not guessed) from the full view-mode `template` of the
-        page bundle in the data model, on the same backend-neutral `template` axis as view- and
+        Page build form for a Scene-derived unit — the presentation surface the page's output is
+        authored against. Taken (not guessed) from the full view-mode `template` of the page
+        bundle in the data model, on the same backend-neutral `template` axis as view- and
         form-mode templates: a free string whose allowed values come from `entity_mapping.templates`
-        in `designbook.config.yml`, with the concrete technology behind each value set by the config
-        default / active `backend` — not enum-fixed here. The `template → build_form → config`
-        mapping (the *how* of each form) lives in the backend integration's data-mapping blueprints.
-        Absent on config/data-model-derived units.
+        in `designbook.config.yml`, with the concrete technology behind each value set by the
+        active `backend` — not enum-fixed here. The `template → build_form → output` mapping (the
+        *how* of each form) lives in the backend integration's data-mapping blueprints. Absent on
+        config/data-model-derived units.

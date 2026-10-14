@@ -47,7 +47,7 @@ prompt: |
 
   PART C — idempotency (AC-4):
   6. Run the /debo sync-to workflow again with the SAME params (scene: landing, section: landing).
-     resolve-filter's config existence filter (exists_cmd = config:get) must drop the
+     the sync-to intake existence filter (exists_cmd → config:get) must drop the
      already-synced config units, so this run's config units come back empty or partial —
      no duplicate config, no abort. On this run the node exists (seeded in step 3), so the
      outtake resolves the reachable page_url.

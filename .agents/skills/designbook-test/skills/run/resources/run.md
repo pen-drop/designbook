@@ -157,8 +157,8 @@ For main, verification and each repair attempt:
    `uncached = input - cached`; `total = input + output`. Cached and reasoning
    are subsets, not extra additions. Missing usage is unknown, never zero.
    Preserve CLI summary fields needed by the case metric. For `expected_config`
-   cases, also record `validate_pass_rate` from saved config-file result validity,
-   `cim_ok` from the import result and `existence_rate` from live
+   cases, also record `validate_pass_rate` from saved output-file result validity,
+   `cim_ok` from the import result (`SyncResult.ok`) and `existence_rate` from live
    `ddev drush config:get <name> --format=json` checks in this workspace. Save
    each command/result as evidence; an unavailable backend is unevaluable.
 
