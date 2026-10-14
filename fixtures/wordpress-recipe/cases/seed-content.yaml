@@ -20,7 +20,7 @@ prompt: |
   create every sample record of the data model as WordPress content via WP-CLI.
   Report the created records and the URL of the lemon-garlic-roasted-chicken recipe.
   Finally save that recipe page's HTML as evidence, unmodified:
-  curl -sk "<recipe url>" > designbook/seed-page.html
+  curl -sk "<recipe url>" > wp-content/themes/test_integration_wordpress/designbook/seed-page.html
 assert:
 - type: javascript
   value: output.completedWorkflows['sync-to']?.state?.status === 'completed'
