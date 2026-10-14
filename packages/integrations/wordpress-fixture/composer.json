@@ -1,5 +1,18 @@
 {
   "name": "designbook/wordpress-fixture",
-  "require": { "timber/timber": "^2.3" },
-  "config": { "vendor-dir": "vendor" }
+  "repositories": [
+    { "type": "composer", "url": "https://wpackagist.org", "only": ["wpackagist-plugin/*"] }
+  ],
+  "require": {
+    "composer/installers": "^2.3",
+    "timber/timber": "^2.3",
+    "wpackagist-plugin/secure-custom-fields": "^6.9"
+  },
+  "extra": {
+    "installer-paths": { "wp-content/plugins/{$name}/": ["type:wordpress-plugin"] }
+  },
+  "config": {
+    "vendor-dir": "vendor",
+    "allow-plugins": { "composer/installers": true }
+  }
 }

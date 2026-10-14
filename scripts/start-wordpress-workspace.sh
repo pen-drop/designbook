@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Start the DDEV WordPress site of a backend: wordpress workspace (setup-workspace.sh).
-# Idempotent: downloads/installs WordPress only when missing. The DDEV host is shared
-# with other projects, so the project gets its own name and this script never powers
-# ddev off.
+# Start the DDEV WordPress site of a backend: wordpress workspace (setup-workspace.sh):
+# import the fixture's db.sql.gz, enable the test theme and Secure Custom Fields, build the
+# theme CSS. Mirrors start-drupal-workspace.sh. The DDEV host is shared with other projects,
+# so the project gets its own name and this script never powers ddev off.
 #
 # Usage: ./scripts/start-wordpress-workspace.sh [name] | --workspace <dir>
 set -euo pipefail
@@ -34,16 +34,14 @@ cd "$WS"
 # Own project name through the gitignored overlay; the committed config.yaml stays pristine.
 printf 'name: designbook-wp-%s\n' "$KEY" > .ddev/config.local.yaml
 ddev start
-ddev composer install --no-interaction
 
-[ -d wp-includes ] || ddev wp core download --skip-content --force
-if ! ddev wp core is-installed 2>/dev/null; then
-  ddev wp core install --url="$(ddev describe -j | jq -r .raw.primary_url)" --title=Designbook \
-    --admin_user=admin --admin_password=admin --admin_email=admin@example.com --skip-email
-fi
-ddev wp plugin install secure-custom-fields --activate
+# Import the fixture's bare WordPress (core installed, admin/admin) and point it at this
+# project's URL.
+gzip -dc "$WS/db.sql.gz" | ddev import-db --no-progress
+ddev wp search-replace 'https://designbook-wp.ddev.site' "$(ddev describe -j | jq -r .raw.primary_url)" --all-tables --quiet
+
 ddev wp theme activate "$THEME"
-ddev wp rewrite structure '/%postname%/' --hard
+ddev wp plugin activate secure-custom-fields
 
 # Build the theme CSS the theme enqueues (css/app.css, gitignored build output). Storybook
 # compiles Tailwind in-process, so a missing file only shows on the WordPress side — fail loudly.

@@ -111,13 +111,15 @@ elif [ "$BACKEND" = "wordpress" ]; then
   # backend: wordpress — WordPress root at the workspace root, theme (the Storybook
   # app) under wp-content/themes. Like backend: none, setup-test.sh merges the suite
   # config into the workspace root. DDEV is NOT started — use
-  # ./scripts/start-wordpress-workspace.sh.
+  # ./scripts/start-wordpress-workspace.sh (imports the fixture's db.sql.gz).
   THEME="test_integration_wordpress"
   THEME_REL="wp-content/themes/$THEME"
   THEME_DIR="$WORKSPACE_DIR/$THEME_REL"
   echo "Setting up workspace: $WORKSPACE_DIR (backend: wordpress)"
   FIX_WP="$REPO_ROOT/packages/integrations/wordpress-fixture"
   [ -d "$FIX_WP" ] || { echo "Missing $FIX_WP" >&2; exit 1; }
+  # Ensure the fixture's gitignored core/composer tree is materialized (deterministic, once).
+  "$REPO_ROOT/scripts/prepare-wordpress-fixture.sh"
   rm -rf "$WORKSPACE_DIR"; mkdir -p "$WORKSPACE_DIR"
   rsync -a --exclude='.git' "$FIX_WP/" "$WORKSPACE_DIR/"
   mkdir -p "$THEME_DIR" "$WORKSPACE_DIR/wp-content/plugins"
