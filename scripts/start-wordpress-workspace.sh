@@ -45,4 +45,10 @@ ddev wp plugin install secure-custom-fields --activate
 ddev wp theme activate "$THEME"
 ddev wp rewrite structure '/%postname%/' --hard
 
+# Build the theme CSS the theme enqueues (css/app.css, gitignored build output). Storybook
+# compiles Tailwind in-process, so a missing file only shows on the WordPress side — fail loudly.
+THEME_DIR="$WS/wp-content/themes/$THEME"
+(cd "$THEME_DIR" && pnpm run build >/dev/null)
+[ -f "$THEME_DIR/css/app.css" ] || { echo "✗ theme CSS build produced no $THEME_DIR/css/app.css" >&2; exit 1; }
+
 echo "✓ WordPress up for workspace $WS ($(ddev describe -j | jq -r .raw.primary_url), admin/admin)"
