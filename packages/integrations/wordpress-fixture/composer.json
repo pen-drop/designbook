@@ -1,0 +1,5 @@
+{
+  "name": "designbook/wordpress-fixture",
+  "require": { "timber/timber": "^2.3" },
+  "config": { "vendor-dir": "vendor" }
+}
