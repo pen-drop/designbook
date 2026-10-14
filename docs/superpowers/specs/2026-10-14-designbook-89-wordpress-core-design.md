@@ -1,6 +1,6 @@
 # WordPress integration core (`designbook-wordpress`) — design
 
-Date: 2026-10-14 · Status: proposed · Epic with builder sub-tickets (Gutenberg, Elementor, Bricks)
+Date: 2026-10-14 · Status: confirmed · Epic with builder sub-tickets (Gutenberg, Elementor, Bricks)
 
 ## Goal
 
