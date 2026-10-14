@@ -48,6 +48,8 @@ export interface TaskContract {
   outputs: Record<string, OutputContract>;
   /** JSON Schema the task's params must satisfy — the CLI validates the agent's params against it. */
   params_schema: Record<string, unknown>;
+  /** Params declaring `resolve: <config key>` — filled from designbook.config.yml at plan build. */
+  resolves?: Record<string, string>;
   source: string;
 }
 export interface IntakeStep {
@@ -245,7 +247,19 @@ export async function resolveIntakeContext(
         ...(Array.isArray(paramsFm?.required) ? { required: paramsFm.required } : {}),
         properties: Object.fromEntries(Object.entries(block.params).map(([key, entry]) => [key, schemaOf(entry)])),
       };
-      contracts.push({ name: basename(taskFile).replace(/\.md$/, ''), step, outputs, params_schema, source: taskFile });
+      const resolves = Object.fromEntries(
+        Object.entries(block.params).flatMap(([key, entry]) =>
+          typeof entry.resolve === 'string' ? [[key, entry.resolve]] : [],
+        ),
+      );
+      contracts.push({
+        name: basename(taskFile).replace(/\.md$/, ''),
+        step,
+        outputs,
+        params_schema,
+        ...(Object.keys(resolves).length ? { resolves } : {}),
+        source: taskFile,
+      });
     }
     return contracts;
   };
