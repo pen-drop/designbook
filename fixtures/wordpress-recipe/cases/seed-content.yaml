@@ -19,8 +19,8 @@ prompt: |
   and theme exist and are active. Then run the /debo seed-content workflow with an empty filter to
   create every sample record of the data model as WordPress content via WP-CLI.
   Report the created records and the URL of the lemon-garlic-roasted-chicken recipe.
-  Finally save that recipe page's HTML as evidence, unmodified:
-  curl -sk "<recipe url>" > wp-content/themes/test_integration_wordpress/designbook/seed-page.html
+  Finally save the recipe page's rendered card as evidence, with exactly this command:
+  curl -sk "<recipe url>" | tr '\n' ' ' | grep -o '<article.*</article>' > wp-content/themes/test_integration_wordpress/designbook/seed-card.txt
 assert:
 - type: javascript
   value: output.completedWorkflows['sync-to']?.state?.status === 'completed'
@@ -28,12 +28,16 @@ assert:
   value: output.completedWorkflows['seed-content']?.state?.status === 'completed'
 - type: javascript
   value: output.newFiles.some(f => f.endsWith('designbook/seed/seed.php'))
-# F-1: the card renders the seeded data through the component's schema props.
+# F-1: the view renders the recipe through recipe-card with its schema props, and the live
+# card shows the seeded data (image, teaser, metadata line).
 - type: javascript
   value: |
-    const html = output.fileContents['designbook/seed-page.html'] || '';
-    return /<article[^>]*>/.test(html) && /<img[^>]*src="[^"]+"/.test(html);
+    const view = output.fileContents['wp-content/themes/test_integration_wordpress/views/single-recipe.twig'] || '';
+    return /recipe-card\/recipe-card\.twig/.test(view)
+      && ['image_src', 'description', 'total_time', 'difficulty', 'servings'].every(p => new RegExp(`\\b${p}\\s*:`).test(view))
+      && !/\b(image|total_minutes)\s*:/.test(view);
 - type: javascript
-  value: "/60[^<]*-\\s*hard\\s*-\\s*4/i.test(output.fileContents['designbook/seed-page.html'] || '')"
-- type: javascript
-  value: "/Welcome to Cooks Delight/.test(output.fileContents['designbook/seed-page.html'] || '')"
+  value: |
+    const card = output.fileContents['designbook/seed-card.txt'] || '';
+    return /<img[^>]*src="[^"]+"/.test(card) && /Welcome to Cooks Delight/.test(card)
+      && /60[^<]*-\s*hard\s*-\s*4/i.test(card);
