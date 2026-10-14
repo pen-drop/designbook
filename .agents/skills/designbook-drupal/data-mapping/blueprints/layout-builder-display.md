@@ -6,6 +6,7 @@ trigger:
   domain: data-mapping
   config_name: 'core.entity_view_display.*'
 filter:
+  backend: drupal
   extensions: layout_builder
 ---
 

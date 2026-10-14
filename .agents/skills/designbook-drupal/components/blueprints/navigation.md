@@ -4,6 +4,8 @@ name: navigation
 priority: 10
 trigger:
   domain: components
+filter:
+  frameworks.component: sdc
 ---
 
 # Blueprint: Navigation

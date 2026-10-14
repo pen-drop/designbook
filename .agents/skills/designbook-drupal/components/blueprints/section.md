@@ -20,6 +20,8 @@ extends:
                 $extensions:
                   designbook:
                     renderer: spacing
+filter:
+  frameworks.component: sdc
 ---
 
 # Blueprint: Section

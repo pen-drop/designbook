@@ -4,6 +4,8 @@ name: layout-builder
 priority: 10
 trigger:
   domain: data-mapping
+filter:
+  backend: drupal
 ---
 
 # Blueprint: Layout Builder — Passthrough Mapping
