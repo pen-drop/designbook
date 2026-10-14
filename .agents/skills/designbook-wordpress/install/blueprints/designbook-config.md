@@ -1,4 +1,6 @@
 ---
+type: blueprint
+name: designbook-config
 trigger:
   steps: [write-config]
 filter:

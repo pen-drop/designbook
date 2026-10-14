@@ -1,4 +1,6 @@
 ---
+type: blueprint
+name: storybook-setup
 trigger:
   steps: [setup-storybook]
 filter:

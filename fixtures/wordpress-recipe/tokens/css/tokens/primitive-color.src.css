@@ -1,0 +1,18 @@
+@theme static {
+  --color-neutral-50: #FFFBF2;
+  --color-neutral-100: #F0EBE1;
+  --color-neutral-800: #333333;
+  --color-neutral-900: #262522;
+  --color-neutral-900-a08: rgba(38,37,34,0.08);
+  --color-neutral-900-a16: rgba(38,37,34,0.16);
+  --color-neutral-900-a24: rgba(38,37,34,0.24);
+  --color-neutral-900-a40: rgba(38,37,34,0.4);
+  --color-neutral-900-a60: rgba(38,37,34,0.6);
+  --color-neutral-800-a80: rgba(51,51,51,0.8);
+  --color-black-a20: rgba(0,0,0,0.2);
+  --color-lime-400: #9FDC26;
+  --color-orange-400: #F29C33;
+  --color-coral-500: #EE6352;
+  --color-neutral-100-a08: rgba(240,235,225,0.08);
+  --color-neutral-100-a60: rgba(240,235,225,0.6);
+}

@@ -16,6 +16,9 @@ stages:
   compile:
     steps:
       - compile-css
+  export:
+    steps:
+      - export-tokens
   guard:
     steps:
       - guard-css
