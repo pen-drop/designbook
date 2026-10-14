@@ -27,5 +27,9 @@ existence filter only skips files Designbook generated before.
 | `view.<bundle>.full` | `themes/<ns>/views/single-<bundle>.twig` | each `post` bundle with a `full` view mode |
 | `parts.<ns>.header`, `parts.<ns>.footer` | `themes/<ns>/views/parts/header.twig`, `footer.twig` | when the design-system shell scene exists |
 
+The content plugin's main file owns the runtime the generated theme files rely on: it boots
+Timber, registers the Twig namespace `<ns>` → the theme's `components/` with autoescape off,
+enqueues the theme's compiled `css/app.css`, and fires `designbook/register_components`.
+
 Units carry `entity_type`, `bundle` and `def` where they derive from a bundle. Order: plugin →
 post types → taxonomies → field groups → theme base → templates → views → parts.
