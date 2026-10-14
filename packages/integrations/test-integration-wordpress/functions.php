@@ -1,5 +1,5 @@
 <?php
-require_once ABSPATH . 'vendor/autoload.php';
+if (is_file(ABSPATH . 'vendor/autoload.php')) require_once ABSPATH . 'vendor/autoload.php';
 Timber\Timber::init();
 add_filter('timber/locations', function ($paths) {
     $paths['test_integration_wordpress'] = [get_stylesheet_directory() . '/components'];

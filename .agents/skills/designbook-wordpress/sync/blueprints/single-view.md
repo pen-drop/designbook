@@ -16,7 +16,7 @@ exists, follow its component tree and field bindings; otherwise pass each bundle
 component prop of the same meaning.
 
 ```twig
-{% extends 'base.twig' %}
+{% extends 'designbook-base.twig' %}
 {% block content %}
   {% include '@<ns>/recipe-card/recipe-card.twig' with {
     title: post.title,
