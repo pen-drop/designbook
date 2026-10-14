@@ -8,7 +8,7 @@ filter:
   backend: wordpress
 ---
 
-# Blueprint: Theme Base View
+# Blueprint: Theme Base View and Index
 
 `theme.<ns>.base` — `views/designbook-base.twig`, the document frame every generated view
 extends. Timber itself is booted by the content plugin.
@@ -24,4 +24,12 @@ extends. Timber itself is booted by the content plugin.
 {{ function('wp_footer') }}
 </body>
 </html>
+```
+
+`theme.<ns>.index` — `index.php`, the fallback controller that also makes a scaffolded theme
+activatable:
+
+```php
+<?php
+if (class_exists('Timber\Timber')) Timber\Timber::render('designbook-base.twig', Timber\Timber::context());
 ```

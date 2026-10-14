@@ -19,6 +19,8 @@ prompt: |
   and theme exist and are active. Then run the /debo seed-content workflow with an empty filter to
   create every sample record of the data model as WordPress content via WP-CLI.
   Report the created records and the URL of the lemon-garlic-roasted-chicken recipe.
+  Finally save that recipe page's HTML as evidence, unmodified:
+  curl -sk "<recipe url>" > designbook/seed-page.html
 assert:
 - type: javascript
   value: output.completedWorkflows['sync-to']?.state?.status === 'completed'
@@ -26,3 +28,12 @@ assert:
   value: output.completedWorkflows['seed-content']?.state?.status === 'completed'
 - type: javascript
   value: output.newFiles.some(f => f.endsWith('designbook/seed/seed.php'))
+# F-1: the card renders the seeded data through the component's schema props.
+- type: javascript
+  value: |
+    const html = output.fileContents['designbook/seed-page.html'] || '';
+    return /<article[^>]*>/.test(html) && /<img[^>]*src="[^"]+"/.test(html);
+- type: javascript
+  value: "/60[^<]*-\\s*hard\\s*-\\s*4/i.test(output.fileContents['designbook/seed-page.html'] || '')"
+- type: javascript
+  value: "/Welcome to Cooks Delight/.test(output.fileContents['designbook/seed-page.html'] || '')"

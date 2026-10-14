@@ -12,20 +12,24 @@ filter:
 
 `view.<bundle>.full` — `views/single-<bundle>.twig` renders one post of the bundle by
 including the component that presents it. When an entity mapping for `<et>.<bundle>.full`
-exists, follow its component tree and field bindings; otherwise pass each bundle field to the
-component prop of the same meaning.
+exists, follow its component tree and field bindings; otherwise bind each prop of the
+component's `<name>.schema.yml` to the bundle field (or expression of fields) of the same
+meaning.
 
 ```twig
 {% extends 'designbook-base.twig' %}
 {% block content %}
-  {% include '@<ns>/recipe-card/recipe-card.twig' with {
-    title: post.title,
-    image: post.thumbnail ? post.thumbnail.src : null,
-    total_minutes: post.meta('prep_minutes') + post.meta('cook_minutes'),
+  {% include '@<ns>/<component>/<component>.twig' with {
+    <prop>: <post expression>,
   } only %}
 {% endblock %}
 ```
 
-Native post properties: `post.title`, `post.content`, `post.preview` (excerpt), `post.thumbnail`,
-`post.author.name`; ACF fields via `post.meta('<name>')` (repeaters return arrays of rows,
-images ACF arrays with `url` and `alt`).
+Post expressions, by the kind of value a prop expects:
+
+| Value | Expression |
+|---|---|
+| Native field | `post.title`, `post.content`, `post.preview` (excerpt), `post.link`, `post.author.name` |
+| Featured image | `post.thumbnail.src`, `post.thumbnail.alt` |
+| ACF field | `post.meta('<name>')`; a repeater returns an array of rows, an image an ACF array with `url` and `alt`, a select its stored key |
+| Derived text | Twig expressions over fields, e.g. `(post.meta('<a>') + post.meta('<b>')) ~ ' Min'`, `post.meta('<select>')\|upper` |

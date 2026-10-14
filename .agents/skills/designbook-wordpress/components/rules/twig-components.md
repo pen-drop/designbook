@@ -19,6 +19,7 @@ uses only what both runtimes share.
 | TWIG-05 | A nested component is included as `{% include '@<namespace>/<name>/<name>.twig' with { … } only %}`, `<namespace>` = `component.namespace`. |
 | TWIG-06 | Only core Twig tags, filters and functions; Drupal or WordPress helpers (`t`, `create_attribute`, `attach_library`, `clean_class`, `function()`, `fn()`) stay out of components. |
 | TWIG-07 | Prop and slot names are snake_case and identical in the template, `<name>.schema.yml` and every story. |
+| TWIG-08 | Shell and internal components (header, footer, page frame, and parts only other components include, such as icons) set `ui: false` in `<name>.schema.yml`; every component an editor places on a page keeps the default `ui: true`. |
 
 ## Storybook story address
 

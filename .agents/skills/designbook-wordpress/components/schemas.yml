@@ -37,6 +37,16 @@ TwigComponentSchema:
     description:
       type: string
       description: One sentence on what the component renders.
+    ui:
+      type: boolean
+      default: true
+      description: >-
+        Whether builder adapters offer the component in their editor. `false` keeps it
+        renderable but out of every builder's component list.
+    group:
+      type: string
+      description: Editor category the builder adapters list the component under.
+      examples: [Content, Media, Layout]
     props:
       type: object
       description: >-

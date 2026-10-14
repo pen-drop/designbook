@@ -13,7 +13,7 @@ only its editor representation and its storage format.
 
 | ID | Constraint |
 |---|---|
-| ADAPT-01 | An adapter registers its blocks, widgets or elements from the `designbook/register_components` action's `ComponentRegistry`; it reads component definitions only through `all()` / `get()`. |
+| ADAPT-01 | An adapter registers one block, widget or element per definition in `ui()` of the `designbook/register_components` action's `ComponentRegistry` (the components whose schema keeps `ui: true`), listed under the definition's `group` when set; it reads component definitions only through the registry. |
 | ADAPT-02 | Editor controls derive from each definition's `props` JSON Schema: `enum` → select, `boolean` → toggle, `format: uri` → URL, `string` → text, `number`/`integer` → number; `default` and `required` carry over. |
 | ADAPT-03 | Each named slot maps to exactly one nested region (InnerBlocks area, container, child list) labelled with the slot `title`. |
 | ADAPT-04 | Frontend output renders through `ComponentRegistry::render($id, $props, $slots)` with the slot regions pre-rendered to HTML, so WordPress and Storybook render the same Twig. |
