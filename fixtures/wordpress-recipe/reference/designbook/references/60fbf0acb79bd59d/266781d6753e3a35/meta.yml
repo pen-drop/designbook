@@ -1,0 +1,18 @@
+source:
+  kind: figma
+  identity: https://www.figma.com/design/jNxa1mBeUyh2eoAQrjcvhd
+  revision: null
+role: reference
+elements:
+  - id: recipe
+    locator:
+      kind: figma-node
+      value: "58:2"
+    states:
+      - name: rest
+        session: anonymous
+    views:
+      - id: desktop
+        width: 1440
+        height: 6847
+assets_dir: assets

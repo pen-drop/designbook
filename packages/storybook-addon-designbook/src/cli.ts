@@ -9,6 +9,7 @@ import { register as registerVerify } from './cli/verify.js';
 import { register as registerStorybook } from './cli/storybook.js';
 import { register as registerCompareImages } from './cli/compare-images.js';
 import { register as registerInspect } from './cli/inspect-register.js';
+import { register as registerTwig } from './cli/twig-check.js';
 import { registerSceneInventoryChecker } from './validation/validation-registry.js';
 import { validateSceneAgainstInventory } from './tools/scene-inventory.js';
 
@@ -143,6 +144,7 @@ registerVerify(program);
 registerStorybook(program);
 registerCompareImages(program);
 registerInspect(program);
+registerTwig(program);
 
 // parseAsync (not parse) so async action handlers are awaited; a rejected
 // action otherwise surfaces as an unhandled promise rejection with no

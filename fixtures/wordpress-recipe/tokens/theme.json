@@ -1,0 +1,300 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/theme.json",
+  "version": 3,
+  "settings": {
+    "color": {
+      "palette": [
+        {
+          "slug": "neutral-50",
+          "name": "Neutral 50",
+          "color": "#FFFBF2"
+        },
+        {
+          "slug": "neutral-100",
+          "name": "Neutral 100",
+          "color": "#F0EBE1"
+        },
+        {
+          "slug": "neutral-800",
+          "name": "Neutral 800",
+          "color": "#333333"
+        },
+        {
+          "slug": "neutral-900",
+          "name": "Neutral 900",
+          "color": "#262522"
+        },
+        {
+          "slug": "neutral-900-a08",
+          "name": "Neutral 900 A08",
+          "color": "rgba(38,37,34,0.08)"
+        },
+        {
+          "slug": "neutral-900-a16",
+          "name": "Neutral 900 A16",
+          "color": "rgba(38,37,34,0.16)"
+        },
+        {
+          "slug": "neutral-900-a24",
+          "name": "Neutral 900 A24",
+          "color": "rgba(38,37,34,0.24)"
+        },
+        {
+          "slug": "neutral-900-a40",
+          "name": "Neutral 900 A40",
+          "color": "rgba(38,37,34,0.4)"
+        },
+        {
+          "slug": "neutral-900-a60",
+          "name": "Neutral 900 A60",
+          "color": "rgba(38,37,34,0.6)"
+        },
+        {
+          "slug": "neutral-800-a80",
+          "name": "Neutral 800 A80",
+          "color": "rgba(51,51,51,0.8)"
+        },
+        {
+          "slug": "black-a20",
+          "name": "Black A20",
+          "color": "rgba(0,0,0,0.2)"
+        },
+        {
+          "slug": "lime-400",
+          "name": "Lime 400",
+          "color": "#9FDC26"
+        },
+        {
+          "slug": "orange-400",
+          "name": "Orange 400",
+          "color": "#F29C33"
+        },
+        {
+          "slug": "coral-500",
+          "name": "Coral 500",
+          "color": "#EE6352"
+        },
+        {
+          "slug": "neutral-100-a08",
+          "name": "Neutral 100 A08",
+          "color": "rgba(240,235,225,0.08)"
+        },
+        {
+          "slug": "neutral-100-a60",
+          "name": "Neutral 100 A60",
+          "color": "rgba(240,235,225,0.6)"
+        },
+        {
+          "slug": "background",
+          "name": "Background",
+          "color": "#F0EBE1"
+        },
+        {
+          "slug": "surface",
+          "name": "Surface",
+          "color": "#FFFBF2"
+        },
+        {
+          "slug": "foreground",
+          "name": "Foreground",
+          "color": "#262522"
+        },
+        {
+          "slug": "foreground-body",
+          "name": "Foreground Body",
+          "color": "#333333"
+        },
+        {
+          "slug": "foreground-muted",
+          "name": "Foreground Muted",
+          "color": "rgba(38,37,34,0.6)"
+        },
+        {
+          "slug": "foreground-subtle",
+          "name": "Foreground Subtle",
+          "color": "rgba(51,51,51,0.8)"
+        },
+        {
+          "slug": "outline",
+          "name": "Outline",
+          "color": "rgba(38,37,34,0.24)"
+        },
+        {
+          "slug": "outline-soft",
+          "name": "Outline Soft",
+          "color": "rgba(38,37,34,0.16)"
+        },
+        {
+          "slug": "control-muted",
+          "name": "Control Muted",
+          "color": "rgba(38,37,34,0.08)"
+        },
+        {
+          "slug": "control-placeholder",
+          "name": "Control Placeholder",
+          "color": "rgba(38,37,34,0.4)"
+        },
+        {
+          "slug": "primary",
+          "name": "Primary",
+          "color": "#EE6352"
+        },
+        {
+          "slug": "secondary",
+          "name": "Secondary",
+          "color": "#9FDC26"
+        },
+        {
+          "slug": "tertiary",
+          "name": "Tertiary",
+          "color": "#F29C33"
+        },
+        {
+          "slug": "on-primary",
+          "name": "On Primary",
+          "color": "#FFFBF2"
+        },
+        {
+          "slug": "image-overlay",
+          "name": "Image Overlay",
+          "color": "rgba(0,0,0,0.2)"
+        },
+        {
+          "slug": "footer-subtle",
+          "name": "Footer Subtle",
+          "color": "rgba(240,235,225,0.6)"
+        },
+        {
+          "slug": "footer-divider",
+          "name": "Footer Divider",
+          "color": "rgba(240,235,225,0.08)"
+        }
+      ]
+    },
+    "typography": {
+      "fontFamilies": [
+        {
+          "slug": "montserrat",
+          "name": "Montserrat",
+          "fontFamily": "Montserrat"
+        },
+        {
+          "slug": "roboto",
+          "name": "Roboto",
+          "fontFamily": "Roboto"
+        }
+      ],
+      "fontSizes": [
+        {
+          "slug": "10-35",
+          "name": "10 35",
+          "size": "10.35px"
+        },
+        {
+          "slug": "12",
+          "name": "12",
+          "size": "12px"
+        },
+        {
+          "slug": "14",
+          "name": "14",
+          "size": "14px"
+        },
+        {
+          "slug": "15",
+          "name": "15",
+          "size": "15px"
+        },
+        {
+          "slug": "16",
+          "name": "16",
+          "size": "16px"
+        },
+        {
+          "slug": "18",
+          "name": "18",
+          "size": "18px"
+        },
+        {
+          "slug": "21",
+          "name": "21",
+          "size": "21px"
+        },
+        {
+          "slug": "24",
+          "name": "24",
+          "size": "24px"
+        },
+        {
+          "slug": "40",
+          "name": "40",
+          "size": "40px"
+        },
+        {
+          "slug": "80",
+          "name": "80",
+          "size": "80px"
+        }
+      ]
+    },
+    "spacing": {
+      "spacingSizes": [
+        {
+          "slug": "4",
+          "name": "4",
+          "size": "4px"
+        },
+        {
+          "slug": "8",
+          "name": "8",
+          "size": "8px"
+        },
+        {
+          "slug": "12",
+          "name": "12",
+          "size": "12px"
+        },
+        {
+          "slug": "15",
+          "name": "15",
+          "size": "15px"
+        },
+        {
+          "slug": "16",
+          "name": "16",
+          "size": "16px"
+        },
+        {
+          "slug": "24",
+          "name": "24",
+          "size": "24px"
+        },
+        {
+          "slug": "32",
+          "name": "32",
+          "size": "32px"
+        },
+        {
+          "slug": "40",
+          "name": "40",
+          "size": "40px"
+        },
+        {
+          "slug": "48",
+          "name": "48",
+          "size": "48px"
+        },
+        {
+          "slug": "56",
+          "name": "56",
+          "size": "56px"
+        },
+        {
+          "slug": "64",
+          "name": "64",
+          "size": "64px"
+        }
+      ]
+    }
+  }
+}

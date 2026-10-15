@@ -4,6 +4,8 @@ name: ui-patterns
 priority: 5
 trigger:
   domain: data-mapping
+filter:
+  backend: drupal
 ---
 
 # Blueprint: UI Patterns 2 — `{source_id, source}` Sub-Pattern

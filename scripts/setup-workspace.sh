@@ -107,6 +107,24 @@ if [ "$BACKEND" = "none" ]; then
   # the suite fixture's own config (fixtures/<suite>/designbook.config.yml) is
   # merged directly onto the workspace root by setup-test.sh (THEME_REL="."),
   # so there is nothing Drupal-shaped to rewrite paths against yet.
+elif [ "$BACKEND" = "wordpress" ]; then
+  # backend: wordpress — WordPress root at the workspace root, theme (the Storybook
+  # app) under wp-content/themes. Like backend: none, setup-test.sh merges the suite
+  # config into the workspace root. DDEV is NOT started — use
+  # ./scripts/start-wordpress-workspace.sh (imports the fixture's db.sql.gz).
+  THEME="test_integration_wordpress"
+  THEME_REL="wp-content/themes/$THEME"
+  THEME_DIR="$WORKSPACE_DIR/$THEME_REL"
+  echo "Setting up workspace: $WORKSPACE_DIR (backend: wordpress)"
+  FIX_WP="$REPO_ROOT/packages/integrations/wordpress-fixture"
+  [ -d "$FIX_WP" ] || { echo "Missing $FIX_WP" >&2; exit 1; }
+  # Ensure the fixture's gitignored core/composer tree is materialized (deterministic, once).
+  "$REPO_ROOT/scripts/prepare-wordpress-fixture.sh"
+  rm -rf "$WORKSPACE_DIR"; mkdir -p "$WORKSPACE_DIR"
+  rsync -a --exclude='.git' "$FIX_WP/" "$WORKSPACE_DIR/"
+  mkdir -p "$THEME_DIR" "$WORKSPACE_DIR/wp-content/plugins"
+  rsync -a --exclude='node_modules' --exclude='.git' \
+    "$REPO_ROOT/packages/integrations/test-integration-wordpress/" "$THEME_DIR/"
 else
   THEME_REL="web/themes/custom/$THEME"
   THEME_DIR="$WORKSPACE_DIR/$THEME_REL"
@@ -282,7 +300,7 @@ case "$WORKSPACE_DIR" in
     if [ "$BACKEND" = "none" ]; then
       PNPM_WS_PACKAGE="."
     else
-      PNPM_WS_PACKAGE="web/themes/custom/test_integration_drupal"
+      PNPM_WS_PACKAGE="$THEME_REL"
     fi
     cat > "$WORKSPACE_DIR/pnpm-workspace.yaml" <<EOF
 packages:
@@ -335,18 +353,27 @@ fi
 
 # The driver runs from the workspace root containing designbook.config.yml.
 # Give that directory its own local CLI and delegate Storybook builds to the theme.
-WORKSPACE_DIR="$WORKSPACE_DIR" ADDON_DIR="$REPO_ROOT/packages/storybook-addon-designbook" \
+WORKSPACE_DIR="$WORKSPACE_DIR" THEME_REL="$THEME_REL" ADDON_DIR="$REPO_ROOT/packages/storybook-addon-designbook" \
 node -e '
   const fs = require("fs");
   const path = require("path");
   fs.writeFileSync(path.join(process.env.WORKSPACE_DIR, "package.json"), JSON.stringify({
     name: "designbook-test-workspace",
     private: true,
-    scripts: { "build-storybook": "pnpm --dir web/themes/custom/test_integration_drupal build-storybook" },
+    scripts: { "build-storybook": `pnpm --dir ${process.env.THEME_REL} build-storybook` },
     devDependencies: { "storybook-addon-designbook": `link:${process.env.ADDON_DIR}` }
   }, null, 2) + "\n");
 '
 (cd "$WORKSPACE_DIR" && pnpm install --no-frozen-lockfile --config.confirmModulesPurge=false)
+
+if [ "$BACKEND" = "wordpress" ]; then
+  echo ""
+  echo "✓ Workspace ready (WordPress layout, ddev NOT started)"
+  echo "  Workspace root : $WORKSPACE_DIR"
+  echo "  Theme dir      : $THEME_DIR"
+  echo "To boot WordPress: ./scripts/start-wordpress-workspace.sh ${WORKSPACE_DIR_OVERRIDE:+--workspace }${WORKSPACE_DIR_OVERRIDE:-$WORKSPACE_NAME}"
+  exit 0
+fi
 
 echo ""
 echo "✓ Workspace ready (Drupal layout, ddev NOT started)"

@@ -6,6 +6,7 @@ trigger:
   domain: data-mapping
   config_name: 'core.entity_view_display.*'
 filter:
+  backend: drupal
   extensions: layout_builder
 ---
 
@@ -48,7 +49,7 @@ views_block sections on the entity override (fixture seed or content path), not 
 
 Read the bundle's `entity-mapping/<et>.<bundle>.<view_mode>.jsonata` for the ComponentNode(s), and
 each referenced component's SDC `.component.yml` (prop types, `variants`, slot names). No
-resolve-filter change — the display unit already carries `entity_type`, `bundle`, and the view-mode
+sync-unit change — the display unit already carries `entity_type`, `bundle`, and the view-mode
 `def`; the rest is derived from these artifacts on disk.
 
 ## `third_party_settings.layout_builder`

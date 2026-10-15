@@ -31,6 +31,9 @@ component:
 extensions:
   - id: drupal
     skill: designbook-drupal
+# Config-sync directory (sync-to output root), relative to this config's directory (the
+# theme root) — resolves to <docroot>/sites/default/files/sync.
+sync_target_dir: ../../../sites/default/files/sync
 # Backend command strings — interpolated as {{ backend_cmd.* }} by sync tasks.
 # Core runs these opaquely; no drush/Drupal knowledge lives in core.
 # Both commands are provided by the designbook module, published to drupal.org
@@ -39,10 +42,9 @@ extensions:
 backend_cmd:
   cmd: "ddev drush"
   schema_cmd: "ddev drush designbook:config-schema"   # prints JSON Schema for a config name; append config name
-  validate_cmd: "ddev drush designbook:config-validate"  # exit non-zero + violations on stderr when invalid; append config name + yaml path
   ui_pattern_cmd: "ddev drush designbook:ui-pattern"  # emits the whole ui_patterns block (component_id, variant_id, props, slots) as JSON; append '<set>:<component>' --props=<json ComponentNode props/slots>
-  import: "ddev drush config:import --partial -y --source=/var/www/html/web/sites/default/files/sync"  # container path is the in-container view of the host config_sync_dir that write-config's YAML lands in
-  exists_cmd: "ddev drush config:get"  # exit 0 iff a config object already exists; append config name. Used by resolve-filter to skip config that is already present.
+  import: "ddev drush config:import --partial -y --source=/var/www/html/web/sites/default/files/sync"  # container path is the in-container view of the host sync_target_dir that transform's YAML lands in
+  exists_cmd: "sh -c 'ddev drush config:get \"$(basename \"$1\" .yml)\"' --"  # exit 0 iff the unit's config object already exists; the intake existence filter appends the unit's absolute output path.
   # Scene branch (scene sync) only — the page URL of the synced page. page_url_cmd is a
   # SUBSTITUTION template ({scene}, like renderUrlCommand's {config_id}); it resolves the URL
   # from the page's config-derived identity (no content uuid — a Scene sync creates no content).
@@ -69,8 +71,8 @@ during install for plain CSS.
 ## backend_cmd — data for sync task interpolation
 
 The `backend_cmd` block is **data only** — its values are consumed as
-`{{ backend_cmd.cmd }}`, `{{ backend_cmd.schema_cmd }}`, `{{ backend_cmd.validate_cmd }}`,
-`{{ backend_cmd.ui_pattern_cmd }}`, `{{ backend_cmd.import }}`, and `{{ backend_cmd.exists_cmd }}`
+`{{ backend_cmd.cmd }}`, `{{ backend_cmd.schema_cmd }}`, `{{ backend_cmd.ui_pattern_cmd }}`,
+, `{{ backend_cmd.import }}`, and `{{ backend_cmd.exists_cmd }}`
 by sync and data-mapping tasks. Core runs the resulting command strings opaquely: no drush or
 Drupal knowledge lives in core.
 
@@ -78,28 +80,27 @@ sync-to task params declare `resolve: backend_cmd` so intake freezes this block 
 config into the plan automatically — drivers do not re-pass `backend_cmd` in params unless overriding.
 
 `schema_cmd` calls `designbook:config-schema <config_name>` → JSON Schema on stdout,
-exit 0. `validate_cmd` calls `designbook:config-validate <config_name> <yaml_path>` →
-exit 0 when valid; exit 1 + violation JSON on stderr when invalid. `ui_pattern_cmd` calls
+exit 0. `ui_pattern_cmd` calls
 `designbook:ui-pattern '<set>:<component>' --props=<json>` → the whole `ui_patterns` block
 (`component_id`, `variant_id`, `props`, `slots`) as JSON on stdout, exit 0; it is the source of
 truth for the Drupal-registry half of the UI Patterns 2 mapping (see the `ui-patterns`
-data-mapping blueprint). `schema_cmd`/`validate_cmd` are implemented in the `designbook` module;
+data-mapping blueprint). `schema_cmd` is implemented in the `designbook` module;
 `ui_pattern_cmd` in its `designbook_ui_patterns` submodule (which depends on `ui_patterns` 2.x).
 All are published to drupal.org as `drupal/designbook`
 (https://www.drupal.org/project/designbook, 1.x) and required like any other contrib module.
 
 `import` is a complete, ready-to-run command that applies the config-sync directory to
 the live backend. `write-config`'s YAML lands host-side at the resolved
-`config_sync_dir`; `import` targets that same directory from the backend's own vantage
+`sync_target_dir`; `import` targets that same directory from the backend's own vantage
 point (e.g. a ddev container sees the host `<workspace>/web/sites/default/files/sync`
 at `/var/www/html/web/sites/default/files/sync`) — same physical files, two path views.
 
-`exists_cmd` calls `config:get <config_name>` → exit 0 when the config object already
-exists in the live backend, non-zero when it is absent. `resolve-filter` appends each
-candidate `config_name` to this command to decide whether to keep or drop that unit —
+`exists_cmd` maps the unit's output path back to its config name and calls `config:get` →
+exit 0 when the config object already exists in the live backend, non-zero when it is absent.
+The sync-to intake runs it once per candidate unit to decide whether to keep or drop that unit —
 this is how the sync workflow skips config that already exists (core view modes,
-previously-synced bundles/fields, environment-provided config) without any data-model
-markers or pre-seeding.
+previously-synced bundles/fields, environment-provided config) without any data-model markers or
+pre-seeding.
 
 `page_url_cmd` is used only by a scene-branch sync (it is absent from a config-only project).
 It is a **substitution template** — the `{scene}` placeholder is replaced with the scene id

@@ -1,6 +1,8 @@
 ---
 trigger:
   domain: data-mapping
+filter:
+  backend: drupal
 ---
 
 # Rule: Field Cardinality Mapping

@@ -1,0 +1,34 @@
+workflow: design-component
+fixtures:
+  - empty
+  - reference
+  - vision
+  - data-model
+  - tokens
+prompt: |
+  You are working in {{workspace}}. This is the Cooks Delight recipe demo.
+  Use the installed Designbook skills and the configured WordPress / Twig / Tailwind integration.
+  Read the actual SKILL.md for each skill named below and follow its instructions.
+  Execute only this case and its explicitly named prerequisite skills.
+  Preserve all completed earlier steps and the published reference. Do not sync to WordPress.
+  Do not launch Promptfoo or rebuild this prepared workspace from inside the case.
+  If required evidence, access or approval is missing, stop with the exact blocker; never invent it.
+  Read the published Figma reference in designbook/references/ under the configured
+  Designbook home. Use only the captured Lemon Garlic Roasted Chicken recipe frame,
+  its actual native locators, screenshot, assets and observations. Do not fetch a
+  website equivalent or replace the reference with an imagined layout.
+  Design one reusable component and show it.
+  Use the design-component skill to create the component recipe-card: the similar-recipe card
+  visible in the captured frame (image, title, metadata such as total time and difficulty).
+  The card is a plain Twig component with its props/slots schema and a default story; it must
+  render in Storybook without a running WordPress. Use the generated tokens and CSS.
+  Build Storybook, open the component story components-recipe-card--default from the
+  running index, and report its story URL and a screenshot. Do not create screens, scenes
+  or entity mappings.
+assert:
+- type: javascript
+  value: output.completedWorkflows['design-component']?.state?.status === 'completed'
+- type: javascript
+  value: "['twig', 'schema.yml', 'default.story.yml'].every(ext => output.newFiles.some(f => f.endsWith('components/recipe-card/recipe-card.' + ext)))"
+- type: javascript
+  value: "!/attributes\\./.test(output.fileContents[Object.keys(output.fileContents).find(f => f.endsWith('recipe-card/recipe-card.twig'))] || 'attributes.')"

@@ -32,7 +32,8 @@ its CLI intake, planning and execution.
 | `design-verify` | [skills/design-verify/](skills/design-verify/SKILL.md) | Visual testing against the design reference |
 | `sync-verify` | [skills/sync-verify/](skills/sync-verify/SKILL.md) | Reconcile a backend render (config or scene) against Storybook |
 | `import` | [skills/import/](skills/import/SKILL.md) | Import a full design system from a reference |
-| `sync-to` | [skills/sync-to/](skills/sync-to/SKILL.md) | Export the data model as Drupal config YAML |
+| `sync-to` | [skills/sync-to/](skills/sync-to/SKILL.md) | Generate the backend files for the data model and apply them |
+| `seed-content` | [skills/seed-content/](skills/seed-content/SKILL.md) | Create the sample records as content in the live backend |
 | `sb` | [skills/sb/](skills/sb/SKILL.md) | Manage the Storybook dev server (CLI passthrough) |
 
 Shared content roots (no workflow, beside `skills/` at the parent): [design/](design/), [scenes/](scenes/).

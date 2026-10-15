@@ -18,7 +18,10 @@ import {
   defaultVueResolver,
   defaultVueWrapImport,
   defaultVueExtraImportLines,
+  defaultTwigResolver,
+  defaultTwigWrapImport,
 } from '../scene-model/scene-module-builder';
+import { designbookTwigPlugin } from './vite-plugin-twig';
 import { vueBuiltInComponents } from '../scene-model/built-in-components';
 import { referenceIndexEntries } from '../tools/reference-library';
 
@@ -138,10 +141,10 @@ export function indexForm(fileName: string): any[] {
 }
 
 // Indexes one standalone component story file (`<name>.<variant>.story.yml`,
-// living next to `<name>.vue` in `dirs.components`) as a single "Components/…"
-// story entry. Framework-neutral by data shape — the file is only indexed
-// when a sibling `<name>.vue` exists, since this indexer is only registered
-// for `frameworks.component: vue` (see `experimental_indexers`). SDC keeps
+// living next to `<name>.vue` or `<name>.twig` in `dirs.components`) as a single
+// "Components/…" story entry. Framework-neutral by data shape — the file is only
+// indexed when a sibling `<name>.vue`/`<name>.twig` exists, since this indexer is only
+// registered for `frameworks.component: vue | twig` (see `experimental_indexers`). SDC keeps
 // using the third-party `storybook-addon-sdc` indexer unchanged — enabling
 // this indexer for SDC too would double-index `.component.yml` pairs when
 // both addons are registered together (e.g. `test-integration-drupal`).
@@ -151,8 +154,8 @@ export function indexComponentStory(fileName: string): any[] {
   if (!parsedName) return [];
 
   const dir = dirname(fileName);
-  const hasVue = existsSync(resolve(dir, `${parsedName.name}.vue`));
-  if (!hasVue) return [];
+  const hasTemplate = ['vue', 'twig'].some((ext) => existsSync(resolve(dir, `${parsedName.name}.${ext}`)));
+  if (!hasTemplate) return [];
 
   const relativePath = './' + relative(process.cwd(), fileName);
   let explicitName: unknown;
@@ -203,16 +206,29 @@ export const viteFinal = async (config: any, options: any) => {
   // Defaults (undefined) fall through to the SDC resolver in vite-plugin.ts —
   // the Vue path is opt-in and never touches the SDC default.
   const componentFramework = String(designbookConfig['frameworks.component'] ?? 'sdc');
+  const designbookDir = resolve(configDir, fsRoot || 'designbook');
   const frameworkOptions =
     componentFramework === 'vue'
       ? {
-          resolveImportPath: (componentId: string) =>
-            defaultVueResolver(componentId, resolve(configDir, fsRoot || 'designbook')),
+          resolveImportPath: (componentId: string) => defaultVueResolver(componentId, designbookDir),
           wrapImport: defaultVueWrapImport,
           extraImportLines: defaultVueExtraImportLines,
           builtInComponents: vueBuiltInComponents,
         }
-      : {};
+      : componentFramework === 'twig'
+        ? {
+            resolveImportPath: (componentId: string) => defaultTwigResolver(componentId, designbookDir),
+            wrapImport: defaultTwigWrapImport,
+          }
+        : {};
+  if (componentFramework === 'twig') {
+    plugins.push(
+      designbookTwigPlugin({
+        componentsDir: resolve(designbookDir, '..', 'components'),
+        namespace: String(designbookConfig['component.namespace']),
+      }),
+    );
+  }
 
   plugins.push(
     designbookLoadPlugin(configDir, {
@@ -265,11 +281,13 @@ export const stories = async (entry: string[] = [], options: any) => {
   const entityGlob = resolve(distDir, 'entity-mapping/*.jsonata');
   const formGlob = resolve(distDir, 'form-mapping/*.jsonata');
   const referenceGlob = resolve(distDir, 'references/*/*/publication.json');
-  // Standalone component stories — only globbed for `frameworks.component: vue`.
+  // Standalone component stories — only globbed for `frameworks.component: vue | twig`.
   // See `indexComponentStory` for why SDC is excluded (storybook-addon-sdc parity).
   const componentFramework = String(designbookConfig['frameworks.component'] ?? 'sdc');
   const componentStoryGlob =
-    componentFramework === 'vue' ? resolve(distDir, '..', 'components', '*', '*.story.yml') : undefined;
+    componentFramework === 'vue' || componentFramework === 'twig'
+      ? resolve(distDir, '..', 'components', '*', '*.story.yml')
+      : undefined;
 
   // Built-in pages listed explicitly in sidebar order: Foundation → Design System → Sections → References.
   // File-name order is Storybook 10's sort mechanism when no storySort is configured.
@@ -396,11 +414,11 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
   const indexers = [...existingIndexers, scenesIndexer, entityIndexer, formIndexer, referenceIndexer];
 
   // Standalone component stories — only registered for `frameworks.component:
-  // vue` (see `indexComponentStory` for why SDC stays on the third-party
+  // vue | twig` (see `indexComponentStory` for why SDC stays on the third-party
   // `storybook-addon-sdc` indexer instead).
   const designbookConfig = loadConfig();
   const componentFramework = String(designbookConfig['frameworks.component'] ?? 'sdc');
-  if (componentFramework === 'vue') {
+  if (componentFramework === 'vue' || componentFramework === 'twig') {
     indexers.push({
       test: /components\/[^/]+\/[^/]+\.[^./]+\.story\.yml$/,
       createIndex: async (fileName: string) => indexComponentStory(fileName),

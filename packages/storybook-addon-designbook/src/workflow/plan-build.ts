@@ -112,7 +112,7 @@ export async function buildPlan(taskList: TaskList, opts: ResolveIntakeOptions =
       errors.push(`unknown task "${d.task}" for step "${d.step}"`);
       continue;
     }
-    const params = d.params ?? {};
+    const params = resolveParams(d.params ?? {}, contract.resolves, intake.config);
     const validate = ajv.compile({ ...contract.params_schema, definitions: intake.definitions });
     if (!validate(params))
       errors.push(`task "${d.task}" (${d.title ?? ''}) params: ${ajv.errorsText(validate.errors)}`);
@@ -127,6 +127,7 @@ export async function buildPlan(taskList: TaskList, opts: ResolveIntakeOptions =
               lenient: true,
               envMap: { DESIGNBOOK_DATA: String(intake.config.data ?? '') },
             }),
+            ...(out.validators?.length ? { validators: await renderValidators(out.validators, params) } : {}),
           }
         : out;
     }
@@ -211,4 +212,57 @@ export async function buildPlan(taskList: TaskList, opts: ResolveIntakeOptions =
   const plan = parsePlan(serializePlan(draft));
   plan.digest = planDigest(plan);
   return { plan, plans_dir: intake.plans_dir, errors: [] };
+}
+
+/**
+ * Renders `{{ param }}` templates in a contract's `cmd:` validators against the task's params.
+ * A validator that still references an absent param (an optional backend command left
+ * unconfigured) does not apply and is dropped; `{{ file }}` stays for validation time.
+ */
+export async function renderValidators(validators: string[], params: Record<string, unknown>): Promise<string[]> {
+  const rendered: string[] = [];
+  for (const validator of validators) {
+    if (!validator.startsWith('cmd:')) {
+      rendered.push(validator);
+      continue;
+    }
+    const cmd = await interpolate(validator, { ...params, file: '{{ file }}' }, { lenient: true });
+    if (!/\{\{(?!\s*file\s*\}\})[^}]*\}\}/.test(cmd)) rendered.push(cmd);
+  }
+  return rendered;
+}
+
+/**
+ * Fills `resolve: <config key>` params from the flattened config: an absent param takes the
+ * config value, an object param keeps its given keys over the config's, so a partial override
+ * never drops configured keys.
+ */
+export function resolveParams(
+  params: Record<string, unknown>,
+  resolves: Record<string, string> | undefined,
+  config: Record<string, unknown>,
+): Record<string, unknown> {
+  if (!resolves) return params;
+  const out = { ...params };
+  for (const [param, key] of Object.entries(resolves)) {
+    let value: unknown = config[key];
+    if (value === undefined) {
+      const nested: Record<string, unknown> = {};
+      for (const [flat, v] of Object.entries(config)) {
+        if (!flat.startsWith(`${key}.`)) continue;
+        const path = flat.slice(key.length + 1).split('.');
+        let node = nested;
+        for (const seg of path.slice(0, -1)) node = (node[seg] ??= {}) as Record<string, unknown>;
+        node[path[path.length - 1]!] = v;
+      }
+      if (Object.keys(nested).length) value = nested;
+    }
+    if (value === undefined) continue;
+    const given = out[param];
+    out[param] =
+      given && typeof given === 'object' && value && typeof value === 'object'
+        ? { ...(value as object), ...(given as object) }
+        : (given ?? value);
+  }
+  return out;
 }

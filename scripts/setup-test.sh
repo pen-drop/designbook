@@ -105,6 +105,8 @@ if [[ -f "$SUITE_CFG" ]]; then
 fi
 if [[ "$BACKEND" == "none" ]]; then
   THEME_REL="."
+elif [[ "$BACKEND" == "wordpress" ]]; then
+  THEME_REL="wp-content/themes/test_integration_wordpress"
 else
   THEME_REL="web/themes/custom/test_integration_drupal"
 fi

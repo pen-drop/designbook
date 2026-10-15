@@ -5,6 +5,8 @@ priority: 10
 embeds: []
 trigger:
   domain: components
+filter:
+  frameworks.component: sdc
 ---
 
 # Blueprint: Pager

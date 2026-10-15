@@ -4,6 +4,8 @@ name: logo
 priority: 10
 trigger:
   domain: components
+filter:
+  frameworks.component: sdc
 ---
 
 # Blueprint: Logo

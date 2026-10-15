@@ -279,6 +279,70 @@ describe('plan done writes text data outputs raw', () => {
   });
 });
 
+describe('plan done runs cmd validators of file outputs', () => {
+  async function doneWith(content: string) {
+    const dir = mkdtempSync(join(tmpdir(), 'plan-cmdval-'));
+    const planPath = join(dir, 'plan.md');
+    const dataPath = join(dir, 'r.json');
+    const outPath = join(dir, 'out.twig');
+    const plan: Plan = {
+      workflow: 'sync-to',
+      digest: '',
+      definitions: {},
+      context: {},
+      steps: [
+        {
+          name: 'transform',
+          context: [],
+          tasks: [
+            {
+              name: 'transform',
+              title: 'view',
+              done: false,
+              params: {},
+              contract: {
+                outputs: {
+                  'output-file': {
+                    required: true,
+                    submission: 'data',
+                    schema: { type: 'string' },
+                    path: outPath,
+                    validators: ['cmd:grep -q valid {{ file }}'],
+                  },
+                },
+              },
+              results: null,
+            },
+          ],
+        },
+      ],
+    };
+    plan.digest = planDigest(plan);
+    writeFileSync(planPath, serializePlan(plan));
+    writeFileSync(dataPath, JSON.stringify({ 'output-file': content }));
+    process.exitCode = undefined;
+    const { stderr } = await runCli(['plan', 'done', planPath, '--task', 'transform', '--data-file', dataPath]);
+    const exitCode = process.exitCode ?? 0;
+    const done = parsePlan(readFileSync(planPath, 'utf8')).steps[0]!.tasks[0]!.done;
+    process.exitCode = undefined;
+    rmSync(dir, { recursive: true, force: true });
+    return { exitCode, done, stderr };
+  }
+
+  it('blocks completion when a validator fails on the written file', async () => {
+    const r = await doneWith('broken');
+    expect(r.exitCode).toBe(1);
+    expect(r.done).toBe(false);
+    expect(r.stderr).toMatch(/output-file/);
+  });
+
+  it('completes when every validator passes', async () => {
+    const r = await doneWith('valid');
+    expect(r.exitCode).toBe(0);
+    expect(r.done).toBe(true);
+  });
+});
+
 describe('plan seal', () => {
   it('computes and writes the digest so execution accepts the plan', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'plan-seal-'));

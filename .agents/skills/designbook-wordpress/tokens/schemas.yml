@@ -1,0 +1,76 @@
+# WordPress token export schemas
+
+ThemeJson:
+  type: object
+  title: WordPress theme.json
+  description: >-
+    The theme's global settings file. Design tokens become presets under `settings`, which
+    WordPress emits as `--wp--preset--<kind>--<slug>` CSS custom properties. Validated against
+    the version-3 shape; WordPress ignores unknown keys, so other theme.json sections may be
+    present.
+  required: [$schema, version, settings]
+  properties:
+    $schema:
+      type: string
+      const: https://schemas.wp.org/trunk/theme.json
+      description: theme.json JSON Schema URL.
+    version:
+      type: integer
+      const: 3
+      description: theme.json format version.
+    settings:
+      type: object
+      description: Global settings; token presets live in the color, typography and spacing groups.
+      required: [color]
+      properties:
+        color:
+          type: object
+          description: Color presets.
+          required: [palette]
+          properties:
+            palette:
+              type: array
+              minItems: 1
+              description: One entry per color token.
+              items: { $ref: "#/ThemeJsonPreset" }
+        typography:
+          type: object
+          description: Typography presets.
+          properties:
+            fontFamilies:
+              type: array
+              description: One entry per font-family token.
+              items: { $ref: "#/ThemeJsonPreset" }
+            fontSizes:
+              type: array
+              description: One entry per font-size token.
+              items: { $ref: "#/ThemeJsonPreset" }
+        spacing:
+          type: object
+          description: Spacing presets.
+          properties:
+            spacingSizes:
+              type: array
+              description: One entry per spacing token.
+              items: { $ref: "#/ThemeJsonPreset" }
+      additionalProperties: true
+
+ThemeJsonPreset:
+  type: object
+  title: theme.json preset entry
+  description: >-
+    One preset. The value key depends on the preset kind — `color` (palette), `fontFamily`
+    (fontFamilies), `size` (fontSizes, spacingSizes).
+  required: [slug, name]
+  properties:
+    slug:
+      type: string
+      pattern: "^[a-z0-9-]+$"
+      description: Preset slug; becomes the CSS variable suffix.
+      examples: [neutral-50, heading, md]
+    name:
+      type: string
+      description: Human-readable label shown in the editor.
+    color: { type: string, description: CSS color value (palette entries). }
+    fontFamily: { type: string, description: CSS font-family stack (fontFamilies entries). }
+    size: { type: string, description: CSS length (fontSizes and spacingSizes entries). }

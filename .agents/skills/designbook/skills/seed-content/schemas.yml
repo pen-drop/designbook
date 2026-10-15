@@ -1,0 +1,28 @@
+# Seed concern schemas
+
+SeedResult:
+  type: object
+  title: Seed Result
+  description: >
+    Outcome of creating the sample records in the live backend. Record ids are
+    `<entity_type>.<bundle>.<record id>`.
+  required: [created, updated, ok]
+  properties:
+    created:
+      type: array
+      description: Records created by this run.
+      items:
+        type: string
+        description: Record id, e.g. "post.recipe.lemon-garlic-roasted-chicken".
+        pattern: '^[a-z0-9_-]+\.[a-z0-9_-]+\..+$'
+    updated:
+      type: array
+      description: Records that already existed and were updated by this run.
+      items:
+        type: string
+        description: Record id.
+        pattern: '^[a-z0-9_-]+\.[a-z0-9_-]+\..+$'
+    ok:
+      type: boolean
+      const: true
+      description: True when every selected record was created or updated.

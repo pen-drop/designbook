@@ -560,13 +560,13 @@ async function main() {
   };
   const assertions = evalAssertions(caseDoc.assert ?? [], assertOutput);
 
-  // sync cases: merge validate_pass_rate + cim_ok (tasks.yml) + existence_rate (drush)
+  // sync cases: merge validate_pass_rate + cim_ok (SyncResult.ok in tasks.yml) + existence_rate (drush)
   let metricInput = summary;
   const expected = caseDoc.expected_config ?? [];
   if (expected.length > 0) {
     const tasks = parseYaml(readFileSync(workflow, "utf-8")) ?? {};
     const units = Object.values(tasks.state.tasks).flatMap((t) => {
-      const e = t.results?.["config-file"];
+      const e = t.results?.["output-file"];
       return e ? [e] : [];
     });
     const validate_pass_rate =
@@ -580,9 +580,10 @@ async function main() {
           e &&
           typeof e.value === "object" &&
           e.value !== null &&
-          "cim_ok" in e.value
+          "ok" in e.value &&
+          "applied" in e.value
         )
-          cim_ok = e.value.cim_ok === true;
+          cim_ok = e.value.ok === true;
       }
     }
     const configExists = (name) => {

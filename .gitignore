@@ -4,6 +4,7 @@ dist/*
 *.css
 components/*/*.js
 !*.src.css
+!packages/integrations/test-integration-wordpress/style.css
 !website/.vitepress/theme/**/*.css
 website/.vitepress/cache
 website/.vitepress/dist

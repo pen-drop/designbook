@@ -121,6 +121,30 @@ export function defaultVueWrapImport(alias: string): string {
  */
 export const defaultVueExtraImportLines: string[] = ["import { h, createCommentVNode, Fragment } from 'vue';"];
 
+// ── Default Twig import resolver ───────────────────────────────────────
+
+/** Resolves 'provider:component' → absolute path to `components/<dir>/<file>.twig`. */
+export function defaultTwigResolver(componentId: string, designbookDir: string): string | null {
+  const parts = componentId.split(':');
+  if (parts.length !== 2 || !parts[1]) return null;
+  const name = parts[1];
+  for (const dirName of [name, name.replace(/_/g, '-')]) {
+    for (const fileName of [name, dirName]) {
+      const file = join(resolve(designbookDir, '..', 'components', dirName), `${fileName}.twig`);
+      if (existsSync(file)) return file;
+    }
+  }
+  return null;
+}
+
+/**
+ * Twig modules export `(ctx) => html`. Slots arrive pre-rendered; a multi-child slot is an
+ * array of HTML strings, joined here because Twig prints an array as `Array`.
+ */
+export function defaultTwigWrapImport(alias: string): string {
+  return `{ render: (p, s) => ${alias}.default({ ...p, ...Object.fromEntries(Object.entries(s).map(([k, v]) => [k, Array.isArray(v) ? v.join('') : v])) }) }`;
+}
+
 // ── Data loading ────────────────────────────────────────────────────────
 
 export function loadDataModel(designbookDir: string): DataModel {

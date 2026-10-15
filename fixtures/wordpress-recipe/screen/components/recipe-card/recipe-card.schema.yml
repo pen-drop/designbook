@@ -1,0 +1,46 @@
+name: Recipe Card
+description: >-
+  A similar-recipe card with an image, recipe summary, metadata, and optional
+  link.
+props:
+  type: object
+  properties:
+    image_src:
+      type: string
+      title: Image path
+      description: >-
+        Root-relative path to a committed local image under the preview server's
+        static root.
+    image_alt:
+      type: string
+      title: Image alt text
+      description: Alternative text for the card image.
+      default: ''
+    title:
+      type: string
+      title: Recipe title
+      description: Recipe name, rendered as the card heading.
+    description:
+      type: string
+      title: Teaser
+      description: Short recipe teaser below the title.
+    total_time:
+      type: string
+      title: Total time
+      description: Total preparation time shown in the metadata line.
+    difficulty:
+      type: string
+      title: Difficulty
+      description: Difficulty label shown in the metadata line.
+    servings:
+      type: string
+      title: Servings
+      description: Serving count shown in the metadata line.
+    url:
+      type: string
+      title: Recipe URL
+      description: Target of the optional view recipe link.
+  required:
+    - image_src
+    - title
+slots: {}

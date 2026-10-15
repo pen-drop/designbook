@@ -177,6 +177,39 @@ importers:
         specifier: ^3.5.0
         version: 3.5.43(typescript@5.9.3)
 
+  packages/integrations/test-integration-wordpress:
+    devDependencies:
+      '@storybook/addon-docs':
+        specifier: ^10.0.0
+        version: 10.2.17(@types/react@18.3.28)(esbuild@0.27.3)(rollup@4.57.1)(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(vite@6.4.1(@types/node@20.19.33)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.2))
+      '@storybook/html':
+        specifier: ^10.0.0
+        version: 10.2.17(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      '@storybook/html-vite':
+        specifier: ^10.0.0
+        version: 10.2.17(esbuild@0.27.3)(rollup@4.57.1)(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(vite@6.4.1(@types/node@20.19.33)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.2))
+      '@tailwindcss/cli':
+        specifier: ^4.1.18
+        version: 4.1.18
+      '@tailwindcss/vite':
+        specifier: ^4.1.18
+        version: 4.3.3(vite@6.4.1(@types/node@20.19.33)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.2))
+      storybook:
+        specifier: ^10.0.0
+        version: 10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      storybook-addon-designbook:
+        specifier: workspace:*
+        version: link:../../storybook-addon-designbook
+      tailwindcss:
+        specifier: ^4.0.0-beta.9
+        version: 4.3.3
+      twing:
+        specifier: ^7.3.0
+        version: 7.3.0
+      vite:
+        specifier: ^6.3.5
+        version: 6.4.1(@types/node@20.19.33)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.2)
+
   packages/storybook-addon-designbook:
     dependencies:
       '@ark-ui/react':
@@ -318,6 +351,9 @@ importers:
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(@swc/core@1.15.11(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.28)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
+      twing:
+        specifier: ^7.3.0
+        version: 7.3.0
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
@@ -15128,6 +15164,13 @@ snapshots:
       '@tailwindcss/oxide': 4.3.3
       tailwindcss: 4.3.3
       vite: 5.4.21(@types/node@20.19.33)(lightningcss@1.32.0)
+
+  '@tailwindcss/vite@4.3.3(vite@6.4.1(@types/node@20.19.33)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.2))':
+    dependencies:
+      '@tailwindcss/node': 4.3.3
+      '@tailwindcss/oxide': 4.3.3
+      tailwindcss: 4.3.3
+      vite: 6.4.1(@types/node@20.19.33)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.2)
 
   '@testing-library/dom@10.4.1':
     dependencies:

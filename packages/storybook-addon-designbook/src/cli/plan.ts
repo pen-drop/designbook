@@ -15,6 +15,8 @@ import {
 import { buildPlan, type TaskList } from '../workflow/plan-build.js';
 import { deriveComposition, renderCompositionTree, type CompositionTree } from '../workflow/plan-composition.js';
 import { compilePlannedMapping, validateCompositionResult } from '../workflow/plan-composition-result.js';
+import { validateByKeys } from '../validation/validation-registry.js';
+import type { DesignbookConfig } from '../shared/config.js';
 
 function print(value: unknown): void {
   process.stdout.write(JSON.stringify(value, null, 2));
@@ -260,6 +262,14 @@ export function register(program: Command): void {
           mkdirSync(dirname(output.path), { recursive: true });
           writeFileSync(output.path, body);
         }
+      }
+      // A written file output must pass its contract's `cmd:` validators before the task
+      // counts as done; a failure leaves the task open for a corrected result.
+      for (const [key, output] of Object.entries(task.contract.outputs)) {
+        const cmds = (output.validators ?? []).filter((v) => v.startsWith('cmd:'));
+        if (!output.path || !cmds.length || !existsSync(output.path)) continue;
+        const check = await validateByKeys(cmds, output.path, {} as DesignbookConfig);
+        if (!check.valid) return fail(`output "${key}" failed validation: ${check.error}`);
       }
       // Only check the task off. The result content lives in the output files
       // (data outputs are written above); it is deliberately NOT stored in the plan.

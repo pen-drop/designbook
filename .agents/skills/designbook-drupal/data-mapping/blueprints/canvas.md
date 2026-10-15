@@ -4,6 +4,8 @@ name: canvas
 priority: 10
 trigger:
   domain: data-mapping
+filter:
+  backend: drupal
 ---
 
 # Blueprint: Canvas — Passthrough Mapping

@@ -19,19 +19,20 @@ component:
 # opaquely). Provided by the designbook drush module,
 # enabled by scripts/start-drupal-workspace.sh. See
 # designbook-drupal/install/blueprints/designbook-config.md.
+# Drupal config-sync directory, relative to the workspace root (sync-to output root).
+sync_target_dir: web/sites/default/files/sync
 backend_cmd:
   cmd: "ddev drush"
   schema_cmd: "ddev drush designbook:config-schema"
-  validate_cmd: "ddev drush designbook:config-validate"
   # UI Patterns 2 mapping (designbook_ui_patterns submodule): emits the whole
   # ui_patterns block (component_id, variant_id, props, slots) as JSON.
   ui_pattern_cmd: "ddev drush designbook:ui-pattern"
-  # Container view of the host config_sync_dir that `transform` writes to
+  # Container view of the host sync_target_dir that `transform` writes to
   # (host: <workspace>/web/sites/default/files/sync; container: /var/www/html/…).
   import: "ddev drush config:import --partial -y --source=/var/www/html/web/sites/default/files/sync"
-  # Exits 0 iff a config object already exists; append config name.
-  # Used by resolve-filter's existence filter to skip already-present config.
-  exists_cmd: "ddev drush config:get"
+  # Exits 0 iff the unit's config object already exists; the intake existence filter
+  # appends the unit's absolute output path (<sync_target_dir>/<config_name>.yml).
+  exists_cmd: "sh -c 'ddev drush config:get \"$(basename \"$1\" .yml)\"' --"
   # Scene branch (scene sync) only — the synced page's URL. page_url_cmd is a SUBSTITUTION
   # template ({scene}, like renderUrlCommand's {config_id}); it resolves the URL from the
   # page's config-derived identity — no content uuid, because a Scene sync creates no content.

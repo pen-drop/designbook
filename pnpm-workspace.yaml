@@ -5,4 +5,5 @@ packages:
   - "promptfoo/workspaces/*"
   - "workspaces/*"
   - "workspaces/**/web/themes/custom/*"
+  - "workspaces/**/wp-content/themes/*"
   - "website"

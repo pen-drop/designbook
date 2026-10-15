@@ -20,6 +20,8 @@ extends:
                 $extensions:
                   designbook:
                     renderer: gap
+filter:
+  frameworks.component: sdc
 ---
 
 # Blueprint: Grid

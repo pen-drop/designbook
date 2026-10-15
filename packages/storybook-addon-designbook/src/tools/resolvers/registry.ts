@@ -7,7 +7,7 @@ import { breakpointsResolver } from './breakpoints.js';
 import { scenePathResolver } from './scene-path.js';
 import { componentsIndexResolver } from './components-index.js';
 import { regionPropertiesResolver } from './region-properties.js';
-import { configSyncDirResolver } from './config-sync-dir.js';
+import { syncTargetDirResolver } from './sync-target-dir.js';
 import { renderUrlResolver } from './render-url.js';
 import { backendCmdResolver } from './backend-cmd.js';
 
@@ -42,7 +42,7 @@ register(breakpointsResolver);
 register(scenePathResolver);
 register(componentsIndexResolver);
 register(regionPropertiesResolver);
-register(configSyncDirResolver);
+register(syncTargetDirResolver);
 register(renderUrlResolver);
 register(backendCmdResolver);
 

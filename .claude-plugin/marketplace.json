@@ -29,6 +29,16 @@
       ]
     },
     {
+      "name": "designbook-wordpress",
+      "source": "./.agents/skills/designbook-wordpress",
+      "strict": false,
+      "description": "WordPress integration for Designbook — post types, ACF fields, Twig/Timber components, theme.json and generated plugin/theme sync",
+      "category": "design",
+      "skills": [
+        "./"
+      ]
+    },
+    {
       "name": "designbook-vue",
       "source": "./.agents/skills/designbook-vue",
       "strict": false,

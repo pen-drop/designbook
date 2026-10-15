@@ -4,6 +4,8 @@ name: field-map
 priority: 10
 trigger:
   domain: data-mapping
+filter:
+  backend: drupal
 ---
 
 # Blueprint: Field Map
