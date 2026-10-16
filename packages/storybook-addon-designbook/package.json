@@ -37,6 +37,10 @@
       "types": "./dist/renderer-browser.d.ts",
       "default": "./dist/renderer-browser.js"
     },
+    "./react": {
+      "types": "./dist/renderer/react.d.ts",
+      "default": "./dist/renderer/react.js"
+    },
     "./preset": "./dist/preset.js",
     "./config": {
       "types": "./dist/config.d.ts",
@@ -118,6 +122,8 @@
   },
   "peerDependencies": {
     "playwright": "^1.58.2",
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0",
     "storybook": "*",
     "twing": "^7.3.0",
     "vite": "^5.0.0 || ^6.0.0 || ^7.0.0",
@@ -125,6 +131,12 @@
   },
   "peerDependenciesMeta": {
     "playwright": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
       "optional": true
     },
     "storybook": {
@@ -151,7 +163,8 @@
     "previewEntries": [
       "src/addon/preview.ts",
       "src/addon/index.ts",
-      "src/addon/renderer-browser.ts"
+      "src/addon/renderer-browser.ts",
+      "src/addon/renderer/react.ts"
     ],
     "nodeEntries": [
       "src/addon/preset.ts",

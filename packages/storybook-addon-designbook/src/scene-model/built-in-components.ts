@@ -17,6 +17,12 @@ import type { ComponentModule } from './types';
  */
 declare const h: (type: string, propsOrChildren?: unknown, children?: unknown) => unknown;
 
+/**
+ * Ambient-only, like `h` above: resolves against the generated CSF module's
+ * `import { reactHelpers as __dbReact } from 'storybook-addon-designbook/react';`.
+ */
+declare const __dbReact: { builtIns: Record<string, (props: Record<string, unknown>) => unknown> };
+
 interface ImageSource {
   media: string;
   src: string;
@@ -167,4 +173,14 @@ export const vueBuiltInComponents: Record<string, ComponentModule> = {
       return h('img', { src: imgSrc, alt, style: baseStyle });
     },
   },
+};
+
+/**
+ * React variant — thin delegators serialized into the generated CSF module; the real
+ * element-building code lives in the importable React module (`addon/renderer/react.ts`).
+ */
+export const reactBuiltInComponents: Record<string, ComponentModule> = {
+  'designbook:placeholder': { render: (props) => __dbReact.builtIns['designbook:placeholder']!(props) },
+  'designbook:element': { render: (props) => __dbReact.builtIns['designbook:element']!(props) },
+  'designbook:image': { render: (props) => __dbReact.builtIns['designbook:image']!(props) },
 };

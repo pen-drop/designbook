@@ -35,6 +35,36 @@ export interface VueMarkerHelpers {
 }
 
 /**
+ * Node helpers for frameworks whose output cannot carry comment markup inline
+ * (React): `wrapNode` builds the framework-native `db:s:`/`db:e:` boundary for
+ * one rendered node, `placeholder` the visible `$variable` box. Threaded in from
+ * the generated CSF module — this file never imports the framework.
+ */
+export interface NodeRenderHelpers {
+  wrapNode: (marker: string, result: unknown) => unknown;
+  placeholder: (text: string) => unknown;
+}
+
+type RenderHelpers = VueMarkerHelpers | NodeRenderHelpers;
+
+const isNodeHelpers = (helpers: RenderHelpers | undefined): helpers is NodeRenderHelpers =>
+  !!helpers && 'wrapNode' in helpers;
+
+/** Tag stamped by `reactHelpers.story()` (addon/renderer/react.ts) — checked without importing React. */
+export const REACT_STORY = Symbol.for('designbook.react-story');
+
+/** Mountable React story output: the preview decorator owns `mount`'s lifecycle. */
+export interface ReactStoryOutput {
+  [REACT_STORY]: true;
+  node: unknown;
+  mount: (container: HTMLElement) => { render: (node: never) => void; unmount: () => void };
+}
+
+export function isReactStoryOutput(value: unknown): value is ReactStoryOutput {
+  return !!value && typeof value === 'object' && (value as Record<symbol, unknown>)[REACT_STORY] === true;
+}
+
+/**
  * Render a ComponentNode tree to the framework's native output
  * (React element, Vue vnode, HTML string, etc.).
  *
@@ -48,7 +78,7 @@ export interface VueMarkerHelpers {
 export function renderComponent(
   nodes: ComponentNode | ComponentNode[],
   imports: Record<string, ComponentModule>,
-  vueHelpers?: VueMarkerHelpers,
+  vueHelpers?: RenderHelpers,
 ): unknown {
   const nodeArray = Array.isArray(nodes) ? nodes : [nodes];
 
@@ -67,7 +97,7 @@ export function renderComponent(
 function renderNode(
   node: ComponentNode,
   imports: Record<string, ComponentModule>,
-  vueHelpers?: VueMarkerHelpers,
+  vueHelpers?: RenderHelpers,
 ): unknown {
   const mod = imports[node.component];
 
@@ -80,6 +110,10 @@ function renderNode(
   const slots = resolveSlots(node.slots ?? {}, imports, vueHelpers);
 
   const result = mod.render(props, slots);
+
+  if (isNodeHelpers(vueHelpers)) {
+    return vueHelpers.wrapNode(node.path ? `${node.component}@${node.path}` : node.component, result);
+  }
 
   // Wrap HTML output with comment markers for inspect-overlay lookup.
   // The canonical path is threaded from view(); roots are non-empty ("0", …).
@@ -173,7 +207,7 @@ const PLACEHOLDER_STYLE =
 function resolveSlots(
   slots: Record<string, ComponentNode | ComponentNode[] | string | null | undefined>,
   imports: Record<string, ComponentModule>,
-  vueHelpers?: VueMarkerHelpers,
+  vueHelpers?: RenderHelpers,
 ): Record<string, unknown> {
   const resolved: Record<string, unknown> = {};
 
@@ -189,9 +223,11 @@ function resolveSlots(
       // threaded in (same defect class as the `designbook:placeholder`
       // built-in — see built-in-components.ts).
       if (/^\$\w+$/.test(value)) {
-        resolved[key] = vueHelpers
-          ? vueHelpers.h('div', { style: PLACEHOLDER_STYLE }, value)
-          : `<div style="${PLACEHOLDER_STYLE}">${value}</div>`;
+        resolved[key] = isNodeHelpers(vueHelpers)
+          ? vueHelpers.placeholder(value)
+          : vueHelpers
+            ? vueHelpers.h('div', { style: PLACEHOLDER_STYLE }, value)
+            : `<div style="${PLACEHOLDER_STYLE}">${value}</div>`;
       } else {
         resolved[key] = value;
       }

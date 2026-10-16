@@ -121,6 +121,47 @@ export function defaultVueWrapImport(alias: string): string {
  */
 export const defaultVueExtraImportLines: string[] = ["import { h, createCommentVNode, Fragment } from 'vue';"];
 
+// ── Default React import resolver ──────────────────────────────────────
+
+/**
+ * Default import path resolver for React (`.tsx`) components.
+ * Resolves 'provider:component' → absolute path to `components/<dir>/<file>.tsx`.
+ */
+export function defaultReactResolver(componentId: string, designbookDir: string): string | null {
+  const parts = componentId.split(':');
+  if (parts.length !== 2 || !parts[1]) return null;
+  const name = parts[1];
+  for (const dirName of [name, name.replace(/_/g, '-')]) {
+    for (const fileName of [name, dirName]) {
+      const file = join(resolve(designbookDir, '..', 'components', dirName), `${fileName}.tsx`);
+      if (existsSync(file)) return file;
+    }
+  }
+  return null;
+}
+
+/**
+ * React modules default-export a function component. Props first, resolved slots second
+ * (`children` + named `ReactNode` props). `createElement` — never a direct call — so the
+ * component gets its own fiber.
+ */
+export function defaultReactWrapImport(alias: string): string {
+  return `{ render: (p, s) => __dbReact.createElement(${alias}.default, {...p, ...s}) }`;
+}
+
+/** The React-only browser module — the sole place generated stories touch React. */
+export const defaultReactExtraImportLines: string[] = [
+  "import { reactHelpers as __dbReact } from 'storybook-addon-designbook/react';",
+];
+
+/**
+ * React story render expression: renderComponent with the React node helpers, wrapped by
+ * `__dbReact.story()` so the preview decorator can mount it into a DOM container.
+ */
+export function defaultReactRenderExpression(sceneExpr: string): string {
+  return `__dbReact.story(renderComponent(${sceneExpr}, __imports, __dbReact))`;
+}
+
 // ── Default Twig import resolver ───────────────────────────────────────
 
 /** Resolves 'provider:component' → absolute path to `components/<dir>/<file>.twig`. */
@@ -253,6 +294,8 @@ export interface SceneModuleOptions {
    * (e.g. `vueBuiltInComponents`). Defaults to the HTML-string `builtInComponents`.
    */
   builtInComponents?: Record<string, ComponentModule>;
+  /** Generated story `render` expression for a scene expression (e.g. `defaultReactRenderExpression`). */
+  renderExpression?: (sceneExpr: string) => string;
 }
 
 /**
@@ -344,5 +387,6 @@ export async function buildSceneModule(
     resolveScriptPath,
     extraImportLines: options.extraImportLines,
     builtInComponents: options.builtInComponents,
+    renderExpression: options.renderExpression,
   });
 }
