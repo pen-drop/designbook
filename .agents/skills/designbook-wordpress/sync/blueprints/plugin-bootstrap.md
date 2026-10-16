@@ -24,6 +24,7 @@ no bootstrap code of its own.
  */
 require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/src/ComponentRegistry.php';
+require_once __DIR__ . '/gutenberg/GutenbergAdapter.php';
 Timber\Timber::init();
 add_filter('timber/locations', function ($paths) {
     $paths['<ns>'] = [get_stylesheet_directory() . '/components'];
@@ -38,6 +39,7 @@ add_action('wp_enqueue_scripts', function () {
 foreach (['post-types', 'taxonomies', 'fields'] as $dir) {
     foreach (glob(__DIR__ . "/$dir/*.php") ?: [] as $file) require_once $file;
 }
+add_action('designbook/register_components', ['Designbook\\GutenbergAdapter', 'register']);
 add_action('init', function () {
     $registry = new Designbook\ComponentRegistry(get_stylesheet_directory() . '/components', '<ns>');
     do_action('designbook/register_components', $registry);
@@ -58,3 +60,6 @@ add_action('init', function () {
 
 `plugin.<ns>_content.registry` — the content of `designbook-wordpress/sync/templates/plugin/src/ComponentRegistry.php`
 from the installed skills, copied unchanged.
+
+The Gutenberg listener is attached at plugin load, before `init` priority 20. Adapter and editor
+files are the `gutenberg.adapter` and `gutenberg.editor` units.
