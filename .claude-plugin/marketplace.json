@@ -49,6 +49,16 @@
       ]
     },
     {
+      "name": "designbook-react",
+      "source": "./.agents/skills/designbook-react",
+      "strict": false,
+      "description": "React integration for Designbook — backend-neutral presentational TSX component tasks and rules",
+      "category": "design",
+      "skills": [
+        "./"
+      ]
+    },
+    {
       "name": "designbook-css-tailwind",
       "source": "./.agents/skills/designbook-css-tailwind",
       "strict": false,

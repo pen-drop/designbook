@@ -22,7 +22,8 @@ StoryId:
     rule). Example: `test-integration-drupal-shell-header--default`.
 
 
-    Vue component stories: derive from title `Components/<Human Name>` (see
+    Vue component stories (and React, same derivation per designbook-react
+    `react-components`): derive from title `Components/<Human Name>` (see
     designbook-vue `vue-components` story-address rule). Example:
     `components-book-card--default`.
 

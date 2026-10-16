@@ -1,0 +1,146 @@
+# React component schemas
+#
+# Single source of truth for the `.tsx` contract and `.story.yml` structure.
+# Tasks reference these via $ref; authoring constraints live in
+# rules/react-components.md.
+
+ReactComponent:
+  title: React Component
+  description: >
+    The `<component>.tsx` file — a presentational React function component rendered by
+    Storybook and importable unchanged into any React app, including Next.js App Router
+    server and client components. Not JSON — this schema describes the structural
+    contract the generated source honours.
+
+
+    EXPORTS — the default export is a named PascalCase synchronous function
+    (`export default function PriceBadge(props: PriceBadgeProps)`); the props type is
+    exported as `<PascalName>Props`.
+
+
+    PROPS — ordinary props are camelCase and typed. Structural regions are `ReactNode`
+    props: `slots.children` is the React `children` prop; every named slot is a prop of
+    the identical name. A scalar prop never shares a name with a slot. Optional regions
+    are optional props.
+
+
+    NAMING — directory name equals file base name, kebab-case (`price-badge/price-badge.tsx`).
+    Components are visually descriptive, never domain-specific: `card` ✅, `article-card` ❌.
+
+
+    NO SIDECAR METADATA FILE — identity, props, and slots live entirely in the TSX source.
+  type: string
+
+ReactStory:
+  title: React Story File
+  description: >
+    A `<component>.<story-name>.story.yml` file describing one visually distinct
+    rendering of a component. Same flat shape and node vocabulary as every other
+    designbook story file.
+
+
+    FLAT FORMAT — top-level keys `component`, `name`, `variant`, `props`, `slots`; no
+    `stories:` wrapper and no `---` multi-document files.
+
+
+    FILENAME — `[component-name].[story-name].story.yml` with a mandatory name segment;
+    the primary story is `default`.
+
+
+    YAML QUOTING — always double quotes.
+  type: object
+  required: [component]
+  properties:
+    component:
+      type: string
+      description: >
+        Fully qualified `<namespace>:<component-name>` reference; the namespace is
+        `designbook.config.yml` → `component.namespace`.
+      examples: ["test_integration_react:price-badge"]
+    name:
+      type: string
+      description: Story name shown in Storybook. `Default` for the primary story.
+    variant:
+      type: string
+      description: Variant id this story file selects — the single variant channel of a story file.
+      examples: [default, sale]
+    props:
+      type: object
+      description: Prop values for this story. Keys match the component's camelCase props.
+      propertyNames:
+        pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+    slots:
+      type: object
+      description: >
+        Region content. `children` fills the React `children` prop; every other key is a
+        named `ReactNode` prop of the same name. Each value is an array of `ReactStoryNode`.
+      propertyNames:
+        pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+      additionalProperties:
+        type: array
+        items:
+          $ref: "#/ReactStoryNode"
+
+ReactStoryNode:
+  title: React Story Node
+  description: >
+    One content item in a story slot, selected by `type`. Images use root-relative paths
+    to committed local assets under the preview server's static root (`/images/cover.png`).
+  type: object
+  required: [type]
+  properties:
+    type:
+      type: string
+      enum: [element, component, image]
+      description: >
+        `element` → trusted inline HTML (`value`, optional `tag`, `attributes`).
+        `component` → nested component (`component`, optional `props`, `slots`).
+        `image` → local image (`uri`, optional `attributes`).
+  oneOf:
+    - title: Element Node
+      required: [type, value]
+      properties:
+        type:
+          const: element
+        value:
+          type: string
+          description: Text or HTML rendered as markup inside `tag`. Use `value:`, never `content:`.
+          examples: ["Hello World", "<strong>Bold text</strong>"]
+        tag:
+          type: string
+          description: Wrapper tag, `div` when omitted.
+          examples: [p, h2, span]
+        attributes:
+          type: object
+          description: HTML attributes of the wrapper (`class`, `id`, `style` string).
+    - title: Component Node
+      required: [type, component]
+      properties:
+        type:
+          const: component
+        component:
+          type: string
+          description: Fully qualified `<namespace>:<component-name>` reference.
+          examples: ["test_integration_react:price-badge"]
+        props:
+          type: object
+          description: Prop values for the nested component.
+          propertyNames:
+            pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+        slots:
+          type: object
+          description: Region content for the nested component (same `ReactStoryNode` arrays).
+          propertyNames:
+            pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+    - title: Image Node
+      required: [type, uri]
+      properties:
+        type:
+          const: image
+        uri:
+          type: string
+          description: Root-relative path to a committed local image.
+          examples: ["/images/cover.png"]
+        attributes:
+          type: object
+          description: Image attributes (`alt`, `class`).
