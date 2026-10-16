@@ -1,0 +1,43 @@
+config: gutenberg.yml
+workflow: sync-to
+fixtures:
+  - empty
+  - reference
+  - vision
+  - data-model
+  - tokens
+  - screen
+  - gutenberg
+prompt: |
+  You are working in {{workspace}}. This is the Cooks Delight recipe demo.
+  Use the installed Designbook skills and the configured WordPress / Twig / Tailwind integration.
+  Read the actual SKILL.md for each skill named below and follow its instructions.
+  Execute only this case and its explicitly named prerequisite skills.
+  Preserve all completed earlier steps and the published reference.
+  Do not launch Promptfoo or rebuild this prepared workspace from inside the case.
+  If required evidence, access or approval is missing, stop with the exact blocker; never invent it.
+  The DDEV WordPress site of this workspace is already running (admin admin/admin).
+  Run the /debo sync-to workflow with an empty filter so the content plugin and theme
+  include the Gutenberg adapter units. Then run
+  ddev exec php -d zend.assertions=1 -d assert.exception=1 /usr/local/bin/wp eval-file tests/gutenberg-render.php
+  and keep the OK line.
+  Create a published page whose post_content is a slot-card with one recipe-card in the
+  left slot (title "Left slot heading") and one in the right slot (title "Right slot heading").
+  Open that page on the frontend and in the block editor Preview. Confirm both titles, that
+  slot order is left then right, and that compiled CSS loads in the editor iframe. Save,
+  reload, and confirm both slots and their nested cards persist. Edit a nested title without
+  saving and confirm Preview updates. Record the page URL and write only the
+  `<section class="slot-card">` element (keep the file under 8 KiB) to
+  wp-content/themes/test_integration_wordpress/designbook/gutenberg-editor-card.txt.
+assert:
+- type: javascript
+  value: output.completedWorkflows['sync-to']?.state?.status === 'completed'
+- type: javascript
+  value: output.newFiles.some(f => f.endsWith('wp-content/plugins/test_integration_wordpress-content/gutenberg/GutenbergAdapter.php'))
+- type: javascript
+  value: output.newFiles.some(f => f.endsWith('components/slot-card/slot-card.twig'))
+- type: javascript
+  value: |
+    const card = output.fileContents['designbook/gutenberg-editor-card.txt'] || output.fileContents['wp-content/themes/test_integration_wordpress/designbook/gutenberg-editor-card.txt'] || '';
+    return /Left slot heading/.test(card) && /Right slot heading/.test(card)
+      && card.indexOf('Left slot heading') < card.indexOf('Right slot heading');

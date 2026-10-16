@@ -19,13 +19,21 @@ WordPress requires to activate a theme and which an existing theme keeps.
 | `plugin.<ns>_content` | `plugins/<ns>-content/<ns>-content.php` | always |
 | `plugin.<ns>_content.composer` | `plugins/<ns>-content/composer.json` | always |
 | `plugin.<ns>_content.registry` | `plugins/<ns>-content/src/ComponentRegistry.php` | always |
+| `gutenberg.adapter` | `plugins/<ns>-content/gutenberg/GutenbergAdapter.php` | always |
+| `gutenberg.editor` | `plugins/<ns>-content/gutenberg/editor.js` | always |
+| `layout.<scene>` | `plugins/<ns>-content/seed/layout-<scene>.php` | each scene whose `build_form` / view-mode `template` is `gutenberg` |
+| `theme.<ns>.html.index` | `themes/<ns>/templates/index.html` | when any Gutenberg mapping exists |
+| `theme.<ns>.html.page` | `themes/<ns>/templates/page.html` | when any Gutenberg mapping exists |
+| `theme.<ns>.html.single_<bundle>` | `themes/<ns>/templates/single-<bundle>.html` | each `post` bundle whose `full` view-mode `template` is `gutenberg` |
+| `theme.<ns>.html.header` | `themes/<ns>/parts/header.html` | shell scene plus a Gutenberg mapping |
+| `theme.<ns>.html.footer` | `themes/<ns>/parts/footer.html` | shell scene plus a Gutenberg mapping |
 | `post_type.<bundle>` | `plugins/<ns>-content/post-types/<bundle>.php` | each custom `post` bundle (not `post`, `page`) |
 | `taxonomy.<bundle>` | `plugins/<ns>-content/taxonomies/<bundle>.php` | each `term` bundle |
 | `field_group.<et>_<bundle>` | `plugins/<ns>-content/fields/<et>-<bundle>.php` | each bundle with fields beyond its entity type's base fields |
 | `theme.<ns>.base` | `themes/<ns>/views/designbook-base.twig` | always |
 | `theme.<ns>.index` | `themes/<ns>/index.php` | always |
-| `template.<bundle>.single` | `themes/<ns>/single-<bundle>.php` | each `post` bundle with a `full` view mode |
-| `view.<bundle>.full` | `themes/<ns>/views/single-<bundle>.twig` | each `post` bundle with a `full` view mode |
+| `template.<bundle>.single` | `themes/<ns>/single-<bundle>.php` | each `post` bundle with a `full` view mode whose `template` is not `gutenberg` |
+| `view.<bundle>.full` | `themes/<ns>/views/single-<bundle>.twig` | each `post` bundle with a `full` view mode whose `template` is not `gutenberg` |
 | `parts.<ns>.header`, `parts.<ns>.footer` | `themes/<ns>/views/parts/header.twig`, `footer.twig` | when the design-system shell scene exists |
 
 The content plugin's main file owns the runtime the generated theme files rely on: it boots
@@ -33,4 +41,8 @@ Timber, registers the Twig namespace `<ns>` → the theme's `components/` with a
 enqueues the theme's compiled `css/app.css`, and fires `designbook/register_components`.
 
 Units carry `entity_type`, `bundle` and `def` where they derive from a bundle. Order: plugin →
-post types → taxonomies → field groups → theme base → theme index → templates → views → parts.
+gutenberg adapter/editor → post types → taxonomies → field groups → theme base → theme index →
+templates → views → parts → html templates → layout seeds.
+
+A view-mode `template` / `build_form` of `gutenberg` selects the HTML template and `layout.<scene>`
+units in place of the PHP single and Twig view for that mapping.

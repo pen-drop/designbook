@@ -1,0 +1,9 @@
+<section class="slot-card slot-card--{{ variant|default('default')|e }}">
+  {% if heading %}
+    <h2 class="font-montserrat text-header-3 text-foreground">{{ heading|e }}</h2>
+  {% endif %}
+  <div class="grid gap-6 md:grid-cols-2">
+    <div class="slot-card__left">{{ left }}</div>
+    <div class="slot-card__right">{{ right }}</div>
+  </div>
+</section>

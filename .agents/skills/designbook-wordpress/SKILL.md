@@ -18,3 +18,10 @@ config.
 - [install/rules/find-theme.md](install/rules/find-theme.md) — install target (theme) selection
 - [install/blueprints/designbook-config.md](install/blueprints/designbook-config.md) — `designbook.config.yml` incl. `backend_cmd`
 - [install/blueprints/storybook-setup.md](install/blueprints/storybook-setup.md) — Storybook with Twing
+
+## Gutenberg
+
+- [gutenberg/rules/gutenberg-contract.md](gutenberg/rules/gutenberg-contract.md) — block names, schema attributes, slots, registry-only reads
+- [gutenberg/blueprints/adapter.md](gutenberg/blueprints/adapter.md) — generated adapter PHP and editor script
+- [gutenberg/blueprints/layout.md](gutenberg/blueprints/layout.md) — scene seed unit `layout.<scene>` via `serialize_blocks`
+- [gutenberg/blueprints/block-theme.md](gutenberg/blueprints/block-theme.md) — file-based `templates/` and `parts/`
