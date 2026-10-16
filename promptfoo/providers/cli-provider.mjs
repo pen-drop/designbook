@@ -103,7 +103,7 @@ class CliProvider {
       // agent always starts it via `storybook start`, which assigns a free port
       // and records it in storybook.json for `storybook status` to read back.
 
-      if (/^(sync|seed)(-|$)/.test(caseName)) {
+      if (/^(sync|seed|gutenberg)(-|$)/.test(caseName)) {
         // Provision the live backend (Drupal: import the committed DB baseline) before
         // the measured workflow.
         const suiteCfg = join(repoRoot, "fixtures", suite, "designbook.config.yml");

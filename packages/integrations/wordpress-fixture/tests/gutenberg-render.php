@@ -4,11 +4,15 @@
  *   ddev exec php -d zend.assertions=1 -d assert.exception=1 /usr/local/bin/wp eval-file tests/gutenberg-render.php
  */
 $ns = str_replace('_', '-', get_stylesheet());
-$theme = get_stylesheet_directory();
-$components = $theme . '/components';
+$dir = sys_get_temp_dir() . '/designbook-gutenberg-render-' . getmypid();
+@mkdir($dir, 0777, true);
+$write = static function (string $id, string $schema, string $twig) use ($dir): void {
+    @mkdir("$dir/$id", 0777, true);
+    file_put_contents("$dir/$id/$id.schema.yml", $schema);
+    file_put_contents("$dir/$id/$id.twig", $twig);
+};
 
-@mkdir("$components/slot-card", 0777, true);
-file_put_contents("$components/slot-card/slot-card.schema.yml", <<<'YML'
+$write('slot-card', <<<'YML'
 name: Slot Card
 group: Layout
 props:
@@ -23,8 +27,7 @@ slots:
     title: Left
   right:
     title: Right
-YML);
-file_put_contents("$components/slot-card/slot-card.twig", <<<'TWIG'
+YML, <<<'TWIG'
 <section class="slot-card">
   {% if heading %}<h2>{{ heading|e }}</h2>{% endif %}
   <div class="slot-card__left">{{ left }}</div>
@@ -32,8 +35,7 @@ file_put_contents("$components/slot-card/slot-card.twig", <<<'TWIG'
 </section>
 TWIG);
 
-@mkdir("$components/link-box", 0777, true);
-file_put_contents("$components/link-box/link-box.schema.yml", <<<'YML'
+$write('link-box', <<<'YML'
 name: Link Box
 props:
   type: object
@@ -45,10 +47,19 @@ props:
       type: integer
     label:
       type: string
-YML);
-file_put_contents("$components/link-box/link-box.twig", '<a href="{{ href|e }}">{{ label|e }} {{ count|e }}</a>');
+YML, '<a href="{{ href|e }}">{{ label|e }} {{ count|e }}</a>');
 
-$registry = new Designbook\ComponentRegistry($components, get_stylesheet());
+$recipeSrc = get_stylesheet_directory() . '/components/recipe-card';
+if (is_dir($recipeSrc)) {
+    @mkdir("$dir/recipe-card", 0777, true);
+    foreach (glob($recipeSrc . '/*') ?: [] as $file) {
+        if (is_file($file)) {
+            copy($file, "$dir/recipe-card/" . basename($file));
+        }
+    }
+}
+
+$registry = new Designbook\ComponentRegistry($dir, get_stylesheet());
 Designbook\GutenbergAdapter::register($registry);
 
 $admins = get_users(['role' => 'administrator', 'number' => 1]);
@@ -230,5 +241,15 @@ $own = wp_insert_post([
 ]);
 $ownPreview = $preview((int) $own, $twoSlot);
 assert($ownPreview->get_status() === 200, 'an editor may preview its editable post: ' . $ownPreview->get_status());
+
+wp_set_current_user((int) $authorId);
+$tplDenied = $preview(0, $twoSlot);
+assert(in_array($tplDenied->get_status(), [401, 403], true), 'author cannot preview templates: ' . $tplDenied->get_status());
+
+wp_set_current_user($adminId);
+$tplOk = $preview(0, $twoSlot);
+assert($tplOk->get_status() === 200, 'admin may preview a template: ' . $tplOk->get_status());
+$tplHtml = is_array($tplOk->get_data()) ? ($tplOk->get_data()['html'] ?? '') : '';
+assert(substr_count($tplHtml, 'Left slot heading') === 1, 'template preview renders left slot');
 
 echo "OK\n";

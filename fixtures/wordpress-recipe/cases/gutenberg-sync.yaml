@@ -22,7 +22,7 @@ prompt: |
   backend_cmd.seed_cmd. Run it a second time. Then run
   ddev exec php -d zend.assertions=1 -d assert.exception=1 /usr/local/bin/wp eval-file tests/gutenberg-writer.php
   Fetch the live recipes-home page yourself (curl the permalink), parse actual post_content,
-  and write the frontend markup to
+  and write only the `<section class="slot-card">` element (keep the file under 8 KiB) to
   wp-content/themes/test_integration_wordpress/designbook/gutenberg-sync-page.txt.
   Confirm wp_is_block_theme() is true, both slot headings are in the live HTML, and the
   second seed kept a single managed post.

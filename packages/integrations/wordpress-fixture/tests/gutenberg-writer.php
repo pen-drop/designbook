@@ -107,6 +107,7 @@ wp_set_object_terms($overrideId, $themeSlug, 'wp_theme');
 $report = Designbook\GutenbergAdapter::templateOverrideReport();
 assert(str_contains($report, 'page'), 'existing wp_template override is reported: ' . $report);
 assert(get_post($overrideId)->post_content !== '', 'override is not deleted');
+wp_delete_post($overrideId, true);
 
 $html = do_blocks($stored);
 assert(str_contains($html, 'Left slot heading') && str_contains($html, 'Right slot heading'), 'seeded page renders both slots');

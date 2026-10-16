@@ -1,3 +1,4 @@
+config: gutenberg.yml
 workflow: sync-to
 fixtures:
   - empty
@@ -25,8 +26,9 @@ prompt: |
   Open that page on the frontend and in the block editor Preview. Confirm both titles, that
   slot order is left then right, and that compiled CSS loads in the editor iframe. Save,
   reload, and confirm both slots and their nested cards persist. Edit a nested title without
-  saving and confirm Preview updates. Record the page URL and write the frontend article
-  markup to wp-content/themes/test_integration_wordpress/designbook/gutenberg-editor-card.txt.
+  saving and confirm Preview updates. Record the page URL and write only the
+  `<section class="slot-card">` element (keep the file under 8 KiB) to
+  wp-content/themes/test_integration_wordpress/designbook/gutenberg-editor-card.txt.
 assert:
 - type: javascript
   value: output.completedWorkflows['sync-to']?.state?.status === 'completed'
