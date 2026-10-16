@@ -23,3 +23,5 @@ config.
 
 - [gutenberg/rules/gutenberg-contract.md](gutenberg/rules/gutenberg-contract.md) — block names, schema attributes, slots, registry-only reads
 - [gutenberg/blueprints/adapter.md](gutenberg/blueprints/adapter.md) — generated adapter PHP, editor script and `block.json`
+- [gutenberg/blueprints/layout.md](gutenberg/blueprints/layout.md) — scene seed unit `layout.<scene>` via `serialize_blocks`
+- [gutenberg/blueprints/block-theme.md](gutenberg/blueprints/block-theme.md) — file-based `templates/` and `parts/`

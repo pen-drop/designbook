@@ -1,0 +1,29 @@
+workspace: .
+backend: wordpress
+extensions:
+  - id: figma
+frameworks:
+  component: twig
+  css: tailwind
+designbook:
+  cmd: npx storybook dev
+  home: .
+dirs:
+  components: components
+  css: { tokens: css/tokens, themes: css/themes }
+css:
+  app: css/app.src.css
+component:
+  namespace: 'test_integration_wordpress'
+  src: components
+sync_target_dir: wp-content
+entity_mapping:
+  templates:
+    gutenberg: gutenberg
+backend_cmd:
+  cmd: "ddev wp"
+  exists_cmd: "test -e"
+  validate_cmd: 'sh -c ''case "$1" in view.*) grep -q "{% include" "$2" || { echo "$1: the view renders no component include" >&2; exit 1; };; esac; npx storybook-addon-designbook twig check-includes "$1" "$2"'' --'
+  import: "ddev composer install -d wp-content/plugins/test_integration_wordpress-content && ddev wp plugin activate test_integration_wordpress-content && ddev wp theme activate test_integration_wordpress && ddev wp rewrite flush"
+  seed_cmd: "ddev wp eval-file"
+  page_url_cmd: "ddev wp eval 'echo get_permalink(get_page_by_path(\"{scene}\"));'"

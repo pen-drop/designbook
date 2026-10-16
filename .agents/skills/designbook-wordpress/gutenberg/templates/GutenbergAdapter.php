@@ -141,6 +141,87 @@ final class GutenbergAdapter {
         return '';
     }
 
+    public static function makeBlock(string $name, array $attrs = [], array $innerBlocks = []): array {
+        if ($innerBlocks === []) {
+            return [
+                'blockName' => $name,
+                'attrs' => $attrs,
+                'innerBlocks' => [],
+                'innerContent' => [],
+            ];
+        }
+        $innerContent = [];
+        foreach ($innerBlocks as $i => $child) {
+            $innerContent[] = '';
+            $innerContent[] = null;
+        }
+        $innerContent[] = '';
+        return [
+            'blockName' => $name,
+            'attrs' => $attrs,
+            'innerBlocks' => array_values($innerBlocks),
+            'innerContent' => $innerContent,
+        ];
+    }
+
+    public static function seedBlocks(string $designbookId, array $blocks, string $postType = 'page'): int {
+        foreach ($blocks as $parsed) {
+            self::validateTree($parsed);
+        }
+        $content = serialize_blocks($blocks);
+        $found = get_posts([
+            'post_type' => $postType,
+            'meta_key' => '_designbook_id',
+            'meta_value' => $designbookId,
+            'numberposts' => 1,
+            'post_status' => 'any',
+            'fields' => 'ids',
+        ]);
+        $existing = $found ? (int) $found[0] : 0;
+        $result = wp_insert_post([
+            'ID' => $existing,
+            'post_type' => $postType,
+            'post_status' => 'publish',
+            'post_title' => $designbookId,
+            'post_name' => sanitize_title($designbookId),
+            'post_content' => wp_slash($content),
+            'meta_input' => ['_designbook_id' => $designbookId],
+        ], true);
+        if (is_wp_error($result)) {
+            throw new GutenbergRenderError($result->get_error_message());
+        }
+        return (int) $result;
+    }
+
+    public static function writeBlockTheme(): void {
+        $dir = get_stylesheet_directory();
+        foreach (['templates', 'parts'] as $subdir) {
+            if (!is_dir("$dir/$subdir") && !mkdir("$dir/$subdir", 0775, true) && !is_dir("$dir/$subdir")) {
+                throw new GutenbergRenderError("Cannot write block theme $subdir");
+            }
+        }
+        $html = "<!-- wp:template-part {\"slug\":\"header\"} /-->\n<!-- wp:post-content /-->\n<!-- wp:template-part {\"slug\":\"footer\"} /-->\n";
+        foreach (['index', 'page', 'single'] as $slug) {
+            file_put_contents("$dir/templates/$slug.html", $html);
+        }
+        $part = "<!-- wp:group -->\n<div class=\"wp-block-group\"></div>\n<!-- /wp:group -->\n";
+        file_put_contents("$dir/parts/header.html", $part);
+        file_put_contents("$dir/parts/footer.html", $part);
+        if (function_exists('wp_clean_themes_cache')) {
+            wp_clean_themes_cache();
+        }
+    }
+
+    public static function templateOverrideReport(): string {
+        $lines = [];
+        foreach (get_block_templates(['theme' => get_stylesheet()], 'wp_template') as $tpl) {
+            if (($tpl->source ?? '') === 'custom') {
+                $lines[] = $tpl->slug . ' overridden in Site Editor';
+            }
+        }
+        return implode("\n", $lines);
+    }
+
     private static function previewParams(\WP_REST_Request $request): array {
         $json = $request->get_json_params();
         if (is_array($json) && $json !== []) {
