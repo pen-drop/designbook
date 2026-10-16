@@ -17,7 +17,7 @@ Starting point when `unit.build_form` is `bricks`. `layout.<scene>` is a PHP see
 <?php
 require_once WP_PLUGIN_DIR . '/<ns>-content/src/BricksAdapter.php';
 $tree = [ /* scene component tree: component, props, slots */ ];
-$elements = Designbook\Bricks\PageContent::fromScene($tree);
+$elements = Designbook\Bricks\Adapter::fromScene($tree);
 $found = get_posts([
     'post_type' => 'page',
     'meta_key' => '_designbook_id',

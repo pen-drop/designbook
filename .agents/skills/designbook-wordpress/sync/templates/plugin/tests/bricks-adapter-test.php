@@ -39,12 +39,9 @@ namespace {
 
     use Designbook\Bricks\Adapter;
     use Designbook\Bricks\ComponentElement;
-    use Designbook\Bricks\Controls;
-    use Designbook\Bricks\PageContent;
-    use Designbook\Bricks\Palette;
     use Designbook\ComponentDefinition;
 
-    $props = [
+    $controls = Adapter::controls([
         'type' => 'object',
         'properties' => [
             'title' => ['type' => 'string', 'title' => 'Title', 'default' => 'Hello'],
@@ -55,23 +52,21 @@ namespace {
             'tone' => ['type' => 'string', 'enum' => ['info', 'warn']],
         ],
         'required' => ['title'],
-    ];
-    $controls = Controls::fromSchema($props);
+    ]);
     assert($controls['title']['type'] === 'text' && $controls['title']['default'] === 'Hello' && !empty($controls['title']['required']), 'string + default + required');
     assert($controls['featured']['type'] === 'checkbox', 'boolean → checkbox');
     assert($controls['href']['type'] === 'link', 'format uri → link');
     assert($controls['count']['type'] === 'number' && $controls['weight']['type'] === 'number', 'number/integer → number');
     assert($controls['tone']['type'] === 'select' && $controls['tone']['options'] === ['info' => 'info', 'warn' => 'warn'], 'enum → select');
 
-    $tree = [
+    $elements = Adapter::fromScene([
         'component' => 'demo:card',
         'props' => ['title' => 'Soup'],
         'slots' => [
             'media' => [['component' => 'image', 'props' => ['alt' => 'bowl']]],
             'content' => [],
         ],
-    ];
-    $elements = PageContent::fromScene($tree);
+    ]);
     $byName = [];
     foreach ($elements as $el) {
         assert(preg_match('/^[a-z0-9]{6}$/', $el['id']), '6-char id');
@@ -84,12 +79,11 @@ namespace {
     $image = $byName['designbook-image'][0];
     assert($image['parent'] === $media['id'] && in_array($image['id'], $media['children'], true), 'nested component lives in its slot');
 
-    $palette = Palette::fromThemeJson(json_encode([
+    assert(Adapter::palette(json_encode([
         'settings' => ['color' => ['palette' => [
             ['slug' => 'surface', 'name' => 'Surface', 'color' => '#fffbf2'],
         ]]],
-    ]));
-    assert($palette === [['hex' => '#fffbf2', 'name' => 'Surface']], 'theme.json colors → Bricks palette');
+    ])) === [['hex' => '#fffbf2', 'name' => 'Surface']], 'theme.json colors → Bricks palette');
 
     $registry = new class {
         public function ui(): array {
@@ -111,8 +105,7 @@ namespace {
     };
     Adapter::register($registry);
     $names = array_column(\Bricks\Elements::$registered, 'name');
-    assert($names === ['designbook-card', 'designbook-slot'], 'registers ui components plus the slot region; skips ui:false');
-    assert(!in_array('designbook-icon', $names, true), 'ui:false stays out of the editor');
+    assert($names === ['designbook-card', 'designbook-slot'], 'registers ui components plus the slot region');
 
     $el = new ComponentElement([
         'name' => 'designbook-card',
@@ -121,8 +114,7 @@ namespace {
     ComponentElement::$registry = $registry;
     ob_start();
     $el->render();
-    $out = ob_get_clean();
-    assert($out === '<card>Soup<img></card>', 'editor/frontend render goes through ComponentRegistry::render');
+    assert(ob_get_clean() === '<card>Soup<img></card>', 'render goes through ComponentRegistry::render');
 
     echo "OK\n";
 }

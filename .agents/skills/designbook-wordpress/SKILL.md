@@ -24,5 +24,5 @@ config.
 - [sync/rules/sync-units.md](sync/rules/sync-units.md) — plugin, theme, and Bricks `layout.<scene>` units
 - [sync/rules/builder-adapter-contract.md](sync/rules/builder-adapter-contract.md) — adapter interface
 - [sync/rules/bricks-version.md](sync/rules/bricks-version.md) — Bricks 2.0+ (`extensions: bricks`)
-- [sync/blueprints/plugin-bootstrap.md](sync/blueprints/plugin-bootstrap.md) — content plugin including the Bricks adapter
+- [sync/blueprints/plugin-bootstrap.md](sync/blueprints/plugin-bootstrap.md) — content plugin
 - [sync/blueprints/layout-bricks.md](sync/blueprints/layout-bricks.md) — scene seed for `_bricks_page_content_2`

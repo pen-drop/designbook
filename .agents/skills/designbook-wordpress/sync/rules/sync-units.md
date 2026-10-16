@@ -20,7 +20,6 @@ WordPress requires to activate a theme and which an existing theme keeps.
 | `plugin.<ns>_content.composer` | `plugins/<ns>-content/composer.json` | always |
 | `plugin.<ns>_content.registry` | `plugins/<ns>-content/src/ComponentRegistry.php` | always |
 | `plugin.<ns>_content.bricks` | `plugins/<ns>-content/src/BricksAdapter.php` | when the `bricks` extension is active |
-| `plugin.<ns>_content.bricks_elements` | `plugins/<ns>-content/src/BricksElements.php` | when the `bricks` extension is active |
 | `layout.<scene>` | `plugins/<ns>-content/seeds/layout-<scene>.php` | when the `bricks` extension is active, `scene` is set, and the page bundle's full view-mode `template` is `bricks` |
 | `post_type.<bundle>` | `plugins/<ns>-content/post-types/<bundle>.php` | each custom `post` bundle (not `post`, `page`) |
 | `taxonomy.<bundle>` | `plugins/<ns>-content/taxonomies/<bundle>.php` | each `term` bundle |
