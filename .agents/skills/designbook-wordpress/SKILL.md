@@ -18,3 +18,11 @@ config.
 - [install/rules/find-theme.md](install/rules/find-theme.md) — install target (theme) selection
 - [install/blueprints/designbook-config.md](install/blueprints/designbook-config.md) — `designbook.config.yml` incl. `backend_cmd`
 - [install/blueprints/storybook-setup.md](install/blueprints/storybook-setup.md) — Storybook with Twing
+
+## Sync
+
+- [sync/rules/sync-units.md](sync/rules/sync-units.md) — plugin, theme, and Bricks `layout.<scene>` units
+- [sync/rules/builder-adapter-contract.md](sync/rules/builder-adapter-contract.md) — adapter interface
+- [sync/rules/bricks-version.md](sync/rules/bricks-version.md) — Bricks 2.0+ (`extensions: bricks`)
+- [sync/blueprints/plugin-bootstrap.md](sync/blueprints/plugin-bootstrap.md) — content plugin
+- [sync/blueprints/layout-bricks.md](sync/blueprints/layout-bricks.md) — scene seed for `_bricks_page_content_2`
