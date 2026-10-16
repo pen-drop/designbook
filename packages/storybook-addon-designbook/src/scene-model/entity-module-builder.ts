@@ -48,6 +48,7 @@ export async function buildEntityModule(
     resolveScriptPath?: (componentId: string) => string | null;
     extraImportLines?: string[];
     builtInComponents?: Record<string, ComponentModule>;
+    renderExpression?: (sceneExpr: string) => string;
   } = {},
 ): Promise<string> {
   const { entity_type, bundle } = parseMappingName(mappingFilePath);
@@ -183,5 +184,6 @@ export async function buildEntityModule(
     resolveScriptPath,
     extraImportLines: options.extraImportLines,
     builtInComponents: options.builtInComponents,
+    renderExpression: options.renderExpression,
   });
 }

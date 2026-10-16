@@ -12,7 +12,7 @@ Designbook has three product parts plus a private documentation site.
 
 ## Part 3 — Integration skills
 
-`designbook-drupal`, `designbook-vue`, `designbook-css-tailwind`, `designbook-stitch`, plus capture `designbook-figma`, test `designbook-test`, and GAIA `designbook-gaia`. Drupal, Vue, Tailwind, and Stitch extend Part 1 with tasks, blueprints, and rules. GAIA ships only `@gaia/workflow-step` prose.
+`designbook-drupal`, `designbook-vue`, `designbook-react`, `designbook-css-tailwind`, `designbook-stitch`, plus capture `designbook-figma`, test `designbook-test`, and GAIA `designbook-gaia`. Drupal, Vue, React, Tailwind, and Stitch extend Part 1 with tasks, blueprints, and rules. GAIA ships only `@gaia/workflow-step` prose.
 
 ## Website package
 

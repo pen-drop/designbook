@@ -7,7 +7,7 @@ Core Designbook (`debo`) owns workflows, stages, and component creation. Project
 | Kind | Location | Role |
 |---|---|---|
 | Core | `.agents/skills/designbook/` | Workflows and shared builder |
-| Integration plugin | `.agents/skills/designbook-drupal`, `designbook-css-tailwind`, `designbook-stitch`, `designbook-vue` | Tasks, blueprints, rules filtered by config |
+| Integration plugin | `.agents/skills/designbook-drupal`, `designbook-css-tailwind`, `designbook-stitch`, `designbook-vue`, `designbook-react` | Tasks, blueprints, rules filtered by config |
 | Capture skill | `.agents/skills/designbook-figma` | Figma observations after extract-reference matches `figma` |
 | Test harness | `.agents/skills/designbook-test` | Fixture runs; internal |
 | GAIA | `.agents/skills/designbook-gaia` | GAIA workflow-step skills; **not** the four-level model |

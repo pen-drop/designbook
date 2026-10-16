@@ -10,4 +10,4 @@ Each integration selects a backend, CSS framework, or capture source. Configurat
 - [Figma](/integrations/figma) — capture skill, not a marketplace plugin
 - [GAIA](/integrations/gaia) — workflow-step prose outside the four-level model
 
-`designbook-vue` is a marketplace plugin for Vue 3 component tasks (`frameworks.component: vue`). `designbook-test` is the internal harness.
+`designbook-vue` is a marketplace plugin for Vue 3 component tasks (`frameworks.component: vue`); `designbook-react` covers React TSX components (`frameworks.component: react`, see [React](/integrations/react)). `designbook-test` is the internal harness.

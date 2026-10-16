@@ -1,0 +1,24 @@
+{
+    "name": "test-integration-react",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "storybook": "storybook dev -p 6011",
+        "storybook:clean": "rm -rf node_modules/.cache/storybook",
+        "build-storybook": "storybook build"
+    },
+    "devDependencies": {
+        "@storybook/addon-docs": "^10.0.0",
+        "@storybook/addon-themes": "^10.0.0",
+        "@storybook/html": "^10.0.0",
+        "@storybook/html-vite": "^10.0.0",
+        "@tailwindcss/vite": "^4.1.18",
+        "@vitejs/plugin-react": "^4.7.0",
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1",
+        "storybook": "^10.0.0",
+        "storybook-addon-designbook": "workspace:*",
+        "tailwindcss": "^4.0.0-beta.9",
+        "vite": "^6.3.5"
+    }
+}

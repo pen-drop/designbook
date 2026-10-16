@@ -37,4 +37,4 @@ The skills CLI writes into the project's `.agents/skills/` tree and per-agent sy
 
 **Done when:** the agent lists Designbook as an installed skill, and you have not yet required a `designbook.config.yml`. That file is created during project initialization.
 
-Marketplace plugins: `designbook`, `designbook-drupal`, `designbook-vue`, `designbook-css-tailwind`, `designbook-stitch`, `designbook-test`, `designbook-gaia`. Figma is documented under [Integrations](/integrations/figma).
+Marketplace plugins: `designbook`, `designbook-drupal`, `designbook-vue`, `designbook-react`, `designbook-css-tailwind`, `designbook-stitch`, `designbook-test`, `designbook-gaia`. Figma is documented under [Integrations](/integrations/figma).

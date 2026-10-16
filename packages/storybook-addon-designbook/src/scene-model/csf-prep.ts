@@ -62,6 +62,11 @@ export interface CsfPrepOptions {
    * Defaults to the HTML-string `builtInComponents` (SDC/React/Twig-safe).
    */
   builtInComponents?: Record<string, ComponentModule>;
+  /**
+   * Story `render` expression for a scene expression. Overrides the default
+   * `renderComponent(...)` call (e.g. React's mount-tagged helper call).
+   */
+  renderExpression?: (sceneExpr: string) => string;
 }
 
 // ── Import tracking ────────────────────────────────────────────────────
@@ -158,6 +163,7 @@ export function buildCsfModule(opts: CsfPrepOptions): string {
 
   const importsMap = `const __imports = {\n${importsMapEntries.join('\n')}\n};`;
   const isVue = usesVueHelpers(opts.extraImportLines);
+  const render = opts.renderExpression ?? ((expr: string) => renderComponentCall(expr, isVue));
 
   // Default export
   const defaultExport = [
@@ -201,7 +207,7 @@ export function buildCsfModule(opts: CsfPrepOptions): string {
       '  args: {',
       `    __scene: ${nodesJson},`,
       '  },',
-      `  render: (args) => ${renderComponentCall('args.__scene', isVue)},`,
+      `  render: (args) => ${render('args.__scene')},`,
       '  play: (ctx) => attachDrupalBehaviors(ctx.canvasElement),',
       '};',
     ].join('\n');
@@ -266,6 +272,11 @@ export interface EntityCsfOptions {
    * Defaults to the HTML-string `builtInComponents` (SDC/React/Twig-safe).
    */
   builtInComponents?: Record<string, ComponentModule>;
+  /**
+   * Story `render` expression for a scene expression. Overrides the default
+   * `renderComponent(...)` call (e.g. React's mount-tagged helper call).
+   */
+  renderExpression?: (sceneExpr: string) => string;
 }
 
 /**
@@ -321,9 +332,9 @@ function emitEntityStory(params: {
   source: string;
   fieldMappings: FieldMapping[];
   tags?: string[];
-  isVue: boolean;
+  render: (sceneExpr: string) => string;
 }): string {
-  const { exportName, name, order, recordsNodes, recordsTrees, mappingFile, source, fieldMappings, tags, isVue } =
+  const { exportName, name, order, recordsNodes, recordsTrees, mappingFile, source, fieldMappings, tags, render } =
     params;
   const recordsJson = JSON.stringify(recordsNodes);
   // Per-record scene IR — the Structure panel indexes into it by the `record`
@@ -339,7 +350,7 @@ function emitEntityStory(params: {
     `  parameters: { designbook: { order: ${order} }, docs: { description: { story: ${description} } }, sceneTrees: ${treesJson} },`,
     `  argTypes: { record: { name: 'record', control: { type: 'select' }, options: [${options.join(', ')}] } },`,
     `  args: { record: 0, __records: ${recordsJson} },`,
-    `  render: (args) => ${renderComponentCall('args.__records[args.record]', isVue)},`,
+    `  render: (args) => ${render('args.__records[args.record]')},`,
     '  play: (ctx) => attachDrupalBehaviors(ctx.canvasElement),',
     '};',
   );
@@ -374,6 +385,7 @@ export function buildEntityCsfModule(opts: EntityCsfOptions): string {
   ];
   const importsMap = `const __imports = {\n${importsMapEntries.join('\n')}\n};`;
   const isVue = usesVueHelpers(opts.extraImportLines);
+  const render = opts.renderExpression ?? ((expr: string) => renderComponentCall(expr, isVue));
 
   // `entity` parameter mirrors the scene module's `scene` param — it marks the
   // story as a designbook entity story so the visual-compare toolbar shows for
@@ -402,7 +414,7 @@ export function buildEntityCsfModule(opts: EntityCsfOptions): string {
       mappingFile: mappingBasename(vm.view_mode),
       source: vm.source,
       fieldMappings: vm.fieldMappings,
-      isVue,
+      render,
     }),
   );
 
@@ -419,7 +431,7 @@ export function buildEntityCsfModule(opts: EntityCsfOptions): string {
       source: fm.source,
       fieldMappings: fm.fieldMappings,
       tags: ['form'],
-      isVue,
+      render,
     }),
   );
 

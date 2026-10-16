@@ -60,3 +60,13 @@ describe('resolveStoryPattern', () => {
     );
   });
 });
+
+describe('DEFAULT_STORY_PATTERNS react', () => {
+  it('matches the indexed React story.yml import path and captures the component name', () => {
+    const react = resolveStoryPattern('react');
+    expect('./components/price-badge/price-badge.sale.story.yml'.match(react.import_path_pattern)?.[1]).toBe(
+      'price-badge',
+    );
+    expect('./components/card/other.default.story.yml'.match(react.import_path_pattern)).toBeNull();
+  });
+});

@@ -16,6 +16,11 @@ export const DEFAULT_STORY_PATTERNS: Record<string, StoryPattern> = {
     import_path_pattern: /^\.\/components\/([^/]+)\/\1\.vue$/,
     component_name_group: 1,
   },
+  // React stories are indexed from `.story.yml` (TSX has no index entry of its own).
+  react: {
+    import_path_pattern: /^\.\/components\/([^/]+)\/\1\.[^./]+\.story\.yml$/,
+    component_name_group: 1,
+  },
   twig: {
     import_path_pattern: /^\.\/components\/([^/]+)\/\1\.twig$/,
     component_name_group: 1,

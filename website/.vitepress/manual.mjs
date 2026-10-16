@@ -51,6 +51,7 @@ export const SIDEBAR = {
       ['Overview', '/integrations/'],
       ['Drupal', '/integrations/drupal'],
       ['First Drupal result', '/integrations/drupal/first-result'],
+      ['React', '/integrations/react'],
       ['Tailwind CSS', '/integrations/tailwind'],
       ['Google Stitch', '/integrations/stitch'],
       ['Figma', '/integrations/figma'],

@@ -101,6 +101,7 @@ export function designbookLoadPlugin(
     wrapImport?: (alias: string) => string;
     extraImportLines?: string[];
     builtInComponents?: Record<string, ComponentModule>;
+    renderExpression?: (sceneExpr: string) => string;
   },
 ): Plugin {
   const designbookDir = resolve(baseDir, options.fsRoot || 'designbook');
@@ -302,6 +303,7 @@ export function designbookLoadPlugin(
           wrapImport: options.wrapImport,
           extraImportLines: options.extraImportLines,
           builtInComponents: options.builtInComponents,
+          renderExpression: options.renderExpression,
         });
       }
 
@@ -318,6 +320,7 @@ export function designbookLoadPlugin(
             wrapImport: options.wrapImport,
             extraImportLines: options.extraImportLines,
             builtInComponents: options.builtInComponents,
+            renderExpression: options.renderExpression,
           });
         }
       }
@@ -329,6 +332,7 @@ export function designbookLoadPlugin(
           wrapImport: options.wrapImport,
           extraImportLines: options.extraImportLines,
           builtInComponents: options.builtInComponents,
+          renderExpression: options.renderExpression,
         });
       }
 
@@ -341,6 +345,7 @@ export function designbookLoadPlugin(
         wrapImport: options.wrapImport,
         extraImportLines: options.extraImportLines,
         builtInComponents: options.builtInComponents,
+        renderExpression: options.renderExpression,
       });
     },
 
@@ -816,6 +821,7 @@ async function loadEntityModule(
     wrapImport?: (alias: string) => string;
     extraImportLines?: string[];
     builtInComponents?: Record<string, ComponentModule>;
+    renderExpression?: (sceneExpr: string) => string;
   },
 ): Promise<string | null> {
   try {
@@ -851,6 +857,7 @@ async function loadComponentStoryModule(
     wrapImport?: (alias: string) => string;
     extraImportLines?: string[];
     builtInComponents?: Record<string, ComponentModule>;
+    renderExpression?: (sceneExpr: string) => string;
   },
 ): Promise<string | null> {
   try {
@@ -893,6 +900,7 @@ async function loadComponentStoryModule(
       wrapImport: options.wrapImport,
       extraImportLines: options.extraImportLines,
       builtInComponents: options.builtInComponents,
+      renderExpression: options.renderExpression,
     });
 
     const result = await transformWithEsbuild(sceneCode, id + '.js', { loader: 'js' });
@@ -913,6 +921,7 @@ async function loadSceneModule(
     wrapImport?: (alias: string) => string;
     extraImportLines?: string[];
     builtInComponents?: Record<string, ComponentModule>;
+    renderExpression?: (sceneExpr: string) => string;
   },
 ): Promise<string | null> {
   try {
@@ -943,6 +952,7 @@ async function loadSceneModule(
       wrapImport: options.wrapImport,
       extraImportLines: options.extraImportLines,
       builtInComponents: options.builtInComponents,
+      renderExpression: options.renderExpression,
     });
 
     const codeWithOverview = prependOverviewToModule(sceneCode, sectionId, title);

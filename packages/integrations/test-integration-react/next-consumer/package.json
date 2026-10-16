@@ -1,0 +1,21 @@
+{
+  "name": "test-integration-react-next-consumer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prebuild": "node scripts/sync-components.mjs",
+    "build": "next build",
+    "start": "next start -p 3093",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "next": "15.5.4",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19.2.0",
+    "typescript": "^5.8.3"
+  }
+}

@@ -72,18 +72,19 @@ WORKSPACE_KEY="${WORKSPACE_KEY:-workspace}"
 # config declares otherwise — e.g. `./scripts/setup-workspace.sh` with no
 # suite, or a suite fixture with no `backend` key.
 BACKEND="drupal"
+COMPONENT_FRAMEWORK="sdc"
 FIXTURE_CFG="$REPO_ROOT/fixtures/$WORKSPACE_NAME/designbook.config.yml"
 if [ -f "$FIXTURE_CFG" ]; then
-  BACKEND="$(
+  read -r BACKEND COMPONENT_FRAMEWORK < <(
     FIXTURE_CFG="$FIXTURE_CFG" \
     NODE_PATH="$REPO_ROOT/node_modules" \
     node -e '
       const fs = require("fs");
       const yaml = require("js-yaml");
       const cfg = yaml.load(fs.readFileSync(process.env.FIXTURE_CFG, "utf8")) || {};
-      process.stdout.write(String(cfg.backend || "drupal"));
+      process.stdout.write(`${cfg.backend || "drupal"} ${cfg.frameworks?.component || "sdc"}\n`);
     '
-  )"
+  )
 fi
 
 if [ "$BACKEND" = "none" ]; then
@@ -94,14 +95,16 @@ if [ "$BACKEND" = "none" ]; then
 
   echo "Setting up workspace: $WORKSPACE_DIR (backend: none)"
 
-  SRC_APP="$REPO_ROOT/packages/integrations/test-integration-vue"
-  [ -d "$SRC_APP" ] || { echo "Missing $SRC_APP — vue app fixture not committed" >&2; exit 1; }
+  # The standalone Storybook app scaffold is selected by the suite's component framework.
+  SRC_APP="$REPO_ROOT/packages/integrations/test-integration-$COMPONENT_FRAMEWORK"
+  [ -d "$SRC_APP" ] || { echo "Missing $SRC_APP — no backend:none app scaffold for frameworks.component: $COMPONENT_FRAMEWORK" >&2; exit 1; }
+  if [ -n "${SETUP_WORKSPACE_DRY_RUN:-}" ]; then echo "SRC_APP=$SRC_APP"; exit 0; fi
 
-  # Materialize the base Vue/Storybook app scaffold directly at the workspace
+  # Materialize the base Storybook app scaffold directly at the workspace
   # root. No drupal-fixture clone, no prepare-drupal-fixture.sh, no composer/ddev.
   rm -rf "$WORKSPACE_DIR"
   mkdir -p "$WORKSPACE_DIR"
-  rsync -a --exclude='node_modules' --exclude='.git' "$SRC_APP/" "$WORKSPACE_DIR/"
+  rsync -a --exclude='node_modules' --exclude='.git' --exclude='next-consumer' "$SRC_APP/" "$WORKSPACE_DIR/"
 
   # No workspace-root designbook.config.yml is written here: for backend:none
   # the suite fixture's own config (fixtures/<suite>/designbook.config.yml) is

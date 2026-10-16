@@ -1,0 +1,4 @@
+component: "test_integration_react:site-footer"
+name: "Default"
+props:
+  copyright: "© 2026 Prosaic Bookstore"

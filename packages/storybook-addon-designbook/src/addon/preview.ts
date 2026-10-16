@@ -11,7 +11,13 @@ import { withRoundTrip } from './withRoundTrip';
 import { withVisualCompare } from './withVisualCompare';
 import { withInspectOverlay } from './decorators/inspect-overlay';
 import { setActiveTheme } from './pages/theme-store';
-import { mountVueRoot, isVueVNode, type VueMountHandle } from './renderer/renderer';
+import {
+  mountVueRoot,
+  isVueVNode,
+  isReactStoryOutput,
+  type VueMountHandle,
+  type ReactStoryOutput,
+} from './renderer/renderer';
 import type { ComponentNode } from '../scene-model/types';
 
 export { isVueVNode };
@@ -33,6 +39,30 @@ if (
  */
 export function isVueRenderable(value: unknown): boolean {
   return isVueVNode(value) || (Array.isArray(value) && value.some(isVueVNode));
+}
+
+/**
+ * Lifecycle for `frameworks.component: react` story output (`reactHelpers.story()`):
+ * one container + React root per story, reused across args updates, disposed on
+ * story teardown. The mount function travels with the output, so this file never
+ * imports react-dom.
+ */
+export function reactStoryMount() {
+  let mounted: { container: HTMLElement; handle: ReturnType<ReactStoryOutput['mount']> } | null = null;
+  return {
+    update(output: ReactStoryOutput): HTMLElement {
+      if (!mounted) {
+        const container = document.createElement('div');
+        mounted = { container, handle: output.mount(container) };
+      }
+      mounted.handle.render(output.node as never);
+      return mounted.container;
+    },
+    dispose() {
+      mounted?.handle.unmount();
+      mounted = null;
+    },
+  };
 }
 
 /**
@@ -68,6 +98,7 @@ function withDeboTheme(Story: any, context: StoryContext) {
   const [globals] = useGlobals();
   const vueContainerRef = useRef<HTMLDivElement | null>(null);
   const vueHandleRef = useRef<VueMountHandle | null>(null);
+  const reactMountRef = useRef<ReturnType<typeof reactStoryMount> | null>(null);
 
   const prefersDark =
     globals?.theme === 'dark' ||
@@ -81,6 +112,18 @@ function withDeboTheme(Story: any, context: StoryContext) {
     document.body.style.color = base.color.defaultText;
   }
   let result = Story(context);
+
+  useEffect(
+    () => () => {
+      reactMountRef.current?.dispose();
+      reactMountRef.current = null;
+    },
+    [context.id],
+  );
+  if (isReactStoryOutput(result)) {
+    reactMountRef.current ??= reactStoryMount();
+    result = reactMountRef.current.update(result);
+  }
 
   const vueOutput = isVueRenderable(result) ? result : null;
 

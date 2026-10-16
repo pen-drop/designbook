@@ -20,9 +20,13 @@ import {
   defaultVueExtraImportLines,
   defaultTwigResolver,
   defaultTwigWrapImport,
+  defaultReactResolver,
+  defaultReactWrapImport,
+  defaultReactExtraImportLines,
+  defaultReactRenderExpression,
 } from '../scene-model/scene-module-builder';
 import { designbookTwigPlugin } from './vite-plugin-twig';
-import { vueBuiltInComponents } from '../scene-model/built-in-components';
+import { vueBuiltInComponents, reactBuiltInComponents } from '../scene-model/built-in-components';
 import { referenceIndexEntries } from '../tools/reference-library';
 
 import { readFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs';
@@ -33,6 +37,60 @@ import { load as parseYaml } from 'js-yaml';
 const __filename = fileURLToPath(import.meta.url);
 
 const __dirname = dirname(__filename);
+
+/** Component source extension per `frameworks.component` with a standalone `.story.yml` route. */
+const COMPONENT_SOURCE_EXT: Record<string, string> = { vue: 'vue', twig: 'twig', react: 'tsx' };
+
+/** Resolver/wrapper/render options per `frameworks.component`; `{}` keeps the SDC defaults. */
+export function frameworkOptionsFor(componentFramework: string, designbookDir: string) {
+  if (componentFramework === 'vue') {
+    return {
+      resolveImportPath: (componentId: string) => defaultVueResolver(componentId, designbookDir),
+      wrapImport: defaultVueWrapImport,
+      extraImportLines: defaultVueExtraImportLines,
+      builtInComponents: vueBuiltInComponents,
+    };
+  }
+  if (componentFramework === 'twig') {
+    return {
+      resolveImportPath: (componentId: string) => defaultTwigResolver(componentId, designbookDir),
+      wrapImport: defaultTwigWrapImport,
+    };
+  }
+  if (componentFramework === 'react') {
+    return {
+      resolveImportPath: (componentId: string) => defaultReactResolver(componentId, designbookDir),
+      wrapImport: defaultReactWrapImport,
+      extraImportLines: defaultReactExtraImportLines,
+      builtInComponents: reactBuiltInComponents,
+      renderExpression: defaultReactRenderExpression,
+    };
+  }
+  return {};
+}
+
+/** React components mount into the html-vite DOM contract; any other host is rejected. */
+export function assertReactHost(framework: unknown): void {
+  const name = typeof framework === 'string' ? framework : (framework as { name?: string } | undefined)?.name;
+  if (name?.includes('@storybook/html-vite')) return;
+  throw new Error(
+    `[Designbook] frameworks.component: react requires framework '@storybook/html-vite' in .storybook/main.ts ` +
+      `(found '${name ?? 'none'}'). See designbook-react install rule (react-storybook).`,
+  );
+}
+
+/** Fails the Vite build when `@vitejs/plugin-react` is missing from the resolved config. */
+export function reactPluginCheck() {
+  return {
+    name: 'designbook:react-plugin-check',
+    configResolved(config: { plugins: readonly { name: string }[] }) {
+      if (config.plugins.some((p) => p.name.startsWith('vite:react'))) return;
+      throw new Error(
+        "[Designbook] frameworks.component: react requires '@vitejs/plugin-react' registered in .storybook/main.ts viteFinal.",
+      );
+    },
+  };
+}
 
 // Indexes one entity-mapping `.jsonata` file as a single view-mode story. The
 // indexer fires once per mapping; all view-modes of a bundle point at the same
@@ -149,12 +207,13 @@ export function indexForm(fileName: string): any[] {
 // this indexer for SDC too would double-index `.component.yml` pairs when
 // both addons are registered together (e.g. `test-integration-drupal`).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function indexComponentStory(fileName: string): any[] {
+export function indexComponentStory(fileName: string, componentFramework?: string): any[] {
   const parsedName = parseComponentStoryFileName(fileName);
   if (!parsedName) return [];
 
   const dir = dirname(fileName);
-  const hasTemplate = ['vue', 'twig'].some((ext) => existsSync(resolve(dir, `${parsedName.name}.${ext}`)));
+  const exts = componentFramework ? [COMPONENT_SOURCE_EXT[componentFramework]] : Object.values(COMPONENT_SOURCE_EXT);
+  const hasTemplate = exts.some((ext) => ext && existsSync(resolve(dir, `${parsedName.name}.${ext}`)));
   if (!hasTemplate) return [];
 
   const relativePath = './' + relative(process.cwd(), fileName);
@@ -207,20 +266,7 @@ export const viteFinal = async (config: any, options: any) => {
   // the Vue path is opt-in and never touches the SDC default.
   const componentFramework = String(designbookConfig['frameworks.component'] ?? 'sdc');
   const designbookDir = resolve(configDir, fsRoot || 'designbook');
-  const frameworkOptions =
-    componentFramework === 'vue'
-      ? {
-          resolveImportPath: (componentId: string) => defaultVueResolver(componentId, designbookDir),
-          wrapImport: defaultVueWrapImport,
-          extraImportLines: defaultVueExtraImportLines,
-          builtInComponents: vueBuiltInComponents,
-        }
-      : componentFramework === 'twig'
-        ? {
-            resolveImportPath: (componentId: string) => defaultTwigResolver(componentId, designbookDir),
-            wrapImport: defaultTwigWrapImport,
-          }
-        : {};
+  const frameworkOptions = frameworkOptionsFor(componentFramework, designbookDir);
   if (componentFramework === 'twig') {
     plugins.push(
       designbookTwigPlugin({
@@ -228,6 +274,11 @@ export const viteFinal = async (config: any, options: any) => {
         namespace: String(designbookConfig['component.namespace']),
       }),
     );
+  }
+
+  if (componentFramework === 'react') {
+    assertReactHost(await options?.presets?.apply?.('framework'));
+    plugins.push(reactPluginCheck());
   }
 
   plugins.push(
@@ -284,10 +335,9 @@ export const stories = async (entry: string[] = [], options: any) => {
   // Standalone component stories — only globbed for `frameworks.component: vue | twig`.
   // See `indexComponentStory` for why SDC is excluded (storybook-addon-sdc parity).
   const componentFramework = String(designbookConfig['frameworks.component'] ?? 'sdc');
-  const componentStoryGlob =
-    componentFramework === 'vue' || componentFramework === 'twig'
-      ? resolve(distDir, '..', 'components', '*', '*.story.yml')
-      : undefined;
+  const componentStoryGlob = COMPONENT_SOURCE_EXT[componentFramework]
+    ? resolve(distDir, '..', 'components', '*', '*.story.yml')
+    : undefined;
 
   // Built-in pages listed explicitly in sidebar order: Foundation → Design System → Sections → References.
   // File-name order is Storybook 10's sort mechanism when no storySort is configured.
@@ -418,10 +468,10 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
   // `storybook-addon-sdc` indexer instead).
   const designbookConfig = loadConfig();
   const componentFramework = String(designbookConfig['frameworks.component'] ?? 'sdc');
-  if (componentFramework === 'vue' || componentFramework === 'twig') {
+  if (COMPONENT_SOURCE_EXT[componentFramework]) {
     indexers.push({
       test: /components\/[^/]+\/[^/]+\.[^./]+\.story\.yml$/,
-      createIndex: async (fileName: string) => indexComponentStory(fileName),
+      createIndex: async (fileName: string) => indexComponentStory(fileName, componentFramework),
     });
   }
 

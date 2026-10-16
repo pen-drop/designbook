@@ -11,13 +11,13 @@ Tailwind's JIT compiler must see every file that uses utility classes. The curre
 
 ```css
 /* In $DESIGNBOOK_CSS_APP (e.g. app.src.css) */
-@source "../components/**/*.{twig,js,yml}";
+@source "../components/**/*.{twig,js,yml,tsx}";
 ```
 
 ## When this rule is satisfied automatically
 
 - The wildcard directive above is already present in `$DESIGNBOOK_CSS_APP`.
-- The new component was created inside `components/<name>/` with `.twig`, `.js`, or `.yml` extensions.
+- The new component was created inside `components/<name>/` with `.twig`, `.js`, `.yml`, or `.tsx` extensions.
 
 In that case **no edit is required** — the new component is picked up on the next build.
 

@@ -1,0 +1,134 @@
+fixtures:
+  - vision
+  - tokens
+  - data-model
+  - entity-update
+  - sections
+  - sample-data
+  - design-component
+prompt: |-
+  You are working in {{workspace}}. Invoke /debo design-component.
+  Create Prosaic Bookstore's price badge component (test_integration_react:price-badge) with top-level
+  variants default and sale, props amount, currency and originalAmount. Select the canonical variant
+  through the story file's top-level `variant` field. Render amount formatted as "{currency}{amount}"; when variant is
+  sale also render originalAmount struck through beside it. Author default and sale story files using
+  amount 18.50, currency "$", and for sale also originalAmount 24.00. Then wire book-card
+  (test_integration_react:book-card) to render price-badge instead of its plain price text: pass the
+  book's own price as amount and currency "$", using the sale variant only when the book record has a
+  discount field, defaulting to the default variant otherwise. Update book-card's own default story
+  fixture data accordingly and keep its existing coverUrl/title/author/status props and its "actions"
+  region untouched. Do not modify any other component.
+  During intake freeze concrete story URLs, selectors and checks in the saved definition. Plan actual
+  `pnpm build-storybook` (workspace root cwd, backend: none) and `npx storybook-addon-designbook storybook check <story-url>`
+  for price-badge.default, price-badge.sale, book-card.default, catalog-grid.default (book-card children
+  rendered through the `children` region) and the catalog scene story (shell page > catalog-grid > book-card >
+  price-badge, plus the entity-backed catalog.book full detail). A build is separate from browser verification.
+  Also plan a live `npx storybook dev` verification at desktop 1280x800 and mobile 390x844 where applicable:
+  open Designbook Foundation, Design System and Sections pages and confirm they render; change
+  price-badge's default story amount value in the source and confirm HMR updates the rendered text; change
+  the amount through the Storybook Controls args and confirm the text updates; confirm the book cover in
+  book-card renders as a real <img> element and the "Add to cart" actions element renders as a real
+  <button> (not escaped HTML text); confirm catalog-grid children and book-card actions are visible;
+  switch the Storybook theme toolbar between light and dark and confirm price-badge and book-card computed
+  colors change; open the Structure/Inspect panel for the catalog scene story and confirm it lists the
+  catalog.book teaser entities (book-card) nested under catalog-grid under the page shell, hover the second
+  book-card and the catalog.book full entity detail and confirm the highlight outlines exactly that element; confirm each repeated book-card in the canvas DOM is bracketed by
+  its own `db:s:`/`db:e:` comment pair with distinct paths; navigate price-badge.default → book-card.default →
+  catalog scene → Foundation page and confirm each navigation leaves no DOM or `db:` comments from the previous
+  story and no console errors.
+  Observation method: read `db:` markers with a TreeWalker over comment nodes inside `#storybook-root`
+  (they bracket each component inside the story container, not at body level); switch themes through the
+  manager URL `?path=/story/<id>&globals=theme:dark` (the addon-themes toolbar) and compare computed colors
+  with the light default; change Controls by editing the story's `__scene` arg (first node's `props`) in the
+  Controls panel or via the preview channel `updateStoryArgs` and read the re-rendered text.
+  After execution save evidence JSON from actual command outputs and browser observations, as specified
+  by debo-test run's evidence contract. The required observation keys and exact expected values are:
+    - price_badge.default.text: '$18.50'
+    - price_badge.sale.text: '$18.50 $24.00'
+    - card.image.tag: 'IMG'
+    - element.markup_rendered: True
+    - slots.children.visible: True
+    - slots.actions.visible: True
+    - hmr.price_updated: True
+    - controls.props_updated: True
+    - theme_switch.color_changed: True
+    - structure.nesting_correct: True
+    - mapping.entity_target_correct: True
+    - markers.repeated_paths_distinct: True
+    - mount.clean_unmount: True
+    - internal_pages.visible: True
+  Score this case (the sealed plan digest is the definition integrity record); validate workflow: none. Execute now
+  without clarification; all requested targets and acceptance criteria are supplied.
+validate: none
+evidence:
+  files:
+    - components/price-badge/price-badge.tsx
+    - components/price-badge/price-badge.default.story.yml
+    - components/price-badge/price-badge.sale.story.yml
+    - components/book-card/book-card.tsx
+    - components/book-card/book-card.default.story.yml
+assert:
+  - type: javascript
+    value: output.runs.length > 0 && output.runs.every(r => r.componentPrerequisites?.passed === true)
+  - type: javascript
+    value: output.runs.length === 1 && output.runs.every(r => r.complete)
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0 && output.definitionErrors.length === 0 && output.workflowErrors.length === 0
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.build?.command === 'pnpm build-storybook' && r.evidence.build.exitCode === 0 && typeof r.evidence.build.stdout === 'string' && r.evidence.build.stdout.trim().length > 0 && Array.isArray(r.evidence.checks) && r.evidence.checks.length > 0 && r.evidence.checks.every(c => /^https?:/.test(c.url) && c.result?.ok === true))
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["price_badge.default.text"] === "$18.50"))
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["price_badge.sale.text"] === "$18.50 $24.00"))
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["card.image.tag"] === "IMG"))
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["element.markup_rendered"] === true))
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["slots.children.visible"] === true))
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["slots.actions.visible"] === true))
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["hmr.price_updated"] === true))
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["controls.props_updated"] === true))
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["theme_switch.color_changed"] === true))
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["structure.nesting_correct"] === true))
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["mapping.entity_target_correct"] === true))
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["markers.repeated_paths_distinct"] === true))
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["mount.clean_unmount"] === true))
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["internal_pages.visible"] === true))
+  - type: javascript
+    value: |-
+      const refs = []; const walk = value => { if (!value || typeof value !== 'object') return; if (typeof value.component === 'string') refs.push(value.component); Object.values(value).forEach(walk); }; Object.entries(output.fileContents).filter(([file]) => /\.(scenes|story)\.yml$/.test(file)).forEach(([,value]) => walk(value)); Object.values(output.mappingResults || {}).forEach(walk); const ids = new Set([...(output.componentIds || []), ...Object.keys(output.fileContents).flatMap(f => { const m = /^components\/([^/]+)\//.exec(f); return m ? [m[1]] : []; })]); return refs.length > 0 && refs.every(ref => ref.startsWith('test_integration_react:') && ids.has(ref.split(':')[1]));
+  - type: javascript
+    value: |-
+      ['default','sale'].every(v => output.fileContents[`components/price-badge/price-badge.${v}.story.yml`]?.variant === v)
+  - type: javascript
+    value: |-
+      ['price-badge','book-card'].every(n => { const src = output.fileContents[`components/${n}/${n}.tsx`]; return typeof src === 'string' && /export default function [A-Z]\w*/.test(src) && /export (type|interface) \w+Props/.test(src) && !/\basync\b|\bfetch\(|from ['"]next\/|\buse[A-Z]\w*\(|['"]use (client|server)['"]|\bwindow\.|\bdocument\.|\bon[A-Z]\w*=\{/.test(src); })
+  - type: javascript
+    value: Object.keys(output.fileContents).every(f => !/\.stories\.(t|j)sx?$|\.component\.yml$/.test(f))
+  - type: javascript
+    value: output.runs.every(r => new Set(r.evidence.checks.map(c => c.url)).size >= 5)
