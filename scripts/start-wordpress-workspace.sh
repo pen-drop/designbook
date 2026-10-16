@@ -42,6 +42,7 @@ ddev wp search-replace 'https://designbook-wp.ddev.site' "$(ddev describe -j | j
 
 ddev wp theme activate "$THEME"
 ddev wp plugin activate secure-custom-fields
+ddev wp plugin activate elementor
 
 # Build the theme CSS the theme enqueues (css/app.css, gitignored build output). Storybook
 # compiles Tailwind in-process, so a missing file only shows on the WordPress side — fail loudly.
