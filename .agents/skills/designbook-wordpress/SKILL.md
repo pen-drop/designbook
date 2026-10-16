@@ -26,6 +26,7 @@ Integration skill for `backend: wordpress` projects. Components are plain Twig
 - [sync/blueprints/plugin-bootstrap.md](sync/blueprints/plugin-bootstrap.md) — content plugin
 - [sync/blueprints/elementor-plugin.md](sync/blueprints/elementor-plugin.md) — Elementor adapter plugin copy
 - [sync/blueprints/elementor-layout.md](sync/blueprints/elementor-layout.md) — Elementor scene seed
+- [ELEMENTOR.md](../../../packages/integrations/wordpress-fixture/ELEMENTOR.md) — Elementor Free 4.3.5 pin and adapter support boundary
 - [sync/blueprints/post-type.md](sync/blueprints/post-type.md) — custom post type
 - [sync/blueprints/taxonomy.md](sync/blueprints/taxonomy.md) — taxonomy
 - [sync/blueprints/field-group.md](sync/blueprints/field-group.md) — ACF field group
