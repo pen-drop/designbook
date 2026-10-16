@@ -34,7 +34,7 @@ WordPress requires to activate a theme and which an existing theme keeps.
 | `theme.<ns>.index` | `themes/<ns>/index.php` | always |
 | `template.<bundle>.single` | `themes/<ns>/single-<bundle>.php` | each `post` bundle with a `full` view mode whose `template` is not `gutenberg` |
 | `view.<bundle>.full` | `themes/<ns>/views/single-<bundle>.twig` | each `post` bundle with a `full` view mode whose `template` is not `gutenberg` |
-| `parts.<ns>.header`, `parts.<ns>.footer` | `themes/<ns>/views/parts/header.twig`, `footer.twig` | when the design-system shell scene exists and no Gutenberg mapping is active |
+| `parts.<ns>.header`, `parts.<ns>.footer` | `themes/<ns>/views/parts/header.twig`, `footer.twig` | when the design-system shell scene exists |
 
 The content plugin's main file owns the runtime the generated theme files rely on: it boots
 Timber, registers the Twig namespace `<ns>` → the theme's `components/` with autoescape off,

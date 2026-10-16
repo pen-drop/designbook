@@ -43,6 +43,7 @@ try {
 ```
 
 `seedBlocks()` validates the tree, then stores `wp_slash(serialize_blocks($blocks))`.
-A second run updates the same post. Unmanaged posts stay untouched. Entity-bound screens
-use the sample record's `_designbook_id` (`<entity_type>.<bundle>.<record id>`) as the
-upsert key so the Gutenberg tree lands on that post's `post_content`.
+A second run updates the same post's `post_content` and leaves title, slug and status
+unchanged. Unmanaged posts stay untouched. Entity-bound screens use the sample record's
+`_designbook_id` (`<entity_type>.<bundle>.<record id>`) as the upsert key so the Gutenberg
+tree lands on that post's `post_content`.

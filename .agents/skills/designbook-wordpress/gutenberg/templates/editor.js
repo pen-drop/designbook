@@ -99,12 +99,12 @@
       if (!serialized) return undefined;
       const id = ++gen.current;
       setPending(true);
-      const controller = typeof AbortController === 'function' ? new AbortController() : null;
+      const controller = new AbortController();
       apiFetch({
         path: '/designbook/v1/gutenberg-preview',
         method: 'POST',
         data: { post_id: postId || 0, content: serialized },
-        signal: controller ? controller.signal : undefined,
+        signal: controller.signal,
       })
         .then((res) => {
           if (id !== gen.current) return;
@@ -119,7 +119,7 @@
           setPending(false);
         });
       return () => {
-        if (controller) controller.abort();
+        controller.abort();
       };
     }, [serialized, postId]);
     if (pending && !html && !error) {

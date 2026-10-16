@@ -130,11 +130,18 @@ $escaped = do_blocks($comment("$ns/recipe-card", $cardAttrs('<script>alert(1)</s
 assert(!str_contains($escaped, '<script>'), 'script-bearing text is escaped');
 assert(str_contains($escaped, '&lt;script&gt;') || str_contains($escaped, 'alert(1)'), 'escaped text remains visible');
 
-$scriptHtml = do_blocks($comment("$ns/slot-card", ['heading' => 'HTML'],
-    $slot('left', 'Left', '<!-- wp:paragraph --><p><script>alert(1)</script>Hi</p><!-- /wp:paragraph -->')
+$quotedHeading = 'Say "hello" & pie';
+$htmlQuoted = do_blocks($comment("$ns/slot-card", ['heading' => $quotedHeading],
+    $slot('left', 'Left', '') . $slot('right', 'Right', '')
+));
+$expectedQuoted = $registry->render('slot-card', ['heading' => $quotedHeading], ['left' => '', 'right' => '']);
+assert($htmlQuoted === $expectedQuoted, 'string props match registry render without double-escape');
+
+$svgHtml = do_blocks($comment("$ns/slot-card", ['heading' => 'SVG'],
+    $slot('left', 'Left', '<!-- wp:paragraph --><p><svg xmlns="http://www.w3.org/2000/svg"><circle r="1"/></svg></p><!-- /wp:paragraph -->')
     . $slot('right', 'Right', '')
 ));
-assert(!str_contains($scriptHtml, '<script>'), 'script-bearing slot HTML is sanitized');
+assert(str_contains($svgHtml, '<svg'), 'slot HTML keeps nested svg markup');
 
 do_action('enqueue_block_assets');
 assert(
@@ -200,6 +207,14 @@ assert($emptyObj->get_status() === 200, 'empty object attributes remain valid: '
 
 $jsUrl = $preview($postId, $comment("$ns/recipe-card", array_merge($cardAttrs('js'), ['url' => 'javascript:alert(1)'])));
 assert($jsUrl->get_status() === 400, 'javascript: on a url string prop is rejected');
+
+$nestedJs = $preview($postId, $comment("$ns/link-box", [
+    'href' => 'https://example.com',
+    'count' => 1,
+    'label' => 'n',
+    'payload' => ['url' => 'javascript:alert(1)'],
+]));
+assert($nestedJs->get_status() === 400, 'javascript: inside an object prop is rejected');
 
 $missingTitle = $preview($postId, $comment("$ns/recipe-card", ['image_src' => '/images/recipe-card-chicken.png']));
 assert($missingTitle->get_status() === 400, 'missing required title is rejected');

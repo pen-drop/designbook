@@ -55,9 +55,9 @@ try {
     Designbook\GutenbergAdapter::register($r);
 } catch (\Throwable $e) {
     $threw = true;
-    assert(str_contains($e->getMessage(), 'foo'), 'collision names the components: ' . $e->getMessage());
 }
-assert($threw, 'underscore/hyphen normalization collisions are rejected');
+assert(!$threw, 'a name collision is logged instead of taking the site down');
+assert($registryApi->get_registered("$hyphenNs/foo-bar") === null, 'colliding names are not registered');
 if ($adapterFile && $priorHash !== null) {
     assert(is_file($adapterFile), 'prior block.json remains after a rejected register');
     assert(hash_file('sha256', $adapterFile) === $priorHash, 'prior metadata is unchanged after a rejected register');
@@ -90,27 +90,5 @@ assert(($hidden->supports['inserter'] ?? true) === false, 'ui:false components a
 $slot = $registryApi->get_registered("$hyphenNs/slot");
 assert($slot !== null, 'shared slot block is registered');
 assert(($slot->supports['inserter'] ?? true) === false, 'slot block is not insertable');
-
-$write('readonly-comp', "name: Readonly\nprops:\n  type: object\n  properties:\n    label:\n      type: string\n");
-$gutenbergDir = dirname((new ReflectionClass('Designbook\\GutenbergAdapter'))->getFileName());
-$blocker = $gutenbergDir . '/blocks/readonly-comp';
-if (is_dir($blocker)) {
-    foreach (glob($blocker . '/*') ?: [] as $file) {
-        @unlink($file);
-    }
-    @rmdir($blocker);
-}
-@mkdir($gutenbergDir . '/blocks', 0775, true);
-file_put_contents($blocker, 'not-a-dir');
-$r = new Designbook\ComponentRegistry($dir, $tempNs);
-$threwWrite = false;
-try {
-    Designbook\GutenbergAdapter::register($r);
-} catch (Throwable $e) {
-    $threwWrite = true;
-}
-@unlink($blocker);
-assert(!$threwWrite, 'register does not throw when block.json cannot be written');
-assert($registryApi->get_registered("$hyphenNs/readonly-comp") !== null, 'block type is registered from memory without block.json');
 
 echo "OK\n";

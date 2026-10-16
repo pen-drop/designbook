@@ -10,8 +10,7 @@ filter:
 
 # Blueprint: Block Theme Templates
 
-Gutenberg mappings use file-based block templates, not PHP/Twig singles. Call
-`Designbook\GutenbergAdapter::writeBlockTheme()` or write the same files:
+Gutenberg mappings use file-based block templates, not PHP/Twig singles.
 
 `themes/<ns>/templates/index.html`, `page.html`, and `single.html` (plus
 `single-<bundle>.html` for a Gutenberg post bundle):
@@ -23,5 +22,4 @@ Gutenberg mappings use file-based block templates, not PHP/Twig singles. Call
 ```
 
 `themes/<ns>/parts/header.html` and `footer.html` hold the shell. `core/post-content`
-appears once between the parts. Custom `wp_template` rows in the database stay in place;
-`GutenbergAdapter::templateOverrideReport()` names them.
+appears once between the parts. Custom `wp_template` rows in the database stay in place.
