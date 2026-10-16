@@ -37,4 +37,8 @@ Scalar props map to TextControl, ToggleControl, SelectControl and number inputs.
 array props use a labelled JSON textarea that reports parse errors beside the field.
 `wp_localize_script` passes the same manifest PHP used to write `block.json`. Edit mode
 shows inspector controls and InnerBlocks; Preview mode POSTs the live subtree and renders
-the returned HTML, dropping stale responses.
+the returned HTML, dropping stale responses. `enqueue_block_assets` loads the theme
+`css/app.css` in the editor canvas and on the frontend.
+
+The same class exposes `makeBlock`, `seedBlocks`, `writeBlockTheme` and `templateOverrideReport`
+for layout seed units and file-based block-theme templates.
