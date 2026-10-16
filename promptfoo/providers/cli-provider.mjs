@@ -103,8 +103,8 @@ class CliProvider {
       // agent always starts it via `storybook start`, which assigns a free port
       // and records it in storybook.json for `storybook status` to read back.
 
-      if (/^(sync|seed)(-|$)/.test(caseName)) {
-        // Provision the live backend (Drupal: import the committed DB baseline) before
+      if (/^(sync|seed|elementor)(-|$)/.test(caseName)) {
+        // Provision the live backend (Drupal DB baseline or WordPress DDEV) before
         // the measured workflow.
         const suiteCfg = join(repoRoot, "fixtures", suite, "designbook.config.yml");
         const backend = existsSync(suiteCfg)

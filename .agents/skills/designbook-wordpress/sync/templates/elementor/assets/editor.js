@@ -13,7 +13,8 @@
 
     var DesignbookNestedView = NestedView.extend({
       getChildViewContainer: function (containerView, childView) {
-        var settings = childView.model.get("settings");
+        var model = childView && childView.model;
+        var settings = model && model.get ? model.get("settings") : null;
         var slot = settings && (settings.get ? settings.get("designbook_slot") : settings.designbook_slot);
         if (slot) {
           var mount = containerView.$el.find('[data-slot="' + slot + '"]');
@@ -26,20 +27,24 @@
     });
 
     nestedTypes().forEach(function (type) {
-      var Type = NestedElementBase.extend({
-        getType: function () {
+      class DesignbookNestedType extends NestedElementBase {
+        getType() {
           return type;
-        },
-        getView: function () {
+        }
+        getView() {
           return DesignbookNestedView;
-        },
-      });
-      elementor.elementsManager.registerElementType(new Type());
+        }
+      }
+      elementor.elementsManager.registerElementType(new DesignbookNestedType());
     });
   });
 
   elementor.hooks.addFilter("elements/container/contextMenuGroups", function (groups, view) {
-    var settings = view.model.get("settings");
+    var model = view && view.model;
+    if (!model || !model.get) {
+      return groups;
+    }
+    var settings = model.get("settings");
     var slot = settings && (settings.get ? settings.get("designbook_slot") : settings.designbook_slot);
     if (!slot) {
       return groups;

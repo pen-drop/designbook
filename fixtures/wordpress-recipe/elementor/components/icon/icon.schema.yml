@@ -1,0 +1,9 @@
+name: Icon
+ui: false
+props:
+  type: object
+  properties:
+    name:
+      type: string
+      title: Name
+slots: {}

@@ -26,6 +26,7 @@ final class Plugin
         add_action('elementor/editor/after_enqueue_scripts', [self::class, 'enqueueEditor']);
         add_action('elementor/preview/enqueue_styles', [self::class, 'enqueuePreviewCss']);
         add_action('elementor/element/container/section_layout/after_section_end', [self::class, 'stripSlotContainerStyle']);
+        add_action('elementor/document/after_save', [self::class, 'keepPageTemplate']);
     }
 
     public static function supportError(?string $version = null): ?string
@@ -118,13 +119,22 @@ final class Plugin
         }
     }
 
+    public static function keepPageTemplate($document): void
+    {
+        $postId = method_exists($document, 'get_main_id') ? (int) $document->get_main_id() : 0;
+        if ($postId && get_post_meta($postId, '_designbook_id', true)) {
+            update_post_meta($postId, '_wp_page_template', 'elementor-designbook.php');
+        }
+    }
+
     public static function stripSlotContainerStyle($element): void
     {
         $editor = ElementorPlugin::$instance->editor ?? null;
         if (!$editor || !$editor->is_edit_mode()) {
             return;
         }
-        if (!$element->get_settings('designbook_slot')) {
+        $settings = self::rawElementSettings($element);
+        if (($settings['designbook_slot'] ?? '') === '') {
             return;
         }
         foreach ($element->get_controls() as $id => $control) {
@@ -132,6 +142,25 @@ final class Plugin
             if ($tab === Controls_Manager::TAB_STYLE || $tab === Controls_Manager::TAB_ADVANCED) {
                 $element->remove_control($id);
             }
+        }
+    }
+
+    private static function rawElementSettings(object $element): array
+    {
+        try {
+            $ref = new \ReflectionClass($element);
+            while ($ref && !$ref->hasProperty('data')) {
+                $ref = $ref->getParentClass();
+            }
+            if (!$ref) {
+                return [];
+            }
+            $prop = $ref->getProperty('data');
+            $prop->setAccessible(true);
+            $data = $prop->getValue($element);
+            return is_array($data['settings'] ?? null) ? $data['settings'] : [];
+        } catch (\Throwable $e) {
+            return [];
         }
     }
 

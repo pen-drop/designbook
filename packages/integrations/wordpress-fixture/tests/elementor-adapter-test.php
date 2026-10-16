@@ -51,6 +51,13 @@ $prop = $ref->getProperty('definitions');
 $prop->setAccessible(true);
 $prop->setValue($registry, $defs);
 
+$pluginRef = new ReflectionClass(Plugin::class);
+foreach (['widgetsRegistered' => false, 'registry' => null] as $name => $value) {
+    $p = $pluginRef->getProperty($name);
+    $p->setAccessible(true);
+    $p->setValue(null, $value);
+}
+
 Plugin::boot('demo', $elDir);
 do_action('designbook/register_components', $registry);
 
@@ -126,5 +133,39 @@ foreach (glob($elDir . '/src/*.php') ?: [] as $file) {
     assert(!str_contains($src, 'schema.yml'), basename($file) . ' must not read schema.yml');
     assert(!preg_match('/glob\s*\([^)]*components/', $src), basename($file) . ' must not scan components/');
 }
+
+\Elementor\Plugin::$instance->editor->set_edit_mode(true);
+$container = \Elementor\Plugin::$instance->elements_manager->create_element_instance([
+    'id' => 'c0proto',
+    'elType' => 'container',
+    'settings' => [],
+]);
+$stackRef = new ReflectionClass(\Elementor\Controls_Stack::class);
+$dataProp = $stackRef->getProperty('data');
+$dataProp->setAccessible(true);
+$dataProp->setValue($container, ['id' => 'c0proto', 'elType' => 'container', 'settings' => null]);
+try {
+    Plugin::stripSlotContainerStyle($container);
+} catch (\Throwable $e) {
+    assert(false, 'stripSlotContainerStyle must not throw when settings are null: ' . $e->getMessage());
+}
+\Elementor\Plugin::$instance->editor->set_edit_mode(false);
+
+$tplPost = wp_insert_post([
+    'post_type' => 'page',
+    'post_status' => 'publish',
+    'post_title' => 'template-keep',
+]);
+update_post_meta($tplPost, '_designbook_id', 'template-keep');
+update_post_meta($tplPost, '_wp_page_template', 'elementor-designbook.php');
+$doc = \Elementor\Plugin::$instance->documents->get($tplPost);
+$doc->save([
+    'settings' => ['post_status' => 'publish', 'template' => 'default'],
+    'elements' => [],
+]);
+assert(
+    get_post_meta($tplPost, '_wp_page_template', true) === 'elementor-designbook.php',
+    'elementor save keeps designbook page template, got ' . get_post_meta($tplPost, '_wp_page_template', true)
+);
 
 echo "OK\n";

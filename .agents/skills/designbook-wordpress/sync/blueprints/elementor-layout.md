@@ -18,7 +18,9 @@ print the permalink.
 <?php
 $ns = '<ns>';
 $items = [ /* scene items */ ];
-$images = [ /* local image srcs passed to Seed::upsert */ ];
+$images = [
+    'public/images/hero.png' => get_stylesheet_directory() . '/public/images/hero.png',
+];
 $palette = [ /* color slug => hex */ ];
 $fontFamilies = [ /* typography slug => family */ ];
 

@@ -30,6 +30,7 @@ assert(get_post_meta($id1, '_designbook_id', true) === 'recipes-home');
 assert(get_post_meta($id1, '_elementor_edit_mode', true) === 'builder');
 assert(get_post_meta($id1, '_elementor_template_type', true) === 'wp-page');
 assert(get_post_meta($id1, '_elementor_version', true) === '4.3.5');
+assert(get_post_meta($id1, '_wp_page_template', true) === 'elementor-designbook.php');
 $data1 = json_decode(get_post_meta($id1, '_elementor_data', true), true);
 assert($data1[0]['id'] === substr(sha1('/0'), 0, 7));
 assert($data1[0]['settings']['title'] === 'Hello seed');

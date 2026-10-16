@@ -25,15 +25,17 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-require_once __DIR__ . '/src/Controls.php';
-require_once __DIR__ . '/src/Document.php';
-require_once __DIR__ . '/src/LeafWidget.php';
-require_once __DIR__ . '/src/NestedWidget.php';
-require_once __DIR__ . '/src/Plugin.php';
-require_once __DIR__ . '/src/Seed.php';
-require_once __DIR__ . '/src/Tokens.php';
+add_action('elementor/init', static function (): void {
+    require_once __DIR__ . '/src/Controls.php';
+    require_once __DIR__ . '/src/Document.php';
+    require_once __DIR__ . '/src/LeafWidget.php';
+    require_once __DIR__ . '/src/NestedWidget.php';
+    require_once __DIR__ . '/src/Plugin.php';
+    require_once __DIR__ . '/src/Seed.php';
+    require_once __DIR__ . '/src/Tokens.php';
 
-\Designbook\Elementor\Plugin::boot('<ns>', __DIR__);
+    \Designbook\Elementor\Plugin::boot('<ns>', __DIR__);
+});
 ```
 
 `plugin.<ns>_elementor.src.<stem>` — one unit per copied file (`<stem>` lowercase):

@@ -1,0 +1,57 @@
+workflow: sync-to
+config: elementor.yml
+fixtures:
+  - empty
+  - reference
+  - vision
+  - data-model
+  - tokens
+  - screen
+  - elementor
+prompt: |
+  You are working in {{workspace}}. This is the Cooks Delight recipe demo.
+  Use the installed Designbook skills and the configured WordPress / Twig / Tailwind integration.
+  Read the actual SKILL.md for each skill named below and follow its instructions.
+  Execute only this case and its explicitly named prerequisite skills.
+  Preserve all completed earlier steps and the published reference.
+  Do not launch Promptfoo or rebuild this prepared workspace from inside the case.
+  If required evidence, access or approval is missing, stop with the exact blocker; never invent it.
+  The DDEV WordPress site of this workspace is already running (admin admin/admin).
+  Run the /debo sync-to workflow with scene recipes-home.
+  It generates the content plugin, the Elementor adapter plugin, the theme files and
+  layout.recipes-home as plugins/test_integration_wordpress-elementor/seeds/recipes-home.php,
+  then applies them with the configured import command.
+  The seed script must call Document::fromScene and Seed::upsert (which writes _elementor_data).
+  Do not write raw HTML into post_content.
+  Before seeding, create one unrelated published page titled KeepMe:
+  ddev wp post create --post_type=page --post_title=KeepMe --post_status=publish --porcelain > /tmp/db91-keepme.txt
+  Then run the generated seed twice with the configured seed_cmd:
+  ddev wp eval-file wp-content/plugins/test_integration_wordpress-elementor/seeds/recipes-home.php
+  ddev wp eval-file wp-content/plugins/test_integration_wordpress-elementor/seeds/recipes-home.php
+  Save evidence with exactly these commands:
+  grep -E "Document::fromScene|Seed::upsert" wp-content/plugins/test_integration_wordpress-elementor/seeds/recipes-home.php > wp-content/themes/test_integration_wordpress/designbook/elementor-seed-api.txt
+  ddev wp post list --post_type=page --meta_key=_designbook_id --meta_value=recipes-home --format=count > wp-content/themes/test_integration_wordpress/designbook/elementor-page-count.txt
+  ddev wp post list --post_type=page --s=KeepMe --format=count > wp-content/themes/test_integration_wordpress/designbook/elementor-keepme-count.txt
+  ddev wp eval 'echo get_permalink(get_page_by_path("recipes-home"));' > wp-content/themes/test_integration_wordpress/designbook/elementor-page-url.txt
+  ddev wp eval '$p=get_page_by_path("recipes-home"); echo $p && get_post_meta($p->ID,"_elementor_data",true) ? "HAS_DATA" : "NO_DATA";' > wp-content/themes/test_integration_wordpress/designbook/elementor-data.txt
+  curl -sk "$(cat wp-content/themes/test_integration_wordpress/designbook/elementor-page-url.txt)" | tr '\n' ' ' | grep -oE 'class="(stack|heading)"|>Recipes<|>Nested<|/wp-content/uploads/[0-9]{4}/' > wp-content/themes/test_integration_wordpress/designbook/elementor-frontend.txt
+  Report the seed output and the page URL.
+assert:
+- type: javascript
+  value: output.completedWorkflows['sync-to']?.state?.status === 'completed'
+- type: javascript
+  value: output.newFiles.some(f => f.endsWith('wp-content/plugins/test_integration_wordpress-elementor/seeds/recipes-home.php'))
+- type: javascript
+  value: String(output.fileContents['designbook/elementor-seed-api.txt'] || '').includes('Document::fromScene')
+- type: javascript
+  value: String(output.fileContents['designbook/elementor-seed-api.txt'] || '').includes('Seed::upsert')
+- type: javascript
+  value: String(output.fileContents['designbook/elementor-page-count.txt'] || '').trim() === '1'
+- type: javascript
+  value: Number(String(output.fileContents['designbook/elementor-keepme-count.txt'] || '0').trim()) >= 1
+- type: javascript
+  value: String(output.fileContents['designbook/elementor-data.txt'] || '').includes('HAS_DATA')
+- type: javascript
+  value: |
+    const html = String(output.fileContents['designbook/elementor-frontend.txt'] || '');
+    return /class="stack"/.test(html) && /class="heading"/.test(html) && /wp-content\/uploads\/[0-9]{4}\//.test(html);

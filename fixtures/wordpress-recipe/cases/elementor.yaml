@@ -1,0 +1,44 @@
+workflow: sync-to
+config: elementor.yml
+fixtures:
+  - empty
+  - reference
+  - vision
+  - data-model
+  - tokens
+  - screen
+  - elementor
+prompt: |
+  You are working in {{workspace}}. This is the Cooks Delight recipe demo.
+  Use the installed Designbook skills and the configured WordPress / Twig / Tailwind integration.
+  Read the actual SKILL.md for each skill named below and follow its instructions.
+  Execute only this case and its explicitly named prerequisite skills.
+  Preserve all completed earlier steps and the published reference.
+  Do not launch Promptfoo or rebuild this prepared workspace from inside the case.
+  If required evidence, access or approval is missing, stop with the exact blocker; never invent it.
+  The DDEV WordPress site of this workspace is already running (admin admin/admin).
+  Run the /debo sync-to workflow with an empty filter (the whole data model, no scene).
+  It generates the content plugin, the Elementor adapter plugin and the theme files below wp-content
+  and applies them with the configured import command.
+  After import, from the WordPress root (this workspace), save evidence with exactly these commands:
+  grep -R "registry->render" wp-content/plugins/test_integration_wordpress-elementor --include='*.php' > wp-content/themes/test_integration_wordpress/designbook/elementor-render.txt
+  grep -R "schema.yml" wp-content/plugins/test_integration_wordpress-elementor --include='*.php' > wp-content/themes/test_integration_wordpress/designbook/elementor-schema.txt || true
+  ddev wp eval-file tests/elementor-adapter-test.php wp-content/plugins/test_integration_wordpress-elementor wp-content/plugins/test_integration_wordpress-content/src/ComponentRegistry.php > wp-content/themes/test_integration_wordpress/designbook/elementor-adapter-test.txt
+  Report the generated unit names and the import output.
+assert:
+- type: javascript
+  value: output.completedWorkflows['sync-to']?.state?.status === 'completed'
+- type: javascript
+  value: output.newFiles.some(f => f.endsWith('wp-content/plugins/test_integration_wordpress-elementor/test_integration_wordpress-elementor.php'))
+- type: javascript
+  value: output.newFiles.some(f => f.endsWith('wp-content/plugins/test_integration_wordpress-elementor/src/LeafWidget.php'))
+- type: javascript
+  value: output.newFiles.some(f => f.endsWith('wp-content/plugins/test_integration_wordpress-elementor/src/NestedWidget.php'))
+- type: javascript
+  value: output.newFiles.some(f => f.endsWith('wp-content/themes/test_integration_wordpress/elementor-designbook.php')) || output.newFiles.some(f => f.endsWith('elementor-designbook.php'))
+- type: javascript
+  value: String(output.fileContents['designbook/elementor-render.txt'] || '').includes('registry->render')
+- type: javascript
+  value: "!/schema\\.yml/.test(String(output.fileContents['designbook/elementor-schema.txt'] || ''))"
+- type: javascript
+  value: /OK/.test(String(output.fileContents['designbook/elementor-adapter-test.txt'] || ''))

@@ -16,6 +16,12 @@ final class Seed
         } elseif (!defined('ELEMENTOR_VERSION') || ELEMENTOR_VERSION !== '4.3.5') {
             throw new \InvalidArgumentException('Elementor version unsupported; pin 4.3.5');
         }
+        if (!get_current_user_id()) {
+            $admins = get_users(['role' => 'administrator', 'number' => 1, 'fields' => 'ids']);
+            if ($admins) {
+                wp_set_current_user((int) $admins[0]);
+            }
+        }
         $found = get_posts([
             'post_type' => 'page',
             'post_status' => 'any',
@@ -49,7 +55,6 @@ final class Seed
         update_post_meta($postId, '_elementor_edit_mode', 'builder');
         update_post_meta($postId, '_elementor_template_type', 'wp-page');
         update_post_meta($postId, '_elementor_version', '4.3.5');
-        update_post_meta($postId, '_wp_page_template', 'elementor-designbook.php');
 
         $document = ElementorPlugin::$instance->documents->get($postId);
         if (!$document) {
@@ -68,6 +73,7 @@ final class Seed
             }
             throw new \InvalidArgumentException("Elementor save failed for '$designbookId'");
         }
+        update_post_meta($postId, '_wp_page_template', 'elementor-designbook.php');
         return $postId;
     }
 
