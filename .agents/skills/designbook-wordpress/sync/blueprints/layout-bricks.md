@@ -6,6 +6,7 @@ trigger:
   config_name: 'layout.*'
 filter:
   backend: wordpress
+  extensions: bricks
 ---
 
 # Blueprint: Bricks scene layout seed

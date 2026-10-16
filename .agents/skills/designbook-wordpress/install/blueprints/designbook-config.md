@@ -59,5 +59,5 @@ dependencies (Timber), then plugin and theme are activated and rewrite rules flu
 `exists_cmd` makes re-syncs idempotent: a unit whose output file already exists is skipped.
 `seed_cmd` runs a generated PHP seed script inside WordPress via WP-CLI.
 
-A page bundle whose full view-mode `template` is `bricks` uses the Bricks adapter (2.0 or later)
-for scene sync: one `layout.<scene>` seed stores `_bricks_page_content_2`.
+A Bricks project appends `- id: bricks` to `extensions`. That loads the Bricks 2.0+ adapter
+and the `layout.<scene>` seed when a page bundle's full view-mode `template` is `bricks`.
