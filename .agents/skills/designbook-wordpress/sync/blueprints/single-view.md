@@ -10,9 +10,6 @@ filter:
 
 # Blueprint: Single View
 
-Skip this unit when the bundle's `full` view-mode `template` / `build_form` is `gutenberg`;
-the seeded `post_content` plus `templates/single-<bundle>.html` own that mapping.
-
 `view.<bundle>.full` — `views/single-<bundle>.twig` renders one post of the bundle by
 including the component that presents it. When an entity mapping for `<et>.<bundle>.full`
 exists, follow its component tree and field bindings; otherwise bind each prop of the

@@ -5,6 +5,8 @@ namespace Designbook;
 final class GutenbergRenderError extends \RuntimeException {}
 
 final class GutenbergAdapter {
+    private const CORE_CHILDREN = ['core/paragraph', 'core/heading', 'core/image', 'core/list', 'core/list-item'];
+
     private static ?ComponentRegistry $registry = null;
     private static string $ns = '';
     private static array $blockIds = [];
@@ -12,31 +14,34 @@ final class GutenbergAdapter {
     private static bool $previewing = false;
 
     public static function register(ComponentRegistry $registry): void {
-        self::$registry = $registry;
-        self::$ns = strtolower(str_replace('_', '-', get_stylesheet()));
-        self::$blockIds = [];
-        self::$pendingSlots = [];
-        $planned = [];
-        $payloads = [];
-        foreach ($registry->all() as $def) {
-            $name = self::blockName(self::$ns, $def->id);
-            if (isset($planned[$name])) {
-                throw new \RuntimeException("Block name collision: {$planned[$name]} and {$def->id} both map to $name");
+        try {
+            self::$registry = $registry;
+            self::$ns = strtolower(str_replace('_', '-', get_stylesheet()));
+            self::$blockIds = [];
+            self::$pendingSlots = [];
+            $planned = [];
+            $payloads = [];
+            foreach ($registry->all() as $def) {
+                $name = self::blockName(self::$ns, $def->id);
+                if (isset($planned[$name])) {
+                    throw new \RuntimeException("Block name collision: {$planned[$name]} and {$def->id} both map to $name");
+                }
+                $planned[$name] = $def->id;
+                self::$blockIds[$name] = $def->id;
+                $payloads[] = self::blockPayload(self::$ns, $def);
             }
-            $planned[$name] = $def->id;
-            self::$blockIds[$name] = $def->id;
-            $payloads[] = self::blockPayload(self::$ns, $def);
-        }
-        self::registerScript(self::$ns, $payloads);
-        foreach ($payloads as $payload) {
-            self::writeBlockJson($payload);
-            self::registerType($payload);
-        }
-        self::registerSlot(self::$ns);
-        add_action('rest_api_init', [self::class, 'registerPreviewRoute']);
-        add_action('enqueue_block_assets', [self::class, 'enqueueAssets']);
-        if (did_action('rest_api_init')) {
-            self::registerPreviewRoute();
+            self::registerScript(self::$ns, $payloads);
+            foreach ($payloads as $payload) {
+                self::registerType($payload);
+            }
+            self::registerSlot(self::$ns);
+            add_action('rest_api_init', [self::class, 'registerPreviewRoute']);
+            add_action('enqueue_block_assets', [self::class, 'enqueueAssets']);
+            if (did_action('rest_api_init')) {
+                self::registerPreviewRoute();
+            }
+        } catch (\Throwable $e) {
+            error_log('Designbook Gutenberg register: ' . $e->getMessage());
         }
     }
 
@@ -56,8 +61,7 @@ final class GutenbergAdapter {
     }
 
     public static function previewPermission(\WP_REST_Request $request) {
-        $params = self::previewParams($request);
-        $postId = (int) ($params['post_id'] ?? 0);
+        $postId = (int) $request->get_param('post_id');
         if ($postId > 0) {
             return current_user_can('edit_post', $postId);
         }
@@ -65,8 +69,7 @@ final class GutenbergAdapter {
     }
 
     public static function preview(\WP_REST_Request $request) {
-        $params = self::previewParams($request);
-        $content = (string) ($params['content'] ?? '');
+        $content = (string) $request->get_param('content');
         if (strlen($content) > 1048576) {
             return new \WP_Error('designbook_preview_size', 'Preview content exceeds 1 MiB', ['status' => 400]);
         }
@@ -109,7 +112,6 @@ final class GutenbergAdapter {
                 }
             }
             $collected = $slotCount > 0 ? array_splice(self::$pendingSlots, -$slotCount, $slotCount) : [];
-            self::validateComponentSlots($def, $collected);
             $slots = [];
             foreach ($collected as $row) {
                 $slots[$row['name']] = $row['html'];
@@ -118,15 +120,9 @@ final class GutenbergAdapter {
                 $slots[$slotName] = $slots[$slotName] ?? '';
             }
             return self::$registry->render($id, self::sanitizeProps($def, $attributes), $slots);
-        } catch (GutenbergRenderError $e) {
-            if (self::$previewing) {
-                throw $e;
-            }
-            error_log('Designbook Gutenberg render: ' . $e->getMessage());
-            return '';
         } catch (\Throwable $e) {
             if (self::$previewing) {
-                throw new GutenbergRenderError('Preview failed');
+                throw $e instanceof GutenbergRenderError ? $e : new GutenbergRenderError('Preview failed');
             }
             error_log('Designbook Gutenberg render: ' . $e->getMessage());
             return '';
@@ -136,26 +132,20 @@ final class GutenbergAdapter {
     public static function renderSlot(array $attributes, string $content): string {
         self::$pendingSlots[] = [
             'name' => (string) ($attributes['name'] ?? ''),
-            'html' => wp_kses_post($content),
+            'html' => $content,
         ];
         return '';
     }
 
     public static function makeBlock(string $name, array $attrs = [], array $innerBlocks = []): array {
-        if ($innerBlocks === []) {
-            return [
-                'blockName' => $name,
-                'attrs' => $attrs,
-                'innerBlocks' => [],
-                'innerContent' => [],
-            ];
-        }
         $innerContent = [];
-        foreach ($innerBlocks as $i => $child) {
+        foreach ($innerBlocks as $child) {
             $innerContent[] = '';
             $innerContent[] = null;
         }
-        $innerContent[] = '';
+        if ($innerBlocks !== []) {
+            $innerContent[] = '';
+        }
         return [
             'blockName' => $name,
             'attrs' => $attrs,
@@ -174,60 +164,29 @@ final class GutenbergAdapter {
             'meta_key' => '_designbook_id',
             'meta_value' => $designbookId,
             'numberposts' => 1,
-            'post_status' => 'any',
+            'post_status' => ['publish', 'draft', 'pending', 'private', 'future'],
             'fields' => 'ids',
         ]);
         $existing = $found ? (int) $found[0] : 0;
-        $result = wp_insert_post([
-            'ID' => $existing,
-            'post_type' => $postType,
-            'post_status' => 'publish',
-            'post_title' => $designbookId,
-            'post_name' => sanitize_title($designbookId),
-            'post_content' => wp_slash($content),
-            'meta_input' => ['_designbook_id' => $designbookId],
-        ], true);
+        if ($existing) {
+            $result = wp_update_post([
+                'ID' => $existing,
+                'post_content' => wp_slash($content),
+            ], true);
+        } else {
+            $result = wp_insert_post([
+                'post_type' => $postType,
+                'post_status' => 'publish',
+                'post_title' => $designbookId,
+                'post_name' => sanitize_title($designbookId),
+                'post_content' => wp_slash($content),
+                'meta_input' => ['_designbook_id' => $designbookId],
+            ], true);
+        }
         if (is_wp_error($result)) {
             throw new GutenbergRenderError($result->get_error_message());
         }
         return (int) $result;
-    }
-
-    public static function writeBlockTheme(): void {
-        $dir = get_stylesheet_directory();
-        foreach (['templates', 'parts'] as $subdir) {
-            if (!is_dir("$dir/$subdir") && !mkdir("$dir/$subdir", 0775, true) && !is_dir("$dir/$subdir")) {
-                throw new GutenbergRenderError("Cannot write block theme $subdir");
-            }
-        }
-        $html = "<!-- wp:template-part {\"slug\":\"header\"} /-->\n<!-- wp:post-content /-->\n<!-- wp:template-part {\"slug\":\"footer\"} /-->\n";
-        foreach (['index', 'page', 'single'] as $slug) {
-            file_put_contents("$dir/templates/$slug.html", $html);
-        }
-        $part = "<!-- wp:group -->\n<div class=\"wp-block-group\"></div>\n<!-- /wp:group -->\n";
-        file_put_contents("$dir/parts/header.html", $part);
-        file_put_contents("$dir/parts/footer.html", $part);
-        if (function_exists('wp_clean_themes_cache')) {
-            wp_clean_themes_cache();
-        }
-    }
-
-    public static function templateOverrideReport(): string {
-        $lines = [];
-        foreach (get_block_templates(['theme' => get_stylesheet()], 'wp_template') as $tpl) {
-            if (($tpl->source ?? '') === 'custom') {
-                $lines[] = $tpl->slug . ' overridden in Site Editor';
-            }
-        }
-        return implode("\n", $lines);
-    }
-
-    private static function previewParams(\WP_REST_Request $request): array {
-        $json = $request->get_json_params();
-        if (is_array($json) && $json !== []) {
-            return $json;
-        }
-        return $request->get_params();
     }
 
     private static function slotBlockName(): string {
@@ -235,12 +194,7 @@ final class GutenbergAdapter {
     }
 
     private static function allowedNames(): array {
-        $names = array_keys(self::$blockIds);
-        $names[] = self::slotBlockName();
-        foreach (['core/paragraph', 'core/heading', 'core/image', 'core/list', 'core/list-item'] as $core) {
-            $names[] = $core;
-        }
-        return $names;
+        return array_merge(array_keys(self::$blockIds), [self::slotBlockName()], self::CORE_CHILDREN);
     }
 
     private static function validateTree(array $parsed, int $depth = 0): void {
@@ -287,20 +241,6 @@ final class GutenbergAdapter {
         }
     }
 
-    private static function validateComponentSlots(ComponentDefinition $def, array $collected): void {
-        $seen = [];
-        foreach ($collected as $row) {
-            $slotName = $row['name'];
-            if (!array_key_exists($slotName, $def->slots)) {
-                throw new GutenbergRenderError("unknown slot $slotName on {$def->id}");
-            }
-            if (isset($seen[$slotName])) {
-                throw new GutenbergRenderError("duplicate slot $slotName on {$def->id}");
-            }
-            $seen[$slotName] = true;
-        }
-    }
-
     private static function validateAttrs(ComponentDefinition $def, array $attrs): void {
         $properties = $def->props['properties'] ?? [];
         foreach ($def->props['required'] ?? [] as $req) {
@@ -329,9 +269,7 @@ final class GutenbergAdapter {
             if (!$ok) {
                 throw new GutenbergRenderError("{$def->id}.{$prop}: invalid type");
             }
-            if (self::isUriProp($prop, $schema) && is_string($value) && $value !== '' && !self::safeUri($value)) {
-                throw new GutenbergRenderError("{$def->id}.{$prop}: unsafe URI");
-            }
+            self::assertSafeUris($def->id, (string) $prop, $value, $schema);
         }
     }
 
@@ -339,18 +277,44 @@ final class GutenbergAdapter {
         $properties = $def->props['properties'] ?? [];
         $props = [];
         foreach ($attributes as $prop => $value) {
-            $schema = $properties[$prop] ?? [];
-            $type = $schema['type'] ?? 'string';
-            if (is_array($type)) {
-                $type = $type[0] ?? 'string';
-            }
-            if (self::isUriProp($prop, is_array($schema) ? $schema : []) && is_string($value)) {
-                $props[$prop] = self::safeUri($value) ? $value : '';
-                continue;
-            }
-            $props[$prop] = is_string($value) ? esc_html($value) : $value;
+            $schema = is_array($properties[$prop] ?? null) ? $properties[$prop] : [];
+            $props[$prop] = self::scrubUris((string) $prop, $value, $schema);
         }
         return $props;
+    }
+
+    private static function assertSafeUris(string $id, string $prop, mixed $value, array $schema): void {
+        if (is_string($value) && $value !== '' && self::isUriProp($prop, $schema) && !self::safeUri($value)) {
+            throw new GutenbergRenderError("$id.$prop: unsafe URI");
+        }
+        if (!is_array($value)) {
+            return;
+        }
+        $items = is_array($schema['items'] ?? null) ? $schema['items'] : [];
+        $properties = is_array($schema['properties'] ?? null) ? $schema['properties'] : [];
+        foreach ($value as $k => $v) {
+            $childProp = is_string($k) ? $k : $prop;
+            $childSchema = is_string($k) ? ($properties[$k] ?? []) : $items;
+            self::assertSafeUris($id, $childProp, $v, is_array($childSchema) ? $childSchema : []);
+        }
+    }
+
+    private static function scrubUris(string $prop, mixed $value, array $schema): mixed {
+        if (is_string($value) && self::isUriProp($prop, $schema)) {
+            return self::safeUri($value) ? $value : '';
+        }
+        if (!is_array($value)) {
+            return $value;
+        }
+        $items = is_array($schema['items'] ?? null) ? $schema['items'] : [];
+        $properties = is_array($schema['properties'] ?? null) ? $schema['properties'] : [];
+        $out = [];
+        foreach ($value as $k => $v) {
+            $childProp = is_string($k) ? $k : $prop;
+            $childSchema = is_string($k) ? ($properties[$k] ?? []) : $items;
+            $out[$k] = self::scrubUris($childProp, $v, is_array($childSchema) ? $childSchema : []);
+        }
+        return $out;
     }
 
     private static function isUriProp(string $prop, array $schema): bool {
@@ -361,9 +325,6 @@ final class GutenbergAdapter {
     }
 
     private static function safeUri(string $value): bool {
-        if ($value !== '' && $value[0] === '/' && ($value[1] ?? '') !== '/') {
-            return true;
-        }
         return esc_url($value, ['http', 'https', 'mailto']) !== '';
     }
 
@@ -425,7 +386,6 @@ final class GutenbergAdapter {
             $supports['inserter'] = false;
         }
         return [
-            'id' => $def->id,
             'name' => self::blockName($ns, $def->id),
             'title' => $def->name,
             'category' => $category,
@@ -434,8 +394,6 @@ final class GutenbergAdapter {
             'manifestAttributes' => $manifestAttrs,
             'slots' => $slots,
             'supports' => $supports,
-            'ui' => $def->ui,
-            'kind' => 'component',
         ];
     }
 
@@ -483,34 +441,8 @@ final class GutenbergAdapter {
         wp_localize_script('designbook-gutenberg-editor', 'designbookGutenberg', [
             'slotBlock' => "$ns/slot",
             'blocks' => $blocks,
-            'allowedChildren' => array_values(array_merge(array_keys(self::$blockIds), [
-                'core/paragraph',
-                'core/heading',
-                'core/image',
-                'core/list',
-                'core/list-item',
-            ])),
+            'allowedChildren' => array_values(array_merge(array_keys(self::$blockIds), self::CORE_CHILDREN)),
         ]);
-    }
-
-    private static function writeBlockJson(array $payload): void {
-        $dir = __DIR__ . '/blocks/' . $payload['id'];
-        if (is_file($dir) || (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir))) {
-            error_log("Designbook Gutenberg: cannot write block metadata for {$payload['id']}");
-            return;
-        }
-        $json = [
-            'apiVersion' => 3,
-            'name' => $payload['name'],
-            'title' => $payload['title'],
-            'category' => $payload['category'],
-            'attributes' => $payload['attributes'],
-            'supports' => $payload['supports'],
-            'editorScript' => 'designbook-gutenberg-editor',
-        ];
-        if (file_put_contents($dir . '/block.json', json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n") === false) {
-            error_log("Designbook Gutenberg: cannot write block metadata for {$payload['id']}");
-        }
     }
 
     private static function registerType(array $payload): void {

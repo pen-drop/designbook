@@ -60,6 +60,3 @@ add_action('init', function () {
 
 `plugin.<ns>_content.registry` — the content of `designbook-wordpress/sync/templates/plugin/src/ComponentRegistry.php`
 from the installed skills, copied unchanged.
-
-The Gutenberg listener is attached at plugin load, before `init` priority 20. Adapter and editor
-files are the `gutenberg.adapter` and `gutenberg.editor` units.
