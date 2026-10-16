@@ -1,0 +1,8 @@
+component: test_integration_wordpress:slot-card
+name: Default
+props:
+  heading: Two slots
+  variant: default
+slots:
+  left: '<p>Left slot heading</p>'
+  right: '<p>Right slot heading</p>'

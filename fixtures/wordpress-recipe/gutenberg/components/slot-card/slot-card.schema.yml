@@ -1,0 +1,20 @@
+name: Slot Card
+description: Two named columns that each hold nested components.
+group: Layout
+props:
+  type: object
+  properties:
+    heading:
+      type: string
+      title: Heading
+      default: ''
+    variant:
+      type: string
+      title: Variant
+      enum: [default, featured]
+      default: default
+slots:
+  left:
+    title: Left
+  right:
+    title: Right

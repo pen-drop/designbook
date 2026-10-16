@@ -1,8 +1,10 @@
 (function (wp) {
-  const { registerBlockType, getBlockType } = wp.blocks;
+  const { registerBlockType, getBlockType, serialize } = wp.blocks;
   const { InspectorControls, InnerBlocks, useBlockProps } = wp.blockEditor;
-  const { PanelBody, TextControl, ToggleControl, SelectControl, TextareaControl, Notice } = wp.components;
-  const { createElement: h, Fragment, useState } = wp.element;
+  const { PanelBody, TextControl, ToggleControl, SelectControl, TextareaControl, Notice, Spinner } = wp.components;
+  const { createElement: h, Fragment, useState, useEffect, useRef } = wp.element;
+  const { useSelect } = wp.data;
+  const apiFetch = wp.apiFetch;
   const data = window.designbookGutenberg || { blocks: [], slotBlock: 'designbook/slot' };
 
   function JsonControl({ label, value, onChange }) {
@@ -62,11 +64,68 @@
     });
   }
 
+  function Preview({ clientId }) {
+    const block = useSelect((select) => select('core/block-editor').getBlock(clientId), [clientId]);
+    const postId = useSelect((select) => {
+      try {
+        return select('core/editor').getCurrentPostId() || 0;
+      } catch (e) {
+        return 0;
+      }
+    }, []);
+    const [html, setHtml] = useState('');
+    const [error, setError] = useState('');
+    const [pending, setPending] = useState(false);
+    const gen = useRef(0);
+    const serialized = block ? serialize([block]) : '';
+    useEffect(() => {
+      if (!serialized) return undefined;
+      const id = ++gen.current;
+      setPending(true);
+      const controller = typeof AbortController === 'function' ? new AbortController() : null;
+      apiFetch({
+        path: '/designbook/v1/gutenberg-preview',
+        method: 'POST',
+        data: { post_id: postId || 0, content: serialized },
+        signal: controller ? controller.signal : undefined,
+      })
+        .then((res) => {
+          if (id !== gen.current) return;
+          setHtml((res && res.html) || '');
+          setError('');
+          setPending(false);
+        })
+        .catch((e) => {
+          if (id !== gen.current) return;
+          setHtml('');
+          setError((e && e.message) || 'Preview failed');
+          setPending(false);
+        });
+      return () => {
+        if (controller) controller.abort();
+      };
+    }, [serialized, postId]);
+    if (pending && !html && !error) {
+      return h('div', { 'aria-busy': 'true' }, h(Spinner), ' Loading preview');
+    }
+    if (error) {
+      return h(Notice, { status: 'error', isDismissible: false }, error);
+    }
+    return h('div', { dangerouslySetInnerHTML: { __html: html } });
+  }
+
   (data.blocks || []).forEach(function (def) {
     if (getBlockType(def.name) && getBlockType(def.name).edit) return;
     registerBlockType(def.name, {
       edit(props) {
         const blockProps = useBlockProps();
+        const isPreview = useSelect((select) => {
+          const settings = select('core/block-editor').getSettings() || {};
+          return !!(settings.isPreviewMode || settings.__unstableIsPreviewMode);
+        }, []);
+        if (isPreview) {
+          return h('div', blockProps, h(Preview, { clientId: props.clientId }));
+        }
         const controls = (def.attributes || []).map((attr) =>
           controlFor(attr, props.attributes[attr.name], (v) => {
             props.setAttributes({ [attr.name]: v });
