@@ -1,59 +1,362 @@
 <!doctype html>
 <html lang="en">
 <meta charset="utf-8">
-<title>Designbook — from design to a working system</title>
+<title>Designbook explained in 60 seconds</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f5f3ee;color:#163c42;font-family:Arial,sans-serif;width:1280px;height:720px;overflow:hidden}
-header{position:absolute;inset:32px 48px auto;display:flex;justify-content:space-between;font-size:18px;letter-spacing:.02em}header strong{font-size:26px}header span{color:#66797b}
-.scene{position:absolute;inset:0;opacity:0}.heading{position:absolute;left:48px;top:95px;margin:0;font-size:45px;letter-spacing:-1.8px;line-height:1.08}.sub{position:absolute;left:50px;top:157px;color:#557075;font-size:20px}
-.source{position:absolute;left:48px;top:226px;width:720px;height:426px;object-fit:contain;border-radius:10px;box-shadow:0 18px 45px #173e421c}
-.region{position:absolute;border:2px solid #ed7568;border-radius:5px;background:#ed756808;transform-origin:center}
-.region.title{left:72px;top:327px;width:294px;height:111px}
-.region.content{left:72px;top:457px;width:280px;height:57px}
-.region.action{left:72px;top:532px;width:150px;height:30px}
-.mapping{position:absolute;left:858px;width:374px;padding:20px 22px;border-left:3px solid #ed7568;background:#fff;border-radius:6px;box-shadow:0 10px 30px #173e420d}
-.mapping strong{display:block;font-size:24px;margin-bottom:7px}.mapping span{color:#557075;font-size:17px}
-.mapping.tokens{top:266px}.mapping.model{top:395px}.mapping.components{top:524px}
-.connections{position:absolute;inset:0;width:1280px;height:720px;overflow:visible}.connections path{fill:none;stroke:#ed7568;stroke-width:2;stroke-dasharray:700;stroke-dashoffset:700}
-.card{position:absolute;top:245px;width:365px;height:355px;border-radius:12px;background:white;box-shadow:0 12px 35px #173e421a;overflow:hidden;border:1px solid #d9e2df}.card img{width:100%;height:260px;object-fit:contain;object-position:center}.card strong{display:block;font-size:24px;padding:18px 20px 4px}.card small{padding:0 20px;color:#547075;font-size:15px}.card.one{left:48px}.card.two{left:457px}.card.three{left:866px}
-.arrow{position:absolute;top:392px;font-size:35px;color:#ef7568}.arrow.a{left:422px}.arrow.b{left:831px}
-.wide{position:absolute;left:48px;top:210px;width:1184px;height:456px;object-fit:contain;object-position:center;background:white;border-radius:10px;border:1px solid #d3ddda;box-shadow:0 16px 40px #173e4219}
-#agent img{left:405px;width:827px;height:500px;top:166px;object-fit:contain;background:#101820}
-#agent .heading{width:330px;top:230px}#agent .sub{width:300px;top:410px;line-height:1.5}
-#end .heading{top:230px;font-size:64px;width:560px}#end .sub{top:465px;font-size:24px;width:500px;line-height:1.5}
-#end img{position:absolute;left:650px;top:210px;width:582px;height:364px;object-fit:contain;object-position:center;border:8px solid white;border-radius:14px;box-shadow:0 20px 80px #153d4220}
-footer{position:absolute;bottom:16px;left:48px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#718487}.progress{position:absolute;bottom:0;left:0;height:4px;background:#ec7667}
+*{box-sizing:border-box}
+html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#f5f3ee;color:#163c42;font-family:Arial,Helvetica,sans-serif}
+.scene{position:absolute;inset:0;opacity:0}
+.chapter-sub{position:absolute;left:42px;top:80px;margin:0;font-size:19px;color:#557075;opacity:0;visibility:hidden;z-index:5}
+.chapter-title{position:absolute;left:40px;top:30px;margin:0;font-size:42px;letter-spacing:-1.4px;font-weight:700;opacity:0;visibility:hidden;z-index:5}
+.frame{position:absolute;left:40px;top:104px;width:960px;height:600px;overflow:hidden;border-radius:10px;background:#fff;border:1px solid #d3ddda;box-shadow:0 18px 50px #173e421f}
+.frame>img,.frame .layer{position:absolute;left:0;top:0;width:960px;height:600px}
+/* Intro and end card */
+.brand{position:absolute;left:0;right:0;text-align:center}
+.brand img{width:460px}
+.claim{position:absolute;left:0;right:0;top:420px;text-align:center;font-size:54px;font-weight:700;letter-spacing:-1.6px;white-space:nowrap}
+.claim .not{display:inline-block;overflow:visible;white-space:nowrap;color:#e2664c;vertical-align:bottom}
+/* Data model graph build-up: parts of the real model capture, cut along the measured nodes and edges */
+.graph-mask{position:absolute;background:#fff}
+.part{position:absolute;left:0;top:0;width:960px;height:600px;background:url(screenshots/model.png) 0 0/960px 600px}
+.wipe-edge{position:absolute;left:0;width:960px;height:3px;background:#e2664c;box-shadow:0 0 18px #e2664c}
+/* Chat widget */
+.chat{position:absolute;right:32px;bottom:32px;width:380px;border-radius:16px;background:#fff;border:1px solid #d3ddda;box-shadow:0 22px 60px #173e4233;opacity:0;z-index:6;overflow:hidden}
+.chat header{display:flex;align-items:center;gap:8px;padding:12px 16px;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#557075;border-bottom:1px solid #e6ece9}
+.chat header i{width:9px;height:9px;border-radius:50%;background:#2fae86}
+.chat .log{min-height:74px;padding:14px 16px 4px;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.chat .bubble{max-width:320px;padding:10px 13px;border-radius:13px 13px 3px 13px;background:#12454e;color:#fff;font-size:17px;line-height:1.35}
+.chat .bubble.agent{align-self:flex-start;border-radius:13px 13px 13px 3px;background:#eef3f1;color:#163c42;white-space:pre-line;font-size:15px}
+.chat .dots{align-self:flex-start;font-size:22px;letter-spacing:3px;color:#8aa0a4}
+.chat .input{display:flex;align-items:center;gap:10px;margin:8px 12px 12px;padding:10px 12px;border:1px solid #cfdad7;border-radius:11px;font-size:18px;line-height:1.35;min-height:48px}
+.chat .typed{flex:1}
+.chat .caret{display:inline-block;width:2px;height:20px;margin-left:1px;background:#12454e;vertical-align:-3px}
+.chat .send{width:30px;height:30px;border-radius:50%;background:#e2664c;color:#fff;display:grid;place-items:center;font-size:16px;flex:none}
+/* Scan */
+.ref-page{position:absolute;left:0;top:0;width:960px;height:600px;opacity:0;z-index:3}
+.ref-label{position:absolute;right:12px;top:10px;padding:4px 10px;border-radius:5px;background:#163c42e6;color:#fff;font-size:13px;letter-spacing:.04em;z-index:2}
+.scan-line{position:absolute;left:0;width:960px;height:4px;background:#2fae86;box-shadow:0 0 22px 6px #2fae8677}
+.scan-hit{position:absolute;border:3px solid #2fae86;border-radius:8px;background:#2fae8622}
+/* Structure */
+.sidebar{position:absolute;left:40px;top:104px;width:300px;height:600px;border-radius:10px;background:#f6f9fc;border:1px solid #d3ddda}
+.tree-row{position:absolute;left:52px;width:216px;height:22px;border-radius:5px;opacity:0;transition:none}
+.tree-row img{display:block;width:216px;height:22px}
+.tree-row.active.entity{box-shadow:0 0 0 2px #2fae86;background:#d9f5ea}
+.tree-row.active.component{box-shadow:0 0 0 2px #e98557;background:#ffeadf}
+.stage{position:absolute;left:360px;top:104px;width:880px;height:600px;overflow:hidden;border-radius:10px;background:#f0ebe1;border:1px solid #d3ddda}
+.stage img.full{position:absolute;left:0;top:0;width:880px}
+.stage img.ghost{opacity:.1;filter:grayscale(1)}
+.area{position:absolute;background-image:url(../../../docs/media/intro-video/recipe/screenshots/recipe-full.png);background-size:880px auto;background-repeat:no-repeat}
+.targets{position:absolute;left:360px;top:104px;width:880px;height:600px;overflow:hidden;pointer-events:none}
+.target{position:absolute;border:4px solid #2fae86;border-radius:9px;box-shadow:0 0 0 4px #fff9,0 0 26px #2fae8655;opacity:0}
+.target.component{border-color:#e98557;box-shadow:0 0 0 4px #fff9,0 0 26px #e9855766}
+.target span{position:absolute;left:-4px;top:-34px;background:#163c42;color:#fff;font:700 17px/28px Arial,sans-serif;padding:0 10px;border-radius:5px;white-space:nowrap}
+.target.below span{top:auto;bottom:-34px}
+.target.component span{top:auto;bottom:-34px}
+.target.right span{left:auto;right:-4px}
+.links{position:absolute;inset:0;width:1280px;height:720px;overflow:visible;pointer-events:none}
+.links path{fill:none;stroke-width:3;stroke-dasharray:7 5}
 </style>
-<header><strong>designbook<span style="color:#ef7568">.</span></strong><span>Design → structure → working screen</span></header>
-<section id="input" class="scene"><h1 class="heading">Not a design tool.</h1><p class="sub">Turn the design you already have into a working system.</p><img class="source" src="../../../docs/assets/logo/demo/source.png"></section>
-<section id="split" class="scene"><h2 class="heading">Read the design. Map its parts.</h2><p class="sub">Typography, content and actions become explicit building blocks.</p>
-<img class="source" src="../../../docs/assets/logo/demo/source.png">
-<div class="region title"></div><div class="region content"></div><div class="region action"></div>
-<svg class="connections" viewBox="0 0 1280 720"><path d="M366 330 L800 330 L800 312 L846 312"/><path d="M352 485 L815 485 L815 440 L846 440"/><path d="M222 562 L800 562 L800 568 L846 568"/></svg>
-<div class="mapping tokens"><strong>Design tokens</strong><span>Typography, colours, spacing</span></div>
-<div class="mapping model"><strong>Content structure</strong><span>Define what the screen contains</span></div>
-<div class="mapping components"><strong>SDC components</strong><span>Actions, media, props and slots</span></div></section>
-<section id="parts" class="scene"><h2 class="heading">Tokens. Data model. SDC components.</h2><p class="sub">Explicit structure you can inspect, reuse and change.</p>
-<div class="card one"><img src="../../../docs/assets/logo/demo/designbook-tokens.png"><strong>Design tokens</strong><small>Colour, typography, spacing</small></div><span class="arrow a">→</span>
-<div class="card two"><img src="../../../docs/assets/logo/demo/designbook-model.png"><strong>Data model</strong><small>Content types and fields</small></div><span class="arrow b">→</span>
-<div class="card three"><img src="../../../docs/assets/logo/demo/designbook-components.png"><strong>SDC components</strong><small>Twig, props and slots</small></div></section>
-<section id="agent" class="scene"><h2 class="heading">Your agent.<br>A guided workflow.</h2><p class="sub">Designbook skills guide the build.<br>You inspect the output.</p><img class="wide" src="../../../docs/assets/logo/demo/agent.png"></section>
-<section id="result" class="scene"><h2 class="heading">A real Canvas page. In Designbook.</h2><p class="sub">Inspect the components. Preview the complete screen.</p><img class="wide" src="../../../docs/assets/logo/demo/designbook-result.png"></section>
-<section id="end" class="scene"><h2 class="heading">From design.<br>To a working<br>system.</h2><p class="sub">Designbook<br>Structured workflows for your AI agent.</p><img src="../../../docs/assets/logo/demo/designbook-result.png"></section>
-<footer>Real Figma reference · actual generated output · edited workflow summary</footer><div class="progress"></div>
+
+<section class="scene" id="intro">
+  <div class="brand" style="top:200px"><img src="../../../docs/assets/logo/logo.svg" alt="Designbook"></div>
+  <div class="claim"><span class="not" id="not">NOT&nbsp;</span>another design tool</div>
+</section>
+
+<section class="scene" id="vision">
+  <div class="frame">
+    <img id="vision-empty" src="screenshots/empty-vision.png" alt="">
+    <img id="vision-full" src="screenshots/vision.png" alt="" style="transform-origin:50% 0">
+  </div>
+</section>
+
+<section class="scene" id="model">
+  <div class="frame">
+    <img id="model-empty" src="screenshots/empty-model.png" alt="">
+    <div class="layer" id="model-page">
+      <img src="screenshots/model.png" alt="" style="width:960px">
+      <div class="graph-mask" id="graph-mask"></div>
+      <div id="graph"></div>
+    </div>
+  </div>
+</section>
+
+<section class="scene" id="tokens">
+  <div class="frame">
+    <img src="screenshots/empty-tokens.png" alt="">
+    <img id="tokens-full" src="screenshots/tokens.png" alt="">
+    <div class="wipe-edge" id="wipe-edge"></div>
+  </div>
+</section>
+
+<section class="scene" id="reference-scene">
+  <div class="frame" id="scan-frame">
+    <div class="ref-label">Design reference · Figma</div>
+    <img id="reference" src="../../../docs/media/intro-video/recipe/screenshots/reference.png" alt="" style="height:auto">
+    <div class="scan-line" id="scan-line"></div>
+    <img class="ref-page" id="reference-page" src="screenshots/reference-page.png" alt="">
+  </div>
+</section>
+
+<section class="scene" id="structure">
+  <div class="sidebar"></div>
+  <div class="stage" id="stage">
+    <img class="full ghost" src="../../../docs/media/intro-video/recipe/screenshots/recipe-full.png" alt="">
+    <img class="full" id="recipe-full" src="../../../docs/media/intro-video/recipe/screenshots/recipe-full.png" alt="">
+  </div>
+  <div class="targets" id="targets"></div>
+  <svg class="links"><path id="connector"/></svg>
+</section>
+
+
+<section class="scene" id="end">
+  <div class="brand" style="top:200px"><img src="../../../docs/assets/logo/logo.svg" alt="Designbook"></div>
+  <div class="claim"><span class="not">NOT&nbsp;</span>another design tool.</div>
+</section>
+
+<h2 class="chapter-title" data-chapter="vision">Explain your vision</h2>
+<h2 class="chapter-title" data-chapter="model">Data model</h2>
+<h2 class="chapter-title" data-chapter="tokens">Tokens</h2>
+<h2 class="chapter-title" data-chapter="reference">Scan your design</h2>
+<p class="chapter-sub" data-chapter="reference">Designbook extracts your design.</p>
+<h2 class="chapter-title" data-chapter="screen">Design your screen</h2>
+<h2 class="chapter-title" data-chapter="drupal">Sync to Drupal</h2>
+<div class="chat" id="chat">
+  <header><i></i>AI agent</header>
+  <div class="log" id="log"></div>
+  <div class="input"><span class="typed" id="typed"></span><span class="send" id="send">↑</span></div>
+</div>
+
 <script>
-const scenes=Object.fromEntries([...document.querySelectorAll('.scene')].map(e=>[e.id,e]));
-const ease=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
-const show=(id,start,end,t)=>{const a=ease((t-start)/.35)*(1-ease((t-end)/.35));scenes[id].style.opacity=a;scenes[id].style.transform='translateY('+((1-ease((t-start)/.5))*16)+'px)'};
-window.setTime=t=>{
-for(const e of Object.values(scenes))e.style.opacity=0;
-show('input',-.5,2.7,t);show('split',2.7,5.6,t);show('parts',5.6,10.3,t);show('agent',10.3,13.6,t);show('result',13.6,18,t);show('end',18,23,t);
-document.querySelectorAll('.region').forEach((e,i)=>e.style.opacity=ease((t-3-i*.25)/.4));
-document.querySelectorAll('.mapping').forEach((e,i)=>{const p=ease((t-3.2-i*.25)/.45);e.style.opacity=p;e.style.transform='translateX('+((1-p)*18)+'px)'});
-document.querySelectorAll('.connections path').forEach((e,i)=>e.style.strokeDashoffset=700*(1-ease((t-3.2-i*.25)/.6)));
-document.querySelectorAll('.card').forEach((e,i)=>e.style.transform='translateY('+((1-ease((t-5.6-i*.14)/.55))*65)+'px)');
-document.querySelector('.progress').style.width=(t/22*100)+'%';
-};
-window.setTime(0);
+const $ = (s) => document.querySelector(s)
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x))
+const ease = (x) => { x = clamp(x); return x * x * (3 - 2 * x) }
+const ramp = (t, a, b) => ease((t - a) / (b - a))
+// Visible within [a, b] with cross-fades of `f` seconds around both edges.
+const span = (t, a, b, f = 0.2) => Math.min(ramp(t, a - f, a + f), 1 - ramp(t, b - f, b + f))
+const show = (el, v) => { el.style.opacity = v; el.style.visibility = v > 0 ? 'visible' : 'hidden' }
+
+const T = { intro: [-1, 4], vision: [4, 12.5], 'reference-scene': [12.5, 19.5], model: [19.5, 28], tokens: [28, 35.5], structure: [35.5, 57], end: [57, 99] }
+const titles = { vision: [4, 12.5], reference: [12.5, 19.5], model: [19.5, 28], tokens: [28, 35.5], screen: [35.5, 52], drupal: [52, 57] }
+// Each chapter's view is on screen before its chat starts. A message is typed by 👤 or posted by 🤖;
+// `working` shows the agent's dots after the last message until the chat closes.
+// Before building, the agent previews what it would create (taken from the real fixture output).
+const chats = [
+  { a: 5, b: 17.8, working: true, messages: [
+    { who: 'user', text: 'We created this famous recipe page in Figma. Make a Drupal page.', type: [5.3, 6.8], send: 7 },
+    { who: 'agent', text: 'Can I extract the reference? [Y/n]', send: 8.6 },
+    { who: 'user', text: 'Y', type: [9.4, 9.5], send: 9.7 },
+  ] },
+  { a: 20.4, b: 28, working: true, messages: [
+    { who: 'user', text: 'Build the data model based on the reference.', type: [20.7, 21.5], send: 21.65 },
+    { who: 'agent', text: "From the reference I'd create:\n• node › recipe (title, ingredients, steps, author …)\n• paragraph › ingredient, recipe_step\n• taxonomy › author, recipe_category, difficulty\nShall I?", send: 22.3 },
+    { who: 'user', text: 'Yes.', type: [23, 23.15], send: 23.35 },
+  ] },
+  { a: 28.9, b: 35.5, working: true, messages: [
+    { who: 'user', text: 'Build the tokens based on the reference.', type: [29.2, 29.9], send: 30.05 },
+    { who: 'agent', text: "From the reference I'd create:\n• colors: neutral, red, orange, green\n• fonts: Montserrat (headings), Roboto (body)\n• sizes 12–80 px, spacing 8–64 px\nShall I?", send: 30.7 },
+    { who: 'user', text: 'Yes.', type: [31.4, 31.55], send: 31.75 },
+  ] },
+  { a: 36, b: 39.8, working: true, messages: [
+    { who: 'user', text: 'Design the recipe screen and show the result.', type: [36.3, 37.1], send: 37.3 },
+    { who: 'agent', text: "For the recipe screen I'd build:\n• entities: recipe, ingredient, recipe step, author\n• components: header, detail page, quantity item, step block, profile card …\nShall I?", send: 38 },
+    { who: 'user', text: 'Yes.', type: [38.7, 38.85], send: 39.05 },
+  ] },
+  { a: 52.3, b: 57, messages: [{ who: 'user', text: 'Sync the recipe screen to Drupal.', type: [52.6, 53.3], send: 53.5 }] },
+]
+// The data model graph builds node by node; every edge appears with its target node.
+const GRAPH = { k: 960 / 1440, order: ['recipe', 'ingredient', 'recipe_step', 'author', 'recipe_category', 'difficulty'], from: 23.9, step: 0.5 }
+// Entities first, then components; one calm camera pass each.
+const ORDER = [['recipe', 40], ['ingredient', 41.3], ['step', 42.6], ['author', 43.9], ['header', 45.8], ['detail', 47], ['quantity', 48.2], ['step-block', 49.4], ['profile', 50.6]]
+// Each pair's real row in the finished Storybook sidebar (screenshots/tree.json keeps the real order).
+const TREE_ROW = { header: 'test-integration-drupal-shell-header', recipe: 'entities-node-recipe--full', detail: 'test-integration-drupal-layout-detail-page',
+  ingredient: 'entities-paragraph-ingredient--default', quantity: 'test-integration-drupal-data-display-quantity-item', step: 'entities-paragraph-recipe-step--default',
+  'step-block': 'test-integration-drupal-data-display-step-block', author: 'entities-taxonomy-term-author--default', profile: 'test-integration-drupal-data-display-profile-card' }
+const LAST = 51.3 // the last outline holds until the camera returns to the top
+const K = 880 / 1140 // recipe-full.png → stage
+const SCAN = { from: 13, to: 16.6, depth: 5600, k: 960 / 1440 }
+let pairs = [], regions = [], tree = [], graph = null
+
+function edgeClip ([x1, y1], [x2, y2]) {
+  ;[x1, y1, x2, y2] = [x1, y1, x2, y2].map((v) => v * GRAPH.k)
+  const len = Math.hypot(x2 - x1, y2 - y1), ux = (x2 - x1) / len, uy = (y2 - y1) / len, w = 7
+  const ex = x2 + ux * 4, ey = y2 + uy * 4
+  return `polygon(${x1 - uy * w}px ${y1 + ux * w}px, ${ex - uy * w}px ${ey + ux * w}px, ${ex + uy * w}px ${ey - ux * w}px, ${x1 + uy * w}px ${y1 - ux * w}px)`
+}
+
+window.ready = Promise.all([
+  fetch('../../../docs/media/intro-video/recipe/pairs.json').then((r) => r.json()),
+  fetch('reference-regions.json').then((r) => r.json()),
+  fetch('screenshots/tree.json').then((r) => r.json()),
+  fetch('screenshots/model-graph.json').then((r) => r.json()),
+]).then(async ([p, r, t, g]) => {
+  pairs = ORDER.map(([id, at]) => ({ ...p.find((x) => x.id === id), at }))
+  regions = r
+  // A tree row appears with the first pair below it; parent = the longest other id prefixing it.
+  tree = t.map((row) => ({ ...row, parent: t.map((o) => o.id).filter((id) => id !== row.id && row.id.startsWith(id + '-')).sort((a, b) => b.length - a.length)[0] }))
+  for (const row of tree) {
+    const below = pairs.filter((pair) => TREE_ROW[pair.id] === row.id || TREE_ROW[pair.id].startsWith(row.id + '-'))
+    row.at = below.length ? Math.min(...below.map((pair) => pair.at)) : -1
+    row.pair = pairs.find((pair) => TREE_ROW[pair.id] === row.id)
+    const el = document.createElement('div'); el.className = 'tree-row' + (row.pair ? ` pair-row ${row.pair.kind}` : ''); el.dataset.treeId = row.id
+    if (row.pair) el.dataset.id = row.pair.id
+    const img = document.createElement('img'); img.src = `screenshots/tree/${row.id}.png`; img.alt = ''; el.append(img)
+    $('#structure').append(el); row.el = el
+  }
+  // Graph parts in screenshot pixels: a node box, plus the edge that points to it (nearest end point).
+  const k = GRAPH.k, inset = ({ x, y, width, height }, m = 4) => `inset(${(y - m) * k}px ${960 - (x + width + m) * k}px ${600 - (y + height + m) * k}px ${(x - m) * k}px round 6px)`
+  const near = ([x, y]) => g.nodes.reduce((a, n) => {
+    const d = Math.hypot(x - (n.box.x + n.box.width / 2), y - (n.box.y + n.box.height / 2))
+    return d < a.d ? { d, id: n.id } : a
+  }, { d: Infinity }).id
+  const part = (clip) => { const el = document.createElement('div'); el.className = 'part'; el.style.clipPath = clip; $('#graph').append(el); return el }
+  const a = g.area
+  $('#graph-mask').style.cssText = `left:${(a.x + 2) * k}px;top:${(a.y + 2) * k}px;width:${(a.width - 4) * k}px;height:${(a.height - 4) * k}px`
+  graph = GRAPH.order.map((id, i) => {
+    const node = g.nodes.find((n) => n.id === id)
+    if (!node) throw new Error('Graph node missing: ' + id)
+    const els = [part(inset(node.box))]
+    for (const e of g.edges.filter((e) => near(e.to) === id)) els.push(near(e.from) === id ? part(inset(e.box, 6)) : part(edgeClip(e.from, e.to)))
+    if (i === 0) els.push(part(inset({ x: a.x + a.width - 112, y: a.y + 8, width: 104, height: 36 })))
+    return { at: GRAPH.from + i * GRAPH.step, els }
+  })
+  for (const region of regions) {
+    const el = document.createElement('div'); el.className = 'scan-hit'; el.dataset.id = region.id
+    $('#scan-frame').append(el)
+  }
+  for (const [i, pair] of pairs.entries()) {
+    const area = document.createElement('div'); area.className = 'area'; area.dataset.id = pair.id
+    area.style.cssText = `left:${pair.box.x * K}px;width:${pair.box.width * K}px;height:${pair.box.height * K}px;background-position:${-pair.box.x * K}px ${-pair.box.y * K}px`
+    $('#stage').append(area)
+    const target = document.createElement('div'); target.dataset.id = pair.id
+    target.className = `target ${pair.kind}${pair.id === 'header' ? ' below' : ''}${pair.box.x * K > 440 ? ' right' : ''}`
+    // An entity is shown with the view mode its mapping renders (node.recipe.full.jsonata → full).
+    const label = document.createElement('span')
+    label.textContent = pair.kind === 'entity' ? `Entity · ${pair.name} · ${pair.mapping.split('.')[2]}` : `Component · ${pair.name}`
+    target.append(label); $('#targets').append(target)
+  }
+  await Promise.all([...document.images].map((i) => i.decode()))
+  window.setTime(0)
+})
+
+// Scroll offset (recipe-full pixels) that keeps the active pair in frame, eased just before its reveal.
+function structureScroll (t) {
+  const stop = (pair) => clamp(pair.box.y - 140, 0, 6020 - 600 / K)
+  let y = 0, prev = 0
+  for (const pair of pairs) { const next = stop(pair); y = prev + (next - prev) * ramp(t, pair.at - 0.55, pair.at - 0.02); if (t < pair.at) return y; prev = next }
+  return prev * (1 - ramp(t, LAST, LAST + 0.5))
+}
+
+function setChat (t) {
+  const chat = chats.find((c) => t >= c.a - 0.3 && t < c.b + 0.3)
+  if (!chat) { $('#chat').style.opacity = 0; return }
+  $('#chat').style.opacity = span(t, chat.a, chat.b, 0.25)
+  const posted = chat.messages.filter((m) => t >= m.send)
+  const typing = chat.messages.find((m) => m.who === 'user' && t < m.send)
+  // The agent's dots show after a sent user message while a reply or work is pending.
+  const lastPosted = posted.at(-1)
+  const waiting = lastPosted?.who === 'user' && t >= lastPosted.send + 0.4
+  const esc = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+  $('#log').innerHTML = posted.map((m) => `<div class="bubble ${m.who}" style="opacity:${ramp(t, m.send, m.send + 0.2)}">${esc(m.text)}</div>`).join('') +
+    (waiting ? `<div class="dots">${'•••'.slice(0, 1 + Math.floor((t * 3) % 3))}</div>` : '')
+  let typed = ''
+  if (typing && t >= (typing.type?.[0] ?? Infinity)) {
+    const [t0, t1] = typing.type
+    typed = typing.text.slice(0, Math.ceil(typing.text.length * clamp((t - t0) / (t1 - t0))))
+  }
+  const caret = Math.floor(t * 2.5) % 2 === 0 ? '<span class="caret"></span>' : ''
+  $('#typed').innerHTML = esc(typed) + caret
+  const sent = [...chat.messages].reverse().find((m) => m.who === 'user' && t >= m.send - 0.15)
+  const pulse = sent ? Math.sin(clamp((t - sent.send + 0.15) / 0.4) * Math.PI) : 0
+  $('#send').style.transform = `scale(${1 + 0.3 * pulse})`
+}
+
+window.setTime = (input) => {
+  const t = clamp(input, 0, 60)
+  for (const [id, [a, b]] of Object.entries(T)) $('#' + id).style.opacity = span(t, a, b)
+  for (const [id, [a, b]] of Object.entries(titles)) {
+    const v = Math.min(ramp(t, a, a + 0.35), 1 - ramp(t, b - 0.35, b))
+    show($(`.chapter-title[data-chapter="${id}"]`), v)
+    const sub = $(`.chapter-sub[data-chapter="${id}"]`)
+    if (sub) show(sub, Math.min(v, ramp(t, a + 0.4, a + 0.8)))
+  }
+
+  // Intro: "NOT" drops into place in front of the slogan.
+  const drop = ramp(t, 1.6, 2.1)
+  $('#not').style.maxWidth = `${drop * 140}px`
+  $('#not').style.opacity = drop
+  $('#not').style.transform = `translateY(${(1 - drop) * -70}px)`
+
+  // Vision: empty state, then the real vision with a slow push-in.
+  $('#vision-full').style.opacity = ramp(t, 7.2, 8)
+
+  // Data model: empty state, then the real graph node by node.
+  $('#model-page').style.opacity = ramp(t, 23.6, 23.8)
+  for (const node of graph) for (const el of node.els) el.style.opacity = ramp(t, node.at, node.at + 0.4)
+
+  // Tokens: top-to-bottom wipe.
+  const wipe = ramp(t, 32.1, 34.2)
+  $('#tokens-full').style.clipPath = `inset(0 0 ${(1 - wipe) * 100}% 0)`
+  $('#wipe-edge').style.top = `${wipe * 600 - 2}px`
+  $('#wipe-edge').style.opacity = wipe > 0 && wipe < 1 ? 1 : 0
+
+  // Reference: the line scans the Figma frame, then the imported reference opens in Storybook.
+  $('#reference-page').style.opacity = ramp(t, 16.8, 17.5)
+  const lineY = SCAN.depth * clamp((t - SCAN.from) / (SCAN.to - SCAN.from))
+  const scroll = clamp(lineY - 450, 0, 6847 - 900)
+  $('#reference').style.transform = `translateY(${-scroll * SCAN.k}px)`
+  $('#scan-line').style.top = `${(lineY - scroll) * SCAN.k}px`
+  $('#scan-line').style.opacity = t >= SCAN.from && t < SCAN.to ? 1 : 0
+  const at = (y) => SCAN.from + (SCAN.to - SCAN.from) * y / SCAN.depth
+  for (const { id, box } of regions) {
+    const el = $(`.scan-hit[data-id="${id}"]`)
+    el.style.cssText = `left:${box.x * SCAN.k}px;top:${(box.y - scroll) * SCAN.k}px;width:${box.width * SCAN.k}px;height:${box.height * SCAN.k}px`
+    el.style.opacity = Math.min(ramp(t, at(box.y), at(box.y) + 0.12), 1 - ramp(t, at(box.y + box.height) + 0.25, at(box.y + box.height) + 0.6))
+  }
+
+  // Structure: each sidebar row and its screen area appear in the same frame.
+  const y = structureScroll(t)
+  $('#recipe-full').style.transform = `translateY(${-y * K}px)`
+  $('#recipe-full').style.opacity = ramp(t, LAST + 0.3, LAST + 0.7)
+  $('.ghost').style.transform = `translateY(${-y * K}px)`
+  let active = null
+  for (const [i, pair] of pairs.entries()) {
+    const on = ramp(t, pair.at, pair.at + 0.18)
+    // Frames stay until the end of the chapter; the connector only follows the newest entry
+    // and leaves before the camera moves on.
+    const end = i + 1 < pairs.length ? pairs[i + 1].at : LAST + 0.6
+    const kept = Math.min(on, 1 - ramp(t, LAST - 0.1, LAST + 0.2))
+    const current = Math.min(on, 1 - ramp(t, end - 0.72, end - 0.58))
+    if (current > 0) active = { pair, current }
+    const area = $(`.area[data-id="${pair.id}"]`)
+    area.style.top = `${(pair.box.y - y) * K}px`
+    area.style.opacity = on
+    const target = $(`.target[data-id="${pair.id}"]`)
+    const pad = pair.kind === 'component' && pair.id !== 'header' ? -4 : 6 // components sit inside their entity frame
+    target.style.cssText = `left:${pair.box.x * K - pad}px;top:${(pair.box.y - y) * K - pad}px;width:${pair.box.width * K + 2 * pad}px;height:${pair.box.height * K + 2 * pad}px;opacity:${kept}`
+  }
+  // Sidebar tree: a row grows into its real position; rows below it shift down.
+  let cursor = 112
+  for (const [i, row] of tree.entries()) {
+    const grow = row.at < 0 ? 1 : ramp(t, row.at, row.at + 0.18)
+    const fade = row.at < 0 ? 1 : ramp(t, row.at, row.at + 0.18)
+    if (row.kind === 'root' && i > 0) cursor += 8 * grow
+    row.el.style.top = `${cursor}px`
+    row.el.style.opacity = fade
+    row.el.classList.toggle('active', !!row.pair && active?.pair === row.pair)
+    row.y = cursor
+    cursor += 22 * grow
+  }
+  const connector = $('#connector')
+  if (active) {
+    const { pair, current } = active
+    const rowRight = 268
+    const y1 = tree.find((row) => row.pair === pair).y + 11, x2 = 360 + pair.box.x * K - 6, y2 = 104 + (pair.box.y - y + pair.box.height / 2) * K
+    connector.setAttribute('d', `M ${rowRight} ${y1} C ${rowRight + 60} ${y1}, ${x2 - 60} ${y2}, ${x2} ${y2}`)
+    connector.style.stroke = pair.kind === 'entity' ? '#2fae86' : '#e98557'
+    connector.style.opacity = current
+  } else connector.style.opacity = 0
+
+  setChat(t)
+}
 </script>
 </html>

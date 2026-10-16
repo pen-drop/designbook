@@ -12,12 +12,12 @@ hero:
       text: Get started
       link: /get-started/
     - theme: alt
-      text: Watch the 22-second demo
+      text: Watch the 60-second explainer
       link: /#demo
 landing:
   gallery: true
   demo:
-    text: A real Figma design. A guided Claude workflow. A working Canvas page built with Drupal SDC components.
+    text: An AI agent uses Designbook skills and your project configuration to turn a design reference into a data model, tokens and mapped components — inspectable in Storybook, ready to sync to Drupal.
     video: /demo/designbook-demo.mp4
     poster: /demo/poster.png
   steps:

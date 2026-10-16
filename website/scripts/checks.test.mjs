@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, mkdirSync, writeFileSync, cpSync, rmSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, writeFileSync, cpSync, rmSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -831,4 +831,17 @@ test('video sources and posters are checked as local assets', () => {
   } finally {
     fixture.cleanup()
   }
+})
+
+test('landing transcript covers every explainer chapter', () => {
+  const vue = readFileSync(new URL('../.vitepress/theme/landing/LandingContent.vue', import.meta.url), 'utf8')
+  const film = readFileSync(new URL('./demo/film.html', import.meta.url), 'utf8')
+  const transcript = vue.match(/<details[^>]*id="film-transcript"[\s\S]*?<\/details>/)[0].replace(/\s+/g, ' ')
+  const titles = [...film.matchAll(/<h2 class="chapter-title"[^>]*>([^<]+)<\/h2>/g)].map((m) => m[1])
+  assert.equal(titles.length, 6)
+  for (const s of [...titles, 'Designbook extracts your design', 'Figma', 'extract the reference', 'view mode', 'not another design tool']) {
+    assert.match(transcript, new RegExp(s, 'i'), s)
+  }
+  assert.match(vue, /60 seconds/)
+  assert.doesNotMatch(vue, /22 seconds|22-second/)
 })

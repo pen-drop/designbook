@@ -1,0 +1,106 @@
+[
+  {
+    "id": "designbook",
+    "kind": "root"
+  },
+  {
+    "id": "designbook-foundation--foundation",
+    "kind": "story"
+  },
+  {
+    "id": "designbook-design-system",
+    "kind": "group"
+  },
+  {
+    "id": "designbook-sections",
+    "kind": "group"
+  },
+  {
+    "id": "designbook-references",
+    "kind": "group"
+  },
+  {
+    "id": "entities",
+    "kind": "root"
+  },
+  {
+    "id": "entities-node",
+    "kind": "group"
+  },
+  {
+    "id": "entities-node-recipe",
+    "kind": "component"
+  },
+  {
+    "id": "entities-node-recipe--full",
+    "kind": "story"
+  },
+  {
+    "id": "entities-paragraph",
+    "kind": "group"
+  },
+  {
+    "id": "entities-paragraph-ingredient",
+    "kind": "component"
+  },
+  {
+    "id": "entities-paragraph-ingredient--default",
+    "kind": "story"
+  },
+  {
+    "id": "entities-paragraph-recipe-step",
+    "kind": "component"
+  },
+  {
+    "id": "entities-paragraph-recipe-step--default",
+    "kind": "story"
+  },
+  {
+    "id": "entities-taxonomy-term",
+    "kind": "group"
+  },
+  {
+    "id": "entities-taxonomy-term-author",
+    "kind": "component"
+  },
+  {
+    "id": "entities-taxonomy-term-author--default",
+    "kind": "story"
+  },
+  {
+    "id": "test-integration-drupal",
+    "kind": "root"
+  },
+  {
+    "id": "test-integration-drupal-data-display",
+    "kind": "group"
+  },
+  {
+    "id": "test-integration-drupal-data-display-profile-card",
+    "kind": "component"
+  },
+  {
+    "id": "test-integration-drupal-data-display-quantity-item",
+    "kind": "component"
+  },
+  {
+    "id": "test-integration-drupal-data-display-step-block",
+    "kind": "component"
+  },
+  {
+    "id": "test-integration-drupal-layout",
+    "kind": "group"
+  },
+  {
+    "id": "test-integration-drupal-layout-detail-page",
+    "kind": "component"
+  },
+  {
+    "id": "test-integration-drupal-shell",
+    "kind": "group"
+  },
+  {
+    "id": "test-integration-drupal-shell-header",
+    "kind": "component"
+  }
+]
