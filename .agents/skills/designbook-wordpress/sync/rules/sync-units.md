@@ -19,6 +19,9 @@ WordPress requires to activate a theme and which an existing theme keeps.
 | `plugin.<ns>_content` | `plugins/<ns>-content/<ns>-content.php` | always |
 | `plugin.<ns>_content.composer` | `plugins/<ns>-content/composer.json` | always |
 | `plugin.<ns>_content.registry` | `plugins/<ns>-content/src/ComponentRegistry.php` | always |
+| `plugin.<ns>_content.bricks` | `plugins/<ns>-content/src/BricksAdapter.php` | always |
+| `plugin.<ns>_content.bricks_elements` | `plugins/<ns>-content/src/BricksElements.php` | always |
+| `layout.<scene>` | `plugins/<ns>-content/seeds/layout-<scene>.php` | when `scene` is set and the page bundle's full view-mode `template` is `bricks` |
 | `post_type.<bundle>` | `plugins/<ns>-content/post-types/<bundle>.php` | each custom `post` bundle (not `post`, `page`) |
 | `taxonomy.<bundle>` | `plugins/<ns>-content/taxonomies/<bundle>.php` | each `term` bundle |
 | `field_group.<et>_<bundle>` | `plugins/<ns>-content/fields/<et>-<bundle>.php` | each bundle with fields beyond its entity type's base fields |
@@ -33,4 +36,12 @@ Timber, registers the Twig namespace `<ns>` → the theme's `components/` with a
 enqueues the theme's compiled `css/app.css`, and fires `designbook/register_components`.
 
 Units carry `entity_type`, `bundle` and `def` where they derive from a bundle. Order: plugin →
-post types → taxonomies → field groups → theme base → theme index → templates → views → parts.
+post types → taxonomies → field groups → theme base → theme index → templates → views → parts →
+layout seeds.
+
+## Scene branch
+
+When `scene` is set, append the Scene-derived units after the data-model units. Each Scene unit's
+`build_form` is the page bundle's full view-mode `template`. For `bricks`, that is one `layout.<scene>`
+seed (`path` above) whose `build_form` is `bricks`. The seed upserts the page by `_designbook_id`
+and stores the component tree in `_bricks_page_content_2`.

@@ -58,3 +58,6 @@ project whose config lives at the WordPress root uses `sync_target_dir: wp-conte
 dependencies (Timber), then plugin and theme are activated and rewrite rules flushed.
 `exists_cmd` makes re-syncs idempotent: a unit whose output file already exists is skipped.
 `seed_cmd` runs a generated PHP seed script inside WordPress via WP-CLI.
+
+A page bundle whose full view-mode `template` is `bricks` uses the Bricks adapter (2.0 or later)
+for scene sync: one `layout.<scene>` seed stores `_bricks_page_content_2`.
