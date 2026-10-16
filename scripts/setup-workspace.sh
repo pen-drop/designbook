@@ -104,7 +104,7 @@ if [ "$BACKEND" = "none" ]; then
   # root. No drupal-fixture clone, no prepare-drupal-fixture.sh, no composer/ddev.
   rm -rf "$WORKSPACE_DIR"
   mkdir -p "$WORKSPACE_DIR"
-  rsync -a --exclude='node_modules' --exclude='.git' "$SRC_APP/" "$WORKSPACE_DIR/"
+  rsync -a --exclude='node_modules' --exclude='.git' --exclude='next-consumer' "$SRC_APP/" "$WORKSPACE_DIR/"
 
   # No workspace-root designbook.config.yml is written here: for backend:none
   # the suite fixture's own config (fixtures/<suite>/designbook.config.yml) is
