@@ -8,6 +8,7 @@ const config = {
   ],
   addons: [
     '@storybook/addon-docs',
+    '@storybook/addon-themes',
     {
       name: 'storybook-addon-designbook',
     },

@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+:root,
+[data-theme="light"] {
+  --color-background: #fbfaf7;
+  --color-foreground: #1c1b1f;
+  --color-accent: #b4522f;
+  --color-success: #3f6b4d;
+  --color-muted: #8a8d91;
+}
+
+[data-theme="dark"] {
+  --color-background: #1c1b1f;
+  --color-foreground: #fbfaf7;
+}

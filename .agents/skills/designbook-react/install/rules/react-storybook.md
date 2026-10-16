@@ -14,7 +14,7 @@ highlight on the same DOM contract. All paths are relative to the install target
 ## Dependencies
 
 Add devDependencies (same package-manager pick as the backend setup):
-`@storybook/html-vite@^10`, `react@^19`, `react-dom@^19`, `@types/react@^19`,
+`@storybook/html-vite@^10`, `@storybook/addon-themes@^10`, `react@^19`, `react-dom@^19`, `@types/react@^19`,
 `@types/react-dom@^19`, `@vitejs/plugin-react@^4`, `typescript@^5`. React 18 (`^18`, with
 matching `@types`) is supported as well.
 
@@ -36,7 +36,8 @@ async viteFinal(config) {
 },
 ```
 
-Add `'../components/*/*.story.yml'` to `stories`.
+Add `'../components/*/*.story.yml'` to `stories` and `'@storybook/addon-themes'` to `addons` (the
+toolbar that switches the design-token themes).
 
 ## tsconfig.json
 

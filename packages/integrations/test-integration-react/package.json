@@ -9,6 +9,7 @@
     },
     "devDependencies": {
         "@storybook/addon-docs": "^10.0.0",
+        "@storybook/addon-themes": "^10.0.0",
         "@storybook/html": "^10.0.0",
         "@storybook/html-vite": "^10.0.0",
         "@tailwindcss/vite": "^4.1.18",

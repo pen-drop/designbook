@@ -1,5 +1,6 @@
 fixtures:
   - vision
+  - tokens
   - data-model
   - entity-update
   - sections
@@ -28,10 +29,10 @@ prompt: |-
   the amount through the Storybook Controls args and confirm the text updates; confirm the book cover in
   book-card renders as a real <img> element and the "Add to cart" actions element renders as a real
   <button> (not escaped HTML text); confirm catalog-grid children and book-card actions are visible;
-  switch the active theme/mode and confirm price-badge and book-card computed colors change; open the
-  Structure/Inspect panel for the catalog scene story and confirm it lists price-badge nested under
-  book-card under catalog-grid, hover an inner price-badge and the catalog.book entity detail and confirm the
-  highlight outlines exactly that element; confirm each repeated book-card in the canvas DOM is bracketed by
+  switch the Storybook theme toolbar between light and dark and confirm price-badge and book-card computed
+  colors change; open the Structure/Inspect panel for the catalog scene story and confirm it lists the
+  catalog.book teaser entities (book-card) nested under catalog-grid under the page shell, hover the second
+  book-card and the catalog.book full entity detail and confirm the highlight outlines exactly that element; confirm each repeated book-card in the canvas DOM is bracketed by
   its own `db:s:`/`db:e:` comment pair with distinct paths; navigate price-badge.default → book-card.default →
   catalog scene → Foundation page and confirm each navigation leaves no DOM or `db:` comments from the previous
   story and no console errors.

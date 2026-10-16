@@ -16,7 +16,7 @@ import react from '@vitejs/plugin-react';
 
 export default {
   stories: ['../components/*/*.story.yml'],
-  addons: ['@storybook/addon-docs', { name: 'storybook-addon-designbook' }],
+  addons: ['@storybook/addon-docs', '@storybook/addon-themes', { name: 'storybook-addon-designbook' }],
   framework: { name: '@storybook/html-vite', options: {} },
   async viteFinal(config) {
     const { mergeConfig } = await import('vite');
