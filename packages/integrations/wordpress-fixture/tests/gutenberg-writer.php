@@ -107,6 +107,15 @@ wp_set_object_terms($overrideId, $themeSlug, 'wp_theme');
 $report = Designbook\GutenbergAdapter::templateOverrideReport();
 assert(str_contains($report, 'page'), 'existing wp_template override is reported: ' . $report);
 assert(get_post($overrideId)->post_content !== '', 'override is not deleted');
+$resolved = null;
+foreach (get_block_templates(['theme' => $themeSlug], 'wp_template') as $tpl) {
+    if (($tpl->slug ?? '') === 'page') {
+        $resolved = $tpl;
+        break;
+    }
+}
+assert($resolved !== null, 'page template is resolvable after override');
+assert(str_contains((string) ($resolved->content ?? ''), 'site editor override'), 'Site Editor override is the selected page template');
 wp_delete_post($overrideId, true);
 
 $html = do_blocks($stored);

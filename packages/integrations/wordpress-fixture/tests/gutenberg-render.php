@@ -47,6 +47,8 @@ props:
       type: integer
     label:
       type: string
+    payload:
+      type: object
 YML, '<a href="{{ href|e }}">{{ label|e }} {{ count|e }}</a>');
 
 $recipeSrc = get_stylesheet_directory() . '/components/recipe-card';
@@ -187,6 +189,20 @@ assert($invalidType->get_status() === 400, 'invalid attribute type is a structur
 
 $unsafe = $preview($postId, $comment("$ns/link-box", ['href' => 'javascript:alert(1)', 'count' => 1, 'label' => 'x']));
 assert($unsafe->get_status() === 400, 'unsafe URI is rejected');
+
+$emptyObj = $preview($postId, $comment("$ns/link-box", [
+    'href' => 'https://example.com',
+    'count' => 1,
+    'label' => 'n',
+    'payload' => new stdClass(),
+]));
+assert($emptyObj->get_status() === 200, 'empty object attributes remain valid: ' . $emptyObj->get_status());
+
+$jsUrl = $preview($postId, $comment("$ns/recipe-card", array_merge($cardAttrs('js'), ['url' => 'javascript:alert(1)'])));
+assert($jsUrl->get_status() === 400, 'javascript: on a url string prop is rejected');
+
+$missingTitle = $preview($postId, $comment("$ns/recipe-card", ['image_src' => '/images/recipe-card-chicken.png']));
+assert($missingTitle->get_status() === 400, 'missing required title is rejected');
 
 $oversize = $preview($postId, str_repeat('a', 1048576 + 8));
 assert($oversize->get_status() === 400, 'oversized tree is rejected');
