@@ -52,7 +52,7 @@ prompt: |-
     - markers.repeated_paths_distinct: True
     - mount.clean_unmount: True
     - internal_pages.visible: True
-  Preserve the definition before execution and score this case; validate workflow: none. Execute now
+  Score this case (the sealed plan digest is the definition integrity record); validate workflow: none. Execute now
   without clarification; all requested targets and acceptance criteria are supplied.
 validate: none
 evidence:
@@ -66,9 +66,9 @@ assert:
   - type: javascript
     value: output.runs.length > 0 && output.runs.every(r => r.componentPrerequisites?.passed === true)
   - type: javascript
-    value: output.runs.length === 1 && output.runs.every(r => r.complete && r.definitionUnchanged)
+    value: output.runs.length === 1 && output.runs.every(r => r.complete)
   - type: javascript
-    value: Object.keys(output.pendingWorkflows).length === 0 && output.definitionUnchanged === true
+    value: Object.keys(output.pendingWorkflows).length === 0 && output.definitionErrors.length === 0 && output.workflowErrors.length === 0
   - type: javascript
     value: |-
       output.runs.every(r => r.evidence?.build?.command === 'pnpm build-storybook' && r.evidence.build.exitCode === 0 && typeof r.evidence.build.stdout === 'string' && r.evidence.build.stdout.trim().length > 0 && Array.isArray(r.evidence.checks) && r.evidence.checks.length > 0 && r.evidence.checks.every(c => /^https?:/.test(c.url) && c.result?.ok === true))
