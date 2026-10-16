@@ -1,0 +1,43 @@
+config: gutenberg.yml
+workflow: sync-to
+fixtures:
+  - empty
+  - reference
+  - vision
+  - data-model
+  - tokens
+  - screen
+  - gutenberg
+prompt: |
+  You are working in {{workspace}}. This is the Cooks Delight recipe demo.
+  Use the installed Designbook skills and the configured WordPress / Twig / Tailwind integration.
+  Read the actual SKILL.md for each skill named below and follow its instructions.
+  Execute only this case and its explicitly named prerequisite skills.
+  Preserve all completed earlier steps and the published reference.
+  Do not launch Promptfoo or rebuild this prepared workspace from inside the case.
+  If required evidence, access or approval is missing, stop with the exact blocker; never invent it.
+  The DDEV WordPress site of this workspace is already running (admin admin/admin).
+  Run the /debo sync-to workflow so Gutenberg adapter, block-theme templates and the
+  layout.recipes-home seed unit are generated, then run the generated layout seed through
+  backend_cmd.seed_cmd. Run it a second time. Then run
+  ddev exec php -d zend.assertions=1 -d assert.exception=1 /usr/local/bin/wp eval-file tests/gutenberg-writer.php
+  Fetch the live recipes-home page yourself (curl the permalink), parse actual post_content,
+  and write the frontend markup to
+  wp-content/themes/test_integration_wordpress/designbook/gutenberg-sync-page.txt.
+  Confirm wp_is_block_theme() is true, both slot headings are in the live HTML, and the
+  second seed kept a single managed post.
+assert:
+- type: javascript
+  value: output.completedWorkflows['sync-to']?.state?.status === 'completed'
+- type: javascript
+  value: output.newFiles.some(f => /gutenberg\/GutenbergAdapter\.php$/.test(f))
+- type: javascript
+  value: output.newFiles.some(f => /templates\/page\.html$/.test(f))
+- type: javascript
+  value: output.newFiles.some(f => /seed\/layout-.*\.php$/.test(f))
+- type: javascript
+  value: |
+    const html = output.fileContents['designbook/gutenberg-sync-page.txt']
+      || output.fileContents['wp-content/themes/test_integration_wordpress/designbook/gutenberg-sync-page.txt']
+      || '';
+    return /Left slot heading/.test(html) && /Right slot heading|Lemon Garlic|Welcome to Cooks Delight/.test(html);

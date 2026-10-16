@@ -74,3 +74,9 @@ Map record values: native properties (`title` → `post_title`, `content`, `exce
 relationships as post ids). The post slug (`post_name`) is the record id. A record whose
 referenced term or image cannot be resolved throws, is reported as `failed`, and the run
 continues with the next record.
+
+For a Gutenberg layout seed, replace `post_content` with
+`Designbook\GutenbergAdapter::seedBlocks($id, $blocks, $type)` after attachments resolve.
+That helper validates the tree, writes `wp_slash(serialize_blocks($blocks))`, and reuses
+`_designbook_id`. A validation or WordPress error throws, is reported as `failed`, and
+leaves the existing managed record in place.

@@ -1,0 +1,32 @@
+id: recipes
+title: Recipes
+description: Browse recipes and follow their ingredients and preparation steps
+status: planned
+order: 1
+scenes:
+  - name: recipes-home
+    template: gutenberg
+    items:
+      - scene: design-system:shell
+        with:
+          content:
+            - component: test_integration_wordpress:slot-card
+              props:
+                heading: Two slots
+                variant: default
+              slots:
+                left:
+                  - component: test_integration_wordpress:recipe-card
+                    props:
+                      image_src: /images/recipe-card-chicken.png
+                      image_alt: Savory Herb-Infused Chicken
+                      title: Left slot heading
+                      description: Nested card in the left slot
+                      total_time: 40 Min
+                      difficulty: easy prep
+                      servings: 3 serves
+                      url: '#'
+                right:
+                  - entity: post.recipe
+                    view_mode: full
+                    record: 0
