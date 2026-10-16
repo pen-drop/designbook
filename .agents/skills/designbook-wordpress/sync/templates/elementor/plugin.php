@@ -12,5 +12,7 @@ require_once __DIR__ . '/src/Document.php';
 require_once __DIR__ . '/src/LeafWidget.php';
 require_once __DIR__ . '/src/NestedWidget.php';
 require_once __DIR__ . '/src/Plugin.php';
+require_once __DIR__ . '/src/Seed.php';
+require_once __DIR__ . '/src/Tokens.php';
 
 \Designbook\Elementor\Plugin::boot('__NAMESPACE__', __DIR__);
