@@ -287,8 +287,7 @@ test("collectArtifacts discovers ephemeral sealed plans for scoring", async (t) 
   assert.ok(
     result.newFiles.some(
       (file) =>
-        file.startsWith("designbook/plans/.ephemeral/") &&
-        file.endsWith(".md"),
+        file.startsWith("designbook/plans/.ephemeral/") && file.endsWith(".md"),
     ),
   );
   assert.ok(
@@ -358,6 +357,23 @@ test("Codex constructor config, usage subsets and raw logs survive execution", a
     await readFile(join(result.metadata.evidenceDir, "prompt.txt"), "utf8"),
     "Test prompt",
   );
+});
+
+test("CLI spawn PATH exposes intake and _debo shims", async (t) => {
+  const { provider, workspace, stub } = await fixture(t);
+  await stub(
+    `require("fs").writeFileSync("spawn-env.json", JSON.stringify({ path: process.env.PATH }));\n${emit(completed)}`,
+  );
+  const result = await provider.callApi("Test prompt", { vars: { workspace } });
+  assert.equal(result.error, undefined);
+  const cliBin = join(result.metadata.evidenceDir, "bin");
+  const env = JSON.parse(
+    await readFile(join(workspace, "spawn-env.json"), "utf8"),
+  );
+  assert.equal(env.path.split(":")[0], cliBin);
+  const { accessSync, constants } = await import("node:fs");
+  accessSync(join(cliBin, "intake"), constants.X_OK);
+  accessSync(join(cliBin, "_debo"), constants.X_OK);
 });
 
 test("nonzero exit and timeout retain partial evidence and cannot pass", async (t) => {

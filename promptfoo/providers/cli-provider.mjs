@@ -106,7 +106,12 @@ class CliProvider {
       if (/^(sync|seed|gutenberg)(-|$)/.test(caseName)) {
         // Provision the live backend (Drupal: import the committed DB baseline) before
         // the measured workflow.
-        const suiteCfg = join(repoRoot, "fixtures", suite, "designbook.config.yml");
+        const suiteCfg = join(
+          repoRoot,
+          "fixtures",
+          suite,
+          "designbook.config.yml",
+        );
         const backend = existsSync(suiteCfg)
           ? yaml.load(readFileSyncFs(suiteCfg, "utf-8"))?.backend
           : undefined;
@@ -202,6 +207,32 @@ class CliProvider {
     const logName = `${this.runtime.name}.jsonl`;
     let measured;
     let contextLog;
+    const cliBin = join(evidenceDir, "bin");
+    await mkdir(cliBin, { recursive: true });
+    const addonBin = join(
+      cwd,
+      "node_modules",
+      ".bin",
+      "storybook-addon-designbook",
+    );
+    const quotedAddon = JSON.stringify(addonBin);
+    await writeFile(
+      join(cliBin, "_debo"),
+      `#!/bin/sh\nif [ -x ${quotedAddon} ]; then exec ${quotedAddon} "$@"; fi\nexec npx --yes storybook-addon-designbook "$@"\n`,
+      { mode: 0o755 },
+    );
+    await writeFile(
+      join(cliBin, "intake"),
+      `#!/bin/sh\nif [ -x ${quotedAddon} ]; then exec ${quotedAddon} intake "$@"; fi\nexec npx --yes storybook-addon-designbook intake "$@"\n`,
+      { mode: 0o755 },
+    );
+    const spawnPath = [
+      cliBin,
+      join(cwd, "node_modules", ".bin"),
+      process.env.PATH || "",
+    ]
+      .filter(Boolean)
+      .join(":");
 
     try {
       const raw = await new Promise((resolve, reject) => {
@@ -217,6 +248,7 @@ class CliProvider {
             maxBuffer: 50 * 1024 * 1024,
             env: {
               ...process.env,
+              PATH: spawnPath,
               DESIGNBOOK_HOME: cwd,
               DESIGNBOOK_PROMPTFOO_DRIVER: "1",
               ...(this.config.definitionSnapshotDir
@@ -578,7 +610,11 @@ class CliProvider {
           // MD-plan integrity is the sealed plan + checkbox completion. Durable
           // seals are always named `plan.md` inside their per-initiative folder;
           // ephemeral seals are a bare `<uuid>.md` inside `.ephemeral/`.
-          if (basename(path) === "plan.md" || dirname(path).endsWith(".ephemeral")) continue;
+          if (
+            basename(path) === "plan.md" ||
+            dirname(path).endsWith(".ephemeral")
+          )
+            continue;
           try {
             const before = yaml.load(
               await readFile(
