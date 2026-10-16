@@ -19,6 +19,8 @@ WordPress requires to activate a theme and which an existing theme keeps.
 | `plugin.<ns>_content` | `plugins/<ns>-content/<ns>-content.php` | always |
 | `plugin.<ns>_content.composer` | `plugins/<ns>-content/composer.json` | always |
 | `plugin.<ns>_content.registry` | `plugins/<ns>-content/src/ComponentRegistry.php` | always |
+| `gutenberg.adapter` | `plugins/<ns>-content/gutenberg/GutenbergAdapter.php` | always |
+| `gutenberg.editor` | `plugins/<ns>-content/gutenberg/editor.js` | always |
 | `post_type.<bundle>` | `plugins/<ns>-content/post-types/<bundle>.php` | each custom `post` bundle (not `post`, `page`) |
 | `taxonomy.<bundle>` | `plugins/<ns>-content/taxonomies/<bundle>.php` | each `term` bundle |
 | `field_group.<et>_<bundle>` | `plugins/<ns>-content/fields/<et>-<bundle>.php` | each bundle with fields beyond its entity type's base fields |
@@ -33,4 +35,5 @@ Timber, registers the Twig namespace `<ns>` → the theme's `components/` with a
 enqueues the theme's compiled `css/app.css`, and fires `designbook/register_components`.
 
 Units carry `entity_type`, `bundle` and `def` where they derive from a bundle. Order: plugin →
-post types → taxonomies → field groups → theme base → theme index → templates → views → parts.
+gutenberg adapter/editor → post types → taxonomies → field groups → theme base → theme index →
+templates → views → parts.
