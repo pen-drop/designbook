@@ -36,6 +36,11 @@ prompt: |-
   its own `db:s:`/`db:e:` comment pair with distinct paths; navigate price-badge.default → book-card.default →
   catalog scene → Foundation page and confirm each navigation leaves no DOM or `db:` comments from the previous
   story and no console errors.
+  Observation method: read `db:` markers with a TreeWalker over comment nodes inside `#storybook-root`
+  (they bracket each component inside the story container, not at body level); switch themes through the
+  manager URL `?path=/story/<id>&globals=theme:dark` (the addon-themes toolbar) and compare computed colors
+  with the light default; change Controls by editing the story's `__scene` arg (first node's `props`) in the
+  Controls panel or via the preview channel `updateStoryArgs` and read the re-rendered text.
   After execution save evidence JSON from actual command outputs and browser observations, as specified
   by debo-test run's evidence contract. The required observation keys and exact expected values are:
     - price_badge.default.text: '$18.50'
