@@ -303,6 +303,11 @@ final class GutenbergAdapter {
 
     private static function validateAttrs(ComponentDefinition $def, array $attrs): void {
         $properties = $def->props['properties'] ?? [];
+        foreach ($def->props['required'] ?? [] as $req) {
+            if (is_string($req) && !array_key_exists($req, $attrs)) {
+                throw new GutenbergRenderError("{$def->id}.{$req}: required");
+            }
+        }
         foreach ($attrs as $prop => $value) {
             if (!isset($properties[$prop]) || !is_array($properties[$prop])) {
                 continue;
@@ -317,14 +322,14 @@ final class GutenbergAdapter {
                 'integer' => is_int($value) || (is_string($value) && preg_match('/^-?\d+$/', $value) === 1),
                 'number' => is_int($value) || is_float($value) || (is_string($value) && is_numeric($value)),
                 'boolean' => is_bool($value),
-                'object' => is_array($value) && !array_is_list($value),
+                'object' => is_array($value) && (!array_is_list($value) || $value === []),
                 'array' => is_array($value),
                 default => false,
             };
             if (!$ok) {
                 throw new GutenbergRenderError("{$def->id}.{$prop}: invalid type");
             }
-            if (($schema['format'] ?? '') === 'uri' && is_string($value) && $value !== '' && !self::safeUri($value)) {
+            if (self::isUriProp($prop, $schema) && is_string($value) && $value !== '' && !self::safeUri($value)) {
                 throw new GutenbergRenderError("{$def->id}.{$prop}: unsafe URI");
             }
         }
@@ -339,13 +344,20 @@ final class GutenbergAdapter {
             if (is_array($type)) {
                 $type = $type[0] ?? 'string';
             }
-            if (($schema['format'] ?? '') === 'uri' && is_string($value)) {
+            if (self::isUriProp($prop, is_array($schema) ? $schema : []) && is_string($value)) {
                 $props[$prop] = self::safeUri($value) ? $value : '';
                 continue;
             }
             $props[$prop] = is_string($value) ? esc_html($value) : $value;
         }
         return $props;
+    }
+
+    private static function isUriProp(string $prop, array $schema): bool {
+        if (($schema['format'] ?? '') === 'uri') {
+            return true;
+        }
+        return in_array($prop, ['url', 'href', 'src', 'image_src'], true);
     }
 
     private static function safeUri(string $value): bool {
@@ -471,13 +483,21 @@ final class GutenbergAdapter {
         wp_localize_script('designbook-gutenberg-editor', 'designbookGutenberg', [
             'slotBlock' => "$ns/slot",
             'blocks' => $blocks,
+            'allowedChildren' => array_values(array_merge(array_keys(self::$blockIds), [
+                'core/paragraph',
+                'core/heading',
+                'core/image',
+                'core/list',
+                'core/list-item',
+            ])),
         ]);
     }
 
     private static function writeBlockJson(array $payload): void {
         $dir = __DIR__ . '/blocks/' . $payload['id'];
-        if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
-            throw new \RuntimeException("Cannot write block metadata for {$payload['id']}");
+        if (is_file($dir) || (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir))) {
+            error_log("Designbook Gutenberg: cannot write block metadata for {$payload['id']}");
+            return;
         }
         $json = [
             'apiVersion' => 3,
@@ -488,7 +508,9 @@ final class GutenbergAdapter {
             'supports' => $payload['supports'],
             'editorScript' => 'designbook-gutenberg-editor',
         ];
-        file_put_contents($dir . '/block.json', json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+        if (file_put_contents($dir . '/block.json', json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n") === false) {
+            error_log("Designbook Gutenberg: cannot write block metadata for {$payload['id']}");
+        }
     }
 
     private static function registerType(array $payload): void {

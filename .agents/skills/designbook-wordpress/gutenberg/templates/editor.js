@@ -7,8 +7,8 @@
   const apiFetch = wp.apiFetch;
   const data = window.designbookGutenberg || { blocks: [], slotBlock: 'designbook/slot' };
 
-  function JsonControl({ label, value, onChange }) {
-    const [text, setText] = useState(JSON.stringify(value ?? {}, null, 2));
+  function JsonControl({ label, value, onChange, kind }) {
+    const [text, setText] = useState(JSON.stringify(value ?? (kind === 'array' ? [] : {}), null, 2));
     const [error, setError] = useState('');
     return h(
       Fragment,
@@ -19,8 +19,18 @@
         onChange(next) {
           setText(next);
           try {
-            onChange(JSON.parse(next));
-            setError('');
+            const parsed = JSON.parse(next);
+            const isObj = parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed);
+            const isArr = Array.isArray(parsed);
+            if (kind === 'object' && (isObj || (isArr && parsed.length === 0))) {
+              onChange(isObj ? parsed : {});
+              setError('');
+            } else if (kind === 'array' && isArr) {
+              onChange(parsed);
+              setError('');
+            } else {
+              setError('Invalid JSON');
+            }
           } catch (e) {
             setError('Invalid JSON');
           }
@@ -49,12 +59,19 @@
         type: 'number',
         value: value ?? '',
         onChange(v) {
-          onChange(attr.type === 'integer' ? parseInt(v, 10) : parseFloat(v));
+          if (v === '') {
+            return;
+          }
+          const n = attr.type === 'integer' ? parseInt(v, 10) : parseFloat(v);
+          if (Number.isNaN(n)) {
+            return;
+          }
+          onChange(n);
         },
       });
     }
     if (attr.type === 'object' || attr.type === 'array') {
-      return h(JsonControl, { label, value, onChange });
+      return h(JsonControl, { label, value, onChange, kind: attr.type });
     }
     return h(TextControl, {
       label,
@@ -137,7 +154,7 @@
         ]);
         const inner =
           def.kind === 'slot'
-            ? h(InnerBlocks, { templateLock: false })
+            ? h(InnerBlocks, { templateLock: false, allowedBlocks: data.allowedChildren })
             : h(InnerBlocks, {
                 template: slotTemplate,
                 templateLock: 'all',

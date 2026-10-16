@@ -18,7 +18,8 @@ from `designbook-wordpress/gutenberg/templates/GutenbergAdapter.php`.
 
 `GutenbergAdapter::register(ComponentRegistry $registry)` walks `$registry->all()`, writes
 `gutenberg/blocks/<id>/block.json` after every name and schema is valid, then calls
-`register_block_type()` with shared handle `designbook-gutenberg-editor`. A shared
+`register_block_type()` with shared handle `designbook-gutenberg-editor`. A write failure is
+logged; the block is still registered from the in-memory payload. A shared
 `<hyphen-ns>/slot` block stores the slot `name` and `title`.
 
 `render_callback` walks each component's slot wrappers, renders every descendant once, and

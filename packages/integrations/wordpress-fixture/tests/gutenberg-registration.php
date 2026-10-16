@@ -84,12 +84,33 @@ assert($enumCategory === 'cards' || $enumCategory === 'designbook-cards' || str_
 assert(($enum->attributes['payload']['type'] ?? null) === 'object', 'object props stay as object attributes for JSON editing');
 
 $hidden = $registryApi->get_registered("$hyphenNs/hidden-icon");
-if ($hidden !== null) {
-    assert(($hidden->supports['inserter'] ?? true) === false, 'ui:false components are not insertable');
-}
+assert($hidden !== null, 'ui:false components are registered');
+assert(($hidden->supports['inserter'] ?? true) === false, 'ui:false components are not insertable');
 
 $slot = $registryApi->get_registered("$hyphenNs/slot");
 assert($slot !== null, 'shared slot block is registered');
 assert(($slot->supports['inserter'] ?? true) === false, 'slot block is not insertable');
+
+$write('readonly-comp', "name: Readonly\nprops:\n  type: object\n  properties:\n    label:\n      type: string\n");
+$gutenbergDir = dirname((new ReflectionClass('Designbook\\GutenbergAdapter'))->getFileName());
+$blocker = $gutenbergDir . '/blocks/readonly-comp';
+if (is_dir($blocker)) {
+    foreach (glob($blocker . '/*') ?: [] as $file) {
+        @unlink($file);
+    }
+    @rmdir($blocker);
+}
+@mkdir($gutenbergDir . '/blocks', 0775, true);
+file_put_contents($blocker, 'not-a-dir');
+$r = new Designbook\ComponentRegistry($dir, $tempNs);
+$threwWrite = false;
+try {
+    Designbook\GutenbergAdapter::register($r);
+} catch (Throwable $e) {
+    $threwWrite = true;
+}
+@unlink($blocker);
+assert(!$threwWrite, 'register does not throw when block.json cannot be written');
+assert($registryApi->get_registered("$hyphenNs/readonly-comp") !== null, 'block type is registered from memory without block.json');
 
 echo "OK\n";
