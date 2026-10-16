@@ -5,7 +5,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FIX="$REPO_ROOT/packages/integrations/wordpress-fixture"
 WP_VERSION="7.1.3"
-if [ -f "$FIX/wp-includes/version.php" ] && [ -d "$FIX/vendor" ] && [ -d "$FIX/wp-content/plugins/secure-custom-fields" ]; then
+if [ -f "$FIX/wp-includes/version.php" ] && [ -d "$FIX/vendor" ] && [ -d "$FIX/wp-content/plugins/secure-custom-fields" ] && [ -d "$FIX/wp-content/plugins/elementor" ]; then
   echo "Fixture already materialized"; exit 0
 fi
 cd "$FIX"

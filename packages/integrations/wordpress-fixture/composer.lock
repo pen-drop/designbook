@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e19c679761a648e708aeaf14795e9d7b",
+    "content-hash": "c4c6a2c489d7ba6012fc454f7c43ccfc",
     "packages": [
         {
             "name": "composer/installers",
@@ -587,6 +587,24 @@
                 }
             ],
             "time": "2026-09-25T13:20:01+00:00"
+        },
+        {
+            "name": "wpackagist-plugin/elementor",
+            "version": "4.3.5",
+            "source": {
+                "type": "svn",
+                "url": "https://plugins.svn.wordpress.org/elementor/",
+                "reference": "tags/4.3.5"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://downloads.wordpress.org/plugin/elementor.4.3.5.zip"
+            },
+            "require": {
+                "composer/installers": "^1.0 || ^2.0"
+            },
+            "type": "wordpress-plugin",
+            "homepage": "https://wordpress.org/plugins/elementor/"
         },
         {
             "name": "wpackagist-plugin/secure-custom-fields",

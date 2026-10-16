@@ -19,18 +19,23 @@ WordPress requires to activate a theme and which an existing theme keeps.
 | `plugin.<ns>_content` | `plugins/<ns>-content/<ns>-content.php` | always |
 | `plugin.<ns>_content.composer` | `plugins/<ns>-content/composer.json` | always |
 | `plugin.<ns>_content.registry` | `plugins/<ns>-content/src/ComponentRegistry.php` | always |
+| `plugin.<ns>_elementor` | `plugins/<ns>-elementor/<ns>-elementor.php` | when `entity_mapping.templates` contains `elementor` |
+| `plugin.<ns>_elementor.src.<stem>` | `plugins/<ns>-elementor/<rel>` | one lowercase-stem unit per PHP/JS file under the skill template's `src/` and `assets/`, same condition |
 | `post_type.<bundle>` | `plugins/<ns>-content/post-types/<bundle>.php` | each custom `post` bundle (not `post`, `page`) |
 | `taxonomy.<bundle>` | `plugins/<ns>-content/taxonomies/<bundle>.php` | each `term` bundle |
 | `field_group.<et>_<bundle>` | `plugins/<ns>-content/fields/<et>-<bundle>.php` | each bundle with fields beyond its entity type's base fields |
 | `theme.<ns>.base` | `themes/<ns>/views/designbook-base.twig` | always |
 | `theme.<ns>.index` | `themes/<ns>/index.php` | always |
 | `template.<bundle>.single` | `themes/<ns>/single-<bundle>.php` | each `post` bundle with a `full` view mode |
+| `template.<ns>.elementor_page` | `themes/<ns>/elementor-designbook.php` | when `entity_mapping.templates` contains `elementor` |
 | `view.<bundle>.full` | `themes/<ns>/views/single-<bundle>.twig` | each `post` bundle with a `full` view mode |
 | `parts.<ns>.header`, `parts.<ns>.footer` | `themes/<ns>/views/parts/header.twig`, `footer.twig` | when the design-system shell scene exists |
+| `layout.<scene>` | `plugins/<ns>-elementor/seeds/<scene>.php` | when `scene` is set and the page bundle full view-mode `template` is `elementor`; unit carries `build_form: elementor` |
 
 The content plugin's main file owns the runtime the generated theme files rely on: it boots
 Timber, registers the Twig namespace `<ns>` → the theme's `components/` with autoescape off,
 enqueues the theme's compiled `css/app.css`, and fires `designbook/register_components`.
 
-Units carry `entity_type`, `bundle` and `def` where they derive from a bundle. Order: plugin →
-post types → taxonomies → field groups → theme base → theme index → templates → views → parts.
+Units carry `entity_type`, `bundle` and `def` where they derive from a bundle. Order: content
+plugin → elementor plugin → post types → taxonomies → field groups → theme base → theme index →
+templates → views → parts → layout seeds.

@@ -1,0 +1,11 @@
+name: Stack
+ui: true
+group: Layout
+props:
+  type: object
+  properties: {}
+slots:
+  media:
+    title: Media
+  body:
+    title: Body

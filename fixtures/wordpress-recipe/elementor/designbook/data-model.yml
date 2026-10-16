@@ -1,0 +1,128 @@
+content:
+  post:
+    page:
+      purpose: Landing page whose full view is an Elementor document.
+      view_modes:
+        default:
+          template: field-map
+        full:
+          template: elementor
+          label: Elementor page
+      fields:
+        title:
+          type: text
+          required: true
+          description: Native WordPress page title.
+    recipe:
+      purpose: Route-bearing recipe detail content for the Recipes section.
+      view_modes:
+        default:
+          template: field-map
+        full:
+          template: field-map
+          label: Full recipe detail
+      form_modes:
+        default:
+          template: field-map
+      fields:
+        title:
+          type: text
+          required: true
+          description: Recipe title; native WordPress post title.
+        content:
+          type: wysiwyg
+          required: false
+          description: Native WordPress post content for long-form recipe copy.
+        excerpt:
+          type: textarea
+          required: false
+          description: Native WordPress excerpt used as the short recipe description.
+        featured_image:
+          type: image
+          required: false
+          description: Native WordPress featured recipe image.
+        author:
+          type: relationship
+          required: false
+          description: Native WordPress post author.
+          settings:
+            target: user
+        description:
+          type: textarea
+          required: true
+          description: Recipe introduction shown with the title and hero image.
+        author_description:
+          type: textarea
+          required: false
+          description: Author biography shown in the visible author section.
+        category:
+          type: taxonomy
+          required: false
+          description: Recipe category taxonomy term.
+          settings:
+            taxonomy: recipe_category
+        difficulty:
+          type: select
+          required: true
+          settings:
+            choices:
+              easy: Easy
+              medium: Medium
+              hard: Hard
+        servings:
+          type: number
+          required: true
+        prep_minutes:
+          type: number
+          required: true
+          description: Preparation minutes; total time is derived with cook_minutes.
+        cook_minutes:
+          type: number
+          required: true
+          description: Cooking minutes; total time is derived with prep_minutes.
+        ingredients:
+          type: repeater
+          required: true
+          sub_fields:
+            quantity:
+              type: text
+              required: true
+            unit:
+              type: text
+              required: false
+            ingredient_name:
+              type: text
+              required: true
+        steps:
+          type: repeater
+          required: true
+          sub_fields:
+            stage:
+              type: text
+              required: false
+            instruction:
+              type: textarea
+              required: true
+        related_recipes:
+          type: relationship
+          required: false
+          multiple: true
+          description: Visible similar recipe cards only.
+          settings:
+            target: recipe
+            multiple: true
+  term:
+    recipe_category:
+      purpose: Recipe category taxonomy used by recipe posts.
+      fields:
+        name:
+          type: text
+          required: true
+          description: Taxonomy term name.
+        description:
+          type: textarea
+          required: false
+config:
+  image_style:
+    recipe_hero:
+      aspect_ratio: '1232:640'

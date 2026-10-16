@@ -3,7 +3,7 @@ type: data-mapping
 name: plugin-bootstrap
 trigger:
   domain: data-mapping
-  config_name: 'plugin.*'
+  config_name: 'plugin.*_content*'
 filter:
   backend: wordpress
 ---

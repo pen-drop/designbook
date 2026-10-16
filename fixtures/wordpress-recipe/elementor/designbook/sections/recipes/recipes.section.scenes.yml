@@ -1,0 +1,28 @@
+id: recipes
+title: Recipes
+description: Browse recipes and follow their ingredients and preparation steps
+status: planned
+order: 1
+group: Designbook/Sections/Recipes
+scenes:
+  - name: recipes-home
+    section: recipes
+    items:
+      - component: test_integration_wordpress:stack
+        slots:
+          media:
+            - type: image
+              src: public/images/recipe-card-chicken.png
+              attributes:
+                alt: Hero
+          body:
+            - component: test_integration_wordpress:heading
+              props:
+                text: Recipes
+            - component: test_integration_wordpress:stack
+              slots:
+                media: []
+                body:
+                  - component: test_integration_wordpress:heading
+                    props:
+                      text: Nested

@@ -1,0 +1,4 @@
+entity_mapping:
+  templates:
+    - field-map
+    - elementor

@@ -1,0 +1,10 @@
+name: Heading
+ui: true
+props:
+  type: object
+  required: [text]
+  properties:
+    text:
+      type: string
+      title: Text
+slots: {}
