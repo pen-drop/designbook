@@ -1,24 +1,14 @@
-# Elementor pin (4.3.5)
+# Elementor pin
 
-The WordPress fixture pins **Elementor Free 4.3.5** via Composer (`wpackagist-plugin/elementor`).
-Do not install `latest`. Elementor Pro is not a dependency and must stay absent.
+Current supported build. Procedure: `.agents/skills/designbook-wordpress/sync/rules/elementor-support.md`.
 
-- License: GPL v3-or-later (plugin header).
-- WordPress.org ZIP: https://downloads.wordpress.org/plugin/elementor.4.3.5.zip
-- Archive SHA256: `8f025581b9e425dbe0a64adbcaae955d90b23bbfc8584d90495df4fc75eae239`
-- Editor: classic widgets and containers only. The Atomic Editor is unsupported.
-- Nested Elements: the adapter uses `Elementor\Modules\NestedElements\Base\Widget_Nested_Base`
-  and Elementor’s nested editor model/view. That is an internal API; it can change without a
-  deprecation cycle.
-- Diagnostics: missing Elementor, a version other than 4.3.5, or unavailable Nested Elements
-  must refuse adapter registration and seed writes without a PHP fatal.
-- Upgrade: bump the pin only with a fresh fixture run that covers editor save/reopen and
-  frontend parity. There is no migration or repair of old generated artifacts.
-- Seeded pages keep the `elementor-designbook.php` theme template (loop + `the_content()`)
-  after Elementor document save so the classic editor can attach its preview.
-- Adapter PHP boots on `elementor/init` and reads component definitions only from
-  `ComponentRegistry` (no `schema.yml` glob, no `components/` scan).
-
-`scripts/prepare-wordpress-fixture.sh` materializes `wp-content/plugins/elementor` from the lock.
-`scripts/start-wordpress-workspace.sh` activates the plugin after Secure Custom Fields.
-`tests/elementor-pin-test.php` asserts the header version is 4.3.5 and Pro is inactive.
+- Product: Elementor Free. License: GPL v3-or-later (plugin header). Pro stays absent.
+- Version: `4.3.5`
+- Dist: https://downloads.wordpress.org/plugin/elementor.4.3.5.zip
+- SHA256: `8f025581b9e425dbe0a64adbcaae955d90b23bbfc8584d90495df4fc75eae239`
+- Editor: classic widgets and containers. Atomic Editor unsupported.
+- Nested Elements: `Elementor\Modules\NestedElements\Base\Widget_Nested_Base` and the nested editor model/view (internal API).
+- Fixture Composer: `wpackagist-plugin/elementor` at the version above.
+- Materialize: `scripts/prepare-wordpress-fixture.sh` (plugin dir present). Activate after SCF: `scripts/start-wordpress-workspace.sh`.
+- Check: `tests/elementor-pin-test.php` (header version matches the pin, Pro inactive).
+- Seeded pages keep theme template `elementor-designbook.php` after Elementor document save so the classic editor can attach its preview.

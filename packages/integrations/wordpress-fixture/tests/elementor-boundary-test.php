@@ -38,6 +38,21 @@ assert(str_contains($md, '4.3.5'), 'docs pin 4.3.5');
 assert(str_contains($md, 'classic'), 'docs name classic editor');
 assert(str_contains($md, 'Nested Elements'), 'docs name Nested Elements');
 assert(str_contains($md, 'Pro'), 'docs name Pro absence');
-assert(str_contains($md, 'fresh fixture'), 'docs name upgrade as a fresh fixture run');
+assert(str_contains($md, 'SHA256'), 'docs record dist hash');
+
+$rule = null;
+foreach ([
+    dirname($elDir, 2) . '/rules/elementor-support.md',
+    dirname(__DIR__, 4) . '/.agents/skills/designbook-wordpress/sync/rules/elementor-support.md',
+] as $candidate) {
+    if (is_file($candidate)) {
+        $rule = $candidate;
+        break;
+    }
+}
+assert($rule !== null, 'elementor-support rule exists');
+$ruleBody = file_get_contents($rule);
+assert(!str_contains($ruleBody, '4.3.5'), 'support rule has no pin version');
+assert(str_contains($ruleBody, 'fresh fixture'), 'support rule names bump as a fresh fixture run');
 
 echo "OK\n";
