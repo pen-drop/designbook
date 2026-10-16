@@ -130,9 +130,19 @@ const builtIns: Record<string, (props: Record<string, unknown>) => ReactNode> = 
 
 /** One React root per story container; `render` commits synchronously so markers exist on return. */
 export function mountReact(container: HTMLElement) {
-  const root = createRoot(container);
+  // React 19 reports uncaught render errors instead of throwing; rethrow so Storybook shows them.
+  let uncaught: unknown;
+  const root = createRoot(container, {
+    onUncaughtError: (error: unknown) => {
+      uncaught = error;
+    },
+  } as Parameters<typeof createRoot>[1]);
   return {
-    render: (node: ReactNode) => flushSync(() => root.render(node)),
+    render: (node: ReactNode) => {
+      uncaught = undefined;
+      flushSync(() => root.render(node));
+      if (uncaught !== undefined) throw uncaught;
+    },
     unmount: () => root.unmount(),
   };
 }

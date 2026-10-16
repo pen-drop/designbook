@@ -49,6 +49,13 @@ Components are pure functions of their props. They use:
 - no `'use client'` / `'use server'` directives,
 - no data fetching,
 - no browser globals,
-- no `next/*` imports.
+- no `next/*` imports,
+- no event handlers or function props (the consuming app wires interactivity).
 
 Because of this, the same source compiles unchanged in a Next.js App Router page, both in server and in client components. `packages/integrations/test-integration-react/next-consumer` proves this with a build.
+
+## Known limitation
+
+Designbook brackets every rendered component with two inert `<template>` anchors. It uses them to place the `db:s:`/`db:e:` markers that drive inspection and highlighting. Grid, flex and table layout are unaffected.
+
+Structural selectors do count the anchors as element siblings. In Storybook, `:first-child`, `:last-child`, `:nth-child` and sibling combinators can therefore match an anchor. This matters when a region's items are separate components. In that case Tailwind's `space-y-*`, `divide-*` and `first:`/`last:` variants render differently than in the Next.js output. Use `gap-*` on flex or grid containers instead.

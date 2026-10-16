@@ -121,7 +121,7 @@ assert:
       ['default','sale'].every(v => output.fileContents[`components/price-badge/price-badge.${v}.story.yml`]?.variant === v)
   - type: javascript
     value: |-
-      ['price-badge','book-card'].every(n => { const src = output.fileContents[`components/${n}/${n}.tsx`]; return typeof src === 'string' && /export default function [A-Z]\w*/.test(src) && /export (type|interface) \w+Props/.test(src) && !/\basync\b|\bfetch\(|from ['"]next\/|\buse[A-Z]\w*\(|['"]use (client|server)['"]|\bwindow\.|\bdocument\./.test(src); })
+      ['price-badge','book-card'].every(n => { const src = output.fileContents[`components/${n}/${n}.tsx`]; return typeof src === 'string' && /export default function [A-Z]\w*/.test(src) && /export (type|interface) \w+Props/.test(src) && !/\basync\b|\bfetch\(|from ['"]next\/|\buse[A-Z]\w*\(|['"]use (client|server)['"]|\bwindow\.|\bdocument\.|\bon[A-Z]\w*=\{/.test(src); })
   - type: javascript
     value: Object.keys(output.fileContents).every(f => !/\.stories\.(t|j)sx?$|\.component\.yml$/.test(f))
   - type: javascript

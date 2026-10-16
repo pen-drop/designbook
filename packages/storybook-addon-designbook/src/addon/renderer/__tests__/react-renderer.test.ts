@@ -201,3 +201,14 @@ describe('story output tag', () => {
     expect(typeof out.mount).toBe('function');
   });
 });
+
+describe('mount errors', () => {
+  it('rethrows a component render error instead of mounting a blank story', () => {
+    const Boom = () => {
+      throw new Error('boom');
+    };
+    container = document.createElement('div');
+    handle = mountReact(container);
+    expect(() => handle!.render(h(Boom))).toThrow('boom');
+  });
+});

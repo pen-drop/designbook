@@ -54,10 +54,13 @@ server or client components. Each component is a pure function of its props:
 - **Regions as `ReactNode` props** — `children` for the `children` slot, an identically
   named prop per named slot; render each region exactly where its content belongs.
 - **Local, deterministic logic only** — formatting and conditional markup from props.
+- **Serializable JSX attributes** — strings, numbers, booleans, style objects and nested
+  elements, so the component renders as a server component; interactivity (`onClick`,
+  `onChange`, callbacks) is wired by the consuming app around the component.
 - Application state, data loading, routing and event orchestration belong to the consuming
   app. A component therefore uses no hooks, no `async`, no `'use client'`/`'use server'`
-  directives, no `fetch`, no browser globals (`window`, `document`), and no framework
-  modules such as `next/image` or `next/link`; images are `<img>`, links are `<a>`.
+  directives, no event-handler or function props, no `fetch`, no browser globals
+  (`window`, `document`), and no framework modules such as `next/image` or `next/link`; images are `<img>`, links are `<a>`.
 - **Semantic, accessible markup** — native elements (`button`, `a`, `nav`, headings in
   order), `alt` on images, labels for controls.
 - **No hardcoded colors** — design tokens or utility classes derived from them. Class names
