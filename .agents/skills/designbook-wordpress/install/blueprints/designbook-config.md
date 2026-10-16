@@ -33,6 +33,10 @@ component:
 extensions:
   - id: wordpress
     skill: designbook-wordpress
+entity_mapping:
+  templates:
+    - field-map
+    - elementor
 # Sync output root (the WordPress wp-content directory), relative to the workspace
 # (= this config's directory unless `workspace` is set). Generated plugin and theme files
 # land below it.
@@ -42,7 +46,7 @@ backend_cmd:
   cmd: "ddev wp"
   exists_cmd: "test -e"  # append the unit's absolute output path; exit 0 = already generated
   validate_cmd: 'sh -c ''case "$1" in view.*) grep -q "{% include" "$2" || { echo "$1: the view renders no component include" >&2; exit 1; };; esac; npx storybook-addon-designbook twig check-includes "$1" "$2"'' --'  # append unit name + file; a view must include components, and every include matches <name>.schema.yml
-  import: "ddev composer install -d wp-content/plugins/__NAMESPACE__-content && ddev wp plugin activate __NAMESPACE__-content && ddev wp theme activate __NAMESPACE__ && ddev wp rewrite flush"
+  import: "ddev composer install -d wp-content/plugins/__NAMESPACE__-content && ddev wp plugin activate __NAMESPACE__-content && ddev wp plugin activate __NAMESPACE__-elementor && ddev wp theme activate __NAMESPACE__ && ddev wp rewrite flush"
   seed_cmd: "ddev wp eval-file"  # append the seed script path, relative to the WordPress root
   page_url_cmd: "ddev wp eval 'echo get_permalink(get_page_by_path(\"{scene}\"));'"
 ```
@@ -54,7 +58,8 @@ and append to `extensions`.
 (`plugins/__NAMESPACE__-content/`) plus the theme itself (`themes/__NAMESPACE__/`). A
 project whose config lives at the WordPress root uses `sync_target_dir: wp-content`.
 
-`import` activates the generated code on the live site: Composer installs the plugin's
-dependencies (Timber), then plugin and theme are activated and rewrite rules flushed.
+`import` activates the generated code on the live site: Composer installs the content plugin's
+dependencies (Timber), then the content plugin, the Elementor adapter plugin, and the theme are
+activated and rewrite rules flushed.
 `exists_cmd` makes re-syncs idempotent: a unit whose output file already exists is skipped.
 `seed_cmd` runs a generated PHP seed script inside WordPress via WP-CLI.
