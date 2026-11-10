@@ -1,0 +1,48 @@
+workflow: design-entity
+validate: none
+
+fixtures:
+  - vision
+  - tokens
+  - css-generate
+  - data-model-image-style
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo design-entity workflow for the "node.article" entity, "teaser" view mode.
+  Do NOT ask any questions. The product is "LEANDO". There is no graphical reference for this case.
+  The data model already declares node.article with its full and teaser view modes and the
+  image styles each mode uses; keep it unchanged.
+  Create an "article_teaser" component: a compact card with an "image" slot (the article image)
+  above a "title" slot (the article title).
+  Map the teaser view mode's fields to the article_teaser component:
+    field_image→image, title→title.
+  Create two article sample records, each with a title and one image (src and alt).
+  The workflow must produce:
+    - designbook/entity-mapping/node.article.teaser.jsonata (the mapping)
+    - designbook/data/node.article.yml (sample-data pool records, each tagged __designbook.section)
+  After generating all files, run `pnpm build-storybook` to verify everything renders.
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0
+  - type: javascript
+    value: output.completedWorkflows['design-entity']?.state?.status === 'completed'
+  - type: javascript
+    value: Object.values(output.completedWorkflows['design-entity']?.state?.tasks || {}).every(t => t.status === 'done')
+  - type: javascript
+    value: output.newFiles.some(f => f.endsWith('data/node.article.yml'))
+  - type: javascript
+    # The teaser renders field_image with the teaser mode's style, not the full mode's.
+    value: |-
+      const src = output.fileContents['designbook/entity-mapping/node.article.teaser.jsonata'];
+      return typeof src === 'string' && /"image"\s*:\s*"ratio_1_1"/.test(src) && !/ratio_16_9/.test(src);
+  - type: javascript
+    # Field-level image styles are gone: the data model keeps the style on the modes only.
+    value: |-
+      const model = output.fileContents['designbook/data-model.yml'];
+      const article = model?.content?.node?.article;
+      return article?.view_modes?.teaser?.image_styles?.field_image === 'ratio_1_1'
+        && article?.view_modes?.full?.image_styles?.field_image === 'ratio_16_9'
+        && article?.fields?.field_image?.settings?.image_style === undefined;
