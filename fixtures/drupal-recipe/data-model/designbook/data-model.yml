@@ -10,9 +10,13 @@ content:
       view_modes:
         full:
           template: field-map
+          image_styles:
+            field_recipe_image: ratio_77_40
         teaser:
           template: field-map
           label: Teaser
+          image_styles:
+            field_recipe_image: ratio_77_40
       fields:
         title:
           type: string
@@ -38,8 +42,6 @@ content:
           title: Recipe image
           required: true
           description: Hero image (Figma 60:384, 1232x640) and card image in teaser.
-          settings:
-            image_style: ratio_77_40
         field_prep_minutes:
           type: integer
           title: Preparation time (minutes)
@@ -160,6 +162,8 @@ content:
       view_modes:
         default:
           template: field-map
+          image_styles:
+            field_step_image: ratio_4_3
       fields:
         field_step_title:
           type: string
@@ -174,8 +178,6 @@ content:
           type: image
           title: Step image
           description: Optional; Figma 75:3, 75:2, 60:386 (645x480).
-          settings:
-            image_style: ratio_4_3
   taxonomy_term:
     difficulty:
       purpose: >-
@@ -204,6 +206,8 @@ content:
       view_modes:
         default:
           template: field-map
+          image_styles:
+            field_author_image: ratio_1_1
       fields:
         name:
           type: string
@@ -217,8 +221,6 @@ content:
           type: image
           title: Portrait
           description: Figma 83:191, 120x120.
-          settings:
-            image_style: ratio_1_1
 config:
   image_style:
     ratio_77_40:

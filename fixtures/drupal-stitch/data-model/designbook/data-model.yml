@@ -69,10 +69,16 @@ content:
       view_modes:
         ratio_16_9:
           template: field-map
+          image_styles:
+            field_media_image: ratio_16_9
         ratio_4_3:
           template: field-map
+          image_styles:
+            field_media_image: ratio_4_3
         ratio_1_1:
           template: field-map
+          image_styles:
+            field_media_image: ratio_1_1
       fields:
         field_media_image:
           type: image

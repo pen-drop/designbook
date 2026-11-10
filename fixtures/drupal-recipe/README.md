@@ -142,7 +142,8 @@ starten. Dafür einen eigenen Workspace verwenden, niemals den laufenden Demo-Wo
 ### Bildfelder und vollständiger Composition-Baum
 
 Field-Map-Bindings unterstützen Bildfelder als Slots. Der Bildstil kommt aus
-`settings.image_style`; das Mapping übernimmt `src` und `alt`. Fehlende Felder
+`image_styles.<feld>` des gemappten View- oder Form-Modes; das Mapping übernimmt
+`src` und `alt`. Fehlende Felder
 und leere Listen ergeben leere Slots; einzelne und mehrere Bilder ergeben Listen.
 Referenz-Slots bleiben ebenfalls bei einem einzelnen Datensatz Listen.
 `plan tree` löst den Dateipfad-Alias `design-system:shell` und dessen

@@ -31,6 +31,8 @@ content:
       view_modes:
         card:
           template: field-map
+          image_styles:
+            field_icon: ratio_1_1
       fields:
         field_icon:
           type: image
@@ -38,8 +40,6 @@ content:
           description: 24px line icon
           required: true
           multiple: false
-          settings:
-            image_style: ratio_1_1
         field_summary:
           type: text
           title: Summary
