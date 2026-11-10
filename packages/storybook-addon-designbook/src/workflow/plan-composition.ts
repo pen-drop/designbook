@@ -170,19 +170,29 @@ export function isImageField(
   return isObj(field) && isImageType(field.type);
 }
 
+type ModeChoice = Pick<DisplayModeRef, 'mode_kind' | 'view_mode' | 'form_mode'>;
+
+/** The bundle key holding the mode: `form_modes` for a form mapping, `view_modes` otherwise. */
+function modesKey(ref: ModeChoice): 'form_modes' | 'view_modes' {
+  return ref.mode_kind === 'form' ? 'form_modes' : 'view_modes';
+}
+
+/** The mode name a mapping renders: its form mode for a form mapping, its view mode otherwise. */
+function modeName(ref: ModeChoice): string {
+  return (ref.mode_kind === 'form' ? ref.form_mode : ref.view_mode) ?? '';
+}
+
 /** Data-model path of the mode's image style entry for a field, e.g. `view_modes.teaser.image_styles.field_image`. */
 export function imageStylePath(ref: DisplayModeRef, fieldName: string): string {
-  const form = ref.mode_kind === 'form';
-  return `${form ? 'form_modes' : 'view_modes'}.${(form ? ref.form_mode : ref.view_mode) ?? ''}.image_styles.${fieldName}`;
+  return `${modesKey(ref)}.${modeName(ref)}.image_styles.${fieldName}`;
 }
 
 /** Image style the mode declares for an image field (`<view_modes|form_modes>.<mode>.image_styles.<field>`); '' when absent. */
 export function imageStyleFor(model: Record<string, unknown>, ref: DisplayModeRef, fieldName: string): string {
   const bundle = getBundle(model, ref.entity_type, ref.bundle);
   if (!bundle) return '';
-  const form = ref.mode_kind === 'form';
-  const modes = form ? bundle.form_modes : bundle.view_modes;
-  const mode = isObj(modes) ? modes[(form ? ref.form_mode : ref.view_mode) ?? ''] : undefined;
+  const modes = bundle[modesKey(ref)];
+  const mode = isObj(modes) ? modes[modeName(ref)] : undefined;
   const styles = isObj(mode) && isObj(mode.image_styles) ? mode.image_styles : {};
   return asString(styles[fieldName]);
 }
@@ -307,7 +317,7 @@ function mappingKey(m: {
   view_mode: string;
   form_mode: string;
 }): string {
-  const mode = m.mode_kind === 'form' ? m.form_mode : m.view_mode;
+  const mode = modeName(m);
   return `${m.entity_type}.${m.bundle}:${m.mode_kind}:${mode}`;
 }
 
@@ -457,7 +467,7 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
       errors.push(`${prefix('mapping')}: unknown bundle ${rec.entity_type}.${rec.bundle}`);
       continue;
     }
-    const mode = rec.mode_kind === 'form' ? rec.form_mode : rec.view_mode;
+    const mode = modeName(rec);
     if (rec.mode_kind !== 'form' && !(mode in viewModes(bundle))) {
       errors.push(`${prefix('mapping.view_mode')}: ${rec.entity_type}.${rec.bundle} has no view mode "${mode}"`);
     }
@@ -934,7 +944,7 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
     const mappedBundles = new Set<string>();
     for (const rec of mappings.values()) {
       mappedBundles.add(`${rec.entity_type}.${rec.bundle}`);
-      const mode = rec.mode_kind === 'form' ? rec.form_mode : rec.view_mode;
+      const mode = modeName(rec);
       const field = treeField(rec.entity_type, rec.bundle);
       if (field) {
         roots.push(

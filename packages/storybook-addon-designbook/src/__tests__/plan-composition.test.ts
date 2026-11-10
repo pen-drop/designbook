@@ -10,7 +10,13 @@ import { createHash } from 'node:crypto';
 import { load as parseYaml } from 'js-yaml';
 import { buildPlan, type TaskList } from '../workflow/plan-build.js';
 import { parsePlan, serializePlan, planDigest, type Plan, type PlanTask } from '../workflow/plan-document.js';
-import { deriveComposition, renderCompositionTree, type CompositionNode } from '../workflow/plan-composition.js';
+import {
+  deriveComposition,
+  imageStyleFor,
+  imageStylePath,
+  renderCompositionTree,
+  type CompositionNode,
+} from '../workflow/plan-composition.js';
 import { compilePlannedMapping } from '../workflow/plan-composition-result.js';
 import type { DesignbookConfig } from '../shared/config.js';
 
@@ -75,7 +81,10 @@ function withImageModes(list: TaskList = structuredClone(fixture)): TaskList {
   teaser.params = {
     ...teaser.params,
     mapping: { entity_type: 'paragraph', bundle: 'signage', mode_kind: 'view', view_mode: 'teaser' },
-    bindings: [(full.params!.bindings as unknown[])[2], { field: 'field_image', slot: 'image' }],
+    bindings: [
+      (full.params!.bindings as Array<{ field: string }>).find((b) => b.field === 'field_signage_item'),
+      { field: 'field_image', slot: 'image' },
+    ],
   };
   list.tasks.splice(list.tasks.indexOf(full) + 1, 0, teaser);
   const scene = list.tasks.find((t) => t.step === 'write-scene')!;
@@ -474,6 +483,55 @@ describe('deriveComposition — signage fixture', () => {
     const hits = text.split('paragraph.signage [full]').length - 1;
     expect(hits).toBeGreaterThanOrEqual(2);
     expect(hits).toBeLessThan(5);
+  });
+});
+
+describe('image styles of a form mode', () => {
+  const editForm = {
+    entity_type: 'paragraph',
+    bundle: 'signage',
+    mode_kind: 'form',
+    form_mode: 'edit',
+    view_mode: 'full',
+  };
+
+  /** The fixture plus a signage [edit] form mode and a planned form mapping binding field_image. */
+  function withFormMapping(styles?: Record<string, string>): TaskList {
+    const list = structuredClone(fixture);
+    const bundle = (list.composition!.data_model as { content: { paragraph: { signage: Record<string, unknown> } } })
+      .content.paragraph.signage;
+    bundle.form_modes = { edit: { template: 'field-map', ...(styles && { image_styles: styles }) } };
+    const write = list.tasks.find((t) => t.step === 'write-component' && t.title === 'signage')!;
+    (write.params!.component as { slots: Record<string, unknown> }).slots.image = {
+      description: 'Image',
+      required: false,
+    };
+    const full = list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage')!;
+    const form = structuredClone(full);
+    form.title = 'signage-edit';
+    form.params = { ...form.params, mapping: editForm, bindings: [{ field: 'field_image', slot: 'image' }] };
+    list.tasks.splice(list.tasks.indexOf(full) + 1, 0, form);
+    return list;
+  }
+
+  it('reads form_modes.<mode>.image_styles.<field>, not the view mode entry', () => {
+    const model = withFormMapping({ field_image: 'thumb' }).composition!.data_model as Record<string, unknown>;
+    expect(imageStyleFor(model, editForm, 'field_image')).toBe('thumb');
+    expect(imageStyleFor(model, { ...editForm, mode_kind: 'view' }, 'field_image')).toBe('hero');
+    expect(imageStylePath(editForm, 'field_image')).toBe('form_modes.edit.image_styles.field_image');
+  });
+
+  it('compiles a form mapping with the form mode style', async () => {
+    const plan = await buildSignage(withFormMapping({ field_image: 'thumb' }));
+    expect(compilePlannedMapping(mappingTask(plan, 'signage-edit'), plan)).toContain('"image": "thumb"');
+  });
+
+  it('names the form_modes path when the form mode declares no image style', async () => {
+    const { plan, errors } = await buildPlan(withFormMapping(), vueOpts);
+    expect(plan).toBeNull();
+    expect(errors).toContain(
+      'map-entity [signage-edit] bindings[0]: image field field_image requires form_modes.edit.image_styles.field_image naming a declared config.image_style',
+    );
   });
 });
 

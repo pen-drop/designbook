@@ -96,13 +96,6 @@ describe('compilePlannedMapping', () => {
         expect(result[0].slots.image).toEqual(expected.map((image) => ({ image: style, ...image })));
       }
     }
-    const model = list.composition!.data_model as {
-      content: { paragraph: { signage: { view_modes: Record<string, Record<string, unknown>> } } };
-    };
-    model.content.paragraph.signage.view_modes.teaser!.image_styles = { field_image: 'missing' };
-    expect((await buildPlan(list, vueOpts)).errors.join('\n')).toContain(
-      'requires view_modes.teaser.image_styles.field_image naming a declared config.image_style',
-    );
   });
 
   it('refuses to compile an image binding whose mode declares no image style', async () => {

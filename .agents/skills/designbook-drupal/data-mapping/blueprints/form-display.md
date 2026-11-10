@@ -69,7 +69,7 @@ id: '<et>.<bundle>.<form_mode>'
 targetEntityType: <et>
 bundle: <bundle>
 mode: <form_mode>
-content: {  }
+content: {  }   # holds only the image fields of def.image_styles, each with its preview_image_style
 hidden: {  }
 ```
 
