@@ -10,8 +10,10 @@ filter:
 Hard constraints for mapping image and reference fields in entity-mapping JSONata expressions.
 
 For a field-map image binding, declare `field` and `slot`. The planner reads the
-image style from the field's `settings.image_style` and validates it against
-`config.image_style`. The compiled mapping emits ImageNodes carrying each sample
+image style from the mapped mode's `image_styles.<field>`
+(`view_modes.<mode>` or `form_modes.<mode>`) and validates it against
+`config.image_style`; the same field renders with a different style in each mode
+that declares one. The compiled mapping emits ImageNodes carrying each sample
 image's `src` and `alt`; absent images yield an empty slot. Bind the whole image
 field, without `path` or an `entity` descriptor. Submit the `expected_mapping`
 returned by `plan instructions`.
@@ -53,7 +55,7 @@ When the data-model field type is `image`, the image data lives directly on the 
 { "image": "<style_name>", "src": <field>.src, "alt": <field>.alt }
 ```
 
-The `<style_name>` MUST reference a bundle defined under `config.image_style` in `data-model.yml`. No image without an image style. Image styles are produced by the `data-model` workflow (`image-style-config`).
+The `<style_name>` is the mapped mode's `image_styles.<field>` entry and MUST reference a bundle defined under `config.image_style` in `data-model.yml`. No image without an image style. Image styles and each mode's `image_styles` are produced by the `data-model` workflow (`image-style-config`).
 
 ### 3. `type: reference` fields emit EntityNode
 

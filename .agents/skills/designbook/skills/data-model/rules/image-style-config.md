@@ -21,6 +21,14 @@ constrains:
 
 When the data model includes image fields (e.g. `type: image`), ask the author which image styles are needed and add them under `config.image_style`.
 
+For every view mode and form mode that renders an image field, ask which style that mode uses and record it in the mode's `image_styles` (field → style key). The same field may use a different style per mode:
+
+```yaml
+view_modes:
+  full:   { template: field-map, image_styles: { field_image: ratio_16_9 } }
+  teaser: { template: field-map, image_styles: { field_image: ratio_1_1 } }
+```
+
 ## Format
 
 ```yaml
@@ -41,4 +49,5 @@ config:
 - Breakpoints without `aspect_ratio` inherit the bundle's default ratio
 - Do NOT add `fields`, `view_modes`, or `template` to image_style bundles
 - Image styles are consumed in scenes via `image:` nodes, not `entity:` nodes
+- Every `image_styles` value names a bundle under `config.image_style`; the mode is the single home of an image style
 - Ratio-based bundle names MUST use the `ratio_` prefix (e.g. `ratio_16_9`, `ratio_4_3`) to avoid YAML parsing numeric-looking keys as integers

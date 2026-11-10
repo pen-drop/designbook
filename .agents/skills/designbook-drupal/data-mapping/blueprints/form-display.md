@@ -34,10 +34,24 @@ For a bundle's `form_modes`, the sync-to intake emits up to two config names per
 This blueprint authors the **existence and binding** of a form display for a form mode, not its per-field
 widget layout and not the form's presentation. Author the identity keys — `uuid`, `langcode: en`,
 `status: true`, `id: <et>.<bundle>.<form_mode>`, `targetEntityType: <et>`, `bundle: <bundle>`,
-`mode: <form_mode>` — and leave `content` and `hidden` empty: Drupal assigns each field its default widget
+`mode: <form_mode>` — and leave `content` (apart from the image preview styles below) and `hidden` empty: Drupal assigns each field its default widget
 at runtime, so an empty form display imports cleanly and stays out of the field-selection /
 widget-configuration semantics that are out of scope. Drupal computes `dependencies` at import; do not
 hand-author the full dependency graph.
+
+The one widget setting the data model does carry is an image field's preview style: for each field in
+the unit's `def.image_styles` (the form mode's declared styles), `content` holds that field's image
+widget with `preview_image_style` set to the declared style:
+
+```yaml
+content:
+  <field>:
+    type: image_image
+    weight: 0
+    region: content
+    settings: { progress_indicator: throbber, preview_image_style: <def.image_styles.<field>> }
+    third_party_settings: {  }
+```
 
 A form is a theme-methods-only surface, so its **presentation runs through a presenter-template**
 (`template: presenter` on the form mode), generated as Twig theme markup — not authored here. This

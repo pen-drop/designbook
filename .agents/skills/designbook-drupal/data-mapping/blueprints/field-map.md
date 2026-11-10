@@ -69,6 +69,36 @@ Map a media entity reference (`type: reference`) into the image slot with `entit
 )
 ```
 
+A direct image field (`type: image`) binds with `field` and `slot` only. Its image style comes from
+the mapped mode, so one field can render with a different style per mode:
+
+```yaml
+content:
+  node:
+    article:
+      view_modes:
+        full:   { template: field-map, image_styles: { field_image: ratio_16_9 } }
+        teaser: { template: field-map, image_styles: { field_image: ratio_1_1 } }
+      fields:
+        field_image: { type: image }
+```
+
+The binding `{ field: field_image, slot: image }` on `node.article.teaser` compiles to:
+
+```jsonata
+(
+  $fields := $;
+  [
+    {
+      "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:content-teaser",
+      "slots": {
+        "image": [$map($fields.field_image, function($image) { { "image": "ratio_1_1", "src": $image.src, "alt": $image.alt } })]
+      }
+    }
+  ]
+)
+```
+
 ## Rules
 
 - Output is a JSONata array expression returning one wrapping `ComponentNode`
@@ -77,7 +107,7 @@ Map a media entity reference (`type: reference`) into the image slot with `entit
 - Every bound value comes from a declared field path (`$fields.<field>`)
 - Provider prefix must be resolved at generation time: `DESIGNBOOK_COMPONENT_NAMESPACE:component-name`
 - Reference fields (`type: reference`) emit `{ "entity": "<entity_type>.<bundle>", "view_mode": "...", "record": $lookup({ "<id>": <index> }, $string($id)) }` nodes as slot values of the wrapping component. The renderer resolves refs inside slots and at top level.
-- Image slots use that same reference-slot template; `plan instructions` `expected_mapping` is the expression to submit
+- Media-reference image slots use that same reference-slot template; direct image fields emit styled ImageNodes; in both cases `plan instructions` `expected_mapping` is the expression to submit
 
 ## Supported Settings
 

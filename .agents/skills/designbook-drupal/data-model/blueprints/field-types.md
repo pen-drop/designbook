@@ -33,16 +33,7 @@ suggests:
       - reference
     description: >
       Recognised Designbook field types for Drupal backend. Reference fields map to
-      entity_reference in Drupal storage. Image fields require settings.image_style.
-      Reference fields require settings.target_type.
-  image_settings:
-    type: object
-    description: Required settings for image-type fields.
-    required: [image_style]
-    properties:
-      image_style:
-        type: string
-        description: Machine name of the Drupal image style to apply (e.g. "thumbnail", "hero").
+      entity_reference in Drupal storage. Reference fields require settings.target_type.
   reference_settings:
     type: object
     description: Required settings for reference-type fields.
@@ -81,8 +72,8 @@ This blueprint provides the mapping rules an AI uses when authoring that transfo
 
 ## Special cases
 
-- **image**: `settings.image_style` is required. The storage type is `image`; the
-  `image` module must be listed as a dependency.
+- **image**: the storage type is `image`; the `image` module must be listed as a
+  dependency. The image style belongs to each display mode (`image_styles`).
 - **reference**: `settings.target_type` is required (Drupal entity type). The storage
   type is `entity_reference`. Optionally `settings.handler` overrides the selection
   handler (default `"default"`).
@@ -108,7 +99,6 @@ The transform produces two config-name/data units per field — one `field.stora
   `taxonomy.vocabulary.<bundle>`); omit bundle dep for entity types without a bundle config (e.g. `user`)
 - `data.dependencies.module`: module if not `"core"`
 - `data.settings` special cases:
-  - `image`: `{ image_style: field.settings.image_style }`
   - `reference`: `{ handler: field.settings.handler ?? "default", handler_settings: { target_bundles: null } }`
   - all others: `{}`
 - `data.field_type`: Drupal storage type from the mapping table

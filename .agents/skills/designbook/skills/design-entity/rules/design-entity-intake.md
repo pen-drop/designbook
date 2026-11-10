@@ -22,7 +22,7 @@ handoff with the matching skill and reason. The prerequisite skill runs separate
 |---|---|---|
 | Required typography tokens | `tokens` | missing typography tokens |
 | `@font-face` coverage for a required family; a token name is not coverage | `css-generate` | missing font face |
-| A `config.image_style` bundle required by the mapping's ImageNode | `data-model` | missing config.image_style bundle required by image-fields |
+| A `config.image_style` bundle, or the selected mode's `image_styles` entry, required by the mapping's ImageNode | `data-model` | missing image style required by image-fields |
 
 ```yaml
 kind: PrerequisiteNeed

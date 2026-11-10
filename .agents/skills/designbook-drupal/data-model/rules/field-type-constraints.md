@@ -48,14 +48,19 @@ These requirements also cannot be expressed via `constrains:` (no `if/then/else`
 conditional support in the merge engine).  They are hard constraints enforced
 here as guidance:
 
-- **`image`** — `settings.image_style` is **required**.  Without it the storage
-  config omits the style and Drupal falls back to the `_original` style
-  silently.
 - **`reference`** — `settings.target_type` is **required**.  Without it the
   `entity_reference` storage record has no `target_type` and Drupal config
   import fails.
 
 All other field types accept an empty or absent `settings` object.
+
+## Image style per mode
+
+In Drupal an image style is a display setting — the image formatter of a view
+display, the image widget's preview of a form display — so it lives on the mode.
+Every view or form mode that renders an `image` field declares
+`image_styles.<field>` naming a `config.image_style` bundle; without it the
+display falls back to the `_original` style silently.
 
 ## Fields used by mappings
 

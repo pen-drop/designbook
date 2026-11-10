@@ -115,6 +115,8 @@ single-value `title` and `link`/CTA — versus the few that stay scalar props is
 - string / title field → `string`
 - formatted (long) text → `text_default`
 - link field → `link`
+- image field → `image`, with `settings.image_style` = the unit's `def.image_styles.<field>` (the
+  view mode's declared style for that field)
 - entity-reference media → a media reference formatter
 - a field that itself renders **as a nested SDC** (its slot value is a nested ComponentNode /
   EntityNode) → `ui_patterns_component_per_item`, whose `settings.ui_patterns` is the **same shared
