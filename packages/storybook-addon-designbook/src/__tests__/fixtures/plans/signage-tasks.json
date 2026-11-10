@@ -8,7 +8,9 @@
     "data_model": {
       "config": {
         "image_style": {
-          "ratio_16_9": { "aspect_ratio": "16:9" }
+          "ratio_16_9": { "aspect_ratio": "16:9" },
+          "hero": { "aspect_ratio": "21:9" },
+          "thumb": { "aspect_ratio": "1:1" }
         }
       },
       "content": {
@@ -23,9 +25,13 @@
               "title": "Wegweiser Element",
               "multiple": true,
               "settings": { "target_type": "paragraph", "target_bundle": "signage_item" }
-            }
+            },
+            "field_image": { "type": "image", "title": "Bild" }
           },
-          "view_modes": { "full": { "template": "field-map" } }
+          "view_modes": {
+            "full": { "template": "field-map", "image_styles": { "field_image": "hero" } },
+            "teaser": { "template": "field-map", "image_styles": { "field_image": "thumb" } }
+          }
         },
         "signage_item": {
           "title": "Wegweiser Element",
@@ -35,9 +41,10 @@
             "field_icon": { "type": "string", "title": "Icon" },
             "field_links": { "type": "link", "title": "Links", "multiple": true },
             "field_button_anonymous": { "type": "link", "title": "Button anonym" },
-            "field_button_authenticated": { "type": "link", "title": "Button angemeldet" }
+            "field_button_authenticated": { "type": "link", "title": "Button angemeldet" },
+            "field_image": { "type": "image", "title": "Bild" }
           },
-          "view_modes": { "full": { "template": "field-map" } }
+          "view_modes": { "full": { "template": "field-map", "image_styles": { "field_image": "ratio_16_9" } } }
         }
       }
       }

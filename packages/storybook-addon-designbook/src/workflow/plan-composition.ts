@@ -150,15 +150,41 @@ function isImageType(type: unknown): boolean {
   return type === 'image';
 }
 
-export function imageFieldStyle(
+/** The display a mapping renders: one view mode or one form mode of a bundle. */
+export interface DisplayModeRef {
+  entity_type: string;
+  bundle: string;
+  mode_kind?: string;
+  view_mode?: string;
+  form_mode?: string;
+}
+
+export function isImageField(
   model: Record<string, unknown>,
   entityType: string,
   bundleName: string,
   fieldName: string,
-): string | undefined {
+): boolean {
   const bundle = getBundle(model, entityType, bundleName);
   const field = bundle && bundleFields(bundle)[fieldName];
-  return isObj(field) && isImageType(field.type) ? asString(fieldSettings(field).image_style) : undefined;
+  return isObj(field) && isImageType(field.type);
+}
+
+/** Data-model path of the mode's image style entry for a field, e.g. `view_modes.teaser.image_styles.field_image`. */
+export function imageStylePath(ref: DisplayModeRef, fieldName: string): string {
+  const form = ref.mode_kind === 'form';
+  return `${form ? 'form_modes' : 'view_modes'}.${(form ? ref.form_mode : ref.view_mode) ?? ''}.image_styles.${fieldName}`;
+}
+
+/** Image style the mode declares for an image field (`<view_modes|form_modes>.<mode>.image_styles.<field>`); '' when absent. */
+export function imageStyleFor(model: Record<string, unknown>, ref: DisplayModeRef, fieldName: string): string {
+  const bundle = getBundle(model, ref.entity_type, ref.bundle);
+  if (!bundle) return '';
+  const form = ref.mode_kind === 'form';
+  const modes = form ? bundle.form_modes : bundle.view_modes;
+  const mode = isObj(modes) ? modes[(form ? ref.form_mode : ref.view_mode) ?? ''] : undefined;
+  const styles = isObj(mode) && isObj(mode.image_styles) ? mode.image_styles : {};
+  return asString(styles[fieldName]);
 }
 
 function declaredTargetBundles(settings: Record<string, unknown>): string[] {
@@ -489,13 +515,15 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
       const rawField = fields[b.field];
       const field = isObj(rawField) ? rawField : {};
       if (b.field in fields && isImageType(field.type)) {
-        const style = imageFieldStyle(model, rec.entity_type, rec.bundle, b.field);
+        const style = imageStyleFor(model, rec, b.field);
         const styles = isObj(model.config) && isObj(model.config.image_style) ? model.config.image_style : {};
         if (!b.slot || b.prop || b.entity || b.path?.length) {
           errors.push(`${prefix(p)}: image field ${b.field} requires a slot binding without prop, entity or path`);
         }
         if (!style || !(style in styles)) {
-          errors.push(`${prefix(p)}: image field ${b.field} requires a declared settings.image_style`);
+          errors.push(
+            `${prefix(p)}: image field ${b.field} requires ${imageStylePath(rec, b.field)} naming a declared config.image_style`,
+          );
         }
       }
       if (b.prop && b.slot) errors.push(`${prefix(p)}: names both prop and slot`);
@@ -731,9 +759,14 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
         source: b.field,
         children: [],
       };
-      const imageStyle = imageFieldStyle(model, rec.entity_type, rec.bundle, b.field);
-      if (imageStyle !== undefined) {
-        node.children.push({ kind: 'image', identity: imageStyle, source: b.field, children: [] });
+      if (isImageField(model, rec.entity_type, rec.bundle, b.field)) {
+        // rec is the mapping that owns the binding, so a child under a reference slot keeps its own mode.
+        node.children.push({
+          kind: 'image',
+          identity: imageStyleFor(model, rec, b.field),
+          source: b.field,
+          children: [],
+        });
       } else if (b.entity) {
         node.count = selectedCount(rec, b, recordIndex);
         const childKey = `${b.entity.entity_type}.${b.entity.bundle}:view:${b.entity.view_mode}`;

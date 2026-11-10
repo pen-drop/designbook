@@ -10,7 +10,7 @@ import { createHash } from 'node:crypto';
 import { load as parseYaml } from 'js-yaml';
 import { buildPlan, type TaskList } from '../workflow/plan-build.js';
 import { parsePlan, serializePlan, planDigest, type Plan, type PlanTask } from '../workflow/plan-document.js';
-import { deriveComposition, renderCompositionTree } from '../workflow/plan-composition.js';
+import { deriveComposition, renderCompositionTree, type CompositionNode } from '../workflow/plan-composition.js';
 import { compilePlannedMapping } from '../workflow/plan-composition-result.js';
 import type { DesignbookConfig } from '../shared/config.js';
 
@@ -53,6 +53,46 @@ async function buildSignage(list: TaskList = fixture): Promise<Plan> {
   expect(errors).toEqual([]);
   expect(plan).not.toBeNull();
   return plan!;
+}
+
+/**
+ * The fixture's image field rendered by two modes: signage [full] (hero) and a planned
+ * signage [teaser] (thumb) that also embeds signage_item [full] (ratio_16_9) via items.
+ */
+function withImageModes(list: TaskList = structuredClone(fixture)): TaskList {
+  for (const title of ['signage', 'signage_item']) {
+    const write = list.tasks.find((t) => t.step === 'write-component' && t.title === title)!;
+    (write.params!.component as { slots: Record<string, unknown> }).slots.image = {
+      description: 'Image',
+      required: false,
+    };
+    const map = list.tasks.find((t) => t.step === 'map-entity' && t.title === title)!;
+    (map.params!.bindings as unknown[]).push({ field: 'field_image', slot: 'image' });
+  }
+  const full = list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage')!;
+  const teaser = structuredClone(full);
+  teaser.title = 'signage-teaser';
+  teaser.params = {
+    ...teaser.params,
+    mapping: { entity_type: 'paragraph', bundle: 'signage', mode_kind: 'view', view_mode: 'teaser' },
+    bindings: [(full.params!.bindings as unknown[])[2], { field: 'field_image', slot: 'image' }],
+  };
+  list.tasks.splice(list.tasks.indexOf(full) + 1, 0, teaser);
+  const scene = list.tasks.find((t) => t.step === 'write-scene')!;
+  (scene.params!.items as unknown[]).push({ entity: 'paragraph.signage', view_mode: 'teaser', record: 0 });
+  return list;
+}
+
+function signageModes(list: TaskList): Record<string, { image_styles?: Record<string, string> }> {
+  const model = list.composition!.data_model as {
+    content: { paragraph: { signage: { view_modes: Record<string, { image_styles?: Record<string, string> }> } } };
+  };
+  return model.content.paragraph.signage.view_modes;
+}
+
+function imageStyleOf(node: CompositionNode): string | undefined {
+  const slot = node.children.find((child) => child.kind === 'slot' && child.source === 'field_image');
+  return slot?.children.find((child) => child.kind === 'image')?.identity;
 }
 
 describe('deriveComposition — signage fixture', () => {
@@ -648,24 +688,54 @@ describe('buildPlan composition sealing', () => {
     }
   });
 
-  it('rejects an image-field slot binding without a declared image style', async () => {
-    const list = structuredClone(fixture);
+  it('renders the image style of each mode for the same image field', async () => {
+    const plan = await buildSignage(withImageModes());
+    const result = deriveComposition(plan);
+    expect(result.errors).toEqual([]);
+    const [full, teaser] = result.tree.roots[0]!.children;
+    expect([full!.mode, imageStyleOf(full!)]).toEqual(['full', 'hero']);
+    expect([teaser!.mode, imageStyleOf(teaser!)]).toEqual(['teaser', 'thumb']);
+  });
+
+  it('renders a child entity under a reference slot with the child mapping mode style', async () => {
+    const plan = await buildSignage(withImageModes());
+    const [, teaser] = deriveComposition(plan).tree.roots[0]!.children;
+    const child = teaser!.children.find((node) => node.target === 'items')!.children[0]!;
+    expect(child.identity).toBe('paragraph.signage_item');
+    expect([child.mode, imageStyleOf(child)]).toEqual(['full', 'ratio_16_9']);
+  });
+
+  it('rejects an image binding whose mode has no image_styles entry, naming the exact path', async () => {
+    const list = withImageModes();
+    delete signageModes(list).teaser!.image_styles;
+    const { plan, errors } = await buildPlan(list, vueOpts);
+    expect(plan).toBeNull();
+    expect(errors).toContain(
+      'map-entity [signage-teaser] bindings[1]: image field field_image requires view_modes.teaser.image_styles.field_image naming a declared config.image_style',
+    );
+    expect(errors.join('\n')).not.toMatch(/view_modes\.full\.image_styles/);
+  });
+
+  it('rejects a mode image style that is not declared under config.image_style', async () => {
+    const list = withImageModes();
+    signageModes(list).full!.image_styles = { field_image: 'missing' };
+    const { plan, errors } = await buildPlan(list, vueOpts);
+    expect(plan).toBeNull();
+    expect(errors.join('\n')).toContain(
+      'map-entity [signage] bindings[3]: image field field_image requires view_modes.full.image_styles.field_image naming a declared config.image_style',
+    );
+  });
+
+  it('ignores a field-level settings.image_style when the mode declares none', async () => {
+    const list = withImageModes();
     const model = list.composition!.data_model as {
       content: { paragraph: { signage: { fields: Record<string, unknown> } } };
     };
-    model.content.paragraph.signage.fields.field_image = { type: 'image', title: 'Bild' };
-    const write = list.tasks.find((t) => t.step === 'write-component' && t.title === 'signage')!;
-    (write.params!.component as { slots: Record<string, unknown> }).slots.image = {
-      description: 'Hero image',
-      required: false,
-    };
-    const map = list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage')!;
-    (map.params!.bindings as unknown[]).push({ field: 'field_image', slot: 'image' });
+    model.content.paragraph.signage.fields.field_image = { type: 'image', settings: { image_style: 'hero' } };
+    delete signageModes(list).full!.image_styles;
     const { plan, errors } = await buildPlan(list, vueOpts);
     expect(plan).toBeNull();
-    expect(errors.join('\n')).toMatch(/bindings\[\d+\]/);
-    expect(errors.join('\n')).toMatch(/field_image/);
-    expect(errors.join('\n')).toMatch(/image field/);
+    expect(errors.join('\n')).toContain('requires view_modes.full.image_styles.field_image');
   });
 
   it('accepts a string field bound to a slot', async () => {

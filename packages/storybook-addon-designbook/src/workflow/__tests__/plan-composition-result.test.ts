@@ -46,37 +46,75 @@ async function buildSignage(list: TaskList = fixture): Promise<Plan> {
   return plan!;
 }
 
+/** The fixture's image field bound on signage [full] (hero) and a planned signage [teaser] (thumb). */
+function withImageModes(): TaskList {
+  const list = structuredClone(fixture);
+  const write = list.tasks.find((t) => t.step === 'write-component' && t.title === 'signage')!;
+  (write.params!.component as { slots: Record<string, unknown> }).slots.image = {
+    description: 'Image',
+    required: false,
+  };
+  const full = list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage')!;
+  (full.params!.bindings as unknown[]).push({ field: 'field_image', slot: 'image' });
+  const teaser = structuredClone(full);
+  teaser.title = 'signage-teaser';
+  teaser.params = {
+    ...teaser.params,
+    mapping: { entity_type: 'paragraph', bundle: 'signage', mode_kind: 'view', view_mode: 'teaser' },
+    bindings: [{ field: 'field_image', slot: 'image' }],
+  };
+  list.tasks.splice(list.tasks.indexOf(full) + 1, 0, teaser);
+  const scene = list.tasks.find((t) => t.step === 'write-scene')!;
+  (scene.params!.items as unknown[]).push({ entity: 'paragraph.signage', view_mode: 'teaser', record: 0 });
+  return list;
+}
+
 describe('compilePlannedMapping', () => {
-  it('compiles styled image slots and preserves image data for zero, one and many images', async () => {
-    const list = structuredClone(fixture);
-    const model = list.composition!.data_model as {
-      content: { paragraph: { signage: { fields: Record<string, unknown> } } };
-      config: Record<string, unknown>;
-    };
-    model.content.paragraph.signage.fields.field_image = { type: 'image', settings: { image_style: 'hero' } };
-    model.config = { ...model.config, image_style: { hero: {} } };
-    const write = list.tasks.find((t) => t.step === 'write-component' && t.title === 'signage')!;
-    (write.params!.component as { slots: Record<string, unknown> }).slots.image = {
-      description: 'Image',
-      required: false,
-    };
-    const map = list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage')!;
-    (map.params!.bindings as unknown[]).push({ field: 'field_image', slot: 'image' });
+  it("compiles each mode's own image style and preserves image data for zero, one and many images", async () => {
+    const list = withImageModes();
     const plan = await buildSignage(list);
-    expect(renderCompositionTree(deriveComposition(plan).tree)).toContain('image hero');
-    const expr = jsonata(compilePlannedMapping(findTask(plan, 'map-entity', 'signage'), plan));
-    for (const images of [
-      undefined,
-      [],
-      { src: '/chicken.png', alt: 'Chicken' },
-      [{ alt: 'Placeholder' }, { src: '/salad.png', alt: '' }],
-    ]) {
-      const result = await expr.evaluate({ field_image: images });
-      const expected = images == null ? [] : Array.isArray(images) ? images : [images];
-      expect(result[0].slots.image).toEqual(expected.map((image) => ({ image: 'hero', ...image })));
+    const text = renderCompositionTree(deriveComposition(plan).tree);
+    expect(text).toContain('image hero');
+    expect(text).toContain('image thumb');
+    for (const [title, style] of [
+      ['signage', 'hero'],
+      ['signage-teaser', 'thumb'],
+    ] as const) {
+      const source = compilePlannedMapping(findTask(plan, 'map-entity', title), plan);
+      expect(source).toContain(
+        `"image": [$map($fields.field_image, function($image) { { "image": "${style}", "src": $image.src, "alt": $image.alt } })]`,
+      );
+      const expr = jsonata(source);
+      for (const images of [
+        undefined,
+        [],
+        { src: '/chicken.png', alt: 'Chicken' },
+        [{ alt: 'Placeholder' }, { src: '/salad.png', alt: '' }],
+      ]) {
+        const result = await expr.evaluate({ field_image: images });
+        const expected = images == null ? [] : Array.isArray(images) ? images : [images];
+        expect(result[0].slots.image).toEqual(expected.map((image) => ({ image: style, ...image })));
+      }
     }
-    model.content.paragraph.signage.fields.field_image = { type: 'image', settings: { image_style: 'missing' } };
-    expect((await buildPlan(list, vueOpts)).errors.join('\n')).toContain('declared settings.image_style');
+    const model = list.composition!.data_model as {
+      content: { paragraph: { signage: { view_modes: Record<string, Record<string, unknown>> } } };
+    };
+    model.content.paragraph.signage.view_modes.teaser!.image_styles = { field_image: 'missing' };
+    expect((await buildPlan(list, vueOpts)).errors.join('\n')).toContain(
+      'requires view_modes.teaser.image_styles.field_image naming a declared config.image_style',
+    );
+  });
+
+  it('refuses to compile an image binding whose mode declares no image style', async () => {
+    const plan = await buildSignage(withImageModes());
+    const model = plan.composition!.data_model as {
+      content: { paragraph: { signage: { view_modes: Record<string, Record<string, unknown>> } } };
+    };
+    delete model.content.paragraph.signage.view_modes.teaser!.image_styles;
+    expect(() => compilePlannedMapping(findTask(plan, 'map-entity', 'signage-teaser'), plan)).toThrow(
+      'image field field_image requires view_modes.teaser.image_styles.field_image',
+    );
+    expect(compilePlannedMapping(findTask(plan, 'map-entity', 'signage'), plan)).toContain('"image": "hero"');
   });
 
   it('keeps reference slots as arrays for zero, one and many selected records', async () => {

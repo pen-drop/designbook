@@ -6,7 +6,14 @@ import { existsSync, readFileSync } from 'node:fs';
 import jsonata from 'jsonata';
 import { load as parseYaml } from 'js-yaml';
 import type { Plan, PlanTask } from './plan-document.js';
-import { componentTreeFields, imageFieldStyle, overlaySampleRecords } from './plan-composition.js';
+import {
+  componentTreeFields,
+  imageStyleFor,
+  imageStylePath,
+  isImageField,
+  overlaySampleRecords,
+  type DisplayModeRef,
+} from './plan-composition.js';
 
 interface Binding {
   field: string;
@@ -46,18 +53,17 @@ export function compilePlannedMapping(task: PlanTask, plan: Plan): string {
   if (!component) throw new Error('map-entity is missing component');
   const props: string[] = [];
   const slots: string[] = [];
+  const model = plan.composition?.data_model ?? {};
+  const mapping = task.params.mapping as DisplayModeRef;
   for (const binding of bindings) {
     const fieldExpr = fieldAccess(binding);
-    const mapping = task.params.mapping as { entity_type: string; bundle: string };
-    const imageStyle = imageFieldStyle(
-      plan.composition?.data_model ?? {},
-      mapping.entity_type,
-      mapping.bundle,
-      binding.field,
-    );
-    if (imageStyle !== undefined) {
-      if (!imageStyle || !binding.slot || binding.prop || binding.entity || binding.path?.length) {
+    if (isImageField(model, mapping.entity_type, mapping.bundle, binding.field)) {
+      if (!binding.slot || binding.prop || binding.entity || binding.path?.length) {
         throw new Error(`invalid image binding for field ${binding.field}`);
+      }
+      const imageStyle = imageStyleFor(model, mapping, binding.field);
+      if (!imageStyle) {
+        throw new Error(`image field ${binding.field} requires ${imageStylePath(mapping, binding.field)}`);
       }
       slots.push(
         `${JSON.stringify(binding.slot)}: [$map(${fieldExpr}, function($image) { { "image": ${JSON.stringify(imageStyle)}, "src": $image.src, "alt": $image.alt } })]`,

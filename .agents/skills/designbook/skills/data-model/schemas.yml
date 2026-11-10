@@ -1,6 +1,6 @@
 # Data model concern schemas
 # Content has a fixed schema (entity_type → bundle → purpose, view_modes, form_modes, fields).
-# A bundle has two display halves: reading (view_modes) and editing (form_modes) — same shape.
+# A bundle has two display halves: reading (view_modes) and editing (form_modes) — both DisplayMode.
 # Config stays open — each config type brings its own schema via extends/constrains.
 
 DataModel:
@@ -23,25 +23,7 @@ DataModel:
                 display). Add named modes (e.g. teaser, full) only for extra display variants. Same
                 shape as form_modes.
               additionalProperties:
-                type: object
-                required: [template]
-                properties:
-                  template:
-                    type: string
-                    description: >-
-                      Template that renders this view mode. Its allowed values come from
-                      `entity_mapping.templates` in `designbook.config.yml`; not enum-fixed here
-                      because the set is project-configured. Every value is one of two kinds: a
-                      **declarative template** (the presentation is display config, e.g.
-                      `field-map`) or the reserved **presenter-template** value `presenter`
-                      (generated backend-native presentation markup for a presentation the config
-                      layer cannot express).
-                    examples: [field-map, presenter]
-                  label:
-                    type: string
-                    description: Human-readable name for a custom view mode, e.g. "Card". Required by sync-to when emitting a core.entity_view_mode.<entity_type>.<mode> definition for a non-standard view mode.
-                  settings: { type: object, additionalProperties: true }
-                additionalProperties: false
+                $ref: "#/DisplayMode"
             form_modes:
               type: object
               description: >-
@@ -50,24 +32,7 @@ DataModel:
                 every bundle always has (the plain edit form). Add named modes (e.g. register) only
                 for extra edit variants. Same shape as view_modes.
               additionalProperties:
-                type: object
-                required: [template]
-                properties:
-                  template:
-                    type: string
-                    description: >-
-                      Template that renders this form mode. Same two-kinds model as a view mode's
-                      `template`: a **declarative template** (the form presentation is display
-                      config) or the reserved presenter-template value `presenter` (generated
-                      backend-native markup). A form is the canonical markup-only surface, so an
-                      edit form that a declarative display cannot express uses `presenter`. Allowed
-                      values come from `entity_mapping.templates` in `designbook.config.yml`.
-                    examples: [field-map, presenter]
-                  label:
-                    type: string
-                    description: Human-readable name for a non-default form mode, e.g. "Register". Required by sync-to when emitting a core.entity_form_mode.<entity_type>.<mode> definition for a non-default form mode.
-                  settings: { type: object, additionalProperties: true }
-                additionalProperties: false
+                $ref: "#/DisplayMode"
             fields:
               type: object
               additionalProperties:
@@ -79,7 +44,13 @@ DataModel:
                   description: { type: string }
                   required: { type: boolean }
                   multiple: { type: boolean }
-                  settings: { type: object, additionalProperties: true }
+                  settings:
+                    type: object
+                    description: >-
+                      Storage and instance settings of the field (e.g. target_type of a
+                      reference). Display choices such as an image style belong to the
+                      display mode (`DisplayMode.image_styles`), not here.
+                    additionalProperties: true
                   sample_template:
                     type: object
                     required: [template]
@@ -91,3 +62,45 @@ DataModel:
     config:
       type: object
       additionalProperties: true
+
+DisplayMode:
+  type: object
+  title: Display mode
+  description: >-
+    One named display of a bundle — a view mode (how the entity is read) or a form mode (how it is
+    edited). The same shape serves every display surface that has modes.
+  required: [template]
+  properties:
+    template:
+      type: string
+      description: >-
+        Template that renders this mode. Its allowed values come from `entity_mapping.templates` in
+        `designbook.config.yml`; not enum-fixed here because the set is project-configured. Every
+        value is one of two kinds: a **declarative template** (the presentation is display config,
+        e.g. `field-map`) or the reserved **presenter-template** value `presenter` (generated
+        backend-native presentation markup for a presentation the config layer cannot express). A
+        form is the canonical markup-only surface, so an edit form that a declarative display cannot
+        express uses `presenter`.
+      examples: [field-map, presenter]
+    label:
+      type: string
+      description: >-
+        Human-readable name for a non-default mode, e.g. "Card" or "Register". Required by sync-to
+        when emitting the mode definition (core.entity_view_mode / core.entity_form_mode) of a
+        non-standard mode.
+    settings:
+      type: object
+      description: Template-specific display options of this mode; each template defines its keys.
+      additionalProperties: true
+    image_styles:
+      type: object
+      description: >-
+        Image style per image field this mode renders: field name → a style key declared under
+        `config.image_style`. For a view mode this is the display's image formatter setting; for a
+        form mode the image widget's preview style. Every image field the mode renders has an entry.
+      examples:
+        - { field_profile_image: avatar_80x80 }
+      additionalProperties:
+        type: string
+        description: Key of a `config.image_style` bundle.
+  additionalProperties: false
