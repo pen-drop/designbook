@@ -17,5 +17,5 @@ export default {
   // Metrics are unaffected either way.
   capture_logs: true,
   addons: ['@bakers-build/addon-herdr'],
-  hooks: { after_create: 'pnpm install' },
+  hooks: { after_create: '.bakers/after-create.sh' },
 };
