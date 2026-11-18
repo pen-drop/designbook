@@ -69,55 +69,11 @@ carries the view entity **unwrapped**: the Scene node names the view; it does no
 a second container around it. Whichever branch applies supplies the one container the rendered
 view lives in.
 
-## A view mapping is self-contained
+## Storybook mapping
 
-A view scene node (`entity: "view.<id>"`, with no `record`/`select`) is resolved with an **empty
-context**: the entity builder evaluates the view mapping against `{}`, not against a sample record.
-So a view mapping MUST be **self-contained** — it enumerates the rows it lists directly and reads
-nothing from `$`. A mapping that dereferences `$` (e.g. `$view.rows`, `$.items_per_page`) resolves
-to empty and the listing renders blank.
-
-The rows a view lists are the records of its **row bundle** — the content `entity_type`/`bundle`/
-`view_mode` the view's `row` declares. The `design-screen` intake adds that row bundle to
-`sample_data_bundles`, so its records exist; the mapping then references those records by index.
-Because the rows are real row-bundle records, the entity-mapping validator finds them (no
-"No sample records found") and the same enumeration renders the list.
-
-## JSONata Pattern — flat list
-
-Emit a flat array, one entry per listed row-bundle record. Top-level entries use the
-`{ "type": "entity", … }` form (at the mapping's top level the validator accepts a `component` node
-or a `type: "entity"` node; the `entity: "type.bundle"` string form is a scene-node shorthand, not a
-mapping-output top-level form):
-
-```jsonata
-[
-  { "type": "entity", "entity_type": "<row_entity_type>", "bundle": "<row_bundle>", "view_mode": "<row_view_mode>", "record": 0 },
-  { "type": "entity", "entity_type": "<row_entity_type>", "bundle": "<row_bundle>", "view_mode": "<row_view_mode>", "record": 1 }
-  /* one entry per row-bundle record the view lists */
-]
-```
-
-Each entry renders the row bundle in its listed view-mode; the entity builder resolves each record.
-
-## Optional wrapper (summary)
-
-When a `list-view` / `view-summary` component exists, wrap the same enumerated array in the
-wrapper's `rows` slot — still self-contained (rows are enumerated, never read from `$`):
-
-```jsonata
-{
-  "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:list-view",
-  "slots": {
-    "rows": [
-      { "type": "entity", "entity_type": "<row_entity_type>", "bundle": "<row_bundle>", "view_mode": "<row_view_mode>", "record": 0 },
-      { "type": "entity", "entity_type": "<row_entity_type>", "bundle": "<row_bundle>", "view_mode": "<row_view_mode>", "record": 1 }
-    ]
-  }
-}
-```
-
-The pager region itself binds through its own dedicated binding, not through this wrapper slot.
+A view whose view mode declares `template: list-view` maps through the
+[`list-view`](list-view.md) template: the compiled mapping lists the row-bundle records, optionally
+inside a wrapper component's `rows` slot.
 
 ## A View's Display Type Decides Its Role
 

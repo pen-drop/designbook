@@ -10,7 +10,7 @@ filter:
 
 # Blueprint: Field Map
 
-Applies when a view mode declares `template: field-map`. The plan names one target `component` and a `bindings` list. `plan instructions` for the map-entity step includes `expected_mapping`, the compiled JSONata `plan done` AST-compares against. A bundle with a `component_tree` field maps by passing that field through instead; a mapping whose view-mode template is layout-builder or another non-field-map structure without such a field is rejected at `plan build` with the selected target and unsupported structure.
+Applies when a view mode declares `template: field-map`. The plan names one target `component` and a `bindings` list. `plan instructions` for the map-entity step includes `expected_mapping`, the compiled JSONata `plan done` AST-compares against. A bundle with a `component_tree` field maps by passing that field through instead; a `list-view` view mode maps through the `list-view` template; a mapping whose view-mode template is layout-builder or another unsupported structure without such a field is rejected at `plan build` with the selected target and unsupported structure.
 
 ## Pattern
 

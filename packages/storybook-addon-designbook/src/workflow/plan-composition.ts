@@ -138,6 +138,33 @@ function viewModes(bundle: Record<string, unknown>): Record<string, unknown> {
   return isObj(bundle.view_modes) ? bundle.view_modes : {};
 }
 
+export interface ListViewRow {
+  entity_type: string;
+  bundle: string;
+  view_mode: string;
+}
+
+/**
+ * Whether the view mode uses `template: list-view`, and the row (`row` on the bundle) it lists.
+ * `row` is undefined when the declaration is missing or incomplete.
+ */
+export function listViewRow(
+  model: Record<string, unknown>,
+  entityType: string,
+  bundle: string,
+  mode: string,
+): { listView: boolean; row?: ListViewRow } {
+  const def = getBundle(model, entityType, bundle);
+  const modeDef = def ? viewModes(def)[mode] : undefined;
+  if (!def || !isObj(modeDef) || modeDef.template !== 'list-view') return { listView: false };
+  const row = isObj(def.row) ? def.row : {};
+  const entity_type = asString(row.entity_type);
+  const rowBundle = asString(row.bundle);
+  const view_mode = asString(row.view_mode);
+  if (!entity_type || !rowBundle || !view_mode) return { listView: true };
+  return { listView: true, row: { entity_type, bundle: rowBundle, view_mode } };
+}
+
 function fieldSettings(field: Record<string, unknown>): Record<string, unknown> {
   return isObj(field.settings) ? field.settings : {};
 }
@@ -458,6 +485,36 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
     if (rec.mode_kind !== 'form') {
       const modeDef = viewModes(bundle)[mode];
       const template = isObj(modeDef) ? asString(modeDef.template) : '';
+      if (template === 'list-view') {
+        const row = listViewRow(model, rec.entity_type, rec.bundle, mode).row;
+        if (rec.bindings.length) errors.push(`${prefix('bindings')}: list-view composition is the row list`);
+        if (rec.component) {
+          const wrapper = components.get(rec.component);
+          if (!wrapper) errors.push(`${prefix('component')}: no contract for ${rec.component}`);
+          else if (!('rows' in contractSlots(wrapper.contract))) {
+            errors.push(`${prefix('component')}: list-view wrapper ${rec.component} has no rows slot`);
+          }
+        }
+        if (!row) {
+          errors.push(
+            `${prefix('mapping')}: list-view ${rec.entity_type}.${rec.bundle} requires row.entity_type, row.bundle and row.view_mode`,
+          );
+          continue;
+        }
+        const rowBundle = getBundle(model, row.entity_type, row.bundle);
+        if (!rowBundle) {
+          errors.push(`${prefix('mapping')}: unknown row bundle ${row.entity_type}.${row.bundle}`);
+        } else if (!(row.view_mode in viewModes(rowBundle))) {
+          errors.push(`${prefix('mapping')}: ${row.entity_type}.${row.bundle} has no view mode "${row.view_mode}"`);
+        }
+        const rowKey = `${row.entity_type}.${row.bundle}:view:${row.view_mode}`;
+        if (!mappings.has(rowKey)) errors.push(`${prefix('mapping')}: missing mapping ${rowKey}`);
+        const pool = samples.get(`${row.entity_type}.${row.bundle}`);
+        if (!pool || pool.records.length === 0) {
+          errors.push(`${prefix('mapping')}: empty required samples for ${row.entity_type}.${row.bundle}`);
+        }
+        continue;
+      }
       if (template && template !== 'field-map') {
         errors.push(
           `${prefix('mapping')}: ${rec.entity_type}.${rec.bundle}:${mode} uses unsupported structure ${template}`,
@@ -720,6 +777,12 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
 
   function bindingNodes(rec: MappingRec, recordIndex?: number, chain: string[] = []): CompositionNode[] {
     const selfKey = mappingKey(rec);
+    const listRow =
+      rec.mode_kind === 'form' ? undefined : listViewRow(model, rec.entity_type, rec.bundle, rec.view_mode).row;
+    if (listRow) {
+      const count = samples.get(`${listRow.entity_type}.${listRow.bundle}`)?.records.length;
+      return [{ kind: 'slot', identity: 'rows', target: 'rows', count, children: [] }];
+    }
     return rec.bindings.map((b) => {
       if (b.prop) {
         return { kind: 'prop' as const, identity: b.prop, target: b.prop, source: b.field, children: [] };

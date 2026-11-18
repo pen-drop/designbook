@@ -6,7 +6,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import jsonata from 'jsonata';
 import { load as parseYaml } from 'js-yaml';
 import type { Plan, PlanTask } from './plan-document.js';
-import { componentTreeFields, imageFieldStyle, overlaySampleRecords } from './plan-composition.js';
+import { componentTreeFields, imageFieldStyle, listViewRow, overlaySampleRecords } from './plan-composition.js';
 
 interface Binding {
   field: string;
@@ -28,7 +28,41 @@ function treeFieldsFor(task: PlanTask, plan: Plan): string[] {
   return componentTreeFields(plan.composition?.data_model ?? {}, mapping.entity_type, mapping.bundle);
 }
 
+function listViewFor(task: PlanTask, plan: Plan): ReturnType<typeof listViewRow> {
+  const mapping = task.params.mapping as
+    | { entity_type?: string; bundle?: string; mode_kind?: string; view_mode?: string }
+    | undefined;
+  if (!mapping?.entity_type || !mapping.bundle || !mapping.view_mode || mapping.mode_kind === 'form') {
+    return { listView: false };
+  }
+  return listViewRow(plan.composition?.data_model ?? {}, mapping.entity_type, mapping.bundle, mapping.view_mode);
+}
+
+/** A `template: list-view` mapping lists every sample record of the row bundle; it reads nothing from `$`. */
+function compileListView(task: PlanTask, plan: Plan, row: { entity_type: string; bundle: string; view_mode: string }) {
+  const rows = recordsFor(plan, row.entity_type, row.bundle).map(
+    (_, record) =>
+      `{ "type": "entity", "entity_type": ${JSON.stringify(row.entity_type)}, "bundle": ${JSON.stringify(row.bundle)}, "view_mode": ${JSON.stringify(row.view_mode)}, "record": ${record} }`,
+  );
+  const component = String(task.params.component ?? '');
+  if (!component) return `[\n  ${rows.join(',\n  ')}\n]\n`;
+  return `{
+  "component": ${JSON.stringify(component)},
+  "slots": {
+    "rows": [
+      ${rows.join(',\n      ')}
+    ]
+  }
+}
+`;
+}
+
 export function compilePlannedMapping(task: PlanTask, plan: Plan): string {
+  const listView = listViewFor(task, plan);
+  if (listView.listView) {
+    if (!listView.row) throw new Error('list-view mapping is missing row.entity_type, row.bundle or row.view_mode');
+    return compileListView(task, plan, listView.row);
+  }
   const treeFields = treeFieldsFor(task, plan);
   if (treeFields.length > 1) {
     const mapping = task.params.mapping as { entity_type?: string; bundle?: string };
@@ -244,6 +278,8 @@ async function validateMapping(
   } catch {
     return;
   }
+  // A list-view mapping reads no record: the AST match above is the whole check.
+  if (listViewFor(task, plan).listView) return;
   const treeFields = treeFieldsFor(task, plan);
   if (treeFields.length === 1) {
     const field = treeFields[0]!;

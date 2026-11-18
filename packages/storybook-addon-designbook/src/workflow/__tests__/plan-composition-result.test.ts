@@ -46,6 +46,114 @@ async function buildSignage(list: TaskList = fixture): Promise<Plan> {
   return plan!;
 }
 
+/** The signage plan plus a `template: list-view` View over the signage items. */
+function withListView(wrapper: boolean): TaskList {
+  const list = structuredClone(fixture);
+  const model = list.composition!.data_model as { config: Record<string, unknown> };
+  model.config = {
+    ...model.config,
+    view: {
+      signage_items: {
+        row: { entity_type: 'paragraph', bundle: 'signage_item', view_mode: 'full' },
+        view_modes: { default: { template: 'list-view' } },
+      },
+    },
+  };
+  if (wrapper) {
+    list.tasks.push({
+      step: 'write-component',
+      task: 'write-component',
+      title: 'list-view',
+      params: {
+        component: {
+          component: 'list-view',
+          group: 'content',
+          props: { type: 'object', properties: {}, required: [], additionalProperties: false },
+          slots: { rows: { description: 'Rows', required: false } },
+        },
+      },
+    });
+  }
+  list.tasks.push({
+    step: 'map-entity',
+    task: 'map-entity--design-screen',
+    title: 'signage_items',
+    params: {
+      mapping: { entity_type: 'view', bundle: 'signage_items', mode_kind: 'view', view_mode: 'default' },
+      data_model: {},
+      ...(wrapper ? { component: 'test_integration_vue:list-view' } : {}),
+    },
+  });
+  return list;
+}
+
+describe('list-view template', () => {
+  it('compiles one row entry per sample record of the row bundle inside the wrapper rows slot', async () => {
+    const list = withListView(true);
+    const scene = list.tasks.find((t) => t.step === 'write-scene')!;
+    (scene.params!.items as unknown[]).push({ entity: 'view.signage_items', view_mode: 'default' });
+    const plan = await buildSignage(list);
+    const task = findTask(plan, 'map-entity', 'signage_items');
+    const source = compilePlannedMapping(task, plan);
+    const out = await jsonata(source).evaluate({});
+    const count = (plan.composition!.samples ?? []).find((s) => s.bundle === 'signage_item')?.records.length;
+    const planned = fixture.tasks.find((t) => t.step === 'create-sample-data' && t.title === 'signage_item')!;
+    const expected = count || (planned.params!.records as unknown[]).length;
+    expect(expected).toBeGreaterThan(0);
+    expect(out.component).toBe('test_integration_vue:list-view');
+    expect(out.slots.rows).toEqual(
+      Array.from({ length: expected }, (_, record) => ({
+        type: 'entity',
+        entity_type: 'paragraph',
+        bundle: 'signage_item',
+        view_mode: 'full',
+        record,
+      })),
+    );
+    const tree = renderCompositionTree(deriveComposition(plan).tree);
+    expect(tree).toContain('view.signage_items [default] record 0 → test_integration_vue:list-view');
+    expect(tree).toMatch(/slot rows/);
+  });
+
+  it('compiles a flat row list without a wrapper component', async () => {
+    const plan = await buildSignage(withListView(false));
+    const out = await jsonata(compilePlannedMapping(findTask(plan, 'map-entity', 'signage_items'), plan)).evaluate({});
+    expect(Array.isArray(out)).toBe(true);
+    expect(out[0]).toMatchObject({ type: 'entity', entity_type: 'paragraph', bundle: 'signage_item', record: 0 });
+  });
+
+  it('rejects bindings, a wrapper without rows slot, a missing row and a missing row mapping', async () => {
+    const withBindings = withListView(true);
+    withBindings.tasks.at(-1)!.params!.bindings = [{ field: 'title', prop: 'title' }];
+    expect((await buildPlan(withBindings, vueOpts)).errors.join('\n')).toMatch(/list-view composition is the row list/);
+
+    const noSlot = withListView(true);
+    const wrapper = noSlot.tasks.find((t) => t.title === 'list-view')!;
+    (wrapper.params!.component as { slots: Record<string, unknown> }).slots = {};
+    expect((await buildPlan(noSlot, vueOpts)).errors.join('\n')).toMatch(/has no rows slot/);
+
+    const noRow = withListView(false);
+    const model = noRow.composition!.data_model as { config: { view: { signage_items: { row?: unknown } } } };
+    delete model.config.view.signage_items.row;
+    expect((await buildPlan(noRow, vueOpts)).errors.join('\n')).toMatch(/requires row\.entity_type/);
+
+    const noMapping = withListView(false);
+    noMapping.tasks = noMapping.tasks.filter((t) => !(t.step === 'map-entity' && t.title === 'signage_item'));
+    expect((await buildPlan(noMapping, vueOpts)).errors.join('\n')).toMatch(
+      /missing mapping paragraph\.signage_item:view:full/,
+    );
+  });
+
+  it('accepts the compiled mapping as the task result and rejects another row list', async () => {
+    const plan = await buildSignage(withListView(false));
+    const task = findTask(plan, 'map-entity', 'signage_items');
+    const source = compilePlannedMapping(task, plan);
+    expect(await validateCompositionResult(plan, task, { 'entity-mapping': source })).toEqual({ ok: true, errors: [] });
+    const other = await validateCompositionResult(plan, task, { 'entity-mapping': '[]' });
+    expect(other.errors).toEqual(['mapping AST does not match the declared bindings']);
+  });
+});
+
 describe('compilePlannedMapping', () => {
   it('compiles styled image slots and preserves image data for zero, one and many images', async () => {
     const list = structuredClone(fixture);
