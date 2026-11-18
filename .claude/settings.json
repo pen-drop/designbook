@@ -22,7 +22,6 @@
     "designbook-vue@designbook": false,
     "designbook-wordpress@designbook": false,
     "designbook-css-tailwind@designbook": false,
-    "designbook-stitch@designbook": false,
-    "designbook-gaia@designbook": false
+    "designbook-stitch@designbook": false
   }
 }

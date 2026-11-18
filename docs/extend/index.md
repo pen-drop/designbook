@@ -13,4 +13,4 @@ This area is the handbook's technical teaching path:
 
 The causal chain is: config → discovered skills and selected integration → matching workflow and stage contributions → artifact → validation. Config does not invent tasks or overwrite hard rules.
 
-Tasks state what to produce. Blueprints are starting points you may replace. Hard rules cannot be overridden. GAIA is the exception: it ships workflow-step prose, not debo task files. [Integrations](/integrations/) explain each product surface; this area owns the enablement procedure.
+Tasks state what to produce. Blueprints are starting points you may replace. Hard rules cannot be overridden. [Integrations](/integrations/) explain each product surface; this area owns the enablement procedure.

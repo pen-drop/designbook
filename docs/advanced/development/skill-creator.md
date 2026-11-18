@@ -25,6 +25,6 @@ and task-files.md first. Do not write HOW into the task.
 
 3. Keep the template content model: workflow → stage → task (WHAT) / blueprint (overridable) / rule (hard). Shared types live in `schemas.yml` and are referenced. Validate with `resources/validate.md`.
 
-**Done when:** every changed guarded file was written under the matching rule, and `designbook-gaia` was left alone if you only needed GAIA step prose (that plugin is outside this guardrail).
+**Done when:** every changed guarded file was written under the matching rule.
 
 Part 2 (the TypeScript addon) uses `designbook-addon-skills`, not skill-creator. A worked blueprint override: [extend a skill](/extend/extend-a-skill).

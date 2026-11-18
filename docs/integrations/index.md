@@ -8,6 +8,5 @@ Each integration selects a backend, CSS framework, or capture source. Configurat
 - [Tailwind CSS](/integrations/tailwind) — token naming and `@theme` CSS generation
 - [Google Stitch](/integrations/stitch) — MCP capture source (`extensions: stitch`)
 - [Figma](/integrations/figma) — capture skill, not a marketplace plugin
-- [GAIA](/integrations/gaia) — workflow-step prose outside the four-level model
 
 `designbook-vue` is a marketplace plugin for Vue 3 component tasks (`frameworks.component: vue`). `designbook-test` is the internal harness.

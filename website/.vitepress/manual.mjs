@@ -54,7 +54,6 @@ export const SIDEBAR = {
       ['Tailwind CSS', '/integrations/tailwind'],
       ['Google Stitch', '/integrations/stitch'],
       ['Figma', '/integrations/figma'],
-      ['GAIA', '/integrations/gaia'],
     ]),
   ],
   '/advanced/': [

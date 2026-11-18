@@ -39,4 +39,4 @@ pnpm --filter website build
 
 **Done when:** `pnpm check` exits 0. For site edits, `pnpm --filter website build` also exits 0.
 
-There is no `gaia validate` step for unchanged GAIA configuration. CSS lint for the Drupal integration package is `pnpm lint:css` and is separate from `pnpm check`.
+CSS lint for the Drupal integration package is `pnpm lint:css` and is separate from `pnpm check`.

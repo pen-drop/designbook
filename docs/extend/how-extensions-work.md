@@ -10,7 +10,6 @@ Core Designbook (`debo`) owns workflows, stages, and component creation. Project
 | Integration plugin | `.agents/skills/designbook-drupal`, `designbook-css-tailwind`, `designbook-stitch`, `designbook-vue` | Tasks, blueprints, rules filtered by config |
 | Capture skill | `.agents/skills/designbook-figma` | Figma observations after extract-reference matches `figma` |
 | Test harness | `.agents/skills/designbook-test` | Fixture runs; internal |
-| GAIA | `.agents/skills/designbook-gaia` | GAIA workflow-step skills; **not** the four-level model |
 
 Marketplace plugins are listed in `.claude-plugin/marketplace.json`. Figma is absent from that list.
 

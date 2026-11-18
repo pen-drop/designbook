@@ -18,6 +18,5 @@ Add a new workflow under `designbook/skills/<name>/` when the work is a new name
 
 Prefer a new task or blueprint on an existing stage when you only need a different WHAT or starting point for Drupal, Vue, Tailwind, or Stitch. Prefer a rule only for a constraint every implementation must keep.
 
-GAIA does not add debo workflows. Its skills are `debo-designbook-design` and `debo-config-sync`, selected by GAIA work type. See [GAIA](/integrations/gaia).
 
 Plan CLI: [plan](/advanced/cli/plan). Execution modes (`ephemeral`, `persist`, `ask`) are owned by the shared builder in the core skill, not by project config.

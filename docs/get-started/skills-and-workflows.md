@@ -19,7 +19,6 @@ Integrations add tasks, blueprints, and rules that match `trigger` and `filter` 
 
 ## Two exceptions to keep straight
 
-- **GAIA** (`designbook-gaia`) ships workflow-step prose for GAIA tickets. It sits outside the four-level model. See [GAIA](/integrations/gaia).
 - **Figma** is a capture skill at `.agents/skills/designbook-figma`. It is not a marketplace plugin.
 
 `--optimize` on the core skill asks for optimization suggestions after completion. Apply those changes only when you separately request them.

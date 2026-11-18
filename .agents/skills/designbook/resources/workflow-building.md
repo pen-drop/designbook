@@ -59,7 +59,7 @@ verification. Reference-free requests use their concrete inputs.
 
    **Defaults when unset:**
 
-   - Explicit plan/save or a GAIA handoff requiring an executable plan → `persist`.
+   - Explicit plan/save or a handoff requiring an executable plan → `persist`.
    - Writing-design **create / rebuild** → `ask`.
    - Writing-design **change** → `ephemeral` only while targets and scope stay
      bounded; otherwise stop and resolve the wider scope.
