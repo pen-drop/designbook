@@ -18,7 +18,7 @@ config:
         view_mode: teaser
       view_modes:
         default:
-          template: list-view
+          template: field-map
   views.view.landing_teasers:
     label: Landing teasers
     purpose: >
@@ -37,7 +37,7 @@ config:
       created: DESC
     view_modes:
       default:
-        template: list-view
+        template: field-map
 content:
   node:
     landing_page:

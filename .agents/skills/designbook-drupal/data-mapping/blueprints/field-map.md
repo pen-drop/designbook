@@ -6,6 +6,7 @@ trigger:
   domain: data-mapping
 filter:
   backend: drupal
+  frameworks.component: sdc
 ---
 
 # Blueprint: Field Map

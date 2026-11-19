@@ -7,6 +7,7 @@ trigger:
   config_name: 'core.entity_view_display.*'
 filter:
   backend: drupal
+  frameworks.component: sdc
   extensions: layout_builder
 ---
 

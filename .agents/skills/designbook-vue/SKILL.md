@@ -10,8 +10,8 @@ description: >-
 # Designbook — Vue
 
 Integration skill for `frameworks.component: vue` projects, parallel to
-`designbook-drupal`'s SDC integration. Independent of `backend` — extends Part 1
-(`designbook` core) only.
+`designbook-drupal`'s SDC integration. Extends Part 1 (`designbook` core); component
+creation is independent of `backend`, data mapping targets a Drupal backend.
 
 ## Components
 
@@ -29,6 +29,14 @@ Rules, tasks, and schemas for creating Vue Single-File Components
 The Vue runtime (`vue`, `@vitejs/plugin-vue`) ships as an optional peer dependency of
 `storybook-addon-designbook`; a `frameworks.component: vue` project installs it
 alongside the addon.
+
+## Data Mapping
+
+Mapping for a Drupal backend in the `map-entity` stage (`when: backend: drupal`).
+
+- [data-mapping/blueprints/field-map.md](data-mapping/blueprints/field-map.md) — Blueprint for
+  `template: field-map`; binds Drupal fields to a Vue component's camelCase props and slots;
+  view rows render through their row bundle's `field-map`
 
 ## Setup
 

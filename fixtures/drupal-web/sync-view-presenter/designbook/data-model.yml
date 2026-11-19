@@ -1,6 +1,6 @@
 # DESIGNBOOK-65 Task 8 — "without Display Builder" fixture branch.
 #
-# One paginated View whose own page build form (view_modes.default.template) is `list-view` —
+# One paginated View whose own page build form (view_modes.default.template) is `presenter` —
 # NOT a Display Builder form (`canvas` / `layout-builder`). Per the V-4 build-form matrix
 # (designbook-drupal/data-mapping/blueprints/views.md), that puts the view in the
 # "without Display Builder" branch:
@@ -16,7 +16,7 @@
 # Drupal, no content provisioning, no rendered-page assertion.
 config:
   # The view a screen renders as its route-bearing main content. Declared like every display: a
-  # config.view.<id> with its own view_modes.default.template: list-view (the row-style
+  # config.view.<id> with its own view_modes.default.template: presenter (its build form; the row-style
   # UI-Patterns binding — see "Row rendering is its own declarative contract" in views.md).
   view:
     articles:
@@ -27,12 +27,12 @@ config:
         view_mode: teaser
       view_modes:
         default:
-          template: list-view
+          template: presenter
   views.view.articles:
     label: Articles
     purpose: >
       Lists node.article entities in the teaser view-mode as the screen's sole route-bearing main
-      content. Its build form is NOT Display Builder (view_modes.default.template: list-view, not
+      content. Its build form is NOT Display Builder (view_modes.default.template: presenter, not
       canvas/layout-builder) — per the V-4 matrix this puts it in the without-Display-Builder
       branch: sync-to generates a View-Presenter (view-wrapper presenter-template) with
       rows/empty-state/exposed-form/pager passed through as rendered slots, plus a separate
@@ -55,7 +55,7 @@ config:
       items_per_page: 2
     view_modes:
       default:
-        template: list-view
+        template: presenter
 content:
   node:
     article:

@@ -21,7 +21,8 @@ Rules and resources for Drupal-compatible data model creation (`when: backend: d
 
 Rules and resources for mapping Drupal fields to component props in the `map-entity` stage (`when: backend: drupal`).
 
-- [data-mapping/blueprints/field-map.md](data-mapping/blueprints/field-map.md) — Blueprint for `template: field-map`; generates JSONata mapping Drupal fields to `ComponentNode[]`
+- [data-mapping/blueprints/field-map.md](data-mapping/blueprints/field-map.md) — Blueprint for `template: field-map`; generates JSONata mapping Drupal fields to `ComponentNode[]` (`frameworks.component: sdc`)
+- [data-mapping/blueprints/ui-patterns.md](data-mapping/blueprints/ui-patterns.md), [views.md](data-mapping/blueprints/views.md), [layout-builder-display.md](data-mapping/blueprints/layout-builder-display.md), [presenter-template.md](data-mapping/blueprints/presenter-template.md), [pager.md](data-mapping/blueprints/pager.md) — SDC/UI-Patterns mapping and display-config blueprints (`frameworks.component: sdc`)
 - [data-mapping/rules/image-fields.md](data-mapping/rules/image-fields.md) — Hard constraints for image and reference field mapping
 - [data-mapping/rules/field-cardinality.md](data-mapping/rules/field-cardinality.md) — Cardinality boundary: multi-value fields render as field-level collections; single-value fields may be unwrapped
 - [data-mapping/blueprints/canvas.md](data-mapping/blueprints/canvas.md) — Canvas-specific mapping blueprint

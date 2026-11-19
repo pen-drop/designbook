@@ -7,6 +7,7 @@ trigger:
   config_name: 'views.view.*'
 filter:
   backend: drupal
+  frameworks.component: sdc
 ---
 
 # Blueprint: View Mapping — Build-Form Decision
@@ -57,9 +58,8 @@ render, not a raw view field. This is the declarative half and it stays identica
 branches — a view template names it once, on the row/style plugin, and neither branch's wrapper
 (presenter-template or Display Builder config) reconstructs a row component from field output.
 
-So a view declares `template: list-view` (or the project's row-style value) in its
-`config.view.<id>` `view_modes` entry — that value is the UI-Patterns row-style binding, resolved
-the same way regardless of which build-form branch owns the wrapper around it.
+The row component is the one the row bundle's view mode maps to (its `field-map`); the view's own
+`config.view.<id>` `view_modes` `template` is its build form and decides only the wrapper branch.
 
 ## Container ownership
 
@@ -102,12 +102,12 @@ Each entry renders the row bundle in its listed view-mode; the entity builder re
 
 ## Optional wrapper (summary)
 
-When a `list-view` / `view-summary` component exists, wrap the same enumerated array in the
+When a `view-summary` wrapper component exists, wrap the same enumerated array in the
 wrapper's `rows` slot — still self-contained (rows are enumerated, never read from `$`):
 
 ```jsonata
 {
-  "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:list-view",
+  "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:view-summary",
   "slots": {
     "rows": [
       { "type": "entity", "entity_type": "<row_entity_type>", "bundle": "<row_bundle>", "view_mode": "<row_view_mode>", "record": 0 },
@@ -134,12 +134,12 @@ stays the sync/export address.
 
 At `sync-to:transform` this blueprint authors the `views.view.<id>` config. `prepared` (the
 prepare-fetched schema) is authoritative for the shape; the view's data-model `def` supplies the
-content — base table, row bundle/view-mode, filters, sort, and the row-style template.
+content — base table, row bundle/view-mode, filters, sort, and the build-form template.
 
 Bind the view's **row output to its SDC component through the shared UI Patterns block** — the
 `{component_id, variant_id, props, slots}` mechanism (see `ui-patterns.md`): the view's row/style
 plugin carries that block, so a rendered list is a component render — the same UI-Patterns
-manifestation a `field-map` display uses — not a raw view row. The view's row-style `template`
+manifestation a `field-map` display uses — not a raw view row. The row bundle's view mode
 names the component the rows bind to.
 
 This authors only the **UI-Patterns half** (the row style). Which unit emits the **wrapper** —

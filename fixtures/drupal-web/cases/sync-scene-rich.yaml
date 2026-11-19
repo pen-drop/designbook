@@ -1,7 +1,7 @@
 # DESIGNBOOK-42 — GREEN coverage case.
 # Extends the DESIGNBOOK-38 sync-verify-scene pattern to one Layout-Builder Scene that exercises
 # every new sync-to path: a block_content block, a block_plugin block (a view as a block), the
-# view-template (list-view, UI-Patterns rows), and the View wrapper's pager/exposed-filter as the
+# view rows (UI-Patterns, list-view wrapper component), and the View wrapper's pager/exposed-filter as the
 # theme-methods-only presenter surface (presenter Twig).
 #
 # Contract: template layout-builder ⇒ display config has empty default sections; the fixture
