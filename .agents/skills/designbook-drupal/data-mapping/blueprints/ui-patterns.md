@@ -6,6 +6,7 @@ trigger:
   domain: data-mapping
 filter:
   backend: drupal
+  frameworks.component: sdc
 ---
 
 # Blueprint: UI Patterns 2 — `{source_id, source}` Sub-Pattern

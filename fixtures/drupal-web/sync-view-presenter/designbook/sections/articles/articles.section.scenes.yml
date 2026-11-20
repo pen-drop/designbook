@@ -3,7 +3,7 @@ title: Articles
 description: >
   A single screen whose sole route-bearing main content is the "articles" View (a paginated
   listing of node.article entities in the teaser view-mode). No Layout Builder / Canvas page
-  participates — the view's own build form (view_modes.default.template: list-view) is NOT a
+  participates — the view's own build form (view_modes.default.template: presenter) is NOT a
   Display Builder form, so per the V-4 matrix sync-to generates a View-Presenter for the view
   wrapper and a separate Pager-Presenter (V-5) for the pager region, which calls the Pager SDC.
 status: planned

@@ -1,6 +1,6 @@
 # DESIGNBOOK-65 Task 8 — "without Display Builder" branch coverage.
 #
-# One paginated View whose own build form (view_modes.default.template: list-view) is NOT a
+# One paginated View whose own build form (view_modes.default.template: presenter) is NOT a
 # Display Builder form. Per the V-4 build-form matrix (data-mapping/blueprints/views.md) this
 # puts the view in the without-Display-Builder branch:
 #   - the view wrapper is generated as a View-Presenter (presenter-template) — there is no
@@ -26,7 +26,7 @@ prompt: |
   root. backend_cmd resolves from designbook.config.yml. It must emit config for: the
   node.article bundle + its field_summary field, and the views.view.articles config (rows bound
   to their SDC via the UI-Patterns block; a standard pager, 2 items per page). The view's own
-  build form (view_modes.default.template: list-view) is NOT a Display Builder form, so ALSO
+  build form (view_modes.default.template: presenter) is NOT a Display Builder form, so ALSO
   write:
     - a View-Presenter (presenter-template) for the view wrapper — composing the view's rows,
       empty-state, exposed-form, and pager as incoming slots, never reconstructing them inline;

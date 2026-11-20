@@ -20,7 +20,7 @@
 config:
   # The view a screen renders as its route-bearing main content. Declared like every display: a
   # config.view.<id> with its own view_modes.default.template — here `canvas` (the Display
-  # Builder build form), not `list-view`. The row-style UI-Patterns binding stays identical
+  # Builder build form), not `presenter`. The row-style UI-Patterns binding stays identical
   # across both build-form branches (views.md, "Row rendering is its own declarative contract").
   view:
     articles:
