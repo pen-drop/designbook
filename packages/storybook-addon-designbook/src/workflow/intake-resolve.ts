@@ -139,11 +139,13 @@ function schemaOf(entry: SchemaEntry): unknown {
 /**
  * Turn an env-expanded output path template into a file glob: each `{{ … }}` becomes
  * one `*` segment part. A path that is not absolute (a leading placeholder or an
- * unresolved env var) has no glob — such outputs stay plan-only.
+ * unresolved env var) or whose file name is only a placeholder has no glob — such
+ * outputs stay plan-only unless they declare `glob:`.
  */
 export function templateGlob(path: string): string | undefined {
   const glob = path.replace(/(?:\{\{[\s\S]*?\}\})+/g, '*');
-  return isAbsolute(glob) ? glob : undefined;
+  // A bare `*` file name would claim every file in its directory; such outputs need `glob:`.
+  return isAbsolute(glob) && !glob.endsWith('/*') ? glob : undefined;
 }
 
 /** Union of domains a step inherits from its task files and its stage. */

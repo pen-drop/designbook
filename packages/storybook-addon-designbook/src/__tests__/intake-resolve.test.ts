@@ -157,6 +157,8 @@ describe('output path globs (trigger.paths in the plan)', () => {
   it('templateGlob leaves a path that is not rooted plan-only', () => {
     expect(templateGlob('{{ file_path }}')).toBeUndefined();
     expect(templateGlob('$DESIGNBOOK_DIRS_X/a.yml')).toBeUndefined();
+    // A bare placeholder file name would claim every file in the directory.
+    expect(templateGlob(`${home}/designbook/{{ scene_path }}`)).toBeUndefined();
   });
 
   it('an output glob replaces the derived pattern and stays out of the schema', async () => {

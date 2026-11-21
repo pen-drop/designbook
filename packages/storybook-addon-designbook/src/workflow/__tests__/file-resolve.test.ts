@@ -50,6 +50,19 @@ describe('resolveFileContext', () => {
     expect(`${variant.task}:${variant.output}`).toBe('create-variant-story:variant-story');
   });
 
+  it('resolves a scene file to write-scene within a workflow', async () => {
+    const file = join(workspace, 'designbook/sections/team/team.section.scenes.yml');
+    const ctx = await resolveFileContext(file, { ...opts(), workflow: 'design-screen' });
+    expect(`${ctx.task}:${ctx.output}`).toBe('write-scene:scene-file');
+  });
+
+  it('does not claim fixed-path files for a placeholder-only output', async () => {
+    const file = join(workspace, 'designbook/data-model.yml');
+    await expect(resolveFileContext(file, { ...opts(), workflow: 'design-component' })).rejects.toThrow(
+      /no task output declares/,
+    );
+  });
+
   it('fails when no task output declares the file', async () => {
     await expect(resolveFileContext(join(workspace, 'README.md'), opts())).rejects.toThrow(/no task output declares/);
     await expect(resolveFileContext('/elsewhere/components/a/a.component.yml', opts())).rejects.toThrow(
@@ -113,6 +126,8 @@ describe('file lookup equals plan step context (AC-6)', () => {
             expect(`${found.task}:${found.output}`, id).toBe(`${task.name}:${key}`);
           } catch (e) {
             if (!(e instanceof FileResolveError)) throw e;
+            // A fixed-path output (no wildcard) must resolve uniquely within its workflow.
+            expect(contract.glob.includes('*'), `${id} ambiguous: ${e.candidates.join(', ')}`).toBe(true);
             // Ambiguous samples must name this output among the candidates, never vanish.
             expect(e.candidates, file).toContain(id);
           }
