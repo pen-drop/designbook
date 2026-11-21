@@ -37,6 +37,6 @@ Designbook does not:
 - promise automated production-ready application code
 - invent a marketplace plugin that is not listed in `.claude-plugin/marketplace.json`
 
-The public plugins are `designbook` (skill name `debo`), `designbook-drupal`, `designbook-vue`, `designbook-css-tailwind`, `designbook-stitch`, and `designbook-test`. Figma lives as `.agents/skills/designbook-figma` and is selected through configuration, not as a marketplace plugin.
+The marketplace ships one plugin, the `designbook` entry skill. Core and integrations (`designbook-drupal`, `designbook-vue`, `designbook-css-tailwind`, `designbook-stitch`, `designbook-wordpress`, `designbook-figma`) ship inside the `storybook-addon-designbook` npm package and are selected through configuration.
 
 Continue with [install](/get-started/install).

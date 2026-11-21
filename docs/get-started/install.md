@@ -1,40 +1,34 @@
-# Install the skills
+# Install Designbook
 
-Put Designbook skills where your AI agent can load them. Installing skills is separate from [initializing a project](/get-started/first-project).
+Designbook ships as one npm package, `storybook-addon-designbook`. It contains the CLI, the core skill and all integrations, so their versions always match. Your agent gets a thin entry skill that calls the CLI. Installing is separate from [initializing a project](/get-started/first-project).
 
-**You need:** Claude Code, or any agent that can install from the skills CLI. A git checkout of your application project.
+**You need:** Node.js and npm in your application project, and an agent that can load skills (Claude Code, Codex, or any agent using the skills CLI).
 
-1. Install the core plugin, then the integrations you actually use.
+1. Install the package as a dev dependency in your project:
 
-**AI prompt**
-
-```text
-Install Designbook skills for this agent. Use the pen-drop/designbook marketplace.
-Install designbook (core, skill name debo). Add designbook-drupal, designbook-css-tailwind,
-or designbook-stitch only if this project needs them. Do not invent a Figma marketplace plugin.
+```bash
+npm i -D storybook-addon-designbook
 ```
+
+2. Install the entry skill for your agent.
 
 **Claude Code marketplace**
 
 ```bash
 /plugin marketplace add pen-drop/designbook
 /plugin install designbook@designbook
-/plugin install designbook-drupal@designbook
-/plugin install designbook-css-tailwind@designbook
 ```
 
 **skills CLI (Codex and other agents)**
 
 ```bash
-npx skills add pen-drop/designbook --skill debo
+npx skills add pen-drop/designbook --skill designbook
 ```
 
-The skills CLI writes into the project's `.agents/skills/` tree and per-agent symlinks. Internal skills (`metadata.internal: true`, including `designbook-test` and `designbook-skill-creator`) stay hidden unless `INSTALL_INTERNAL_SKILLS=1`.
+3. Restart the agent so it loads the entry skill.
 
-2. Restart the agent after plugin settings change so it loads the new skill files.
+4. Confirm the CLI finds the workflows: `npx storybook-addon-designbook intake install` prints the install workflow's intake context.
 
-3. Confirm the agent can name the `debo` skill and the `install` workflow.
+**Done when:** the agent lists the `designbook` skill and the intake command above succeeds. `designbook.config.yml` is created later, during project initialization.
 
-**Done when:** the agent lists Designbook as an installed skill, and you have not yet required a `designbook.config.yml`. That file is created during project initialization.
-
-Marketplace plugins: `designbook`, `designbook-drupal`, `designbook-vue`, `designbook-css-tailwind`, `designbook-stitch`, `designbook-test`. Figma is documented under [Integrations](/integrations/figma).
+To share your own skills across projects, publish them as [skill packages](/extend/skill-packages). Figma is documented under [Integrations](/integrations/figma).

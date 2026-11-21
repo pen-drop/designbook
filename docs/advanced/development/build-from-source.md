@@ -31,6 +31,6 @@ pnpm run dev:integration:drupal
 
 **Done when:** `pnpm --filter storybook-addon-designbook build` succeeds and `--help` lists the families on the CLI overview page.
 
-Local development skills are the worktree's `.agents` tree. A new sub-skill under a registered bundle needs no extra wiring. A new top-level bundle must be added to `.claude-plugin/marketplace.json`. Restart Claude after changing plugin settings.
+Local development skills are the worktree's `.agents` tree. Project-local skills win over the skills bundled in the addon package, so worktree edits take effect without a rebuild. A new top-level bundle that should ship must be added to `packages/storybook-addon-designbook/scripts/copy-skills.mjs`.
 
 Releases are cut by CI (`.github/workflows/release.yml`): pushes to `next` publish a `next` prerelease, the merge of `next` into `main` publishes the version derived from Conventional Commits. This page does not document publishing npm packages.
