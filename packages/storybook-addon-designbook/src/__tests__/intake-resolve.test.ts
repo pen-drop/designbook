@@ -5,9 +5,11 @@
  * ignored by the old catalogue path — into a shared, deduplicated context registry
  * whose entries are referenced per step, plus a frozen task-palette contract.
  */
-import { describe, it, expect } from 'vitest';
-import { resolve } from 'node:path';
-import { resolveIntakeContext } from '../workflow/intake-resolve.js';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { dirname, join, resolve } from 'node:path';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, realpathSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { resolveIntakeContext, templateGlob } from '../workflow/intake-resolve.js';
 import type { DesignbookConfig } from '../shared/config.js';
 
 const agents = resolve(process.cwd(), '../../.agents');
@@ -111,5 +113,64 @@ describe('resolveIntakeContext', () => {
     );
     const vision = await resolveIntakeContext('vision', { agentsDir: agents, config });
     expect(vision.definitions.CompositionInputs).toBeUndefined();
+  });
+});
+
+describe('output path globs (trigger.paths in the plan)', () => {
+  const home = '/work/theme';
+  const pathConfig = {
+    data: `${home}/designbook`,
+    'designbook.home': home,
+    'designbook.data': `${home}/designbook`,
+    extensions: [],
+  } as unknown as DesignbookConfig;
+  let dir: string;
+
+  beforeAll(() => {
+    dir = realpathSync(mkdtempSync(join(tmpdir(), 'intake-paths-')));
+    const write = (rel: string, body: string) => {
+      mkdirSync(dirname(join(dir, rel)), { recursive: true });
+      writeFileSync(join(dir, rel), body);
+    };
+    write('skills/w/workflows/demo.md', '---\nstages:\n  s:\n    steps: [write-a, write-b]\n---\n');
+    write(
+      'skills/w/tasks/write-a.md',
+      '---\ntrigger:\n  steps: [write-a]\nresult:\n  type: object\n  properties:\n    a:\n      path: ${DESIGNBOOK_HOME}/components/{{ c }}/{{ c }}.vue\n      type: string\n---\n',
+    );
+    write(
+      'skills/w/tasks/write-b.md',
+      '---\ntrigger:\n  steps: [write-b]\nresult:\n  type: object\n  properties:\n    b:\n      path: $DESIGNBOOK_DATA/{{ p }}\n      glob: $DESIGNBOOK_DATA/**/*.scenes.yml\n      type: string\n---\n',
+    );
+    write('skills/w/rules/vue.md', "---\ntrigger:\n  paths: ['$DESIGNBOOK_HOME/components/**/*.vue']\n---\n# vue\n");
+  });
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+
+  it('templateGlob turns placeholders into one segment', () => {
+    expect(templateGlob(`${home}/components/{{ c }}/{{ c }}.vue`)).toBe(`${home}/components/*/*.vue`);
+    expect(
+      templateGlob(
+        `${home}/designbook/{{ m.k = 'form' ? 'form-mapping' : 'entity-mapping' }}/{{\nm.t }}.{{ m.b }}.{{ m.v }}.jsonata`,
+      ),
+    ).toBe(`${home}/designbook/*/*.*.*.jsonata`);
+  });
+
+  it('templateGlob leaves a path that is not rooted plan-only', () => {
+    expect(templateGlob('{{ file_path }}')).toBeUndefined();
+    expect(templateGlob('$DESIGNBOOK_DIRS_X/a.yml')).toBeUndefined();
+  });
+
+  it('an output glob replaces the derived pattern and stays out of the schema', async () => {
+    const ctx = await resolveIntakeContext('demo', { agentsDir: dir, config: pathConfig, sources: [] });
+    const b = ctx.steps.find((s) => s.name === 'write-b')!.tasks[0]!.outputs['b']!;
+    expect(b.glob).toBe(`${home}/designbook/**/*.scenes.yml`);
+    expect(b.schema).not.toHaveProperty('glob');
+  });
+
+  it('a paths rule joins the step whose output matches', async () => {
+    const ctx = await resolveIntakeContext('demo', { agentsDir: dir, config: pathConfig, sources: [] });
+    const sources = (step: string) =>
+      ctx.steps.find((s) => s.name === step)!.context.map((k) => ctx.context[k]!.source.split('/').pop());
+    expect(sources('write-a')).toContain('vue.md');
+    expect(sources('write-b')).not.toContain('vue.md');
   });
 });

@@ -12,12 +12,13 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { basename, dirname, join } from 'node:path';
+import { basename, dirname, isAbsolute, join } from 'node:path';
 import { findConfig, loadConfig, resolveSkillsRoot, type DesignbookConfig } from '../shared/config.js';
 import { resolveSkillSources } from './skill-resolver.js';
 import type { SkillSource } from '../shared/skill-sources.js';
 import { resolveWorkflowFile } from '../cli/workflow-discovery.js';
 import {
+  expandPathGlob,
   matchBlueprintFiles,
   matchRuleFiles,
   parseFrontmatter,
@@ -41,6 +42,8 @@ export interface OutputContract {
   submission: 'data' | 'direct';
   validators: string[];
   path?: string;
+  /** File glob of `path` (or the output's explicit `glob:`); absent when the path is not rooted. */
+  glob?: string;
 }
 export interface TaskContract {
   name: string;
@@ -127,9 +130,20 @@ function schemaOf(entry: SchemaEntry): unknown {
     from: _from,
     prepare: _prepare,
     generator: _generator,
+    glob: _glob,
     ...schema
   } = entry;
   return schema;
+}
+
+/**
+ * Turn an env-expanded output path template into a file glob: each `{{ … }}` becomes
+ * one `*` segment part. A path that is not absolute (a leading placeholder or an
+ * unresolved env var) has no glob — such outputs stay plan-only.
+ */
+export function templateGlob(path: string): string | undefined {
+  const glob = path.replace(/(?:\{\{[\s\S]*?\}\})+/g, '*');
+  return isAbsolute(glob) ? glob : undefined;
 }
 
 /** Union of domains a step inherits from its task files and its stage. */
@@ -240,6 +254,13 @@ export async function resolveIntakeContext(
           validators: (entry.validators as string[] | undefined) ?? [],
           ...(entry.path ? { path: entry.path as string } : {}),
         };
+        const glob =
+          typeof entry.glob === 'string'
+            ? templateGlob(expandPathGlob(entry.glob, envMap))
+            : typeof entry.path === 'string'
+              ? templateGlob(entry.path)
+              : undefined;
+        if (glob) outputs[key]!.glob = glob;
       }
       const paramsFm = fm?.params as { required?: string[] } | undefined;
       const params_schema: Record<string, unknown> = {
@@ -267,12 +288,13 @@ export async function resolveIntakeContext(
   const matchFiles = (
     step: string,
     effectiveDomains?: string[],
+    paths?: string[],
   ): Array<{ source: string; kind: 'rule' | 'blueprint' }> => [
-    ...matchRuleFiles(step, config, agentsDir, undefined, effectiveDomains, sources).map((source) => ({
+    ...matchRuleFiles(step, config, agentsDir, undefined, effectiveDomains, sources, paths).map((source) => ({
       source,
       kind: 'rule' as const,
     })),
-    ...matchBlueprintFiles(step, config, agentsDir, undefined, effectiveDomains, sources).map((source) => ({
+    ...matchBlueprintFiles(step, config, agentsDir, undefined, effectiveDomains, sources, paths).map((source) => ({
       source,
       kind: 'blueprint' as const,
     })),
@@ -295,7 +317,8 @@ export async function resolveIntakeContext(
       stages,
       step,
     );
-    const files = matchFiles(step, domains.length > 0 ? domains : undefined);
+    const outputGlobs = tasks.flatMap((t) => Object.values(t.outputs).flatMap((o) => (o.glob ? [o.glob] : [])));
+    const files = matchFiles(step, domains.length > 0 ? domains : undefined, outputGlobs);
 
     const gate = gateOf.get(step);
     if (gate) {
