@@ -32,5 +32,21 @@ export default {
       },
     },
   ],
-  hooks: { after_create: '.bakers/after-create.sh' },
+  hooks: {
+    after_create: '.bakers/after-create.sh',
+    // Host-side fixture materialization (needs Docker); runs call provision_up(<profile>) per WORKFLOW.md.
+    provision_up: {
+      'drupal-fixture': './scripts/prepare-drupal-fixture.sh',
+      'wordpress-fixture': './scripts/prepare-wordpress-fixture.sh',
+    },
+  },
+  // Host entries must sit in a protected path; the fixture .ddev/ is read by `ddev start` on the host.
+  runtime: {
+    read_only: [
+      'scripts/prepare-drupal-fixture.sh',
+      'scripts/prepare-wordpress-fixture.sh',
+      'packages/integrations/drupal-fixture/.ddev',
+      'packages/integrations/wordpress-fixture/.ddev',
+    ],
+  },
 };
