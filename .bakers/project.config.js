@@ -16,6 +16,21 @@ export default {
   // Set to false to keep this conductor's transcripts local even then.
   // Metrics are unaffected either way.
   capture_logs: true,
-  addons: ['@bakers-build/addon-herdr'],
+  addons: [
+    '@bakers-build/addon-herdr',
+    // Forge tools (forge_fetch, forge_push, forge_pr_upsert, forge_checks, forge_merge) for runs;
+    // the conductor authenticates with its own `gh` login.
+    {
+      use: '@bakers-build/addon-forge',
+      with: {
+        // Keyed by base branch: next → main is a merge commit and keeps `next`; everything else is squashed.
+        merge: {
+          main: { method: 'merge', delete_source: false },
+          '*': { method: 'squash', delete_source: false },
+        },
+        backend: { use: '@bakers-build/addon-forge-github', with: { repository: 'pen-drop/designbook', auth: 'gh' } },
+      },
+    },
+  ],
   hooks: { after_create: '.bakers/after-create.sh' },
 };
