@@ -244,6 +244,13 @@ cp -a "$REPO_ROOT/.claude" "$WORKSPACE_DIR/.claude"
 cp -a "$REPO_ROOT/.cursor" "$WORKSPACE_DIR/.cursor"
 cp -a "$REPO_ROOT/.codex" "$WORKSPACE_DIR/.codex"
 
+# Shipped skills load from the linked addon package (dist/skills), as in a real
+# install; the workspace keeps only the entry skill and repo dev skills.
+for skill in designbook designbook-drupal designbook-vue designbook-css-tailwind designbook-stitch designbook-wordpress designbook-figma; do
+  rm -rf "$WORKSPACE_DIR/.agents/skills/$skill"
+done
+cp -a "$REPO_ROOT/plugins/designbook-entry" "$WORKSPACE_DIR/.agents/skills/designbook-entry"
+
 # No theme-dir .agents symlink is needed: debo-test drives workflow CLI commands
 # from the WORKSPACE ROOT (where designbook.config.yml lives). Storybook still
 # runs from the theme dir. resolveSkillsRoot walks UP from the config dir and
