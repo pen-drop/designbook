@@ -1,6 +1,7 @@
 ---
 trigger:
   steps: [create-scene-file, write-scene, map-entity]
+  paths: ['$DESIGNBOOK_DATA/**/*.scenes.yml']
 ---
 
 # Scenes Critical Constraints

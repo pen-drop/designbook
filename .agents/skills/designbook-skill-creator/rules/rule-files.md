@@ -206,7 +206,7 @@ The `RULE-01` check below flags body prose that should live in frontmatter inste
 Rules declare activation via two separate frontmatter blocks:
 
 - **`trigger:`** — WHEN the rule becomes active (OR-connected, **strict**: at least one key must explicitly match).
-  Supported keys: `steps`, `domain`.
+  Supported keys: `steps`, `domain`, `paths`.
 - **`filter:`** — WHERE (project config) the rule is applicable (AND-connected, deferring: undefined keys pass).
   Supported keys: `backend`, `frameworks.*`, `extensions`, `type`.
 
@@ -216,6 +216,25 @@ trigger:
   domain: components      # activates when a task needs the `components` domain
 filter:
   backend: drupal         # only in Drupal projects
+---
+```
+
+### `paths:` — bind a rule to a file type
+
+`trigger.paths` lists path globs (`$DESIGNBOOK_*` expanded; relative globs resolve against
+`$DESIGNBOOK_HOME`). Match the file path, never a bare extension: `.yml` is a story, a scene, the
+data model and config at once. The engine matches the globs against the output paths of a step's
+tasks (each `{{ … }}` placeholder is one segment, or the output's `glob:`), so a glob must cover a
+task output to load. A matching rule then loads for that step in the plan and on the direct-edit
+path (`instructions --file`). Add `paths` beside `steps`/`domain`; it replaces neither.
+
+```markdown
+---
+trigger:
+  steps: [write-component]
+  paths: ['$DESIGNBOOK_HOME/components/**/*.vue']
+filter:
+  frameworks.component: vue
 ---
 ```
 
