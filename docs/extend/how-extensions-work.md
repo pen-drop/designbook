@@ -11,7 +11,7 @@ Core Designbook (`debo`) owns workflows, stages, and component creation. Project
 | Capture skill | `.agents/skills/designbook-figma` | Figma observations after extract-reference matches `figma` |
 | Test harness | `.agents/skills/designbook-test` | Fixture runs; internal |
 
-Marketplace plugins are listed in `.claude-plugin/marketplace.json`. Figma is absent from that list.
+Core, integrations and Figma ship inside the `storybook-addon-designbook` npm package; the CLI loads them from there. The marketplace in `.claude-plugin/marketplace.json` ships only the entry skill. Shared project skills are [skill packages](/extend/skill-packages).
 
 ## Tasks, blueprints, rules
 

@@ -19,7 +19,7 @@ Nested YAML is flattened to dotted keys (`dirs: { css: { tokens } }` → `dirs.c
 | `designbook.data` | `home/<name>`; default `home/designbook` (`DESIGNBOOK_DATA`) |
 | `dirs.*` | Absolute, relative to config dir |
 | `css.app` | Absolute; `css.dir` is its parent |
-| `skills` | `~` expanded, then relative to config dir. Plugin cache base such as `~/.claude/plugins/cache/designbook` |
+| `skills` | List of npm package names and paths. Paths: `~` expanded, then relative to config dir. See [skill packages](/extend/skill-packages) |
 | `sessions.*` | Playwright storage-state JSON, `~` expanded. Capture takes `--session <name>`, never a path. `anonymous` needs no entry |
 | `features.<name>: false` | Disables a feature; default is on |
 

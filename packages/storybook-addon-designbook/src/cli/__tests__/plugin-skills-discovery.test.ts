@@ -1,48 +1,25 @@
 import { describe, it, expect } from 'vitest';
-import { mkdtempSync, mkdirSync, utimesSync } from 'node:fs';
+import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { resolveWorkflowFile, listWorkflowDefinitions } from '../workflow-discovery.js';
-import { deriveSkillSourcesFromBase, type SkillSource } from '../../shared/skill-sources.js';
+import type { SkillSource } from '../../shared/skill-sources.js';
 import { resolveSchemaRef } from '../../shared/planning-schema.js';
 import { deriveArtifactName, resolveFiles, buildRuntimeContext } from '../../shared/planning-sources.js';
 
-// The marketplace cache base inside the plugin-cache fixture (the `skills` config root).
+// Skill content roots inside the fixture, one dir level deeper than the project layout.
 const MARKETPLACE_BASE = resolve(__dirname, 'fixtures', 'plugin-cache', 'designbook');
-// The hashed content roots derived from the base.
 const DESIGNBOOK_ROOT = resolve(MARKETPLACE_BASE, 'designbook', 'abcdef');
 const TAILWIND_ROOT = resolve(MARKETPLACE_BASE, 'designbook-css-tailwind', 'abcdef');
 
 function pluginSources(): SkillSource[] {
-  return deriveSkillSourcesFromBase(MARKETPLACE_BASE);
+  return [
+    { name: 'designbook', root: DESIGNBOOK_ROOT, origin: 'plugin' },
+    { name: 'designbook-css-tailwind', root: TAILWIND_ROOT, origin: 'plugin' },
+  ];
 }
 
-describe('plugin skills discovery (config `skills` lookup root)', () => {
-  it('derives one source per skill from the marketplace base (scan <base>/<skill>/<hash>)', () => {
-    const sources = pluginSources();
-    const byName = Object.fromEntries(sources.map((s) => [s.name, s.root]));
-    expect(byName['designbook']).toBe(DESIGNBOOK_ROOT);
-    expect(byName['designbook-css-tailwind']).toBe(TAILWIND_ROOT);
-    expect(sources.every((s) => s.origin === 'plugin')).toBe(true);
-  });
-
-  it('picks the newest-mtime hash when several coexist under a skill', () => {
-    const base = mkdtempSync(resolve(tmpdir(), 'debo-mp-'));
-    mkdirSync(resolve(base, 'myskill', 'old', 'workflows'), { recursive: true });
-    mkdirSync(resolve(base, 'myskill', 'new', 'workflows'), { recursive: true });
-    utimesSync(resolve(base, 'myskill', 'old'), 1000, 1000);
-    utimesSync(resolve(base, 'myskill', 'new'), 1000, 2000);
-    const sources = deriveSkillSourcesFromBase(base);
-    expect(sources).toEqual([{ name: 'myskill', root: resolve(base, 'myskill', 'new'), origin: 'plugin' }]);
-  });
-
-  it('falls back to a single source when the base itself is a content root (flat layout)', () => {
-    const lone = resolve(mkdtempSync(resolve(tmpdir(), 'debo-skill-')), 'myskill');
-    mkdirSync(resolve(lone, 'workflows'), { recursive: true });
-    const sources = deriveSkillSourcesFromBase(lone);
-    expect(sources).toEqual([{ name: 'myskill', root: lone, origin: 'plugin' }]);
-  });
-
+describe('plugin skills discovery (package skill sources)', () => {
   it('resolveWorkflowFile finds the plugin workflow file via plugin sources (empty project dir)', () => {
     const emptyProjectDir = mkdtempSync(resolve(tmpdir(), 'debo-empty-'));
     const file = resolveWorkflowFile('css-generate', emptyProjectDir, pluginSources());
@@ -108,14 +85,6 @@ describe('plugin skills discovery (config `skills` lookup root)', () => {
     const taskFile = resolve(designbookSource.root, 'skills', 'tokens', 'tasks', 'create-tokens.md');
     const name = deriveArtifactName(taskFile, '/unused/agents', null, designbookSource);
     expect(name).toBe('designbook:tokens:create-tokens');
-  });
-
-  it('deriveSkillSourcesFromBase detects a content root whose artifacts sit two levels deep', () => {
-    // Nested sub-skill layout under the plugin cache: <base>/<skill>/<hash>/skills/<wf>/<kind>.
-    const base = mkdtempSync(resolve(tmpdir(), 'debo-nested-'));
-    mkdirSync(resolve(base, 'designbook', 'abc', 'skills', 'tokens', 'workflows'), { recursive: true });
-    const sources = deriveSkillSourcesFromBase(base);
-    expect(sources).toEqual([{ name: 'designbook', root: resolve(base, 'designbook', 'abc'), origin: 'plugin' }]);
   });
 
   it('resolveFiles discovers plugin-source rules from a sibling skill', () => {

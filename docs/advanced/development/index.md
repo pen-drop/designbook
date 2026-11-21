@@ -9,4 +9,4 @@ Maintainer procedures for this repository.
 - [Architecture](/advanced/development/architecture) — three parts plus the website package
 - [Write the docs](/advanced/development/write-docs) — handbook rules, gates, publication
 
-Canonical skill sources are `.agents/skills/`. `.claude/skills/` is a symlink and must not be edited separately. Claude Code in this repo uses the worktree's local skills through `.claude-plugin/marketplace.json`. Project settings disable installed Designbook plugins so commands cannot load files from another checkout.
+Canonical skill sources are `.agents/skills/`. `.claude/skills/` is a symlink and must not be edited separately. Claude Code in this repo loads the worktree's local skills through `.claude/skills/`, and the CLI prefers them over the skills bundled in the addon package. Project settings disable installed Designbook plugins so commands cannot load files from another checkout.
