@@ -1,10 +1,10 @@
 # Google Stitch
 
-`designbook-stitch` resolves Stitch design references through Stitch MCP and adds screen selection to intake. It is a marketplace plugin. The skill description states it is loaded via `extensions: [stitch]`.
+`designbook-stitch` resolves Stitch design references through Stitch MCP and adds screen selection to intake. It ships inside the `storybook-addon-designbook` npm package. The skill description states it is loaded via `extensions: [stitch]`.
 
 ## Prerequisites
 
-- `/plugin install designbook-stitch@designbook` (or skills CLI equivalent)
+- `storybook-addon-designbook` installed (see [Install](/get-started/install))
 - Stitch MCP tools available to the agent (`mcp__stitch__get_project`, `list_screens`, `get_screen`)
 - Project config:
 

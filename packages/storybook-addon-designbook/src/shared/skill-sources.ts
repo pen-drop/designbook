@@ -58,7 +58,6 @@ export function packageSkillSources(root: string): SkillSource[] {
 /**
  * Build project-layout skill sources from the resolved skills root.
  * For each child dir `D` of `<skillsRoot>/skills/`, emits `{ name: basename(D), root: D }`.
-
  */
 export function resolveProjectSkillSources(configDir: string): SkillSource[] {
   const skillsRoot = resolveSkillsRoot(configDir);

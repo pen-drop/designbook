@@ -31,7 +31,7 @@ export function executorConfig(base, { repo, runDir, workflowPath, executor }) {
   }));
   config.tests[0].vars = { workspace: base.tests[0].vars.workspace };
   config.prompts = [
-    `You are the execution agent in ${JSON.stringify(base.tests[0].vars.workspace)}. Read .agents/skills/designbook/skills/execute-workflow/SKILL.md and invoke that skill with the saved plan ${JSON.stringify(workflowPath)}. Follow its referenced executor instructions until complete or blocked.\n` +
+    `You are the execution agent in ${JSON.stringify(base.tests[0].vars.workspace)}. Read ${JSON.stringify(join(repo, "packages/storybook-addon-designbook/dist/skills/designbook/skills/execute-workflow/SKILL.md"))} and invoke that skill with the saved plan ${JSON.stringify(workflowPath)}. Follow its referenced executor instructions until complete or blocked.\n` +
       `Preserve the sealed definition and reference inputs. Do not re-plan or provision fixtures. The skill owns task execution, recovery and problem reporting. Use only this workspace and its inputs; do not read earlier test runs. Report the final plan summary and problems inventory.`,
   ];
   return config;

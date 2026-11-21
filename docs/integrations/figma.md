@@ -1,8 +1,8 @@
 # Figma
 
-Figma is a capture source. Designbook observes selected file nodes, frames, assets, and visual evidence through available Figma tools. It is **not** a marketplace plugin. `.claude-plugin/marketplace.json` does not list `designbook-figma`.
+Figma is a capture source. Designbook observes selected file nodes, frames, assets, and visual evidence through available Figma tools. It ships inside the `storybook-addon-designbook` npm package and is not a marketplace plugin.
 
-The skill lives at `.agents/skills/designbook-figma`. It is `user-invocable: false`. After `intake extract-reference` matches this integration (source kind `figma`, extension `figma`), the agent uses Figma tools and the skill's capture instructions.
+The skill ships as `designbook-figma` in the package's bundled skills. It is `user-invocable: false`. After `intake extract-reference` matches this integration (source kind `figma`, extension `figma`), the agent uses Figma tools and the skill's capture instructions.
 
 ## Prerequisites
 
@@ -15,7 +15,7 @@ extensions:
   - id: figma
 ```
 
-Do not run `/plugin install designbook-figma@designbook`. That plugin name is not in the marketplace.
+There is no separate Figma plugin to install.
 
 ## What it contributes
 

@@ -41,7 +41,7 @@ skills:
 
 Skills merge by name. The first source that has a skill wins and replaces that skill as a whole:
 
-1. Project-local `.agents/skills/<name>/`
+1. Project-local `<root>/skills/<name>/`. `<root>` is the first of `.claude`, `.agents` or the directory itself that contains a `skills/` folder, checked from the config directory upward through its parents
 2. `skills` entries, in listed order
 3. Skills bundled in `storybook-addon-designbook` (core and integrations)
 
