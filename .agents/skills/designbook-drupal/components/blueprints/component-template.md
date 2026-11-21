@@ -3,6 +3,7 @@ type: blueprint
 name: component-template
 trigger:
   steps: [write-component]
+  paths: ['$DESIGNBOOK_HOME/components/**/*.twig']
 filter:
   frameworks.component: sdc
 ---

@@ -6,8 +6,14 @@ validates, assembles and seals the MD plan. You never hand-write the plan.
 
 Plan persistence and whether to start execution are **separate** decisions from
 sealing. Every mode uses the same sealed-plan assembly and the same
-`execute-workflow` / `plan done` validation — there is no contract shortcut for
-“plan-free” runs.
+`execute-workflow` / `plan done` validation.
+
+**Direct edit** — the one plan-free path. It applies when the request changes one existing
+file and leaves its component's props and slots unchanged. Run `instructions --file <path>`,
+apply its rules, blueprints and output schema, edit the file, then run
+`validate file <path>` until it exits 0. A lookup that fails (no or several matching task
+outputs) sends the request to the plan. Creating files, rebuilds, changes across several
+artifacts and changed props/slots always go through the plan below.
 
 Before making reference-dependent intake decisions, apply the source reference
 prerequisite from the resolved intake context.

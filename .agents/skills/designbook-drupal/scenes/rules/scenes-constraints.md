@@ -1,6 +1,7 @@
 ---
 trigger:
   domain: scenes
+  paths: ['$DESIGNBOOK_DATA/**/*.scenes.yml']
 filter:
   backend: drupal
 ---

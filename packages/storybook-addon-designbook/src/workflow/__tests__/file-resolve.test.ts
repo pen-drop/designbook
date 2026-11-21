@@ -8,7 +8,9 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { loadConfig } from '../../shared/config.js';
 import { listWorkflowDefinitions } from '../../cli/workflow-discovery.js';
-import { resolveIntakeContext, type IntakeContext } from '../intake-resolve.js';
+import { globSync } from 'glob';
+import { expandPathGlob, parseFrontmatter, resolveFiles } from '../../shared/planning-sources.js';
+import { resolveIntakeContext, templateGlob, type IntakeContext } from '../intake-resolve.js';
 import { FileResolveError, matchFileContext, resolveFileContext, stepContextSources } from '../file-resolve.js';
 
 const agentsDir = resolve(process.cwd(), '../../.agents');
@@ -120,4 +122,33 @@ describe('file lookup equals plan step context (AC-6)', () => {
     }
     expect(checked).toBeGreaterThan(10);
   }, 120_000);
+});
+
+describe('declared trigger.paths cover a task output', () => {
+  it('every paths glob in the skills tree matches some task output glob', async () => {
+    const home = '/work/theme';
+    const env = { DESIGNBOOK_HOME: home, DESIGNBOOK_DATA: `${home}/designbook` };
+    const outputGlobs: string[] = [];
+    for (const task of globSync('skills/**/tasks/*.md', { cwd: agentsDir, absolute: true })) {
+      const props = (parseFrontmatter(task)?.result as { properties?: Record<string, Record<string, unknown>> })
+        ?.properties;
+      for (const out of Object.values(props ?? {})) {
+        const raw = (out.glob ?? out.path) as string | undefined;
+        const glob = raw && templateGlob(expandPathGlob(raw, env));
+        if (glob) outputGlobs.push(glob);
+      }
+    }
+    // Only `paths` decides here: steps/domain defer without context, filters defer without config.
+    const config = { ...env, 'designbook.home': home };
+    const found = ['rules', 'blueprints'].flatMap((kind) =>
+      resolveFiles(`skills/**/${kind}/*.md`, { paths: outputGlobs }, config, agentsDir)
+        .filter((f) => (f.frontmatter?.trigger as Record<string, unknown> | undefined)?.paths)
+        .map((f) => relative(agentsDir, f.path)),
+    );
+    const declared = globSync('skills/**/{rules,blueprints}/*.md', { cwd: agentsDir }).filter(
+      (f) => (parseFrontmatter(join(agentsDir, f))?.trigger as Record<string, unknown> | undefined)?.paths,
+    );
+    expect(declared.length).toBeGreaterThanOrEqual(9);
+    expect(found.sort()).toEqual(declared.map((f) => relative(agentsDir, realpathSync(join(agentsDir, f)))).sort());
+  });
 });

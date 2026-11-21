@@ -42,7 +42,7 @@ each type for the role it plays:
 |---|---|---|
 | `SKILL.md` `description:` (frontmatter) | **Pointer** — the skill's top-level context pointer | Always loaded when model-invocable; its wording alone decides when the skill fires. Spend its tokens on trigger branches, not on identity. |
 | `SKILL.md` body | **Pointer** — an index of links | Disclosed-reference pointers into `resources/`, `rules/`, `tasks/`; carries no implementation detail (see `common-rules.md` › `SKILL.md` — Index Only). |
-| `trigger:` / `filter:` (rule + blueprint frontmatter) | **Pointer** — a structured, non-prose pointer | Selects WHEN a rule fires / WHERE a blueprint applies. One branch per trigger; keys are `steps`/`domain` (trigger) and `backend`/`frameworks.*`/`extensions`/`type` (filter), not free-text synonyms. |
+| `trigger:` / `filter:` (rule + blueprint frontmatter) | **Pointer** — a structured, non-prose pointer | Selects WHEN a rule fires / WHERE a blueprint applies. One branch per trigger; keys are `steps`/`domain`/`paths` (trigger) and `backend`/`frameworks.*`/`extensions`/`type` (filter), not free-text synonyms. |
 | `tasks/<stage>.md` | **Material** — in-file steps | The primary tier: the ordered actions of a stage, each ending on a completion criterion. |
 | `rules/<name>.md` | **Material** — in-file reference | Hard constraints consulted on demand when a trigger matches; a legitimately flat peer-set. |
 | `blueprints/<name>.md` | **Material** — in-file reference | Overridable starting points consulted when a trigger matches. |
