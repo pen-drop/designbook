@@ -10,6 +10,7 @@ import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { dirname, resolve, relative } from 'node:path';
 import fm from 'front-matter';
 import { globSync } from 'glob';
+import { minimatch } from 'minimatch';
 import { normalizeExtensions, getExtensionIds, getExtensionSkillIds, type DesignbookConfig } from './config.js';
 import type { SkillSource } from './skill-sources.js';
 
@@ -197,6 +198,19 @@ function matchDomain(ruleDomain: string, effectiveDomains: string[]): boolean {
 
 type MatchOutcome = 'match' | 'nomatch' | 'defer';
 
+/**
+ * Expand `$DESIGNBOOK_*` / `${DESIGNBOOK_*}` in a path glob from the enriched config and
+ * resolve a relative glob against `designbook.home`.
+ */
+export function expandPathGlob(glob: string, config: Record<string, unknown>): string {
+  const expanded = glob.replace(/\$\{(\w+)\}|\$(\w+)/g, (whole, braced: string, bare: string) => {
+    const value = config[braced ?? bare];
+    return typeof value === 'string' ? value : whole;
+  });
+  const home = config['designbook.home'];
+  return typeof home === 'string' ? resolve(home, expanded) : expanded;
+}
+
 function matchConditionKey(
   key: string,
   value: unknown,
@@ -211,6 +225,16 @@ function matchConditionKey(
     return ruleDomains.some((rd) => matchDomain(rd, effectiveDomains)) ? 'match' : 'nomatch';
   }
 
+  if (key === 'paths') {
+    const paths = context['paths'];
+    if (!Array.isArray(paths)) return 'defer';
+    const globs = (Array.isArray(value) ? value : [value]).map((g) => expandPathGlob(String(g), config));
+    // A context path is either a file or an output glob; both sides may contain wildcards.
+    return paths.some((p) => globs.some((g) => minimatch(String(p), g) || minimatch(g, String(p))))
+      ? 'match'
+      : 'nomatch';
+  }
+
   const actual = lookup(key, context, config);
   if (actual === undefined) return 'defer';
   const expected = Array.isArray(value) ? value.map(String) : [String(value)];
@@ -221,7 +245,9 @@ function matchConditionKey(
 /**
  * Check whether a `trigger:` + `filter:` pair matches against context + config.
  *
- * - `trigger:` keys (`steps`, `domain`) declare WHEN the rule/blueprint becomes active.
+ * - `trigger:` keys (`steps`, `domain`, `paths`) declare WHEN the rule/blueprint becomes active.
+ *   `paths` globs match the file paths in `context.paths` (a plan step's output globs,
+ *   or the edited file on the direct path).
  *   They are OR-connected and STRICT: at least one trigger must explicitly match.
  *   A trigger key whose context value is undefined does NOT pass — strict semantics
  *   ensure that e.g. `trigger.domain: components` never matches a task that did not
@@ -620,11 +646,13 @@ export function matchRuleFiles(
   extraConditions?: Record<string, string>,
   effectiveDomains?: string[],
   sources?: SkillSource[],
+  paths?: string[],
 ): string[] {
   const context = buildRuntimeContext(step, extraConditions);
   if (effectiveDomains && effectiveDomains.length > 0) {
     context['domain'] = effectiveDomains;
   }
+  if (paths) context['paths'] = paths;
   const enrichedConfig = buildEnrichedConfig(config);
   const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true, sources);
   return matches.map((m) => m.path);
@@ -645,11 +673,13 @@ export function matchBlueprintFiles(
   extraConditions?: Record<string, string>,
   effectiveDomains?: string[],
   sources?: SkillSource[],
+  paths?: string[],
 ): string[] {
   const context = buildRuntimeContext(step, extraConditions);
   if (effectiveDomains && effectiveDomains.length > 0) {
     context['domain'] = effectiveDomains;
   }
+  if (paths) context['paths'] = paths;
   const enrichedConfig = buildEnrichedConfig(config);
   const matches = resolveFiles('skills/**/blueprints/*.md', context, enrichedConfig, agentsDir, true, sources);
 
