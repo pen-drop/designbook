@@ -8,7 +8,7 @@ filter:
 # Rule: Gutenberg Adapter Contract
 
 The Gutenberg adapter is a thin editor over `ComponentRegistry`. It registers blocks from
-registry definitions, writes `block.json` from those definitions, and renders through
+registry definitions and renders through
 `ComponentRegistry::render()`.
 
 | ID | Constraint |
