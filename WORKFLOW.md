@@ -14,6 +14,12 @@ suite each get their own `--workspace <path>`. Run `debo-test` from the ticket's
 setup may reset and clean only the workspace theme repository after asserting that directory is its
 own git toplevel — never the enclosing checkout.
 
+Before `debo-test` on a suite, read the `backend` in `fixtures/<suite>/designbook.config.yml` and
+call the `provision_up` tool once per worktree: `drupal` or no `backend` → profile
+`drupal-fixture`, `wordpress` → `wordpress-fixture`, `none` → nothing. The conductor materializes
+the fixture on the host, so the workspace setup inside a sandboxed run needs no Docker. `sync-*`
+and `seed-*` cases start a ddev site from inside the run; they run only under `runtime:system`.
+
 ## bb-phase-work
 
 | When | Skill |
