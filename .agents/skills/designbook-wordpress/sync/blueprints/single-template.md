@@ -3,7 +3,7 @@ type: data-mapping
 name: single-template
 trigger:
   domain: data-mapping
-  config_name: 'template.*.single'
+  config_name: 'template.*'
 filter:
   backend: wordpress
 ---

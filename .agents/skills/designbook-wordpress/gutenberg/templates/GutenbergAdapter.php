@@ -137,58 +137,6 @@ final class GutenbergAdapter {
         return '';
     }
 
-    public static function makeBlock(string $name, array $attrs = [], array $innerBlocks = []): array {
-        $innerContent = [];
-        foreach ($innerBlocks as $child) {
-            $innerContent[] = '';
-            $innerContent[] = null;
-        }
-        if ($innerBlocks !== []) {
-            $innerContent[] = '';
-        }
-        return [
-            'blockName' => $name,
-            'attrs' => $attrs,
-            'innerBlocks' => array_values($innerBlocks),
-            'innerContent' => $innerContent,
-        ];
-    }
-
-    public static function seedBlocks(string $designbookId, array $blocks, string $postType = 'page'): int {
-        foreach ($blocks as $parsed) {
-            self::validateTree($parsed);
-        }
-        $content = serialize_blocks($blocks);
-        $found = get_posts([
-            'post_type' => $postType,
-            'meta_key' => '_designbook_id',
-            'meta_value' => $designbookId,
-            'numberposts' => 1,
-            'post_status' => ['publish', 'draft', 'pending', 'private', 'future'],
-            'fields' => 'ids',
-        ]);
-        $existing = $found ? (int) $found[0] : 0;
-        if ($existing) {
-            $result = wp_update_post([
-                'ID' => $existing,
-                'post_content' => wp_slash($content),
-            ], true);
-        } else {
-            $result = wp_insert_post([
-                'post_type' => $postType,
-                'post_status' => 'publish',
-                'post_title' => $designbookId,
-                'post_name' => sanitize_title($designbookId),
-                'post_content' => wp_slash($content),
-                'meta_input' => ['_designbook_id' => $designbookId],
-            ], true);
-        }
-        if (is_wp_error($result)) {
-            throw new GutenbergRenderError($result->get_error_message());
-        }
-        return (int) $result;
-    }
-
     private static function slotBlockName(): string {
         return self::$ns . '/slot';
     }

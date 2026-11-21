@@ -39,6 +39,3 @@ array props use a labelled JSON textarea that reports parse errors beside the fi
 InnerBlocks; Preview mode POSTs the live subtree and renders the returned HTML, dropping
 stale responses. `enqueue_block_assets` loads the theme `css/app.css` in the editor canvas
 and on the frontend.
-
-Layout seed units call `makeBlock` and `seedBlocks`. An existing managed post updates
-`post_content` only.
