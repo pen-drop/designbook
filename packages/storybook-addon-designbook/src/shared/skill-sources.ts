@@ -1,29 +1,14 @@
 /**
- * Skill source resolution for Designbook.
+ * Skill source primitives for Designbook.
  *
- * Designbook skills can live in two layouts:
- *
- * 1. **Project layout** (dev repo / consumer override): under a single skills
- *    root resolved by `resolveSkillsRoot(configDir)` →
- *    `<skillsRoot>/skills/<skill>/.../{workflows,tasks,rules,blueprints}/`.
- *
- * 2. **Plugin-cache layout** (Claude Code plugin install): each skill lives in
- *    its own hashed cache directory, e.g.
- *    `~/.claude/plugins/cache/designbook/designbook/<hash>/css-generate/workflows/...`
- *    Here the skill content root IS the directory directly containing the
- *    `workflows/`, `tasks/`, `rules/`, `blueprints/` and `*.yml` schema files —
- *    there is no `skills/` prefix and no skill-name segment inside.
- *
- * This module owns the layout primitives only: given a base directory,
- * {@link deriveSkillSourcesFromBase} scans `<base>/<skill>/<hash>` (or the flat
- * `<base>/<skill>` / single-root layouts) and, when several hashes coexist after
- * a plugin update, picks the newest-mtime one per skill. *Choosing* the base
- * directory per runtime, and merging project + plugin sources, lives in
- * `skill-resolver.ts`.
+ * Project skills live under `<skillsRoot>/skills/<skill>/` (resolved by
+ * `resolveSkillsRoot(configDir)`); skill packages (npm packages, path entries,
+ * the bundled skills) use the same `skills/<skill>/` layout under their root.
+ * Merging the layers lives in `skill-resolver.ts`.
  */
 
 import { existsSync, readdirSync, statSync } from 'node:fs';
-import { basename, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { resolveSkillsRoot } from './config.js';
 
 /**
@@ -42,48 +27,10 @@ export interface SkillSource {
    * Where the source came from.
    * - `project`: discovered under `<skillsRoot>/skills/<name>` — already covered by
    *   the project `agentsDir` glob (`skills/**`), so resolvers skip these.
-   * - `plugin`: derived from the `skills` config lookup root — resolvers glob
-   *   these directly (no `skills/` prefix).
+   * - `plugin`: from a skill package (`skills` config entry or the bundled
+   *   skills) — resolvers glob these directly (no `skills/` prefix).
    */
   origin: 'project' | 'plugin';
-}
-
-const ARTIFACT_SUBDIRS = ['workflows', 'tasks', 'rules', 'blueprints'] as const;
-
-/** Whether a directory has any artifact subdir directly inside it. */
-function hasArtifactSubdir(dir: string): boolean {
-  for (const sub of ARTIFACT_SUBDIRS) {
-    if (existsSync(resolve(dir, sub))) return true;
-  }
-  return false;
-}
-
-/**
- * Whether a directory looks like a skill content root — it has any artifact
- * subdir directly, one level deep (concern layout: `<root>/<concern>/<kind>`),
- * or two levels deep (nested sub-skill layout: `<root>/skills/<name>/<kind>`).
- */
-function isSkillContentRoot(dir: string): boolean {
-  if (!existsSync(dir)) return false;
-  // depth 0: <root>/<kind>
-  if (hasArtifactSubdir(dir)) return true;
-  let children: string[];
-  try {
-    children = readdirSync(dir);
-  } catch {
-    return false;
-  }
-  for (const child of children) {
-    const childDir = resolve(dir, child);
-    if (!isDir(childDir)) continue;
-    // depth 1: <root>/<concern>/<kind>
-    if (hasArtifactSubdir(childDir)) return true;
-    // depth 2: <root>/skills/<name>/<kind> (nested sub-skill layout)
-    for (const grandchild of listDirs(childDir)) {
-      if (hasArtifactSubdir(resolve(childDir, grandchild))) return true;
-    }
-  }
-  return false;
 }
 
 function isDir(p: string): boolean {
@@ -91,14 +38,6 @@ function isDir(p: string): boolean {
     return statSync(p).isDirectory();
   } catch {
     return false;
-  }
-}
-
-function mtimeMs(p: string): number {
-  try {
-    return statSync(p).mtimeMs;
-  } catch {
-    return 0;
   }
 }
 
@@ -110,54 +49,16 @@ function listDirs(dir: string): string[] {
   }
 }
 
-/**
- * Derive skill sources from a lookup base directory.
- *
- * Layout precedence:
- * 1. **Marketplace** — `<base>/<skill>/<hash>` where the hash dir is a content
- *    root. One source per skill; when multiple hashes coexist (e.g. an old +
- *    new plugin install), the newest-mtime hash wins.
- * 2. **Flat skills** — `<base>/<skill>` is itself a content root.
- * 3. **Single** — `<base>` itself is a content root → one source named after it.
- */
-export function deriveSkillSourcesFromBase(base: string): SkillSource[] {
-  const B = resolve(base);
-  if (!existsSync(B)) return [];
-
-  const sources: SkillSource[] = [];
-  for (const skillName of listDirs(B)) {
-    const skillDir = resolve(B, skillName);
-
-    // Marketplace layout: pick the newest-mtime hash dir that is a content root.
-    const hashRoots = listDirs(skillDir)
-      .map((h) => resolve(skillDir, h))
-      .filter(isSkillContentRoot);
-    if (hashRoots.length > 0) {
-      const best = hashRoots.reduce((a, b) => (mtimeMs(b) > mtimeMs(a) ? b : a));
-      sources.push({ name: skillName, root: best, origin: 'plugin' });
-      continue;
-    }
-
-    // Flat layout: the skill-name dir is itself a content root.
-    if (isSkillContentRoot(skillDir)) {
-      sources.push({ name: skillName, root: skillDir, origin: 'plugin' });
-    }
-  }
-
-  if (sources.length > 0) return sources;
-
-  // Single layout: the base itself is a content root.
-  if (isSkillContentRoot(B)) return [{ name: basename(B), root: B, origin: 'plugin' }];
-
-  return [];
+/** Sources of a skill package: one per child dir of `<root>/skills/`. */
+export function packageSkillSources(root: string): SkillSource[] {
+  const skillsDir = resolve(root, 'skills');
+  return listDirs(skillsDir).map((name) => ({ name, root: resolve(skillsDir, name), origin: 'plugin' as const }));
 }
 
 /**
  * Build project-layout skill sources from the resolved skills root.
  * For each child dir `D` of `<skillsRoot>/skills/`, emits `{ name: basename(D), root: D }`.
- *
- * Runtime (plugin-cache) resolution and the project+plugin merge live in
- * `skill-resolver.ts`; this module only knows the project layout.
+
  */
 export function resolveProjectSkillSources(configDir: string): SkillSource[] {
   const skillsRoot = resolveSkillsRoot(configDir);

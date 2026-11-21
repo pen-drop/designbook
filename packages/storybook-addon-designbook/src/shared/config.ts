@@ -27,12 +27,11 @@ export interface DesignbookConfig {
   /** Technology used (e.g. 'html', 'drupal'). */
   technology: string;
   /**
-   * Absolute path to a skill lookup root. When Designbook is installed as a
-   * plugin, point this at the marketplace cache base
-   * (e.g. `~/.claude/plugins/cache/designbook`); the CLI scans
-   * `<root>/<skill>/<hash>` for each skill. Unset → project-local skills only.
+   * Skill packages, in precedence order. Each entry is a path (`.`, `/` or `~`
+   * prefix; resolved to absolute here) or an npm package name (kept as written,
+   * resolved from the config dir's `node_modules` by the skill resolver).
    */
-  skills?: string;
+  skills?: string[];
   /** Absolute path to the git workspace root (= DESIGNBOOK_WORKSPACE). */
   workspace?: string;
   /** Feature flags. `features.<name>: false` disables a feature; default is on. */
@@ -263,9 +262,13 @@ export function loadConfig(startDir?: string): DesignbookConfig {
       }
     }
 
-    // 6. Resolve skills lookup root (~ expansion, relative to configDir)
-    if (typeof config['skills'] === 'string') {
-      config['skills'] = resolve(configDir, expandTilde(config['skills'] as string));
+    // 6. Resolve skills path entries (~ expansion, relative to configDir); package names stay as written
+    if (config['skills'] !== undefined) {
+      const raw = config['skills'];
+      if (!Array.isArray(raw) || raw.some((e) => typeof e !== 'string' || !e)) {
+        throw new Error('skills must be a list of package names or paths, e.g. skills: [my-skills]');
+      }
+      config.skills = (raw as string[]).map((e) => (/^[.~/]/.test(e) ? resolve(configDir, expandTilde(e)) : e));
     }
 
     // 7. Resolve sessions.* storage-state files relative to configDir
