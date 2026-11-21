@@ -1,0 +1,17 @@
+name: PR title
+
+# The squash commit takes the PR title, and the release version and notes are derived from
+# Conventional Commits: a title outside this form would silently drop out of the release.
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+jobs:
+  conventional:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          echo "$TITLE" | grep -qE '^(feat|fix|chore|docs|refactor|test|ci|build|perf|style|revert)(\([^)]+\))?!?: .+' \
+            || { echo "::error::PR title must be a Conventional Commit, e.g. 'feat(drupal): add form group' or 'fix: keep entity visible'."; exit 1; }

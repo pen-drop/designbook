@@ -33,4 +33,4 @@ pnpm run dev:integration:drupal
 
 Local development skills are the worktree's `.agents` tree. A new sub-skill under a registered bundle needs no extra wiring. A new top-level bundle must be added to `.claude-plugin/marketplace.json`. Restart Claude after changing plugin settings.
 
-Release is `pnpm run release` (`scripts/release.sh`). This page does not document publishing npm packages.
+Releases are cut by CI (`.github/workflows/release.yml`): pushes to `next` publish a `next` prerelease, the merge of `next` into `main` publishes the version derived from Conventional Commits. This page does not document publishing npm packages.

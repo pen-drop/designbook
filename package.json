@@ -9,7 +9,6 @@
   "type": "module",
   "devDependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.81",
-    "auto": "^11.3.0",
     "glob": "^11.0.1",
     "jsonata": "^2.1.0",
     "js-yaml": "^4.1.1",
@@ -30,7 +29,6 @@
     "dev:addon": "pnpm --filter storybook-addon-designbook build:watch",
     "dev:integration:drupal": "pnpm --filter test-integration-drupal storybook",
     "check": "run-s typecheck lint test",
-    "release": "bash scripts/release.sh",
     "typecheck": "pnpm --filter storybook-addon-designbook typecheck",
     "lint": "pnpm --filter storybook-addon-designbook lint",
     "lint:css": "pnpm --filter test-integration-drupal run lint:css",
