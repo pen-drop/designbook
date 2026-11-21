@@ -5,6 +5,7 @@ import { validateData } from './validation/data.js';
 import { validateEntityMapping } from './validation/entity-mapping.js';
 import { register as registerIntake } from './cli/intake.js';
 import { register as registerPlan } from './cli/plan.js';
+import { register as registerFile } from './cli/file.js';
 import { register as registerVerify } from './cli/verify.js';
 import { register as registerStorybook } from './cli/storybook.js';
 import { register as registerCompareImages } from './cli/compare-images.js';
@@ -140,6 +141,7 @@ program
 // Register submodules
 registerIntake(program);
 registerPlan(program);
+registerFile(program);
 registerVerify(program);
 registerStorybook(program);
 registerCompareImages(program);
