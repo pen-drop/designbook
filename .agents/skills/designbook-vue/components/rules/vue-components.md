@@ -1,6 +1,7 @@
 ---
 trigger:
   steps: [write-component, refresh-components, validate]
+  paths: ['$DESIGNBOOK_HOME/components/**/*.vue']
 filter:
   frameworks.component: vue
 ---

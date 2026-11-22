@@ -2,6 +2,7 @@
 trigger:
   steps: [write-component, create-sample-data]
   domain: [components, sample-data]
+  paths: ['$DESIGNBOOK_HOME/components/**/*.story.yml']
 ---
 
 # Component Stories Need Their Own ImageNode Renderer

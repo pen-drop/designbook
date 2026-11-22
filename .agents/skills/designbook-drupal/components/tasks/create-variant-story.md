@@ -26,6 +26,7 @@ result:
       path: >-
         ${DESIGNBOOK_HOME}/components/{{ component.component }}/{{ component.component }}.{{ variant.id
         }}.story.yml
+      glob: ${DESIGNBOOK_HOME}/components/*/*.!(default).story.yml
       $ref: designbook-drupal/components/schemas.yml#/SdcStory
 ---
 

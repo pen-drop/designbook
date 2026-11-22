@@ -77,6 +77,7 @@ result:
   properties:
     scene-file:
       path: $DESIGNBOOK_DATA/{{ scene_path }}
+      glob: $DESIGNBOOK_DATA/**/*.scenes.yml
       validators:
         - scene
       $ref: ../schemas.yml#/SceneFile
