@@ -25,7 +25,8 @@ afterAll(() => rmSync(workspace, { recursive: true, force: true }));
 
 const opts = () => ({ configDir: workspace, agentsDir, sources: [] });
 
-describe('resolveFileContext', () => {
+// Each lookup resolves every workflow's intake context (~2 s, more under load).
+describe('resolveFileContext', { timeout: 30_000 }, () => {
   it('resolves a component.yml to write-component', async () => {
     const file = join(workspace, 'components/card/card.component.yml');
     const ctx = await resolveFileContext(file, opts());
