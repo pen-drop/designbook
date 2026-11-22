@@ -40,13 +40,10 @@ export default {
       'wordpress-fixture': './scripts/prepare-wordpress-fixture.sh',
     },
   },
-  // Host entries must sit in a protected path; the fixture .ddev/ is read by `ddev start` on the host.
+  // Host entries must sit in a protected path. The fixture .ddev/ folders, which `ddev start` reads on
+  // the host, are NOT protected: a path protects its whole top-level folder, and packages/ holds symlinks
+  // (pnpm node_modules), which a protected tree must not contain.
   runtime: {
-    read_only: [
-      'scripts/prepare-drupal-fixture.sh',
-      'scripts/prepare-wordpress-fixture.sh',
-      'packages/integrations/drupal-fixture/.ddev',
-      'packages/integrations/wordpress-fixture/.ddev',
-    ],
+    read_only: ['scripts/prepare-drupal-fixture.sh', 'scripts/prepare-wordpress-fixture.sh'],
   },
 };
