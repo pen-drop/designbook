@@ -73,24 +73,42 @@ const shot = computed(() => shots[selected.value])
         playsinline
         preload="none"
         :poster="withBase(landing.demo.poster ?? '')"
-        aria-label="Designbook workflow in 22 seconds"
+        aria-label="Designbook explained in 60 seconds"
         aria-describedby="film-transcript"
       >
         <source :src="withBase(landing.demo.video)" type="video/mp4" />
         Your browser does not support this video.
       </video>
       <div v-if="landing.demo.video" class="film-meta">
-        <span>22 seconds · real project output · no sound needed</span>
+        <span>60 seconds · silent · real recipe project</span>
+        <span>
+          Reference design:
+          <a href="https://www.figma.com/community/file/1331351586208563684/free-cooking-recipes-blog-template">[FREE] Cooking &amp; Recipes Blog Template</a>
+          by Ilia Bortnikov,
+          <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>
+        </span>
         <a :href="withBase(landing.demo.video)" download>Download video ↗</a>
       </div>
       <details v-if="landing.demo.video" id="film-transcript" class="film-transcript">
         <summary>Read the video walkthrough</summary>
         <p>
-          Designbook is not a design tool. Start with an existing design. The design’s typography, content and actions are mapped to
-          tokens, a data model and SDC components. Your AI agent follows Designbook workflows to
-          produce the implementation. Inspect the resulting Canvas page in Designbook, inside
-          Storybook. This edited sequence summarises the workflow; it does not show elapsed build
-          time.
+          Designbook is not another design tool. <strong>Explain your vision:</strong> in an empty
+          Designbook you tell your AI agent: “We created this famous recipe page in Figma. Make a
+          Drupal page.” The agent writes the product vision and asks whether it may extract the
+          reference. <strong>Scan your design:</strong> Designbook extracts your design — it scans
+          the Figma page and publishes it as a reference in Storybook. <strong>Data model:</strong>
+          based on the reference, the agent first shows what it would create; after your “Yes” it
+          builds the content model: a recipe with ingredients, steps, an author, a category and a
+          difficulty. <strong>Tokens:</strong> it previews the colors, fonts, sizes and spacing it
+          found in the reference, and creates the design tokens after your “Yes”.
+          <strong>Design your screen:</strong> it lists the entities and components it would build,
+          and after your “Yes” it rebuilds the recipe screen in Storybook. First the entities appear
+          with their view mode — recipe (full), ingredient, recipe step and author (default) — then
+          the components inside them: detail page, quantity item, step block and profile card, plus
+          the header of the page shell. Each one appears where it belongs in the Storybook sidebar
+          and is mapped to its area of the screen. <strong>Sync to Drupal:</strong> finally you ask
+          the agent to sync the recipe screen to Drupal. The video is an edited explanation, not a
+          recording of elapsed build time.
         </p>
       </details>
     </section>

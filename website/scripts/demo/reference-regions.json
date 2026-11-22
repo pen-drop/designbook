@@ -1,0 +1,7 @@
+[
+  { "id": "header", "box": { "x": 62, "y": 15, "width": 1316, "height": 75 } },
+  { "id": "recipe-head", "box": { "x": 300, "y": 160, "width": 840, "height": 415 } },
+  { "id": "ingredients", "box": { "x": 885, "y": 1318, "width": 440, "height": 295 } },
+  { "id": "steps", "box": { "x": 165, "y": 2170, "width": 670, "height": 580 } },
+  { "id": "author", "box": { "x": 165, "y": 5265, "width": 670, "height": 205 } }
+]

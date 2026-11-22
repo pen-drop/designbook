@@ -1,5 +1,7 @@
 # Intro-Video: Rezept-Animatic
 
+> Superseded by [`website/scripts/demo/`](../../../website/scripts/demo/README.md) — the 60-second explainer (DESIGNBOOK-81).
+
 [20-Sekunden-Animatic ansehen](index.html) · [MP4](recipe/intro.mp4) ·
 [Schnittvorlage und genaue Zuordnungen](STORYTELLING.md)
 

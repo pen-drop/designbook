@@ -1,5 +1,7 @@
 # Designbook — Rezept-Animatic, 20 Sekunden
 
+> Superseded by [`website/scripts/demo/`](../../../website/scripts/demo/README.md) — the 60-second explainer (DESIGNBOOK-81).
+
 Status: Die detaillierte Schnittvorlage wurde im Gespräch mit „ja bitte so
 weitermachen“ bestätigt. Dieses Animatic prüft Kamera, Lesbarkeit und Zuordnung.
 Die Gestaltung der finalen Lichtimpulse folgt erst nach der Beurteilung des Schnitts.
