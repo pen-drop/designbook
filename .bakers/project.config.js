@@ -16,6 +16,37 @@ export default {
   // Set to false to keep this conductor's transcripts local even then.
   // Metrics are unaffected either way.
   capture_logs: true,
-  addons: ['@bakers-build/addon-herdr'],
-  hooks: { after_create: '.bakers/after-create.sh' },
+  addons: [
+    '@bakers-build/addon-herdr',
+    // Forge tools (forge_fetch, forge_push, forge_pr_upsert, forge_checks, forge_merge) for runs;
+    // the conductor authenticates with its own `gh` login.
+    {
+      use: '@bakers-build/addon-forge',
+      with: {
+        // Keyed by base branch: next → main is a merge commit and keeps `next`; everything else is squashed.
+        merge: {
+          main: { method: 'merge', delete_source: false },
+          '*': { method: 'squash', delete_source: false },
+        },
+        backend: { use: '@bakers-build/addon-forge-github', with: { repository: 'pen-drop/designbook', auth: 'gh' } },
+      },
+    },
+  ],
+  hooks: {
+    after_create: '.bakers/after-create.sh',
+    // Host-side fixture materialization (needs Docker); runs call provision_up(<profile>) per WORKFLOW.md.
+    provision_up: {
+      'drupal-fixture': './scripts/prepare-drupal-fixture.sh',
+      'wordpress-fixture': './scripts/prepare-wordpress-fixture.sh',
+    },
+  },
+  // Host entries must sit in a protected path; the fixture .ddev/ is read by `ddev start` on the host.
+  runtime: {
+    read_only: [
+      'scripts/prepare-drupal-fixture.sh',
+      'scripts/prepare-wordpress-fixture.sh',
+      'packages/integrations/drupal-fixture/.ddev',
+      'packages/integrations/wordpress-fixture/.ddev',
+    ],
+  },
 };
