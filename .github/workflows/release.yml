@@ -1,19 +1,25 @@
 name: Release
 
+# Same model as bakers.build. Nothing is committed back to a branch.
+# - push to next: publishes <last v* tag, patch + 1>-next.<run> to npm under the `next` dist-tag.
+# - merge commit on main (the next -> main PR): the version comes from the Conventional Commits
+#   since the last v* tag (scripts/release-version.mjs). Publishes it as `latest`, tags the merged
+#   commit and creates the GitHub release; its notes are the changelog.
+# - pull request into next or main: the same plan and build as a dry run. Nothing is published,
+#   tagged or released; the job log shows the version and the notes.
 on:
-  # PR-label-driven: merging next -> main runs auto, which derives the release
-  # from the merged PRs' labels (major/minor/patch/skip-release).
   push:
-    branches:
-      - main
-  # Manual fallback.
-  workflow_dispatch:
+    branches: [next, main]
+  pull_request:
+    branches: [next, main]
 
 permissions:
   id-token: write # npm provenance
-  contents: write # auto pushes the version commit + tag to main
-  issues: write # auto comments on released issues
-  pull-requests: write # auto comments on released PRs
+  contents: write # tag + GitHub release
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -22,30 +28,66 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # auto needs full history + tags
+          fetch-depth: 0 # the version derives from the tags and the full history
 
-      - name: Prepare repository
-        run: git fetch --unshallow --tags || git fetch --tags
+      - name: Plan version
+        id: plan
+        env:
+          # A pull request plans for its target branch; its merge ref has the PR head as HEAD^2.
+          BRANCH: ${{ github.base_ref || github.ref_name }}
+        run: |
+          if [ "$BRANCH" = main ]; then
+            commit=$(git rev-parse -q --verify 'HEAD^2') || { echo "::error::$GITHUB_SHA is not a merge; a release reaches main through the merge commit of its pull request."; exit 1; }
+            version=$(node scripts/release-version.mjs "$commit" --notes "$RUNNER_TEMP/notes.md")
+            [ -n "$version" ] && cat "$RUNNER_TEMP/notes.md" || echo "::notice::Nothing to release since the last v* tag."
+            channel=latest
+            # Build and publish exactly the commit that gets the tag.
+            git checkout -q --detach "$commit"
+          else
+            commit=$GITHUB_SHA
+            last=$(git tag --merged HEAD --sort=-v:refname --list 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+            version=$(echo "${last#v}" | awk -F. '{print $1"."$2"."$3+1}')-next.$GITHUB_RUN_NUMBER
+            channel=next
+          fi
+          echo "::notice::$channel $version ($commit)"
+          { echo "commit=$commit"; echo "version=$version"; echo "channel=$channel"; } >> "$GITHUB_OUTPUT"
 
       - name: Install pnpm
+        if: steps.plan.outputs.version != ''
         uses: pnpm/action-setup@v4
 
       - name: Use Node.js 20.x
+        if: steps.plan.outputs.version != ''
         uses: actions/setup-node@v4
         with:
           node-version: 20.x
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Create Release
+      - name: Build and publish to npm
+        if: steps.plan.outputs.version != ''
+        working-directory: packages/storybook-addon-designbook
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          VERSION: ${{ steps.plan.outputs.version }}
+          CHANNEL: ${{ steps.plan.outputs.channel }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          DRY_RUN: ${{ github.event_name == 'pull_request' && '--dry-run' || '' }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          pnpm release
+          pnpm install --frozen-lockfile
+          pnpm run build
+          # pnpm pkg set, not npm version: npm chokes on the workspace: protocol.
+          pnpm pkg set "version=$VERSION"
+          # A re-run after a failed tag step must not fail on the already published version.
+          if npm view "storybook-addon-designbook@$VERSION" version >/dev/null 2>&1; then
+            echo "$VERSION is already on npm."
+          else
+            pnpm publish --no-git-checks --access public --tag "$CHANNEL" $DRY_RUN
+          fi
+
+      - name: Tag and create GitHub release
+        if: github.event_name == 'push' && steps.plan.outputs.channel == 'latest' && steps.plan.outputs.version != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v${{ steps.plan.outputs.version }}
+          COMMIT: ${{ steps.plan.outputs.commit }}
+        run: gh release create "$TAG" --target "$COMMIT" --title "$TAG" --notes-file "$RUNNER_TEMP/notes.md"

@@ -69,8 +69,6 @@
     "format": "prettier --write .",
     "lint": "eslint --cache .",
     "lint:fix": "pnpm lint --fix",
-    "prerelease": "zx scripts/prepublish-checks.js",
-    "release": "npm run build && auto shipit",
     "start": "run-p build:watch \"storybook --quiet\"",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
@@ -87,7 +85,6 @@
     "@types/react": "^18.2.65",
     "@types/react-dom": "^18.2.21",
     "@vitejs/plugin-react": "^4.7.0",
-    "auto": "^11.3.0",
     "boxen": "^8.0.1",
     "eslint": "^9.36.0",
     "eslint-config-prettier": "^10.1.8",
