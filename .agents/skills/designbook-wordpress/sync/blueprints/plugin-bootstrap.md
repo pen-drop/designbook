@@ -24,6 +24,7 @@ no bootstrap code of its own.
  */
 require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/src/ComponentRegistry.php';
+require_once __DIR__ . '/gutenberg/GutenbergAdapter.php';
 Timber\Timber::init();
 add_filter('timber/locations', function ($paths) {
     $paths['<ns>'] = [get_stylesheet_directory() . '/components'];
@@ -38,6 +39,7 @@ add_action('wp_enqueue_scripts', function () {
 foreach (['post-types', 'taxonomies', 'fields'] as $dir) {
     foreach (glob(__DIR__ . "/$dir/*.php") ?: [] as $file) require_once $file;
 }
+add_action('designbook/register_components', ['Designbook\\GutenbergAdapter', 'register']);
 add_action('init', function () {
     $registry = new Designbook\ComponentRegistry(get_stylesheet_directory() . '/components', '<ns>');
     do_action('designbook/register_components', $registry);
