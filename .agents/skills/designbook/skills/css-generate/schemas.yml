@@ -127,7 +127,7 @@ CssFontsPlan:
   properties:
     strategy:
       type: string
-      description: Whether intake wants to create, reuse, refresh, or skip generated font assets.
+      description: Whether intake wants to create, reuse, refresh, or skip generated font assets. `reuse` only when the existing stylesheet covers every planned family with local woff2 files at URLs relative to the compiled stylesheet; otherwise `refresh`.
       enum: [create, reuse, refresh, skip]
     existing:
       type: boolean
@@ -256,7 +256,7 @@ CssGenerationPlan:
       properties:
         strategy:
           type: string
-          description: Whether intake wants to create, reuse, refresh, or skip generated font assets.
+          description: Whether intake wants to create, reuse, refresh, or skip generated font assets. `reuse` only when the existing stylesheet covers every planned family with local woff2 files at URLs relative to the compiled stylesheet; otherwise `refresh`.
           enum: [create, reuse, refresh, skip]
         existing:
           type: boolean
