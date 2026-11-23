@@ -39,8 +39,8 @@ frontend. Framework-independent: checks `:root` custom properties and
    (an invalid `font-family` silently falls back to serif). Collect each
    offending line into `unresolved-placeholders`.
 3. **Expected fonts** — collect each `font-family` name from the generated
-   `@font-face` blocks (the prepared font stylesheet) and any `font_family`
-   typography token.
+   `@font-face` blocks (the prepared font stylesheet) and each family a
+   `semantic.typography` token references.
 4. **Probe** — write `$DESIGNBOOK_CSS_DIR/_token-probe.html` (no markup) linking
    the compiled css relatively:
    `<!doctype html><html><head><link rel="stylesheet" href="./app.css"></head><body></body></html>`
