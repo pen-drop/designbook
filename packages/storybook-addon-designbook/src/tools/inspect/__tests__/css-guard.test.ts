@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { collectMissing } from '../css-guard.js';
+import { collectMissing, declaredVars } from '../css-guard.js';
 import type { StyleEnv } from '../style-env.js';
 
 const env: StyleEnv = {
@@ -30,5 +30,13 @@ describe('collectMissing', () => {
     expect(r.ok).toBe(true);
     expect(r.vars).toEqual([]);
     expect(r.fonts).toEqual([]);
+  });
+});
+
+describe('declaredVars', () => {
+  it('returns full declared names, including inner double hyphens', () => {
+    const css =
+      ':root {\n  --text-display--weight: 100;\n  --text-display--line-height: 1.2;\n  --color-primary: #000;\n  color: var(--color-primary);\n}\n:root { --color-primary: #111; }';
+    expect(declaredVars(css)).toEqual(['--text-display--weight', '--text-display--line-height', '--color-primary']);
   });
 });

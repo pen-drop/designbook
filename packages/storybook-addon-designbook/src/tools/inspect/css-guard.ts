@@ -25,3 +25,8 @@ export function collectMissing(expected: ExpectedStyle, env: StyleEnv): MissingR
     fonts: missingFonts,
   };
 }
+
+/** Unique custom-property names declared in a stylesheet, in order of first declaration. */
+export function declaredVars(css: string): string[] {
+  return [...new Set(Array.from(css.matchAll(/(?:^|[{;])\s*(--[\w-]+)\s*:/gm), (m) => m[1]!))];
+}
