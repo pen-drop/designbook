@@ -4,7 +4,7 @@ Concrete failures during first use, and what to ask or run.
 
 ## The agent cannot find Designbook
 
-Confirm the plugin or skills CLI install, then restart the agent. Claude Code needs `/plugin install designbook@designbook` after `/plugin marketplace add pen-drop/designbook`. Other agents use `npx skills add pen-drop/designbook --skill debo`. Figma is not installed as a marketplace plugin.
+Confirm both parts of the [install](/get-started/install): `storybook-addon-designbook` in the project's `package.json`, and the `designbook` entry skill (Claude Code: `/plugin install designbook@designbook` after `/plugin marketplace add pen-drop/designbook`; other agents: `npx skills add pen-drop/designbook --skill designbook`). Restart the agent. Integrations such as Drupal, Stitch and Figma ship inside the npm package and need no separate install.
 
 ## `intake` cannot find a config
 

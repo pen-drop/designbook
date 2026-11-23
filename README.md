@@ -27,26 +27,26 @@ The public handbook is at [https://pen-drop.github.io/designbook/](https://pen-d
 
 ## Installation
 
-The user-facing skills are distributed as four plugins: `designbook` (core, skill name `debo`), `designbook-drupal`, `designbook-css-tailwind`, and `designbook-stitch`.
+Designbook ships as one npm package, `storybook-addon-designbook`: the CLI, the core skill and all integrations. Agents get a thin entry skill that calls the CLI. See [Install Designbook](docs/get-started/install.md).
 
-### Claude Code plugin marketplace
+```bash
+npm i -D storybook-addon-designbook
+```
+
+Entry skill — Claude Code:
 
 ```
 /plugin marketplace add pen-drop/designbook
 /plugin install designbook@designbook
-/plugin install designbook-drupal@designbook   # pick the integrations you need
 ```
 
-### skills CLI (any agent)
-
-Installs into the project's agent directories (`.agents/skills/` plus per-agent symlinks):
+Entry skill — skills CLI (any agent):
 
 ```bash
-npx skills add pen-drop/designbook                 # interactive picker
-npx skills add pen-drop/designbook --skill debo    # specific skill
+npx skills add pen-drop/designbook --skill designbook
 ```
 
-Internal development skills are marked `metadata.internal: true` in their `SKILL.md` and are hidden from the skills CLI (override with `INSTALL_INTERNAL_SKILLS=1`).
+Own or shared skills install as npm [skill packages](docs/extend/skill-packages.md) and are listed under `skills:` in `designbook.config.yml`.
 
 ### Local development
 
@@ -58,16 +58,13 @@ Test workspaces symlink the repo's `.agents`/`.claude` directories — no instal
 
 ## Development
 
-Claude Code in this repository uses the worktree's local skills. Each bundle
-under `.agents/skills/` is registered as a plugin in
-`.claude-plugin/marketplace.json`, which exposes the bundle's nested sub-skills
-under the bundle namespace (e.g. `designbook:design-shell`,
-`designbook-test:run`). Sub-skill source stays in the owning bundle's `skills/`
-directory. Project settings disable the installed Designbook plugins so their
-commands cannot load files from another checkout. Restart Claude after changing
-plugin settings. A new sub-skill needs no extra wiring — dropping it under a
-registered bundle's `skills/` is enough; a new top-level bundle must be added to
-`marketplace.json`.
+Claude Code in this repository uses the worktree's local skills through
+`.claude/skills/`, and the CLI prefers them over the skills bundled in the addon
+package (`dist/skills/`, copied at build by `scripts/copy-skills.mjs`). The
+marketplace in `.claude-plugin/marketplace.json` ships only the entry skill
+(`plugins/designbook-entry`). Project settings disable the installed Designbook
+plugins so their commands cannot load files from another checkout. A new
+top-level bundle that should ship must be added to `copy-skills.mjs`.
 
 ```bash
 pnpm run dev          # Addon watcher + Storybook (parallel)

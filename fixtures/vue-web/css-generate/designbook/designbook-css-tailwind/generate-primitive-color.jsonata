@@ -5,8 +5,10 @@
  }
  */
 (
-  $entries := $each($$.primitive.color, function($v, $k) {
-    $substring($k, 0, 1) != "$" ? "  --color-" & $k & ": " & $v."$value" & ";"
-  });
-  "@theme static {\n" & $join($filter($entries, function($e) { $e != null }), "\n") & "\n}\n"
+  $leaves := function($node, $name) {
+    $exists($node."$value")
+      ? "  --color-" & $name & ": " & $node."$value" & ";"
+      : $join($each($node, function($v, $k) { $substring($k, 0, 1) != "$" ? $leaves($v, $name & "-" & $k) }), "\n")
+  };
+  "@theme static {\n" & $join($each($$.primitive.color, function($v, $k) { $leaves($v, $k) }), "\n") & "\n}\n"
 )

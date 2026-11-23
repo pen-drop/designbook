@@ -63,7 +63,7 @@
     "cli": "node dist/cli.js",
     "clean": "node -e \"fs.rmSync('./dist', { recursive: true, force: true })\"",
     "prebuild": "pnpm run clean",
-    "build": "tsup",
+    "build": "tsup && node scripts/copy-skills.mjs",
     "build:watch": "tsup --watch",
     "eject-ts": "zx scripts/eject-typescript.js",
     "format": "prettier --write .",

@@ -1,4 +1,5 @@
-import { resolve } from 'node:path';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { Command } from 'commander';
 import { loadConfig, normalizeExtensions, getExtensionIds, getExtensionSkillIds } from './shared/config.js';
 import { validateData } from './validation/data.js';
@@ -115,13 +116,21 @@ program
   .description('Verify token vars and fonts resolve in a compiled stylesheet probe')
   .requiredOption('--probe <path>', 'probe HTML file to inspect')
   .option('--vars <list>', 'comma-separated expected --var names', '')
+  .option('--tokens <dir>', 'also expect every --var declared in <dir>/*.css')
   .option('--fonts <list>', 'comma-separated expected font families', '')
-  .action(async (opts: { probe: string; vars: string; fonts: string }) => {
+  .action(async (opts: { probe: string; vars: string; tokens?: string; fonts: string }) => {
     const { pathToFileURL } = await import('node:url');
     const vars = opts.vars
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
+    if (opts.tokens) {
+      const { declaredVars } = await import('./tools/inspect/css-guard.js');
+      const dir = resolve(opts.tokens);
+      for (const f of readdirSync(dir).filter((n) => n.endsWith('.css'))) {
+        vars.push(...declaredVars(readFileSync(join(dir, f), 'utf-8')));
+      }
+    }
     const fonts = opts.fonts
       .split(',')
       .map((s) => s.trim())

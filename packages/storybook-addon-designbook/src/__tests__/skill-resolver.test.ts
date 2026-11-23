@@ -1,156 +1,129 @@
 import { describe, it, expect } from 'vitest';
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { resolvePluginSkillSources, resolveSkillSources } from '../workflow/skill-resolver.js';
+import { resolveSkillEntry, resolveSkillSources } from '../workflow/skill-resolver.js';
 import type { DesignbookConfig } from '../shared/config.js';
 
-/** Minimal config object for resolver context. */
-function cfg(skills?: string): DesignbookConfig {
+function cfg(skills?: string[]): DesignbookConfig {
   return { data: '', technology: 'html', ...(skills ? { skills } : {}) } as DesignbookConfig;
-}
-
-/** Create a flat skill content root at `<dir>/<skill>/workflows`. */
-function mkFlatSkill(dir: string, skill = 'designbook'): string {
-  mkdirSync(join(dir, skill, 'workflows'), { recursive: true });
-  return dir;
-}
-
-/** Create a hashed marketplace under `<dir>/<skill>/<hash>/workflows`. Returns the marketplace base. */
-function mkHashedSkill(dir: string, hash = 'abc123', skill = 'designbook'): string {
-  mkdirSync(join(dir, skill, hash, 'workflows'), { recursive: true });
-  return dir;
-}
-
-/**
- * Create a Claude-Code plugin cache (`<root>/plugins/cache/designbook/designbook/<hash>/`)
- * so the path matches the PATH-scan regex. Returns the marketplace base + the `bin` PATH entry.
- */
-function mkClaudeCache(root: string, hash = 'abc123'): { mp: string; binEntry: string } {
-  const mp = join(root, 'plugins', 'cache', 'designbook');
-  mkHashedSkill(mp, hash);
-  return { mp, binEntry: join(mp, 'designbook', hash, 'bin') };
 }
 
 function tmp(prefix: string): string {
   return mkdtempSync(resolve(tmpdir(), prefix));
 }
 
-describe('skill-resolver: runtime resolution', () => {
-  it('config resolver wins when config.skills points at content', () => {
-    const base = mkFlatSkill(tmp('debo-cfg-'));
-    const result = resolvePluginSkillSources({ env: {}, home: tmp('debo-home-'), config: cfg(base) });
-    expect(result?.runtime).toBe('config');
-    expect(result?.sources.map((s) => s.name)).toContain('designbook');
+/** A skill package at `root`: `package.json` + `skills/<skill>/workflows/`. */
+function mkPackage(root: string, skills: string[], pkgJson: Record<string, unknown> = {}): string {
+  mkdirSync(root, { recursive: true });
+  writeFileSync(join(root, 'package.json'), JSON.stringify({ name: 'x', ...pkgJson }));
+  for (const s of skills) mkdirSync(join(root, 'skills', s, 'workflows'), { recursive: true });
+  return root;
+}
+
+/** A project dir with `node_modules/<name>` installed. */
+function mkInstalled(project: string, name: string, skills: string[], pkgJson?: Record<string, unknown>): string {
+  return mkPackage(join(project, 'node_modules', ...name.split('/')), skills, pkgJson);
+}
+
+function rootOf(sources: { name: string; root: string }[], name: string): string | undefined {
+  return sources.find((s) => s.name === name)?.root;
+}
+
+describe('resolveSkillEntry', () => {
+  it('resolves a package name from the config dir node_modules', () => {
+    const project = tmp('db-res-');
+    const pkg = mkInstalled(project, 'my-skills', ['a']);
+    expect(resolveSkillEntry('my-skills', project)).toBe(pkg);
   });
 
-  it('claude-code resolver derives the marketplace base from a PATH bin entry', () => {
-    const { mp, binEntry } = mkClaudeCache(tmp('debo-cc-'), 'eb50900ad36c');
-    const env = { CLAUDECODE: '1', PATH: `/usr/bin:${binEntry}` };
-    const result = resolvePluginSkillSources({ env, home: tmp('debo-home-'), config: cfg() });
-    expect(result?.runtime).toBe('claude-code');
-    expect(result?.sources[0]?.root).toBe(join(mp, 'designbook', 'eb50900ad36c'));
+  it('resolves a scoped package name', () => {
+    const project = tmp('db-res-');
+    const pkg = mkInstalled(project, '@org/skills', ['a']);
+    expect(resolveSkillEntry('@org/skills', project)).toBe(pkg);
   });
 
-  it('claude-code resolver falls back to ~/.claude/plugins/cache/designbook when PATH has no entry', () => {
-    const home = tmp('debo-home-');
-    mkHashedSkill(join(home, '.claude', 'plugins', 'cache', 'designbook'), 'deadbeef');
-    const result = resolvePluginSkillSources({ env: { CLAUDECODE: '1', PATH: '/usr/bin' }, home, config: cfg() });
-    expect(result?.runtime).toBe('claude-code');
-    expect(result?.sources[0]?.root).toBe(
-      join(home, '.claude', 'plugins', 'cache', 'designbook', 'designbook', 'deadbeef'),
-    );
+  it('resolves a package whose exports map hides package.json', () => {
+    const project = tmp('db-res-');
+    const pkg = mkInstalled(project, 'hidden', ['a'], { exports: { '.': './index.js' } });
+    expect(resolveSkillEntry('hidden', project)).toBe(pkg);
   });
 
-  it('claude-code resolver is inert when CLAUDECODE/AI_AGENT do not indicate Claude Code', () => {
-    const home = tmp('debo-home-');
-    mkHashedSkill(join(home, '.claude', 'plugins', 'cache', 'designbook'));
-    // No CLAUDECODE and no other runtime content → nothing resolves.
-    const result = resolvePluginSkillSources({ env: {}, home, config: cfg() });
-    expect(result).toBeNull();
+  it('resolves from a parent dir node_modules (theme subdir config)', () => {
+    const workspace = tmp('db-res-');
+    const pkg = mkInstalled(workspace, 'my-skills', ['a']);
+    const theme = join(workspace, 'web', 'themes', 'custom', 't');
+    mkdirSync(theme, { recursive: true });
+    expect(resolveSkillEntry('my-skills', theme)).toBe(pkg);
   });
 
-  it('codex resolver resolves $CODEX_HOME/skills (flat)', () => {
-    const codexHome = tmp('debo-codex-');
-    mkFlatSkill(join(codexHome, 'skills'));
-    const result = resolvePluginSkillSources({
-      env: { CODEX_HOME: codexHome },
-      home: tmp('debo-home-'),
-      config: cfg(),
-    });
-    expect(result?.runtime).toBe('codex');
-    expect(result?.sources[0]?.root).toBe(join(codexHome, 'skills', 'designbook'));
+  it('resolves an absolute path entry', () => {
+    const pkg = mkPackage(join(tmp('db-res-'), 'local'), ['a']);
+    expect(resolveSkillEntry(pkg, '/unused')).toBe(pkg);
   });
 
-  it('gemini resolver resolves ~/.gemini/skills (no env signal)', () => {
-    const home = tmp('debo-home-');
-    mkFlatSkill(join(home, '.gemini', 'skills'));
-    const result = resolvePluginSkillSources({ env: {}, home, config: cfg() });
-    expect(result?.runtime).toBe('gemini');
-    expect(result?.sources[0]?.root).toBe(join(home, '.gemini', 'skills', 'designbook'));
+  it('throws naming an unknown package', () => {
+    expect(() => resolveSkillEntry('nope-skills', tmp('db-res-'))).toThrow(/'nope-skills'/);
   });
 
-  it('agents resolver resolves the cross-runtime ~/.agents/skills', () => {
-    const home = tmp('debo-home-');
-    mkFlatSkill(join(home, '.agents', 'skills'));
-    const result = resolvePluginSkillSources({ env: {}, home, config: cfg() });
-    expect(result?.runtime).toBe('agents');
-    expect(result?.sources[0]?.root).toBe(join(home, '.agents', 'skills', 'designbook'));
-  });
-
-  it('stale config.skills (no content) falls through to the next resolver', () => {
-    const emptyBase = tmp('debo-empty-'); // exists but holds no skill content
-    const { binEntry } = mkClaudeCache(tmp('debo-cc-'));
-    const env = { CLAUDECODE: '1', PATH: binEntry };
-    const result = resolvePluginSkillSources({ env, home: tmp('debo-home-'), config: cfg(emptyBase) });
-    expect(result?.runtime).toBe('claude-code');
-  });
-
-  it('config beats a valid runtime resolver (precedence order)', () => {
-    const cfgBase = mkFlatSkill(tmp('debo-cfg-'));
-    const { binEntry } = mkClaudeCache(tmp('debo-cc-'));
-    const env = { CLAUDECODE: '1', PATH: binEntry };
-    const result = resolvePluginSkillSources({ env, home: tmp('debo-home-'), config: cfg(cfgBase) });
-    expect(result?.runtime).toBe('config');
-  });
-
-  it('returns null when no resolver finds content', () => {
-    const result = resolvePluginSkillSources({ env: {}, home: tmp('debo-home-'), config: cfg() });
-    expect(result).toBeNull();
+  it('throws naming a path without skills/', () => {
+    const dir = tmp('db-res-');
+    expect(() => resolveSkillEntry(dir, '/unused')).toThrow(dir);
   });
 });
 
-describe('skill-resolver: resolveSkillSources merge', () => {
-  it('project-local skills override plugin skills of the same name', () => {
-    const projectDir = tmp('debo-proj-');
-    // Project-local override for `designbook`.
-    mkdirSync(join(projectDir, '.claude', 'skills', 'designbook', 'workflows'), { recursive: true });
-    // Plugin base (gemini) provides designbook + a sibling.
-    const home = tmp('debo-home-');
-    mkFlatSkill(join(home, '.gemini', 'skills'), 'designbook');
-    mkFlatSkill(join(home, '.gemini', 'skills'), 'designbook-css-tailwind');
+describe('resolveSkillSources precedence', () => {
+  /** project-local `.agents/skills/a`, entry1 `a`, entry2 `a`, bundled `a` — layers removable. */
+  function setup(layers: { project?: boolean; e1?: boolean; e2?: boolean; bundled?: boolean }) {
+    const project = tmp('db-prec-');
+    writeFileSync(join(project, 'designbook.config.yml'), 'technology: html\n');
+    if (layers.project) mkdirSync(join(project, '.agents', 'skills', 'a', 'workflows'), { recursive: true });
+    const e1 = mkInstalled(project, 'e1', layers.e1 ? ['a'] : ['other1']);
+    const e2 = mkInstalled(project, 'e2', layers.e2 ? ['a'] : ['other2']);
+    const bundled = mkPackage(join(project, 'bundled'), layers.bundled ? ['a'] : []);
+    const sources = resolveSkillSources(project, { config: cfg(['e1', 'e2']), bundledRoot: bundled });
+    return { project, e1, e2, bundled, sources };
+  }
 
-    const byName = Object.fromEntries(resolveSkillSources(projectDir, { env: {}, home }).map((s) => [s.name, s]));
-    expect(byName['designbook']!.origin).toBe('project');
-    expect(byName['designbook-css-tailwind']!.origin).toBe('plugin');
+  it('project-local beats every entry and bundled', () => {
+    const r = setup({ project: true, e1: true, e2: true, bundled: true });
+    expect(rootOf(r.sources, 'a')).toBe(join(r.project, '.agents', 'skills', 'a'));
   });
 
-  it('returns only project sources when no runtime base is found', () => {
-    const projectDir = tmp('debo-proj-');
-    mkdirSync(join(projectDir, '.agents', 'skills', 'designbook', 'workflows'), { recursive: true });
-    const sources = resolveSkillSources(projectDir, { env: {}, home: tmp('debo-home-') });
-    expect(sources.map((s) => s.name)).toEqual(['designbook']);
-    expect(sources[0]!.origin).toBe('project');
+  it('first listed entry beats later entries and bundled', () => {
+    const r = setup({ e1: true, e2: true, bundled: true });
+    expect(rootOf(r.sources, 'a')).toBe(join(r.e1, 'skills', 'a'));
   });
 
-  it('config.skills via designbook.config.yml drives plugin sources', () => {
-    const base = mkFlatSkill(tmp('debo-base-'));
-    const projectDir = tmp('debo-proj-');
-    writeFileSync(join(projectDir, 'designbook.config.yml'), `skills: ${base}\n`);
-    const byName = Object.fromEntries(
-      resolveSkillSources(projectDir, { env: {}, home: tmp('debo-home-') }).map((s) => [s.name, s]),
+  it('later entry beats bundled', () => {
+    const r = setup({ e2: true, bundled: true });
+    expect(rootOf(r.sources, 'a')).toBe(join(r.e2, 'skills', 'a'));
+  });
+
+  it('bundled is used when nothing else provides the skill', () => {
+    const r = setup({ bundled: true });
+    expect(rootOf(r.sources, 'a')).toBe(join(r.bundled, 'skills', 'a'));
+    expect(r.sources.find((s) => s.name === 'a')?.origin).toBe('plugin');
+  });
+
+  it('loads bundled skills only when skills is absent', () => {
+    const project = tmp('db-prec-');
+    const bundled = mkPackage(join(project, 'bundled'), ['designbook']);
+    const sources = resolveSkillSources(project, { config: cfg(), bundledRoot: bundled });
+    expect(sources).toEqual([{ name: 'designbook', root: join(bundled, 'skills', 'designbook'), origin: 'plugin' }]);
+  });
+
+  it('fails naming an unresolvable entry', () => {
+    const project = tmp('db-prec-');
+    expect(() => resolveSkillSources(project, { config: cfg(['missing-pkg']), bundledRoot: null })).toThrow(
+      /'missing-pkg'/,
     );
-    expect(byName['designbook']!.origin).toBe('plugin');
-    expect(byName['designbook']!.root).toBe(join(base, 'designbook'));
+  });
+});
+
+describe('skill-resolver source', () => {
+  it('has no per-harness detector', () => {
+    const src = readFileSync(resolve(__dirname, '../workflow/skill-resolver.ts'), 'utf-8');
+    expect(src).not.toMatch(/CLAUDECODE|CODEX_HOME|\.gemini|DISABLE_AUTODETECT|\.agents['"], ['"]skills/);
   });
 });

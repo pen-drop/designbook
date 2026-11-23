@@ -6,7 +6,7 @@
  */
 (
   $entries := $each($$.component.section.`padding-y`, function($v, $k) {
-    $substring($k, 0, 1) != "$" ? "  --layout-spacing-" & $k & ": " & $v."$value" & ";"
+    $substring($k, 0, 1) != "$" ? "  --layout-spacing-" & $k & ": " & $replace($v."$value", /\{primitive\.spacing\.(\w+)\}/, "var(--spacing-$1)") & ";"
   });
-  "@theme static {\n" & $join($filter($entries, function($e) { $e != null }), "\n") & "\n}\n"
+  "@theme static {\n" & $join($entries, "\n") & "\n}\n"
 )

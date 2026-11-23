@@ -65,12 +65,11 @@ Generate the planned font stylesheet with `@font-face` declarations for each dow
   font-style: normal;
   font-weight: <weight>;
   font-display: swap;
-  src: url("../fonts/<filename>.woff2") format("woff2");
+  src: url("fonts/<filename>.woff2") format("woff2");
 }
 ```
 
 - One `@font-face` block per weight per family
-- Use relative paths from the planned font stylesheet to the planned font directory
 - The file SHALL contain only `@font-face` declarations with local woff2 references — never remote URLs or `@import url(...)` statements
 
 When the strategy is `reuse`, read the existing stylesheet from `css_generation_plan.fonts.font_css_path` and return its current source instead of rewriting it unnecessarily.

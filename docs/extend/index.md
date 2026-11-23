@@ -10,6 +10,7 @@ This area is the handbook's technical teaching path:
 4. [Extend a skill](/extend/extend-a-skill)
 5. [Workflows and stages](/extend/workflows-and-stages)
 6. [Test an extension](/extend/test-an-extension)
+7. [Skill packages](/extend/skill-packages)
 
 The causal chain is: config → discovered skills and selected integration → matching workflow and stage contributions → artifact → validation. Config does not invent tasks or overwrite hard rules.
 

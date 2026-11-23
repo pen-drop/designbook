@@ -181,6 +181,8 @@ test("executor receives only a saved path and keeps all final assertions", (t) =
   assert.equal(config.providers[0].config.intakeHandoffInput, undefined);
   assert.deepEqual(config.tests[0].assert, f.base.tests[0].assert);
   assert.match(config.prompts[0], /Read .*execute-workflow\/SKILL\.md/);
+  // Workspaces carry no core skills; the executor skill comes from the linked package build.
+  assert.ok(config.prompts[0].includes(join(f.repo, "packages/storybook-addon-designbook/dist/skills/designbook/skills/execute-workflow/SKILL.md")));
   assert.doesNotMatch(config.prompts[0], /plan steps|plan instructions|plan done/);
   assert.match(config.prompts[0], /until complete or blocked/);
   assert.doesNotMatch(

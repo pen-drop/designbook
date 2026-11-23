@@ -10,6 +10,7 @@ Verify token vars and fonts resolve in a compiled stylesheet probe
 Options:
   --probe <path>  probe HTML file to inspect
   --vars <list>   comma-separated expected --var names (default: "")
+  --tokens <dir>  also expect every --var declared in <dir>/*.css
   --fonts <list>  comma-separated expected font families (default: "")
   -h, --help      display help for command
 ```
@@ -18,6 +19,6 @@ Options:
 npx storybook-addon-designbook guard-css --probe path/to/probe.html --vars --color-brand,--font-sans --fonts Inter
 ```
 
-Defaults: `--vars` and `--fonts` are empty strings, so an invocation without lists does not assert names. The `css-generate` workflow's `guard-css` task is the usual caller after `compile-css`. Tailwind projects use this after `@theme` emission.
+Defaults: `--vars` and `--fonts` are empty strings, so an invocation without lists or `--tokens` does not assert names. `--tokens` adds each declared name in full, so `--text-display--weight` stays one name. The `css-generate` workflow's `guard-css` task is the usual caller after `compile-css`. Tailwind projects use this after `@theme` emission.
 
 `--probe` is an HTML file the command inspects, not a Storybook URL. Pair with [storybook check](/advanced/cli/storybook) when you also need console-error and font checks on a live story.

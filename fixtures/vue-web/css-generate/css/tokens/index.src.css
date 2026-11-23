@@ -7,7 +7,7 @@
 @import "./primitive-font.src.css";
 @import "./primitive-leading.src.css";
 @import "./primitive-text.src.css";
+@import "./primitive-spacing.src.css";
 @import "./primitive-weight.src.css";
-@import "./radius.src.css";
-@import "./typography-scale.src.css";
+@import "./primitive-radius.src.css";
 @import "./typography.src.css";

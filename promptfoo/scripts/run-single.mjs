@@ -297,7 +297,7 @@ if (designIntake) {
       report: relative(repo, intakeOutput),
     },
     prompts: [
-      `You are the capture model, inside Promptfoo. Read .agents/skills/designbook/skills/extract-reference/SKILL.md and use that skill for any required capture. The skill resolves the source kind and integration; do not assume a website source for a Figma request. Reuse an existing published reference when the case requests it. Do NOT plan or implement the design itself.\n` +
+      `You are the capture model, inside Promptfoo. Read ${JSON.stringify(join(repo, "packages/storybook-addon-designbook/dist/skills/designbook/skills/extract-reference/SKILL.md"))} and use that skill for any required capture. The skill resolves the source kind and integration; do not assume a website source for a Figma request. Reuse an existing published reference when the case requests it. Do NOT plan or implement the design itself.\n` +
         `Then write ${JSON.stringify(join(workspace, ".designbook-intake/catalogue.json"))} as JSON: \`{ "config": { "data": "<the absolute $DESIGNBOOK_DATA>" }, "reference": { "directory": "<published revision dir>", "subjects": [...], "selectors": [...], "breakpoints": [...] } }\`. The \`config.data\` field is required. Use an empty \`reference\` only when the case has neither a supplied source nor an existing published reference.\n` +
         `Finish by presenting the published reference bindings and selectors for the next model.\n` +
         `Case request:\n${requestPrompt}\nUse only this workspace. Do not provision fixtures or run Promptfoo.`,
@@ -366,7 +366,7 @@ if (
     );
   verifyConfigPath = join(runDir, "verify-promptfooconfig.yaml");
   const verifyPrompt =
-    `In ${JSON.stringify(workspace)}, read .agents/skills/designbook/skills/design-verify/SKILL.md and invoke the design-verify skill for the completed ${JSON.stringify(workflowId)} plan. The skill owns the verification procedure. Resolve all comparison targets from the saved main plan: reference, stories, selectors, views and states; do not invent new comparison targets.\n` +
+    `In ${JSON.stringify(workspace)}, read ${JSON.stringify(join(repo, "packages/storybook-addon-designbook/dist/skills/designbook/skills/design-verify/SKILL.md"))} and invoke the design-verify skill for the completed ${JSON.stringify(workflowId)} plan. The skill owns the verification procedure. Resolve all comparison targets from the saved main plan: reference, stories, selectors, views and states; do not invent new comparison targets.\n` +
     `Use the plan's fixed threshold, or ${thresholdPercent}% when none is declared. Preserve the main artifacts and reference bytes. Report the actual score file path and findings. If required evidence or approval is missing, report the blocker; this test has no interactive user.`;
   verifyConfig = {
     ...config,

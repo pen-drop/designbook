@@ -1,0 +1,12 @@
+/** @config
+ {
+   "input": "../design-system/design-tokens.yml",
+   "output": "../../css/tokens/primitive-spacing.src.css"
+ }
+ */
+(
+  $entries := $each($$.primitive.spacing, function($v, $k) {
+    $substring($k, 0, 1) != "$" ? "  --spacing-" & $k & ": " & $v."$value" & ";"
+  });
+  "@theme static {\n" & $join($entries, "\n") & "\n}\n"
+)

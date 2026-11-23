@@ -44,6 +44,7 @@ export const SIDEBAR = {
       ['Extend a skill', '/extend/extend-a-skill'],
       ['Workflows and stages', '/extend/workflows-and-stages'],
       ['Test an extension', '/extend/test-an-extension'],
+      ['Skill packages', '/extend/skill-packages'],
     ]),
   ],
   '/integrations/': [
