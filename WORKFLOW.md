@@ -30,6 +30,10 @@ and `seed-*` cases start a ddev site from inside the run; they run only under `r
 | Changing the Storybook addon TypeScript package | `designbook-addon-skills` |
 | Changing Drupal integration behavior | `designbook-drupal` |
 | Verifying changed Designbook skill behavior | `debo-test` |
+| Ticket of type ship | `bakers:bb-recipe-ship` |
+
+*Ship*: version command `node scripts/release-version.mjs <SHA> --notes -`; npm package
+`storybook-addon-designbook`.
 
 ## bb-phase-validate
 
