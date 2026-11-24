@@ -1,0 +1,18 @@
+component: test_integration_drupal:profile-card
+name: Default
+slots:
+  name:
+    - type: element
+      tag: span
+      value: Isabella Russo
+  description:
+    - type: element
+      tag: span
+      value: >-
+        In the world of pots and pans, I'm on a mission to turn every meal into
+        a masterpiece.
+  image:
+    - type: image
+      uri: /images/recipes/isabella-russo.jpeg
+      attributes:
+        alt: Portrait of Isabella Russo

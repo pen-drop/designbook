@@ -4,55 +4,15 @@
     "name": "pen-drop"
   },
   "metadata": {
-    "description": "Designbook design system skills — core workflow plus framework/backend integrations",
+    "description": "Designbook entry skill \u2014 calls the storybook-addon-designbook CLI, which ships the core and integration skills",
     "version": "0.6.0"
   },
   "plugins": [
     {
       "name": "designbook",
-      "source": "./.agents/skills/designbook",
+      "source": "./plugins/designbook-entry",
       "strict": false,
-      "description": "Designbook core: workflows, stages, and component creation (skill name: debo)",
-      "category": "design",
-      "skills": [
-        "./"
-      ]
-    },
-    {
-      "name": "designbook-drupal",
-      "source": "./.agents/skills/designbook-drupal",
-      "strict": false,
-      "description": "Drupal/SDC integration for Designbook — backend and SDC-framework tasks, rules, and blueprints",
-      "category": "design",
-      "skills": [
-        "./"
-      ]
-    },
-    {
-      "name": "designbook-css-tailwind",
-      "source": "./.agents/skills/designbook-css-tailwind",
-      "strict": false,
-      "description": "Tailwind CSS v4 integration for Designbook — token naming conventions and CSS token generation via @theme",
-      "category": "design",
-      "skills": [
-        "./"
-      ]
-    },
-    {
-      "name": "designbook-stitch",
-      "source": "./.agents/skills/designbook-stitch",
-      "strict": false,
-      "description": "Stitch design tool integration for Designbook — MCP-based reference resolution and intake screen selection",
-      "category": "design",
-      "skills": [
-        "./"
-      ]
-    },
-    {
-      "name": "designbook-gaia",
-      "source": "./.agents/skills/designbook-gaia",
-      "strict": false,
-      "description": "GAIA integration for Designbook — the design-to-designbook and designbook-to-config workflow-step skills (requires the gaia plugin loaded)",
+      "description": "Designbook entry: runs workflows through the storybook-addon-designbook CLI",
       "category": "design",
       "skills": [
         "./"

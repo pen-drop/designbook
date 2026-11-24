@@ -37,9 +37,13 @@ If the plan strategy is `skip`, return an empty stylesheet string and do not dow
 
 If `semantic.typography-scale` tokens exist, extract all unique `fontWeight` values referenced in the scale. Otherwise default to `400;500;600;700`.
 
-## Step 3: Download woff2 Files
+## Step 3: Obtain woff2 Files
 
-When the plan strategy is `create` or `refresh`, download the required woff2 files into the planned font directory:
+When the plan strategy is `create` or `refresh`, ensure each required family has woff2 binaries in the planned font directory.
+
+Prefer an existing local match first: if `{{ css_generation_plan.fonts.fonts_dir }}` already contains woff2 files whose names start with the family (e.g. `Reef-Bold.woff2` for family `Reef`), keep those files and skip the download for that family.
+
+Otherwise download from Google Fonts:
 
 ```bash
 npx google-font-cli download "<Font Name>" -v <w1>,<w2>,<w3> --woff2 -d {{ css_generation_plan.fonts.fonts_dir }}
@@ -48,6 +52,8 @@ npx google-font-cli download "<Font Name>" -v <w1>,<w2>,<w3> --woff2 -d {{ css_g
 - `<Font Name>`: exact family name (e.g. `"Inter"`, `"Space Grotesk"`)
 - `-v`: comma-separated weight values sorted numerically (e.g. `400,500,600,700`)
 - `--woff2`: download in woff2 format (modern, small file size)
+
+When the family is not in the Google catalog and no local woff2 match exists, leave the family uncovered and surface that gap to `guard-css` — do not invent a system-font fallback as a pass.
 
 ## Step 4: Write CSS
 
@@ -59,12 +65,11 @@ Generate the planned font stylesheet with `@font-face` declarations for each dow
   font-style: normal;
   font-weight: <weight>;
   font-display: swap;
-  src: url("../fonts/<filename>.woff2") format("woff2");
+  src: url("fonts/<filename>.woff2") format("woff2");
 }
 ```
 
 - One `@font-face` block per weight per family
-- Use relative paths from the planned font stylesheet to the planned font directory
 - The file SHALL contain only `@font-face` declarations with local woff2 references — never remote URLs or `@import url(...)` statements
 
 When the strategy is `reuse`, read the existing stylesheet from `css_generation_plan.fonts.font_css_path` and return its current source instead of rewriting it unnecessarily.

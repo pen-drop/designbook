@@ -1,0 +1,22 @@
+{#
+/**
+ * @file
+ * SaaS kit brand mark.
+ *
+ * Available variables:
+ * - variant: default | mark_only
+ * - href, src, alt: Mark link and image
+ * - credit_label, credit_src, credit_alt: Optional credit line (default variant)
+ */
+#}
+{% set variant = variant|default('default') %}
+<a{{ attributes.addClass(['inline-flex', 'items-center', 'gap-2', 'font-body', 'text-sm', 'text-brand-ink']) }} href="{{ href|default('/') }}">
+  <span class="relative inline-flex size-10 shrink-0">
+    <span class="absolute inset-x-0 top-1.5 bottom-0.5 rounded-lg bg-linear-90 from-brand-spectrum-start via-brand-spectrum-mid to-brand-spectrum-end blur-sm" aria-hidden="true"></span>
+    <img src="{{ src }}" alt="{{ alt }}" class="relative size-10 rounded-lg">
+  </span>
+  {% if variant == 'default' and credit_label %}
+    <span>{{ credit_label }}</span>
+    {% if credit_src %}<img src="{{ credit_src }}" alt="{{ credit_alt }}" class="h-5 w-auto">{% endif %}
+  {% endif %}
+</a>

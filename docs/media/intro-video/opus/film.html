@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Designbook — 15 s camera flight (Opus)</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:#f6f9fc}
+.shot{position:absolute;left:0;top:0;transform-origin:0 0;will-change:auto}
+.shot img{position:absolute;left:0;top:0;display:block}
+.clip{position:absolute;overflow:hidden}
+#fx{position:absolute;inset:0;width:1920px;height:1080px;pointer-events:none}
+</style>
+<!-- One world per capture. Each image is shown whole at its native aspect; the camera only scales and translates. -->
+<div class="shot" id="landing">
+  <img src="screenshots/sb-landing.png" width="1600" height="900">
+  <div class="clip" id="siteClip"><img id="site" src="screenshots/site-full.png"></div>
+</div>
+<div class="shot" id="entity"><img src="screenshots/sb-entity.png" width="1600" height="900"></div>
+<div class="shot" id="structure"><img src="screenshots/sb-entity-structure.png" width="1600" height="900"></div>
+<div class="shot" id="docs"><img src="screenshots/docs-mapping.png" width="1600" height="900"></div>
+<div class="shot" id="field"><img src="screenshots/datamodel-field.png" width="1600" height="900"></div>
+<svg id="fx" viewBox="0 0 1920 1080">
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="vblur"><feGaussianBlur id="vblurStd" stdDeviation="0 0"/></filter>
+    <radialGradient id="flare"><stop offset="0" stop-color="#fff" stop-opacity="1"/><stop offset=".35" stop-color="#ffd6c2" stop-opacity=".55"/><stop offset="1" stop-color="#ff6a3d" stop-opacity="0"/></radialGradient>
+    <linearGradient id="sheen" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <linearGradient id="edge" x1="0" x2="1"><stop offset="0" stop-color="#ff6a3d" stop-opacity="0"/><stop offset=".5" stop-color="#fff"/><stop offset="1" stop-color="#ff6a3d" stop-opacity="0"/></linearGradient>
+  </defs>
+  <g id="overlay"></g>
+</svg>
+<script src="boxes.js"></script>
+<script>
+const B = window.BOXES, ACCENT = '#ff5c35'
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x))
+const lerp = (a, b, p) => a + (b - a) * p
+const easeIO = (x) => (x < 0.5 ? 16 * x ** 5 : 1 - (-2 * x + 2) ** 5 / 2) // quint: fast middle, soft landing
+const easeO = (x) => 1 - (1 - x) ** 4
+const backO = (x) => 1 + 2.4 * (x - 1) ** 3 + 1.4 * (x - 1) ** 2
+const center = (r, dx = 0, dy = 0) => [r.x + r.w / 2 + dx, r.y + r.h / 2 + dy]
+
+// Camera tracks: [time, centerX, centerY, width] in capture CSS pixels; height = width * 9/16.
+function at(track, t) {
+  if (t <= track[0][0]) return track[0].slice(1)
+  for (let i = 0; i < track.length - 1; i++) {
+    const [t0, ...a] = track[i], [t1, ...b] = track[i + 1]
+    if (t > t1) continue
+    const p = easeIO(clamp((t - t0) / (t1 - t0)))
+    return [lerp(a[0], b[0], p), lerp(a[1], b[1], p), Math.exp(lerp(Math.log(a[2]), Math.log(b[2]), p))]
+  }
+  return track[track.length - 1].slice(1)
+}
+const cam = ([cx, cy, w]) => ({ cx, cy, w, s: 1920 / w })
+const fit = (r, pad, minW) => { // camera that frames rect r, clamped inside the 1600x900 capture
+  let w = Math.max(minW, r.w + pad * 2, (r.h + pad * 2) * 16 / 9), h = w * 9 / 16
+  const cx = clamp(r.x + r.w / 2, w / 2, 1600 - w / 2), cy = clamp(r.y + r.h / 2, h / 2, 900 - h / 2)
+  return [cx, cy, w]
+}
+
+const L = B.landing, E = B.entity, S = B.structure, D = B.docs, F = B.field
+const freeFocus = fit({ x: L.pricingCard.x, y: L.pricingCard.y, w: L.pricingCard.w, h: 240 }, 110, 0)
+const freeAnchor = [L.freePrice.x, L.freePrice.y], entityAnchor = [E.price.x, E.price.y]
+const priceText = [S.srcPrice.x + 12, S.srcPrice.y + S.srcPrice.h / 2], keyText = [D.key.x + 8, D.key.y + D.key.h / 2]
+const tokenText = [D.field.x, D.field.y + D.field.h / 2], cellText = [F.cell.x + 12, F.cell.y + F.cell.h / 2]
+const priceRows = { x: S.srcPrice.x, y: S.srcPrice.y, w: S.slotPrice.x + S.slotPrice.w - S.srcPrice.x, h: S.srcPrice.h }
+const structFocus = [950, 534, 1300], priceFocus = fit(priceRows, 70, 920)
+const docsFocus = [D.line.x + 190, D.line.y + 10, 980]
+const fieldFocus = [F.row.x + 470, F.title.y - 62 + 1010 * 9 / 32, 1010]
+const shiftCam = (c, from, to) => [c[0] + to[0] - from[0], c[1] + to[1] - from[1], c[2]]
+
+const T = {
+  landing: [[0, 950, 405, 1300], [0.95, 930, 412, 1236], [2.0, 950, 470, 1300], [3.0, 800, 450, 1600], [4.6, 792, 452, 1584], [5.6, ...freeFocus]],
+  entity: [[5.6, ...shiftCam(freeFocus, freeAnchor, entityAnchor)], [5.8, ...shiftCam(freeFocus, freeAnchor, entityAnchor)], [6.75, 800, 450, 1600], [8.45, 806, 452, 1580], [9.35, ...structFocus], [10.15, structFocus[0] + 4, 540, 1280], [10.95, ...priceFocus]],
+  docs: [[10.95, ...shiftCam(priceFocus, priceText, keyText)], [11.12, ...shiftCam(priceFocus, priceText, keyText)], [11.9, ...docsFocus], [12.6, docsFocus[0] + 6, docsFocus[1], 950]],
+  field: [[12.6, ...shiftCam([docsFocus[0] + 6, docsFocus[1], 950], tokenText, cellText)], [12.78, ...shiftCam([docsFocus[0] + 6, docsFocus[1], 950], tokenText, cellText)], [13.65, ...fieldFocus]],
+}
+// Siteshot of the same scene scrolls 0 → the scroll position the Storybook capture was taken at.
+const scroll = (t) => B.scrollY * easeIO(clamp((t - 0.85) / 1.05))
+
+const el = (id) => document.getElementById(id)
+const site = el('site'), siteClip = el('siteClip'), overlay = el('overlay'), vblur = el('vblurStd')
+Object.assign(siteClip.style, { left: B.iframe.x + 'px', top: B.iframe.y + 'px', width: B.iframe.w + 'px', height: B.iframe.h + 'px' })
+site.style.width = B.iframe.w + 'px'
+site.style.height = B.siteHeight + 'px'
+
+function place(id, c, opacity, clip = 'none') {
+  const s = el(id).style
+  s.transform = `translate(${960 - c.cx * c.s}px,${540 - c.cy * c.s}px) scale(${c.s})`
+  s.opacity = opacity
+  s.clipPath = clip
+  s.visibility = opacity > 0 ? 'visible' : 'hidden'
+}
+// Match-cut reveal: the next capture opens as a light circle from the shared anchor point.
+function reveal(c, anchor, t, t0, dur = 0.26) {
+  const p = clamp((t - t0) / dur)
+  if (p <= 0) return { on: false }
+  if (p >= 1) return { on: true, clip: 'none' }
+  const r = 2300 * p ** 1.6, [x, y] = ptS(c, anchor)
+  svg += `<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="#fff" stroke-width="${10 * (1 - p) + 2}" filter="url(#glow)" opacity="${1 - p * 0.5}"/>`
+  svg += `<circle cx="${x}" cy="${y}" r="${r + 6}" fill="none" stroke="${ACCENT}" stroke-width="3" opacity="${0.8 * (1 - p)}"/>`
+  return { on: true, clip: `circle(${r / c.s}px at ${anchor[0]}px ${anchor[1]}px)` }
+}
+const toS = (c, r) => ({ x: (r.x - c.cx) * c.s + 960, y: (r.y - c.cy) * c.s + 540, w: r.w * c.s, h: r.h * c.s })
+const ptS = (c, [x, y]) => [(x - c.cx) * c.s + 960, (y - c.cy) * c.s + 540]
+const fade = (t, a, b) => clamp((t - a) / (b - a))
+const life = (t, t0, t1, fin = 0.12, fout = 0.25) => fade(t, t0, t0 + fin) * (1 - fade(t, t1, t1 + fout))
+
+let svg = ''
+function ring(c, r, t, t0, t1, pad = 5, rx = 10) {
+  const a = life(t, t0, t1)
+  if (!a) return
+  const q = toS(c, r), k = clamp((t - t0) / 0.32), grow = (1 - backO(k)) * 16 + pad
+  const glow = 0.45 + 0.55 * Math.exp(-((t - t0 - 0.12) ** 2) / 0.012)
+  svg += `<rect x="${q.x - grow}" y="${q.y - grow}" width="${q.w + grow * 2}" height="${q.h + grow * 2}" rx="${rx}" fill="none" stroke="${ACCENT}" stroke-width="3.5" opacity="${a}" filter="url(#glow)"/>`
+  svg += `<rect x="${q.x - grow}" y="${q.y - grow}" width="${q.w + grow * 2}" height="${q.h + grow * 2}" rx="${rx}" fill="none" stroke="#fff" stroke-width="1.5" opacity="${a * glow}"/>`
+  const sp = clamp((t - t0) / 0.45) // brief sheen across the real element
+  if (sp > 0 && sp < 1) {
+    const id = 'c' + Math.round(t0 * 1000) + Math.round(r.x)
+    svg += `<clipPath id="${id}"><rect x="${q.x}" y="${q.y}" width="${q.w}" height="${q.h}" rx="${rx}"/></clipPath>`
+    const bw = Math.max(80, q.w * 0.35), x = q.x - bw + (q.w + bw * 2) * easeO(sp)
+    svg += `<rect clip-path="url(#${id})" x="${x - bw}" y="${q.y}" width="${bw * 2}" height="${q.h}" fill="url(#sheen)" opacity="${0.55 * (1 - sp)}"/>`
+  }
+}
+function trail(p0, p1, t, t0, t1, bend = 0.5) {
+  const a = life(t, t0, t1, 0.05, 0.3)
+  if (!a) return
+  const dx = (p1[0] - p0[0]) * bend
+  const d = `M${p0[0]},${p0[1]} C${p0[0] + dx},${p0[1]} ${p1[0] - dx},${p1[1]} ${p1[0]},${p1[1]}`
+  const p = easeO(clamp((t - t0) / 0.5))
+  svg += `<path d="${d}" pathLength="1" fill="none" stroke="${ACCENT}" stroke-width="2.5" stroke-dasharray="${p} 2" opacity="${a * 0.55}"/>`
+  if (p < 1) svg += `<path d="${d}" pathLength="1" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-dasharray="0.16 2" stroke-dashoffset="${0.16 - p}" filter="url(#glow)" opacity="${a}"/>`
+}
+function flare([x, y], t, t0, r = 260, peak = 0.75) {
+  const a = Math.exp(-((t - t0) ** 2) / 0.006) * peak
+  if (a > 0.01) svg += `<circle cx="${x}" cy="${y}" r="${r}" fill="url(#flare)" opacity="${a}"/>`
+}
+const right = (c, r) => { const q = toS(c, r); return [q.x + q.w + 8, q.y + q.h / 2] }
+const left = (c, r) => { const q = toS(c, r); return [q.x - 8, q.y + q.h / 2] }
+
+window.setTime = (t) => {
+  svg = ''
+  const cl = cam(at(T.landing, t)), ce = cam(at(T.entity, t)), cd = cam(at(T.docs, t)), cf = cam(at(T.field, t))
+
+  // 0–5.6 s: website, then Storybook around it (same pixels, so the handover is seamless).
+  const rE = reveal(ce, [E.price.x + 30, E.price.y + 30], t, 5.6)
+  place('landing', cl, t < 5.86 ? 1 : 0)
+  siteClip.style.opacity = 1 - fade(t, 1.95, 2.05)
+  site.style.transform = `translateY(${-scroll(t)}px)`
+  const v = Math.abs(scroll(t + 1 / 60) - scroll(t - 1 / 60)) * 30 // css px per frame
+  site.style.filter = v > 2 ? 'url(#vblur)' : 'none'
+  vblur.setAttribute('stdDeviation', `0 ${Math.min(4, v / 45)}`)
+  if (t < 5.9) {
+    const pairs = [[L.button, L.navButton, 2.95], [L.checkList, L.navCheckList, 3.5], [L.pricingCard, L.navPricingCard, 4.05]]
+    for (const [comp, nav, t0] of pairs) {
+      ring(cl, comp, t, t0, 4.7, 6, 16)
+      ring(cl, nav, t, t0, 4.7, 2, 8)
+      trail(right(cl, nav), left(cl, comp), t, t0, t0 + 0.55)
+    }
+    ring(cl, L.pricingCard, t, 5.0, 5.55, 6, 16)
+  }
+
+  // 5.6–8 s: explicit switch to the standalone pricing_plan entity story ($0 stays put).
+  place('entity', ce, rE.on ? 1 : 0, rE.clip)
+  flare(ptS(cl, [L.freePrice.x + 30, L.freePrice.y + 30]), t, 5.68, 300, 0.8)
+  ring(ce, E.navCard, t, 6.55, 7.85, 2, 8)
+  ring(ce, E.navPricingPlan, t, 6.55, 7.85, 2, 8)
+  trail(right(ce, E.navCard), left(ce, { x: E.price.x, y: E.price.y, w: 10, h: E.price.h }), t, 6.6, 7.4)
+
+  // 8–11 s: Structure panel slides up over the same story, mapping lights up.
+  const wipe = fade(t, 7.9, 8.35)
+  const rD = reveal(cd, keyText, t, 10.95)
+  place('structure', ce, t >= 7.9 && t < 11.21 ? 1 : 0, t < 8.36 ? `inset(${lerp(900, S.panel.y, easeO(wipe))}px 0 0 0)` : 'none')
+  if (wipe > 0 && wipe < 1) {
+    const y = ptS(ce, [0, lerp(900, S.panel.y, easeO(wipe))])[1]
+    svg += `<rect x="0" y="${y - 2}" width="1920" height="4" fill="url(#edge)" filter="url(#glow)" opacity="${1 - wipe * 0.4}"/>`
+  }
+  ring(ce, S.tab, t, 8.3, 9.0, 3, 6)
+  ring(ce, S.compEntity, t, 9.0, 10.55, 3, 6)
+  ring(ce, S.detailEntity, t, 9.0, 10.55, 4, 8)
+  trail(right(ce, S.compEntity), left(ce, S.detailEntity), t, 9.0, 9.7)
+  ring(ce, S.mappingLine, t, 9.45, 10.55, 4, 6)
+  ring(ce, S.srcPrice, t, 9.9, 11.05, 2, 6)
+  ring(ce, S.slotPrice, t, 9.9, 11.05, 2, 6)
+  trail(right(ce, S.srcPrice), left(ce, S.slotPrice), t, 9.95, 11.0)
+
+  // 11–12.6 s: the real JSONata line — slot price is fed by field_price.
+  const rF = reveal(cf, cellText, t, 12.6)
+  place('docs', cd, rD.on && t < 12.86 ? 1 : 0, rD.clip)
+  flare(ptS(ce, priceText), t, 11.02, 220, 0.7)
+  ring(cd, D.key, t, 11.3, 12.5, 4, 6)
+  ring(cd, D.field, t, 11.7, 12.5, 4, 6)
+  trail(right(cd, D.key), left(cd, D.field), t, 11.7, 12.45, 0.3)
+
+  // 12.6–15 s: the corresponding data model field, then a still final second.
+  place('field', cf, rF.on ? 1 : 0, rF.clip)
+  flare(ptS(cd, [D.field.x + D.field.w / 2, D.field.y + D.field.h / 2]), t, 12.68, 220, 0.7)
+  ring(cf, F.row, t, 13.2, 99, 2, 6)
+  ring(cf, { x: F.title.x, y: F.title.y, w: F.machine.x + F.machine.w - F.title.x, h: F.machine.y + F.machine.h - F.title.y }, t, 13.2, 99, 6, 8)
+  trail(left(cf, F.machine), left(cf, F.cell), t, 13.25, 99, -0.6)
+  const pulse = Math.exp(-((t - 13.85) ** 2) / 0.004)
+  if (pulse > 0.01) { const q = toS(cf, F.cell); svg += `<rect x="${q.x}" y="${q.y}" width="${q.w}" height="${q.h}" rx="6" fill="#fff" opacity="${pulse * 0.45}" filter="url(#glow)"/>` }
+
+  overlay.innerHTML = svg
+}
+window.setTime(0)
+</script>
+</html>

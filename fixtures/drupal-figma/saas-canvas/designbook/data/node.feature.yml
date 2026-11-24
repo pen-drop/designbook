@@ -1,0 +1,44 @@
+- id: '1'
+  title: Integration ecosystem
+  field_icon:
+    alt: Leaf icon
+    src: /saas-kit/feature-icon-1.svg
+  field_summary: Track your progress and motivate your efforts everyday.
+  field_link:
+    title: Learn more
+    url: /features/integrations
+  __designbook:
+    section: saas-demo
+- id: '2'
+  title: Goal setting and tracking
+  field_icon:
+    alt: Target icon
+    src: /saas-kit/feature-icon-3.svg
+  field_summary: Set and track goals with manageable task breakdowns.
+  field_link:
+    title: Learn more
+    url: /features/goals
+  __designbook:
+    section: saas-demo
+- id: '3'
+  title: Secure data encryption
+  field_icon:
+    alt: Lock icon
+    src: /saas-kit/feature-icon-2.svg
+  field_summary: Ensure your data’s safety with top-tier encryption.
+  field_link:
+    title: Learn more
+    url: /features/security
+  __designbook:
+    section: saas-demo
+- id: '4'
+  title: Customizable notifications
+  field_icon:
+    alt: Bell icon
+    src: /saas-kit/feature-icon-4.svg
+  field_summary: Get alerts on tasks and deadlines that matter most.
+  field_link:
+    title: Learn more
+    url: /features/notifications
+  __designbook:
+    section: saas-demo

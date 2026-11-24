@@ -1,0 +1,29 @@
+component: "test_integration_vue:page"
+name: "Default"
+slots:
+  header:
+    - type: "component"
+      component: "test_integration_vue:site-header"
+      props:
+        storeName: "Prosaic Bookstore"
+      slots:
+        nav:
+          - type: "component"
+            component: "test_integration_vue:site-nav"
+            props:
+              links:
+                - label: "Catalog"
+                  url: "/catalog"
+                - label: "About"
+                  url: "/about"
+  content:
+    - type: "element"
+      tag: "div"
+      value: "Page content"
+      attributes:
+        class: "p-8"
+  footer:
+    - type: "component"
+      component: "test_integration_vue:site-footer"
+      props:
+        copyright: "© 2026 Prosaic Bookstore"

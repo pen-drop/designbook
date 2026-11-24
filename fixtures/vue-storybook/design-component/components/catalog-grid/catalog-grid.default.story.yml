@@ -1,0 +1,28 @@
+component: "test_integration_vue:catalog-grid"
+name: "Default"
+slots:
+  cards:
+    - type: "component"
+      component: "test_integration_vue:book-card"
+      props:
+        title: "The Quiet Harbor"
+        author: "Mira Lindqvist"
+        price: "$18.50"
+        coverUrl: "https://placehold.co/400x600"
+        status: "in_stock"
+    - type: "component"
+      component: "test_integration_vue:book-card"
+      props:
+        title: "Static and Signal"
+        author: "Devon Okafor"
+        price: "$22.00"
+        coverUrl: "https://placehold.co/400x600"
+        status: "preorder"
+    - type: "component"
+      component: "test_integration_vue:book-card"
+      props:
+        title: "Salt Almanac"
+        author: "Priya Venn"
+        price: "$15.00"
+        coverUrl: "https://placehold.co/400x600"
+        status: "out_of_stock"

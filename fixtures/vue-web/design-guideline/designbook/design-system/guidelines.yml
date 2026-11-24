@@ -1,0 +1,21 @@
+design_reference:
+  type: url
+  url: https://leando.de/
+  label: LEANDO Portal
+
+principles:
+  - "Section-based layout — every page consists of stacked full-width sections"
+  - "Container components for max-width — never apply max-width directly to content elements"
+  - "Tile navigation for main areas (training, examination, networking)"
+
+component_patterns:
+  - "Slider/carousel for content teasers and current topics"
+  - "Card components for events, topics, and learning packages"
+  - "Accordion for FAQ and structured content"
+
+naming:
+  convention: kebab-case
+  examples:
+    - hero-section
+    - card-teaser
+    - content-slider

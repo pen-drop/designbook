@@ -1,0 +1,7 @@
+@theme static {
+  --radius-sm: var(--radius-12);
+  --radius-md: var(--radius-16);
+  --radius-lg: var(--radius-24);
+  --radius-xl: var(--radius-32);
+  --radius-badge: var(--radius-34-435);
+}

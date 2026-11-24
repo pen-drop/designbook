@@ -1,0 +1,51 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: "container"
+status: "experimental"
+group: "Layout"
+description: "Universal structural wrapper. Constrains content width, provides horizontal browser-edge padding, and optionally renders a header, background layer, and theme."
+props:
+  type: "object"
+  properties:
+    max_width:
+      title: "Max Width"
+      type: "string"
+      enum: ["sm", "md", "lg", "xl", "full"]
+      description: "Container max-width. Maps to --container-* tokens."
+    padding_top:
+      title: "Padding Top"
+      type: "string"
+      enum: ["auto", "none", "sm", "md", "lg"]
+      default: "auto"
+      description: "Top padding. auto = none normally, md when background is set."
+    padding_bottom:
+      title: "Padding Bottom"
+      type: "string"
+      enum: ["auto", "none", "sm", "md", "lg"]
+      default: "auto"
+      description: "Bottom padding. auto = md always."
+    display_header:
+      title: "Display Header"
+      type: "boolean"
+      default: true
+      description: "Whether to display the header slot content."
+    theme:
+      title: "Theme"
+      type: "string"
+      description: "Visual theme applied via data-theme attribute."
+slots:
+  header:
+    title: "Header"
+    description: "Optional header content displayed above the main content."
+  background:
+    title: "Background"
+    description: "Decorative or functional background rendered behind the content layer."
+  content:
+    title: "Content"
+    description: "Main content. Can contain anything: a grid component, a single article, or free-form Twig."
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+libraryOverrides:
+  css:
+    component:
+      css/utilities.src.css: {}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isEntityMappingFile } from '../vite-plugin';
+import { isEntityMappingFile } from '../addon/vite-plugin';
 
 describe('isEntityMappingFile', () => {
   it('matches .jsonata mappings under entity-mapping/', () => {

@@ -1,0 +1,13 @@
+id: debo-design-system
+title: PetMatch Shell
+group: Designbook/Design System
+scenes:
+  - name: shell
+    items:
+      - component: test_integration_drupal:page
+        slots:
+          header: <header class="p-6 font-bold text-primary">PetMatch</header>
+          content: $content
+          footer:
+            <footer class="p-6 text-foreground">Find your next companion. Adopt
+            responsibly.</footer>

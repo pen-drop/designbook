@@ -1,0 +1,20 @@
+component: test_integration_drupal:page-hero
+name: Default
+slots:
+  category:
+    - type: element
+      tag: span
+      value: Recipe
+  title:
+    - type: element
+      tag: span
+      value: Lemon Garlic Roasted Chicken
+  description:
+    - type: element
+      tag: span
+      value: Welcome to Cooks Delight, where culinary dreams come alive!
+  image:
+    - type: image
+      uri: /images/recipes/lemon-garlic-roasted-chicken.png
+      attributes:
+        alt: Lemon garlic roasted chicken

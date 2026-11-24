@@ -1,0 +1,23 @@
+component: "test_integration_vue:book-detail"
+name: "Default"
+props:
+  title: "The Quiet Harbor"
+  author: "Mira Lindqvist"
+  genre: "Literary Fiction"
+  price: "$18.50"
+  coverUrl: "https://placehold.co/400x600"
+  summary: "A slow-burning novel about a lighthouse keeper's last summer on a remote northern coast, and the visitor who unsettles her solitude."
+  status: "in_stock"
+slots:
+  publisher:
+    - type: "element"
+      tag: "p"
+      value: "Northwind Press"
+      attributes:
+        class: "text-sm text-[var(--color-muted)]"
+  actions:
+    - type: "element"
+      tag: "button"
+      value: "Add to cart"
+      attributes:
+        class: "rounded bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white"

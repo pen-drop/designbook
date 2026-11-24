@@ -1,0 +1,5 @@
+name: Default
+props:
+  max_width: lg
+slots:
+  column_1: Section content

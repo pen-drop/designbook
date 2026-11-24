@@ -1,12 +1,14 @@
 dist: ./designbook
 backend: drupal
+extensions:
+  - id: website
+  - id: storybook
 frameworks:
   component: sdc
   css: tailwind
 designbook:
   cmd: npx storybook dev
   home: .
-  url: "http://localhost:6009"
 dirs:
   components: components
   css:

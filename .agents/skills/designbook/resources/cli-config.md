@@ -13,7 +13,6 @@ No options. Reads `designbook.config.yml` from the current directory (or `$DESIG
 ```bash
 export DESIGNBOOK_HOME='/abs/path/to/theme'
 export DESIGNBOOK_DATA='/abs/path/to/.designbook'
-export DESIGNBOOK_URL='http://localhost:6006'
 export DESIGNBOOK_EXTENSIONS='designbook-css-tailwind,designbook-drupal'
 export DESIGNBOOK_EXTENSION_SKILLS='designbook-css-tailwind,designbook-drupal'
 designbook() { (cd '/abs/path/to/theme' && npx storybook dev "$@"); }
@@ -23,7 +22,6 @@ export DESIGNBOOK_CMD='designbook'
 Key variables:
 - `DESIGNBOOK_HOME` — theme/Storybook app directory
 - `DESIGNBOOK_DATA` — `.designbook` data directory (tokens, sections, workflows)
-- `DESIGNBOOK_URL` — Storybook base URL
 - `DESIGNBOOK_CMD` — shell function that starts the Storybook dev server (not the CLI)
 - `DESIGNBOOK_EXTENSIONS` — comma-separated extension IDs
 - `DESIGNBOOK_EXTENSION_SKILLS` — comma-separated skill IDs from extensions

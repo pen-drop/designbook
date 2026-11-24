@@ -1,0 +1,471 @@
+$extensions:
+  designbook:
+    source:
+      reference: references/60fbf0acb79bd59d/266781d6753e3a35
+      figma_file: https://www.figma.com/design/jNxa1mBeUyh2eoAQrjcvhd
+      figma_node: '58:2'
+      frame: Cooking Blog CMS (Lemon Garlic Roasted Chicken recipe)
+      scope:
+        subjects:
+          - recipe
+        states:
+          - rest
+        views:
+          - desktop
+      view_width: 1440
+      query:
+        package: tokens
+        fingerprint: 588f2043c9dd210bb6c50e1371b58619e4396590a9c1d7efb6202283013f9550
+    provenance:
+      observed: >-
+        All primitive values: Figma color styles Light/Background/Dark/Primary
+        Color 1-3, rgba fills/borders/text colors incl. alpha, font families
+        Montserrat and Roboto, font sizes, weights, line-height ratios (Figma
+        reports unitless 1 / 1.2 / 1.4), spacing (padding/gap 8-64px), radii
+        (12/16/24/32/34.435px) and layout widths (560/645/870/1232/1312px).
+      calculated: >-
+        letterSpacing em values from observed letter_spacing_percent (-1% ->
+        -0.01em, 0% -> 0em, 1% -> 0.01em, 2% -> 0.02em).
+      inferred: >-
+        Tailwind hue/scale keys for primitive colors, semantic color role names,
+        t-shirt grouping of spacing/radius/container/grid/section scales,
+        semantic radius.full mapped to the observed 34.435px pill, foreground
+        color for Header 2, Header 3, Small Text and ButtonText (no text color
+        in extract; screenshot shows #262522).
+      additions: none - no primitive value without an observation.
+      not_observed: >-
+        Only the desktop view (1440px) was captured; no mobile/tablet
+        observations, so no breakpoint tokens or responsive type scales are
+        defined.
+primitive:
+  color:
+    neutral:
+      '50':
+        $value: '#fffbf2'
+        $type: color
+        $description: Figma style Light
+      '100':
+        $value: '#f0ebe1'
+        $type: color
+        $description: Figma style Background (frame fill)
+      '950':
+        $value: '#262522'
+        $type: color
+        $description: Figma style Dark
+      100-8:
+        $value: rgba(240, 235, 225, 0.08)
+        $type: color
+        $description: footer divider
+      800-40:
+        $value: rgba(51, 51, 51, 0.4)
+        $type: color
+        $description: body image border
+      800-80:
+        $value: rgba(51, 51, 51, 0.8)
+        $type: color
+        $description: Paragraph 2 text
+      950-8:
+        $value: rgba(38, 37, 34, 0.08)
+        $type: color
+        $description: search pill fill
+      950-16:
+        $value: rgba(38, 37, 34, 0.16)
+        $type: color
+        $description: similar-recipe card border
+      950-24:
+        $value: rgba(38, 37, 34, 0.24)
+        $type: color
+        $description: header/blog/card border
+      950-60:
+        $value: rgba(38, 37, 34, 0.6)
+        $type: color
+        $description: hero Paragraph 1 text
+    black:
+      '20':
+        $value: rgba(0, 0, 0, 0.2)
+        $type: color
+        $description: video image overlay
+    green:
+      '400':
+        $value: '#9fdc26'
+        $type: color
+        $description: Figma style Primary Color 1
+    orange:
+      '400':
+        $value: '#f29c33'
+        $type: color
+        $description: Figma style Primary Color 2
+    red:
+      '400':
+        $value: '#ee6352'
+        $type: color
+        $description: Figma style Primary Color 3
+  fontFamily:
+    heading:
+      $value: Montserrat
+      $type: fontFamily
+    body:
+      $value: Roboto
+      $type: fontFamily
+  fontSize:
+    '12':
+      $value: 12px
+      $type: dimension
+    '14':
+      $value: 14px
+      $type: dimension
+    '15':
+      $value: 15px
+      $type: dimension
+    '16':
+      $value: 16px
+      $type: dimension
+    '18':
+      $value: 18px
+      $type: dimension
+    '21':
+      $value: 21px
+      $type: dimension
+    '24':
+      $value: 24px
+      $type: dimension
+    '40':
+      $value: 40px
+      $type: dimension
+    '80':
+      $value: 80px
+      $type: dimension
+  fontWeight:
+    light:
+      $value: 300
+      $type: fontWeight
+    regular:
+      $value: 400
+      $type: fontWeight
+    medium:
+      $value: 500
+      $type: fontWeight
+    semibold:
+      $value: 600
+      $type: fontWeight
+    bold:
+      $value: 700
+      $type: fontWeight
+    extrabold:
+      $value: 800
+      $type: fontWeight
+  lineHeight:
+    none:
+      $value: 1
+      $type: number
+    snug:
+      $value: 1.2
+      $type: number
+    relaxed:
+      $value: 1.4
+      $type: number
+  letterSpacing:
+    tight:
+      $value: '-0.01em'
+      $type: dimension
+    normal:
+      $value: 0em
+      $type: dimension
+    wide:
+      $value: 0.01em
+      $type: dimension
+    wider:
+      $value: 0.02em
+      $type: dimension
+  spacing:
+    xs:
+      $value: 8px
+      $type: dimension
+    sm:
+      $value: 12px
+      $type: dimension
+    md:
+      $value: 16px
+      $type: dimension
+    lg:
+      $value: 24px
+      $type: dimension
+    xl:
+      $value: 40px
+      $type: dimension
+    2xl:
+      $value: 48px
+      $type: dimension
+    3xl:
+      $value: 56px
+      $type: dimension
+    4xl:
+      $value: 64px
+      $type: dimension
+  radius:
+    '12':
+      $value: 12px
+      $type: dimension
+      $description: author image
+    '16':
+      $value: 16px
+      $type: dimension
+      $description: tag, search pill
+    '24':
+      $value: 24px
+      $type: dimension
+      $description: images, cards, buttons, input
+    '32':
+      $value: 32px
+      $type: dimension
+      $description: header, blog, similar recipes, CTA, footer
+    '34':
+      $value: 34.435px
+      $type: dimension
+      $description: badge 144:280 (pill)
+semantic:
+  color:
+    background:
+      $value: '{primitive.color.neutral.100}'
+      $type: color
+      $description: Figma Background — page and panel fill
+    surface:
+      $value: '{primitive.color.neutral.50}'
+      $type: color
+      $description: Figma Light — cards, input
+    surface-muted:
+      $value: '{primitive.color.neutral.950-8}'
+      $type: color
+    foreground:
+      $value: '{primitive.color.neutral.950}'
+      $type: color
+      $description: Figma Dark — headings, strong text
+    foreground-muted:
+      $value: '{primitive.color.neutral.950-60}'
+      $type: color
+    body-text:
+      $value: '{primitive.color.neutral.800-80}'
+      $type: color
+    primary:
+      $value: '{primitive.color.green.400}'
+      $type: color
+      $description: Figma Primary Color 1 — badge
+    secondary:
+      $value: '{primitive.color.orange.400}'
+      $type: color
+      $description: Figma Primary Color 2 — style only, not placed in frame
+    accent:
+      $value: '{primitive.color.red.400}'
+      $type: color
+      $description: Figma Primary Color 3 — tag, labels, CTA, active nav
+    on-accent:
+      $value: '{primitive.color.neutral.50}'
+      $type: color
+    link:
+      $value: '{primitive.color.red.400}'
+      $type: color
+    inverse-surface:
+      $value: '{primitive.color.neutral.950}'
+      $type: color
+      $description: footer, dark buttons
+    inverse-foreground:
+      $value: '{primitive.color.neutral.100}'
+      $type: color
+    inverse-outline:
+      $value: '{primitive.color.neutral.100-8}'
+      $type: color
+    outline:
+      $value: '{primitive.color.neutral.950-24}'
+      $type: color
+    outline-subtle:
+      $value: '{primitive.color.neutral.950-16}'
+      $type: color
+    outline-strong:
+      $value: '{primitive.color.neutral.950}'
+      $type: color
+      $description: outline buttons, share bar
+    media-outline:
+      $value: '{primitive.color.neutral.800-40}'
+      $type: color
+    overlay:
+      $value: '{primitive.color.black.20}'
+      $type: color
+  radius:
+    sm:
+      $value: '{primitive.radius.12}'
+      $type: dimension
+    md:
+      $value: '{primitive.radius.16}'
+      $type: dimension
+    lg:
+      $value: '{primitive.radius.24}'
+      $type: dimension
+    xl:
+      $value: '{primitive.radius.32}'
+      $type: dimension
+    full:
+      $value: '{primitive.radius.34}'
+      $type: dimension
+  typography:
+    headline-1:
+      $type: typography
+      $description: Figma Headline 1 — uppercase
+      $value:
+        fontFamily: '{primitive.fontFamily.heading}'
+        fontSize: '{primitive.fontSize.80}'
+        fontWeight: '{primitive.fontWeight.extrabold}'
+        lineHeight: '{primitive.lineHeight.none}'
+        letterSpacing: '{primitive.letterSpacing.tight}'
+        color: '{semantic.color.foreground}'
+    heading-2:
+      $type: typography
+      $description: Figma Header 2 — uppercase; color inferred
+      $value:
+        fontFamily: '{primitive.fontFamily.heading}'
+        fontSize: '{primitive.fontSize.40}'
+        fontWeight: '{primitive.fontWeight.bold}'
+        lineHeight: '{primitive.lineHeight.none}'
+        letterSpacing: '{primitive.letterSpacing.wide}'
+        color: '{semantic.color.foreground}'
+    heading-3:
+      $type: typography
+      $description: Figma Header 3 — color inferred
+      $value:
+        fontFamily: '{primitive.fontFamily.heading}'
+        fontSize: '{primitive.fontSize.24}'
+        fontWeight: '{primitive.fontWeight.bold}'
+        lineHeight: '{primitive.lineHeight.snug}'
+        letterSpacing: '{primitive.letterSpacing.tight}'
+        color: '{semantic.color.foreground}'
+    subtitle:
+      $type: typography
+      $description: >-
+        Figma Subtitle — uppercase; accent for section labels, foreground for
+        hero metadata
+      $value:
+        fontFamily: '{primitive.fontFamily.heading}'
+        fontSize: '{primitive.fontSize.18}'
+        fontWeight: '{primitive.fontWeight.semibold}'
+        lineHeight: '{primitive.lineHeight.none}'
+        letterSpacing: '{primitive.letterSpacing.wider}'
+        color: '{semantic.color.accent}'
+    tagline:
+      $type: typography
+      $description: Figma Tagline — uppercase, on accent pill
+      $value:
+        fontFamily: '{primitive.fontFamily.body}'
+        fontSize: '{primitive.fontSize.18}'
+        fontWeight: '{primitive.fontWeight.medium}'
+        lineHeight: '{primitive.lineHeight.none}'
+        letterSpacing: '{primitive.letterSpacing.normal}'
+        color: '{semantic.color.on-accent}'
+    paragraph-1:
+      $type: typography
+      $description: Figma Paragraph 1 — foreground (ingredients); hero uses foreground-muted
+      $value:
+        fontFamily: '{primitive.fontFamily.body}'
+        fontSize: '{primitive.fontSize.21}'
+        fontWeight: '{primitive.fontWeight.regular}'
+        lineHeight: '{primitive.lineHeight.relaxed}'
+        letterSpacing: '{primitive.letterSpacing.wide}'
+        color: '{semantic.color.foreground}'
+    paragraph-2:
+      $type: typography
+      $description: Figma Paragraph 2
+      $value:
+        fontFamily: '{primitive.fontFamily.body}'
+        fontSize: '{primitive.fontSize.16}'
+        fontWeight: '{primitive.fontWeight.light}'
+        lineHeight: '{primitive.lineHeight.relaxed}'
+        letterSpacing: '{primitive.letterSpacing.wide}'
+        color: '{semantic.color.body-text}'
+    bold-text:
+      $type: typography
+      $description: Figma Bold Text
+      $value:
+        fontFamily: '{primitive.fontFamily.body}'
+        fontSize: '{primitive.fontSize.16}'
+        fontWeight: '{primitive.fontWeight.medium}'
+        lineHeight: '{primitive.lineHeight.snug}'
+        letterSpacing: '{primitive.letterSpacing.wide}'
+        color: '{semantic.color.foreground}'
+    link:
+      $type: typography
+      $description: Figma Link Text — underline
+      $value:
+        fontFamily: '{primitive.fontFamily.body}'
+        fontSize: '{primitive.fontSize.16}'
+        fontWeight: '{primitive.fontWeight.regular}'
+        lineHeight: '{primitive.lineHeight.snug}'
+        letterSpacing: '{primitive.letterSpacing.wide}'
+        color: '{semantic.color.link}'
+    small:
+      $type: typography
+      $description: Figma Small Text — uppercase; color inferred
+      $value:
+        fontFamily: '{primitive.fontFamily.body}'
+        fontSize: '{primitive.fontSize.12}'
+        fontWeight: '{primitive.fontWeight.medium}'
+        lineHeight: '{primitive.lineHeight.snug}'
+        letterSpacing: '{primitive.letterSpacing.wide}'
+        color: '{semantic.color.foreground}'
+    button:
+      $type: typography
+      $description: Figma ButtonText — uppercase; color inferred (nav, buttons)
+      $value:
+        fontFamily: '{primitive.fontFamily.body}'
+        fontSize: '{primitive.fontSize.14}'
+        fontWeight: '{primitive.fontWeight.medium}'
+        lineHeight: '{primitive.lineHeight.none}'
+        letterSpacing: '{primitive.letterSpacing.normal}'
+        color: '{semantic.color.foreground}'
+    logo:
+      $type: typography
+      $description: Figma Logo wordmark
+      $value:
+        fontFamily: '{primitive.fontFamily.body}'
+        fontSize: '{primitive.fontSize.15}'
+        fontWeight: '{primitive.fontWeight.bold}'
+        lineHeight: '{primitive.lineHeight.none}'
+        letterSpacing: '{primitive.letterSpacing.normal}'
+        color: '{semantic.color.foreground}'
+component:
+  container:
+    max-width:
+      sm:
+        $value: 560px
+        $type: dimension
+      md:
+        $value: 645px
+        $type: dimension
+      lg:
+        $value: 870px
+        $type: dimension
+      xl:
+        $value: 1232px
+        $type: dimension
+      2xl:
+        $value: 1312px
+        $type: dimension
+  grid:
+    gap:
+      sm:
+        $value: '{primitive.spacing.md}'
+        $type: dimension
+      md:
+        $value: '{primitive.spacing.lg}'
+        $type: dimension
+      lg:
+        $value: '{primitive.spacing.xl}'
+        $type: dimension
+  section:
+    padding-y:
+      sm:
+        $value: '{primitive.spacing.lg}'
+        $type: dimension
+      md:
+        $value: '{primitive.spacing.xl}'
+        $type: dimension
+      lg:
+        $value: '{primitive.spacing.4xl}'
+        $type: dimension

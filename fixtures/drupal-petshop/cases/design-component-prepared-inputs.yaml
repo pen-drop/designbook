@@ -1,0 +1,27 @@
+fixtures:
+  - vision
+  - tokens
+  - sections
+
+prompt: |
+  You are working in {{workspace}}. Invoke /debo design-component with these complete decisions:
+  Component avatar, displays user photo, user name and role label; variants small, medium (default), large.
+  Use the supplied values in intake without asking again, build the complete workflow and execute it.
+
+assert:
+  - type: javascript
+    value: output.newFiles.some(f => f.includes('components/') && f.endsWith('.component.yml'))
+  - type: javascript
+    value: output.newFiles.some(f => f.includes('components/') && f.endsWith('.twig'))
+  - type: javascript
+    value: output.newFiles.some(f => f.includes('components/') && f.endsWith('.story.yml'))
+  - type: javascript
+    value: output.completedWorkflows['design-component']?.state?.status === 'completed'
+  - type: javascript
+    value: Object.values(output.completedWorkflows['design-component']?.state?.tasks || {}).every(t => t.status === 'done')
+  - type: javascript
+    value: output.completedWorkflows['design-component']?.tasks?.every(t => t.stage !== 'intake')
+  - type: javascript
+    value: output.completedWorkflows['design-component']?.scope?.components?.length === 1
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0

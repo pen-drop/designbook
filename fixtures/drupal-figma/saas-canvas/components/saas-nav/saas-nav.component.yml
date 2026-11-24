@@ -1,0 +1,38 @@
+$schema: >-
+  https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: saas-nav
+status: experimental
+group: Navigation
+description: >-
+  Drupal menu tree for the SaaS kit: a horizontal link row (main) or link
+  columns headed by their top-level item (footer).
+variants:
+  main:
+    title: Main
+    description: Horizontal row of muted links on the light nav bar.
+  footer:
+    title: Footer
+    description: >-
+      One column per top-level item; the item is the column heading, its
+      children are the links.
+props:
+  type: object
+  properties:
+    items:
+      type: array
+      title: Menu items
+      description: Drupal MenuLinkTreeElement items (title, url, in_active_trail, below).
+      items:
+        type: object
+        properties:
+          title:
+            type: string
+          url:
+            type: string
+          in_active_trail:
+            type: boolean
+          below:
+            type: array
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

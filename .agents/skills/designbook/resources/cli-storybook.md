@@ -2,6 +2,8 @@
 
 Manages the Storybook daemon lifecycle. State is persisted in `$DESIGNBOOK_DATA/storybook.json` (PID/port) and `$DESIGNBOOK_DATA/storybook.log` (output).
 
+Storybook is **always** started through `storybook start`, never any other way and never a static config URL. It auto-assigns a free port (avoiding whatever else runs on a shared host), so the live base URL is only known after start — read it back from `storybook status` and use that for every index and story URL.
+
 ## `storybook start`
 
 Start Storybook dev server as a detached daemon, wait until ready.

@@ -1,0 +1,114 @@
+id: debo-design-system
+title: Design System
+description: >-
+  Cooks Delight shell: rounded header bar with logo, main navigation, search and
+  subscribe; one content injection point; dark rounded footer with logo, links,
+  social icons and copyright.
+status: planned
+order: 0
+group: Designbook/Design System
+scenes:
+  - name: shell
+    items:
+      - component: test_integration_drupal:page
+        slots:
+          header:
+            - component: test_integration_drupal:header
+              slots:
+                logo:
+                  - component: test_integration_drupal:logo
+                    props:
+                      variant: full
+                      href: /
+                      label: Cooks Delight
+                    slots:
+                      media: >-
+                        <img src="/images/shell/logo.svg" alt=""
+                        style="display:block;width:40px;height:35px;">
+                navigation:
+                  - component: test_integration_drupal:navigation
+                    props:
+                      variant: main
+                      items:
+                        - title: Home
+                          url: /
+                          in_active_trail: true
+                          below: []
+                        - title: recipes
+                          url: /recipes
+                          in_active_trail: false
+                          below: []
+                        - title: cooking tips
+                          url: /cooking-tips
+                          in_active_trail: false
+                          below: []
+                        - title: about us
+                          url: /about-us
+                          in_active_trail: false
+                          below: []
+                actions:
+                  - component: test_integration_drupal:button
+                    props:
+                      variant: icon_pill
+                      label: Search
+                      href: '#search'
+                    slots:
+                      icon: >-
+                        <img src="/images/shell/search.svg" alt=""
+                        style="display:block;width:21px;height:21px;">
+                  - component: test_integration_drupal:button
+                    props:
+                      variant: primary
+                      label: subscribe
+                      href: '#subscribe'
+          content: $content
+          footer:
+            - component: test_integration_drupal:footer
+              props:
+                copyright: 'Copyright: © 2024 Cooks Delight.'
+                social_links:
+                  - title: TikTok
+                    url: '#tiktok'
+                    icon: /images/shell/tiktok.svg
+                  - title: Facebook
+                    url: '#facebook'
+                    icon: /images/shell/facebook.svg
+                  - title: Instagram
+                    url: '#instagram'
+                    icon: /images/shell/instagram.svg
+                  - title: YouTube
+                    url: '#youtube'
+                    icon: /images/shell/youtube.svg
+              slots:
+                logo:
+                  - component: test_integration_drupal:logo
+                    props:
+                      variant: inverse
+                      href: /
+                      label: Cooks Delight
+                    slots:
+                      media: >-
+                        <img src="/images/shell/logo-footer.svg" alt=""
+                        style="display:block;width:40px;height:35px;">
+                navigation:
+                  - component: test_integration_drupal:navigation
+                    props:
+                      variant: footer
+                      items:
+                        - title: Home
+                          url: /
+                          in_active_trail: false
+                          below: []
+                        - title: recipes
+                          url: /recipes
+                          in_active_trail: false
+                          below: []
+                        - title: cooking tips
+                          url: /cooking-tips
+                          in_active_trail: false
+                          below: []
+                        - title: About us
+                          url: /about-us
+                          in_active_trail: false
+                          below: []
+                      separator_src: /images/shell/footer-separator.svg

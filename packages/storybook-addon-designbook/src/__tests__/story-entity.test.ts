@@ -2,9 +2,8 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { resolve } from 'node:path';
 import { mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { dump as dumpYaml } from 'js-yaml';
-import { StoryMeta, resolveScene } from '../story-entity.js';
-import { hashReferenceUrl } from '../resolvers/reference-folder.js';
-import type { DesignbookConfig } from '../config.js';
+import { StoryMeta, resolveScene } from '../scene-model/story-entity.js';
+import type { DesignbookConfig } from '../shared/config.js';
 
 const tmpDir = resolve(import.meta.dirname, '__fixtures_story_entity__');
 
@@ -18,14 +17,14 @@ function writeMeta(storyId: string, meta: unknown) {
   writeFileSync(resolve(dir, 'meta.yml'), dumpYaml(meta, { lineWidth: -1 }));
 }
 
-const shellHash = hashReferenceUrl('https://example.com/shell');
+const shellBinding = '1111111111111111/aaaaaaaaaaaaaaaa';
 
 function setupFixtures() {
   rmSync(tmpDir, { recursive: true, force: true });
   mkdirSync(resolve(tmpDir, 'stories'), { recursive: true });
 
   writeMeta('design-system--shell', {
-    reference: shellHash,
+    reference: shellBinding,
     elements: [
       { id: 'header', selector: 'header' },
       { id: 'footer', selector: 'footer' },
@@ -33,12 +32,12 @@ function setupFixtures() {
   });
 
   writeMeta('galerie--product-detail', {
-    reference: hashReferenceUrl('https://example.com/product'),
+    reference: '2222222222222222/bbbbbbbbbbbbbbbb',
     elements: [{ id: 'full', selector: '' }],
   });
 
   writeMeta('galerie--overview', {
-    reference: hashReferenceUrl('https://example.com/overview'),
+    reference: '3333333333333333/cccccccccccccccc',
     elements: [{ id: 'full', selector: '' }],
   });
 
@@ -95,7 +94,7 @@ describe('StoryMeta', () => {
       expect(existsSync(resolve(storyDir, 'meta.yml'))).toBe(true);
       expect(story.storyId).toBe(storyId);
 
-      // new format: reference is a hash string or null, no nested breakpoints
+      // new format: reference is a revision binding or null, no nested breakpoints
       const json = story.toJSON();
       expect(json.reference).toBeNull();
       expect(json.elements).toEqual([]);
@@ -123,8 +122,8 @@ describe('StoryMeta', () => {
       const json = story.toJSON();
       expect(json.storyId).toBe('design-system--shell');
       expect(json.section).toBe('design-system');
-      expect(json.reference).toBe(shellHash);
-      expect(json.referenceDir).toBe(`references/${shellHash}`);
+      expect(json.reference).toBe(shellBinding);
+      expect(json.referenceDir).toBe(`references/${shellBinding}`);
       expect(json.elements).toEqual([
         { id: 'header', selector: 'header' },
         { id: 'footer', selector: 'footer' },

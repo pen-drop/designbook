@@ -1,0 +1,55 @@
+component: "test_integration_drupal:header"
+name: "Default"
+slots:
+  logo:
+    - type: "component"
+      component: "test_integration_drupal:logo"
+      props:
+        href: "/"
+        label: "Cooks Delight"
+      slots:
+        media:
+          - type: "image"
+            uri: "/images/shell/logo.svg"
+            attributes:
+              alt: ""
+  navigation:
+    - type: "component"
+      component: "test_integration_drupal:navigation"
+      props:
+        items:
+          - title: "Home"
+            url: "/"
+            in_active_trail: true
+            below: []
+          - title: "recipes"
+            url: "/recipes"
+            in_active_trail: false
+            below: []
+          - title: "cooking tips"
+            url: "/cooking-tips"
+            in_active_trail: false
+            below: []
+          - title: "about us"
+            url: "/about-us"
+            in_active_trail: false
+            below: []
+  actions:
+    - type: "component"
+      component: "test_integration_drupal:button"
+      props:
+        variant: "icon_pill"
+        label: "Search"
+        href: "#search"
+      slots:
+        icon:
+          - type: "image"
+            uri: "/images/shell/search.svg"
+            attributes:
+              alt: ""
+    - type: "component"
+      component: "test_integration_drupal:button"
+      props:
+        variant: "primary"
+        label: "subscribe"
+        href: "#subscribe"

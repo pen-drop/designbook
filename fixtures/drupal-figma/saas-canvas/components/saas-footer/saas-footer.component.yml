@@ -1,0 +1,35 @@
+$schema: >-
+  https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: saas-footer
+status: experimental
+group: Shell
+description: >-
+  Black site footer: brand mark, short description and social links on the left,
+  footer navigation columns on the right.
+props:
+  type: object
+  properties:
+    description:
+      type: string
+      title: Description
+    social_links:
+      type: array
+      title: Social links
+      items:
+        type: object
+        properties:
+          label:
+            type: string
+          url:
+            type: string
+          icon:
+            type: string
+            description: Local icon image path.
+slots:
+  logo:
+    title: Logo
+  navigation:
+    title: Navigation
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

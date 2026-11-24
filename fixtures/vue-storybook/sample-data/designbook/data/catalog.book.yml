@@ -1,0 +1,33 @@
+- id: book-1
+  title: The Quiet Harbor
+  field_author: Mira Lindqvist
+  field_genre: Literary Fiction
+  field_price: "18.50"
+  field_cover_url: https://picsum.photos/seed/quiet-harbor/400/600
+  field_summary: A slow-burning novel about a lighthouse keeper's last summer on a remote northern coast, and the visitor who unsettles her solitude.
+  field_status: in_stock
+  field_publisher: publisher-1
+  __designbook:
+    section: "catalog"
+- id: book-2
+  title: Static and Signal
+  field_author: Devon Okafor
+  field_genre: Science Fiction
+  field_price: "22.00"
+  field_cover_url: https://picsum.photos/seed/static-signal/400/600
+  field_summary: A radio operator on a dying orbital station intercepts a transmission that predates human spaceflight.
+  field_status: preorder
+  field_publisher: publisher-2
+  __designbook:
+    section: "catalog"
+- id: book-3
+  title: Salt Almanac
+  field_author: Priya Venn
+  field_genre: Essay Collection
+  field_price: "15.00"
+  field_cover_url: https://picsum.photos/seed/salt-almanac/400/600
+  field_summary: Twelve essays on coastal towns, tide tables and the small rituals that mark a year by the sea.
+  field_status: out_of_stock
+  field_publisher: publisher-1
+  __designbook:
+    section: "catalog"

@@ -1,0 +1,12 @@
+- id: isabella-russo
+  name: Isabella Russo
+  description: >-
+    In the world of pots and pans, I'm on a mission to turn every meal into a
+    masterpiece. Cooks Delight is not just a blog; it's a shared space where the
+    love for food transcends boundaries. Here, we celebrate the art of crafting
+    meals that not only nourish the body but also feed the soul.
+  field_author_image:
+    src: /images/recipes/isabella-russo.jpeg
+    alt: Portrait of Isabella Russo smiling in a kitchen
+  __designbook:
+    section: recipes

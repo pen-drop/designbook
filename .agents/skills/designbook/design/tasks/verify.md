@@ -48,7 +48,7 @@ Re-evaluates after polish + recapture. Emits `verified-issues` as a data result 
 
 Verify compares existing screenshots (captured by the `recapture` task) — it does NOT restart Storybook or re-capture.
 
-1. **Read issues for this check** from the `issues` param (pre-filtered via workflow scope + `each: checks`).
+1. **Read issues for this check** from the `issues` param (selected during repair intake).
 
 2. **Re-compare based on issue source:**
 
@@ -62,10 +62,4 @@ Verify compares existing screenshots (captured by the `recapture` task) — it d
 
 3. **Emit `verified-issues`** — each input issue copied over with `status: "done"` and `result: "pass" | "fail"` set.
 
-Complete the task with `workflow done --data` passing the verified-issues array:
-
-```bash
-workflow done --data '{"verified-issues": [ ... ]}'
-```
-
-The overall check verdict (pass/fail) is derived by downstream tooling from the verified-issues array: `fail` if any issue has `result: "fail"`, else `pass`. No `meta.yml` write.
+Return the declared verified-issues result. Completion: every supplied issue has a recorded verification finding.

@@ -1,0 +1,27 @@
+$schema: >-
+  https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: saas-section
+status: experimental
+group: Data Display
+description: >-
+  Centered landing section: intro header, optional media and an item area (grid
+  of cards).
+variants:
+  showcase:
+    title: Showcase
+    description: >-
+      White-to-periwinkle gradient with floating torus and pyramid decorations;
+      media shown with a deep shadow.
+  plain:
+    title: Plain
+    description: White background without decorations.
+slots:
+  header:
+    title: Header
+  media:
+    title: Media
+  items:
+    title: Items
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

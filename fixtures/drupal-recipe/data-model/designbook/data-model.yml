@@ -1,0 +1,231 @@
+content:
+  node:
+    recipe:
+      purpose: >-
+        Route-bearing recipe detail page (node.recipe full view, field-map
+        rendering) as captured in Figma frame 58:2 (Lemon Garlic Roasted
+        Chicken). Total time shown in the metadata row is derived as
+        field_prep_minutes + field_cook_minutes; there is no stored total-time
+        field. The teaser view mode renders the visible "Similar recipes" cards.
+      view_modes:
+        full:
+          template: field-map
+        teaser:
+          template: field-map
+          label: Teaser
+      fields:
+        title:
+          type: string
+          title: Title
+          required: true
+        field_category:
+          type: reference
+          title: Category
+          description: Category pill above the title (Figma 60:368 "recipe").
+          settings:
+            target_type: taxonomy_term
+            target_bundles:
+              - recipe_category
+        field_description:
+          type: text
+          title: Description
+          required: true
+          description: >-
+            Hero intro paragraph (Figma 60:370); also the teaser text on
+            similar-recipe cards.
+        field_recipe_image:
+          type: image
+          title: Recipe image
+          required: true
+          description: Hero image (Figma 60:384, 1232x640) and card image in teaser.
+          settings:
+            image_style: ratio_77_40
+        field_prep_minutes:
+          type: integer
+          title: Preparation time (minutes)
+          required: true
+        field_cook_minutes:
+          type: integer
+          title: Cooking time (minutes)
+          required: true
+        field_difficulty:
+          type: reference
+          title: Difficulty
+          required: true
+          description: >-
+            Rendered as "<difficulty> prep" in the metadata row (Figma
+            146:1719).
+          settings:
+            target_type: taxonomy_term
+            target_bundles:
+              - difficulty
+        field_servings:
+          type: integer
+          title: Servings
+          required: true
+          description: Rendered as "<n> serves" (Figma 146:1721).
+        body:
+          type: formatted_text
+          title: Body
+          description: >-
+            Editorial intro and the do's/don'ts guidance in the body column
+            (Figma 83:154, 83:156-83:165).
+        field_ingredients:
+          type: reference
+          title: Ingredients
+          multiple: true
+          required: true
+          description: Ordered, structured ingredient lines (sidebar card, Figma 60:388).
+          settings:
+            target_type: paragraph
+            target_bundles:
+              - ingredient
+        field_equipment:
+          type: string
+          title: Equipment needed for preparation
+          multiple: true
+          description: Sidebar card, Figma 83:170.
+        field_nutrition_basis:
+          type: string
+          title: Nutrition basis
+          description: Figma 83:181 ("Per serving (based on a 4-pound chicken):").
+        field_nutrition:
+          type: string
+          title: Nutritional values
+          multiple: true
+          description: Label/value lines, Figma 83:183.
+        field_instructions_intro:
+          type: text
+          title: Instructions intro
+          description: Text under the "Instructions" heading, Figma 82:146.
+        field_steps:
+          type: reference
+          title: Preparation steps
+          multiple: true
+          required: true
+          description: >-
+            Ordered preparation stages (Figma 60:397-64:409); delta order is
+            step order.
+          settings:
+            target_type: paragraph
+            target_bundles:
+              - recipe_step
+        field_serving_notes:
+          type: formatted_text
+          title: Pairing suggestions and closing notes
+          description: Figma 64:411, 64:412, 83:166, 83:167, 64:432.
+        field_author:
+          type: reference
+          title: Author
+          description: Author card below the body (Figma 83:192, Isabella Russo).
+          settings:
+            target_type: taxonomy_term
+            target_bundles:
+              - author
+        field_related_recipes:
+          type: reference
+          title: Similar recipes
+          multiple: true
+          description: >-
+            Cards in the "Similar recipes" band (Figma 144:249), rendered in
+            teaser view mode.
+          settings:
+            target_type: node
+            target_bundles:
+              - recipe
+  paragraph:
+    ingredient:
+      purpose: >-
+        One structured ingredient line (quantity, unit, ingredient name) of a
+        recipe.
+      view_modes:
+        default:
+          template: field-map
+      fields:
+        field_quantity:
+          type: string
+          title: Quantity
+          description: Free text to allow ranges/fractions; empty for "to taste" lines.
+        field_unit:
+          type: string
+          title: Unit
+        field_ingredient_name:
+          type: string
+          title: Ingredient name
+          required: true
+    recipe_step:
+      purpose: >-
+        One named preparation stage with its ordered actions and optional step
+        image.
+      view_modes:
+        default:
+          template: field-map
+      fields:
+        field_step_title:
+          type: string
+          title: Stage title
+          required: true
+        field_step_items:
+          type: string
+          title: Actions
+          multiple: true
+          required: true
+        field_step_image:
+          type: image
+          title: Step image
+          description: Optional; Figma 75:3, 75:2, 60:386 (645x480).
+          settings:
+            image_style: ratio_4_3
+  taxonomy_term:
+    difficulty:
+      purpose: >-
+        Controlled difficulty levels (easy, medium, hard) shown as "<level>
+        prep".
+      view_modes:
+        default:
+          template: field-map
+      fields:
+        name:
+          type: string
+          title: Name
+          required: true
+    recipe_category:
+      purpose: Category label shown as the pill above the recipe title.
+      view_modes:
+        default:
+          template: field-map
+      fields:
+        name:
+          type: string
+          title: Name
+          required: true
+    author:
+      purpose: Recipe author shown in the author card (name, bio, portrait).
+      view_modes:
+        default:
+          template: field-map
+      fields:
+        name:
+          type: string
+          title: Name
+          required: true
+        description:
+          type: text
+          title: Description
+          required: false
+        field_author_image:
+          type: image
+          title: Portrait
+          description: Figma 83:191, 120x120.
+          settings:
+            image_style: ratio_1_1
+config:
+  image_style:
+    ratio_77_40:
+      aspect_ratio: '77:40'
+    ratio_27_10:
+      aspect_ratio: '27:10'
+    ratio_4_3:
+      aspect_ratio: '4:3'
+    ratio_1_1:
+      aspect_ratio: '1:1'

@@ -21,7 +21,8 @@ Rules and resources for Drupal-compatible data model creation (`when: backend: d
 
 Rules and resources for mapping Drupal fields to component props in the `map-entity` stage (`when: backend: drupal`).
 
-- [data-mapping/blueprints/field-map.md](data-mapping/blueprints/field-map.md) — Blueprint for `template: field-map`; generates JSONata mapping Drupal fields to `ComponentNode[]`
+- [data-mapping/blueprints/field-map.md](data-mapping/blueprints/field-map.md) — Blueprint for `template: field-map`; generates JSONata mapping Drupal fields to `ComponentNode[]` (`frameworks.component: sdc`)
+- [data-mapping/blueprints/ui-patterns.md](data-mapping/blueprints/ui-patterns.md), [views.md](data-mapping/blueprints/views.md), [layout-builder-display.md](data-mapping/blueprints/layout-builder-display.md), [presenter-template.md](data-mapping/blueprints/presenter-template.md), [pager.md](data-mapping/blueprints/pager.md) — SDC/UI-Patterns mapping and display-config blueprints (`frameworks.component: sdc`)
 - [data-mapping/rules/image-fields.md](data-mapping/rules/image-fields.md) — Hard constraints for image and reference field mapping
 - [data-mapping/rules/field-cardinality.md](data-mapping/rules/field-cardinality.md) — Cardinality boundary: multi-value fields render as field-level collections; single-value fields may be unwrapped
 - [data-mapping/blueprints/canvas.md](data-mapping/blueprints/canvas.md) — Canvas-specific mapping blueprint
@@ -43,14 +44,14 @@ Rules for generating Drupal-compatible sample data (`when: backend: drupal`).
 Rules, tasks, and blueprints for creating Drupal SDC components (`when: frameworks.component: sdc`).
 
 - [components/schemas.yml](components/schemas.yml) — `SdcComponent` / `SdcStory` / `SdcStoryNode` / `SdcTemplate` — naming, slot rules, YAML quoting, variants, placeholder images, Twig conventions (single source)
-- [components/tasks/create-component.md](components/tasks/create-component.md) — Creates all three SDC files; phase-based generation with per-component validation
+- [components/tasks/write-component.md](components/tasks/write-component.md) — Complete SDC artifacts for a selected component and requested delta
 - [components/rules/sdc-components.md](components/rules/sdc-components.md) — Constraints for `.component.yml`, `.twig`, `.story.yml` (global naming + per-file-type rules)
 - [components/rules/reference-field-semantics.md](components/rules/reference-field-semantics.md) — Prevents raw field values, placeholder links, and duplicate action fields from leaking into reference-derived component markup
 - [components/rules/layout-constraints.md](components/rules/layout-constraints.md) — Layout component constraints
 
 ## Blueprints
 
-Layout component blueprints with tokens, props/slots summary (`when: steps: [create-component]`).
+Layout component blueprints with tokens, props/slots summary (`when: steps: [write-component]`).
 
 - [blueprints/container.md](blueprints/container.md) — Universal structural wrapper (max-width, padding, header, background)
 - [blueprints/grid.md](blueprints/grid.md) — Responsive column grid layout

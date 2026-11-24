@@ -5,6 +5,8 @@ frameworks:
   component: sdc
   css: tailwind
 extensions:
+  - id: website
+  - id: storybook
   - id: canvas
     url: https://www.drupal.org/project/canvas
   - id: stitch
@@ -12,7 +14,6 @@ extensions:
 designbook:
   cmd: npx storybook dev
   home: .
-  url: "http://localhost:6009"
 dirs:
   components: components
   css:

@@ -1,0 +1,20 @@
+component: "test_integration_drupal:navigation"
+name: "Default"
+props:
+  items:
+    - title: "Home"
+      url: "/"
+      in_active_trail: true
+      below: []
+    - title: "recipes"
+      url: "/recipes"
+      in_active_trail: false
+      below: []
+    - title: "cooking tips"
+      url: "/cooking-tips"
+      in_active_trail: false
+      below: []
+    - title: "about us"
+      url: "/about-us"
+      in_active_trail: false
+      below: []

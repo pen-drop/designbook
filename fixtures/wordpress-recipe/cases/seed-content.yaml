@@ -1,0 +1,43 @@
+workflow: seed-content
+fixtures:
+  - empty
+  - reference
+  - vision
+  - data-model
+  - tokens
+  - screen
+prompt: |
+  You are working in {{workspace}}. This is the Cooks Delight recipe demo.
+  Use the installed Designbook skills and the configured WordPress / Twig / Tailwind integration.
+  Read the actual SKILL.md for each skill named below and follow its instructions.
+  Execute only this case and its explicitly named prerequisite skills.
+  Preserve all completed earlier steps and the published reference.
+  Do not launch Promptfoo or rebuild this prepared workspace from inside the case.
+  If required evidence, access or approval is missing, stop with the exact blocker; never invent it.
+  The DDEV WordPress site of this workspace is already running (admin admin/admin).
+  First run the /debo sync-to workflow (empty filter, no scene) so the content plugin
+  and theme exist and are active. Then run the /debo seed-content workflow with an empty filter to
+  create every sample record of the data model as WordPress content via WP-CLI.
+  Report the created records and the URL of the lemon-garlic-roasted-chicken recipe.
+  Finally save the recipe page's rendered card as evidence, with exactly this command:
+  curl -sk "<recipe url>" | tr '\n' ' ' | grep -o '<article.*</article>' > wp-content/themes/test_integration_wordpress/designbook/seed-card.txt
+assert:
+- type: javascript
+  value: output.completedWorkflows['sync-to']?.state?.status === 'completed'
+- type: javascript
+  value: output.completedWorkflows['seed-content']?.state?.status === 'completed'
+- type: javascript
+  value: output.newFiles.some(f => f.endsWith('designbook/seed/seed.php'))
+# F-1: the view renders the recipe through recipe-card with its schema props, and the live
+# card shows the seeded data (image, teaser, metadata line).
+- type: javascript
+  value: |
+    const view = output.fileContents['wp-content/themes/test_integration_wordpress/views/single-recipe.twig'] || '';
+    return /recipe-card\/recipe-card\.twig/.test(view)
+      && ['image_src', 'description', 'total_time', 'difficulty', 'servings'].every(p => new RegExp(`\\b${p}\\s*:`).test(view))
+      && !/\b(image|total_minutes)\s*:/.test(view);
+- type: javascript
+  value: |
+    const card = output.fileContents['designbook/seed-card.txt'] || '';
+    return /<img[^>]*src="[^"]+"/.test(card) && /Welcome to Cooks Delight/.test(card)
+      && /60[^<]*-\s*hard\s*-\s*4/i.test(card);

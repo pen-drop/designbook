@@ -1,0 +1,11 @@
+(
+  $fields := $;
+  [
+    {
+      "component": "test_integration_drupal:label",
+      "slots": {
+        "text": $fields.name
+      }
+    }
+  ]
+)

@@ -83,23 +83,26 @@ DesignbookConfig:
       $ref: "#/Backend"
     frameworks:
       type: object
-      description: Framework choices. `component` is the markup framework (e.g. sdc); `css` is the chosen CSS framework or `css` for plain CSS.
+      description: Framework choices. `component` is the markup framework; `css` is the chosen CSS framework or `css` for plain CSS. `backend` is an independent axis — no `component` value implies a specific backend, and no backend requires a specific `component` value.
       properties:
         component:
           type: string
-          description: Markup/component framework identifier.
-          examples: [sdc]
+          description: >-
+            Markup/component framework identifier. Selects the integration skill whose
+            write-component task and blueprints drive component creation. twig — plain Twig
+            templates rendered by Twing (Storybook) and by the backend's own Twig runtime.
+          enum: [sdc, vue, twig]
+          examples: [sdc, vue, twig]
         css:
           type: string
           description: CSS framework identifier, or `css` for plain CSS.
           examples: [css, tailwind]
     designbook:
       type: object
-      description: Run configuration. `home` is the directory (relative to the config file) commands run from; `url` is the default Storybook URL; `cmd` is the dev command.
+      description: Run configuration. `home` is the directory (relative to the config file) commands run from; `cmd` is the Storybook dev command. The live server is always started via `storybook start` (auto-assigned free port), so there is no static URL.
       properties:
         cmd: { type: string, description: Storybook dev command. }
         home: { type: string, description: Directory commands run from, relative to the config file. }
-        url: { type: string, description: Default Storybook URL; the port must match the storybook script. }
     component:
       type: object
       description: Component source location and namespace.

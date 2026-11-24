@@ -1,0 +1,53 @@
+workflow: design-screen
+fixtures:
+  - empty
+  - reference
+  - vision
+  - data-model
+  - tokens
+  - shell
+prompt: |
+  You are working in {{workspace}}. This is the Cooks Delight recipe demo.
+  Use the installed Designbook skills and the configured Drupal / SDC / Tailwind integration.
+  Read the actual SKILL.md for each skill named below and follow its instructions.
+  Execute only this case and its explicitly named prerequisite skills.
+  Preserve all completed earlier steps and the published reference. Do not sync to Drupal.
+  Do not launch Promptfoo or rebuild this prepared workspace from inside the case.
+  If required evidence, access or approval is missing, stop with the exact blocker; never invent it.
+  Read the published Figma reference in designbook/references/ under the configured
+  Designbook home. Use only the captured Lemon Garlic Roasted Chicken recipe frame,
+  its actual native locators, screenshot, assets and observations. Do not fetch a
+  website equivalent or replace the reference with an imagined layout.
+  Design the recipe screen and show the result.
+  Use the design-screen skill with the existing shell, tokens, model, sample records and approved
+  reference. During intake, present the existing published bindings without recapturing.
+  The saved shell is a partial baseline: standalone variant previews and the visible
+  shell-only $content placeholder are known unresolved checks. The user explicitly
+  authorized continuing with the recipe screen. Record these separately; do not
+  require the earlier shell plan to be marked completed or claim its checks passed.
+  Target sections/recipes/recipes.section.scenes.yml, scene recipe-detail, section recipes.
+  Compose design-system:shell with route-bearing node.recipe, full view mode, record 0.
+  Create the necessary reusable SDC components and entity mapping for the actual recipe
+  image/title, metadata, ingredients, preparation steps and related recipes present in Figma.
+  Map field_prep_minutes + field_cook_minutes to the displayed total time: our sample must
+  show 1 hour / 60 minutes, formatted to match the reference. The total must be computed,
+  not hard-coded. Check a temporary 10 + 25 input produces 35 minutes without rewriting the
+  component or mapping, then retain the original 20 + 40 sample record.
+  Preserve recipe data and shell. Do not create a homepage or a working portions control.
+  Present the sealed plan composition tree and check that its sample component_tree fields
+  resolve to the actual component children. Inspect the final Storybook structure tree and
+  entity mapping against that composition; report missing, duplicated or misplaced nodes.
+  Build Storybook and inspect the full recipe screen at the captured desktop viewport and
+  390px width. Use actual story IDs from the running index and capture the final screen.
+  Report its story URL, screenshot, entity mapping file, the real two-input timing check and
+  remaining differences. Reference comparison uses the configured threshold and desktop
+  reference; mobile gets a functional overflow/readability check, not an invented comparison.
+assert:
+- type: javascript
+  value: output.completedWorkflows['design-screen']?.state?.status === 'completed'
+- type: javascript
+  value: output.fileContents['designbook/sections/recipes/recipes.section.scenes.yml']?.scenes?.filter(s
+    => s.name === 'recipe-detail').length === 1
+- type: javascript
+  value: Object.keys(output.fileContents || {}).some(f => f.includes('entity-mapping/node.recipe.full')
+    && f.endsWith('.jsonata'))

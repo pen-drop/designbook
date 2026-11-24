@@ -1,11 +1,18 @@
 ---
 name: designbook:design:capture-backend
-title: "Capture Backend: {{ story_id }} ({{ screenshot.breakpoint }}/{{ screenshot.element }}--{{ screenshot.state }})"
+title: >-
+  Capture Backend: {{ story_id }} ({{ screenshot.breakpoint }}/{{ screenshot.element }}--{{ screenshot.state
+  }})
 trigger:
-  steps: [capture-backend, re-capture-backend]
+  steps:
+    - capture-backend
+    - re-capture-backend
 params:
   type: object
-  required: [screenshot, story_id, render_url]
+  required:
+    - screenshot
+    - story_id
+    - render_url
   properties:
     screenshot:
       $ref: ../schemas.yml#/Screenshot
@@ -13,22 +20,22 @@ params:
       $ref: ../../scenes/schemas.yml#/StoryId
     render_url:
       type: string
-      description: "Backend render URL for the candidate side (resolved in workflow scope by the render_url resolver)."
+      description: Backend render URL for the candidate side (resolved in workflow scope by the render_url resolver).
     design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
       type: object
 result:
   type: object
-  required: [screenshot_file]
+  required:
+    - screenshot_file
   properties:
     screenshot_file:
-      path: "$DESIGNBOOK_DATA/stories/{{ story_id }}/screenshots/{{ screenshot.breakpoint }}--{{ screenshot.element }}--{{ screenshot.state }}.png"
+      path: >-
+        $DESIGNBOOK_DATA/stories/{{ story_id }}/screenshots/{{ screenshot.breakpoint }}--{{ screenshot.element
+        }}--{{ screenshot.state }}.png
       submission: direct
-      validators: [image]
-each:
-  screenshot:
-    expr: "story_screenshots"
-    schema: { $ref: ../schemas.yml#/Screenshot }
+      validators:
+        - image
 ---
 
 # Capture Backend

@@ -1,0 +1,12 @@
+name: pet-form
+status: experimental
+props:
+  type: object
+  properties:
+    name:
+      type: string
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+group: Data Display
+provider: test_integration_drupal

@@ -1,0 +1,30 @@
+(
+  $fields := $;
+  [
+    {
+      "component": "test_integration_drupal:detail-page",
+      "props": {
+        "prep_minutes": $fields.field_prep_minutes,
+        "cook_minutes": $fields.field_cook_minutes,
+        "servings": $fields.field_servings,
+        "equipment": $fields.field_equipment,
+        "nutrition": $fields.field_nutrition
+      },
+      "slots": {
+        "category": [$map($fields.field_category, function($id) { { "entity": "taxonomy_term.recipe_category", "view_mode": "default", "record": $lookup({"recipe":0}, $string($id)) } })],
+        "title": $fields.title,
+        "description": $fields.field_description,
+        "image": [$map($fields.field_recipe_image, function($image) { { "image": "ratio_77_40", "src": $image.src, "alt": $image.alt } })],
+        "difficulty": [$map($fields.field_difficulty, function($id) { { "entity": "taxonomy_term.difficulty", "view_mode": "default", "record": $lookup({"easy":0,"medium":1,"hard":2}, $string($id)) } })],
+        "body": $fields.body,
+        "ingredients": [$map($fields.field_ingredients, function($id) { { "entity": "paragraph.ingredient", "view_mode": "default", "record": $lookup({"lemon-garlic-roasted-chicken-ingredient-1":0,"lemon-garlic-roasted-chicken-ingredient-2":1,"lemon-garlic-roasted-chicken-ingredient-3":2,"lemon-garlic-roasted-chicken-ingredient-4":3,"lemon-garlic-roasted-chicken-ingredient-5":4,"lemon-garlic-roasted-chicken-ingredient-6":5,"lemon-garlic-roasted-chicken-ingredient-7":6}, $string($id)) } })],
+        "nutrition_basis": $fields.field_nutrition_basis,
+        "instructions_intro": $fields.field_instructions_intro,
+        "steps": [$map($fields.field_steps, function($id) { { "entity": "paragraph.recipe_step", "view_mode": "default", "record": $lookup({"lemon-garlic-roasted-chicken-step-preheat-and-prepare":0,"lemon-garlic-roasted-chicken-step-citrus-infusion":1,"lemon-garlic-roasted-chicken-step-herb-blend":2,"lemon-garlic-roasted-chicken-step-roast-to-perfection":3}, $string($id)) } })],
+        "serving_notes": $fields.field_serving_notes,
+        "author": [$map($fields.field_author, function($id) { { "entity": "taxonomy_term.author", "view_mode": "default", "record": $lookup({"isabella-russo":0}, $string($id)) } })],
+        "related": [$map($fields.field_related_recipes, function($id) { { "entity": "node.recipe", "view_mode": "teaser", "record": $lookup({"lemon-garlic-roasted-chicken":0,"savory-herb-infused-chicken":1,"decadent-chocolate-mousse":2}, $string($id)) } })]
+      }
+    }
+  ]
+)

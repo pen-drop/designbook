@@ -1,0 +1,91 @@
+workflow: extract-reference
+fixtures:
+  - figma-fixture
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run /extract-reference on a Figma design reference. Do NOT ask any questions.
+  Source kind is figma. Identity is synthetic-file-key. revision is null.
+  Subject hero, state rest, one view desktop, role reference.
+  Native locator kind figma-node, value 12:34 (child I12:34;56:78).
+  Use the catalogue from `npx storybook-addon-designbook intake extract-reference` stdout.
+  The CLI is the command contract; skill descriptions are not.
+  This case is fixture evidence, not live Figma access. Do not call host Figma tools.
+  Translated observations and exports are already in the Drupal theme directory
+  `web/themes/custom/test_integration_drupal/`:
+  capture.json, rest.json, contract.json, export.png, hero-logo.svg.
+  `_debo` is `npx storybook-addon-designbook` from the workspace root.
+  Resolve the revision with `_debo reference capture-location --capture <capture.json> --workflow-id <id>`.
+  Store observations with `_debo reference import --reference <dir> --input rest.json --contract contract.json`.
+  Confirm the child node with `_debo reference inspect --reference <dir> --state rest --locator I12:34;56:78 --locator-kind figma-node --contract contract.json`.
+  Copy the screenshot with `_debo reference capture-image --reference <dir> --path desktop--hero--rest.png --input export.png --capture capture.json --contract contract.json --subject hero --view desktop --state rest`.
+  Copy the asset with `_debo reference capture-file --reference <dir> --path assets/hero-logo.svg --input hero-logo.svg --asset-id figma-image:hero-logo --capture capture.json --contract contract.json --subject hero --view desktop --state rest`.
+  Publish with `_debo reference publish --capture capture.json --workflow-id <id> --owner <plan> --contract contract.json`.
+  Validate with `_debo reference validate --reference <dir>`.
+  After publish, write approval.yml with
+  `_debo reference approval-write --reference <revisionDir> --status approved --scope <json>`
+  covering subject hero, state rest, view desktop.
+  This fixture has no interactive user — tag provenance mode simulated (not
+  interactive, not a real human optical design judgment). Also write
+  approval-provenance.yml beside the revision with mode: simulated and
+  status: approved. Do not claim real human approval. Do not start a design
+  workflow. Keep source kind figma. Execute extract-reference now.
+
+assert:
+  # Promptfoo javascript asserts run as a function body. Multi-statement
+  # checks use const + return (see fixtures/drupal-web/cases/extract-reference.yaml).
+  - type: javascript
+    value: |
+      const files = output.newFiles || [];
+      return files.some((f) => f.includes('designbook/references/') && f.endsWith('/meta.yml'));
+  - type: javascript
+    value: |
+      const files = output.newFiles || [];
+      return files.some((f) => f.includes('designbook/references/') && /extract--rest\.json$/.test(f));
+  - type: javascript
+    value: |
+      const files = output.newFiles || [];
+      return files.some((f) => f.includes('designbook/references/') && f.endsWith('/publication.json'));
+  - type: javascript
+    value: |
+      const files = output.newFiles || [];
+      return files.some((f) => f.includes('designbook/references/') && f.endsWith('desktop--hero--rest.png'));
+  - type: javascript
+    value: |
+      const files = output.newFiles || [];
+      return files.some((f) => f.includes('designbook/references/') && f.endsWith('assets/hero-logo.svg'));
+  - type: javascript
+    value: |
+      const meta = Object.entries(output.fileContents || {}).find(([p]) =>
+        p.includes('designbook/references/') && p.endsWith('/meta.yml'),
+      )?.[1];
+      return (
+        meta?.source?.kind === 'figma' &&
+        meta?.source?.identity === 'synthetic-file-key' &&
+        meta?.source?.revision == null &&
+        meta?.role === 'reference'
+      );
+  - type: javascript
+    value: |
+      const meta = Object.entries(output.fileContents || {}).find(([p]) =>
+        p.includes('designbook/references/') && p.endsWith('/meta.yml'),
+      )?.[1];
+      const loc = meta?.elements?.[0]?.locator;
+      return loc?.kind === 'figma-node' && loc?.value === '12:34';
+  - type: javascript
+    value: |
+      const approval = Object.entries(output.fileContents || {}).find(([p]) =>
+        p.includes('designbook/references/') && p.endsWith('/approval.yml'),
+      )?.[1];
+      const provenance = Object.entries(output.fileContents || {}).find(([p]) =>
+        p.includes('designbook/references/') && p.endsWith('/approval-provenance.yml'),
+      )?.[1];
+      return (
+        approval?.status === 'approved' &&
+        provenance?.mode === 'simulated' &&
+        provenance?.status === 'approved'
+      );
+  - type: javascript
+    value: |
+      const ids = Object.keys(output.completedWorkflows || {}).concat(Object.keys(output.pendingWorkflows || {}));
+      return !ids.some((id) => id.startsWith('design-'));

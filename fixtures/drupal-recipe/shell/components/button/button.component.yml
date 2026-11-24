@@ -1,0 +1,30 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: "Button"
+status: "experimental"
+group: "Action"
+provider: "test_integration_drupal"
+description: "Link-styled action button."
+variants:
+  primary:
+    title: "Primary"
+    description: "Dark filled pill with uppercase label (subscribe)."
+  icon_pill:
+    title: "Icon pill"
+    description: "Muted pill containing only an icon; label is aria-label (search)."
+props:
+  type: "object"
+  properties:
+    label:
+      type: "string"
+      title: "Label"
+      description: "Visible text for primary; aria-label for icon_pill."
+    href:
+      type: "string"
+      title: "Link target"
+slots:
+  icon:
+    title: "Icon"
+    description: "Icon image markup."
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

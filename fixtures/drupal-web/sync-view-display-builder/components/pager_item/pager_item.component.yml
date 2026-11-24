@@ -1,0 +1,25 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Pager Item
+status: experimental
+group: Data Display
+description: >
+  A single page-link entry inside the Pager component's `pages` slot.
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+props:
+  type: object
+  properties:
+    href:
+      title: Href
+      type: string
+      description: The target URL for this page. Omitted for an ellipsis entry.
+    label:
+      title: Label
+      type: string
+      description: The visible page number or label (e.g. "1", "…").
+    is_current:
+      title: Is current
+      type: boolean
+      description: Whether this item is the current page.

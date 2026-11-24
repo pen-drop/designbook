@@ -1,0 +1,45 @@
+workflow: data-model
+fixtures:
+  - empty
+  - reference
+  - vision
+prompt: |
+  You are working in {{workspace}}. This is the Cooks Delight recipe demo.
+  Use the installed Designbook skills and the configured Drupal / SDC / Tailwind integration.
+  Read the actual SKILL.md for each skill named below and follow its instructions.
+  Execute only this case and its explicitly named prerequisite skills.
+  Preserve all completed earlier steps and the published reference. Do not sync to Drupal.
+  Do not launch Promptfoo or rebuild this prepared workspace from inside the case.
+  If required evidence, access or approval is missing, stop with the exact blocker; never invent it.
+  Read the published Figma reference in designbook/references/ under the configured
+  Designbook home. Use only the captured Lemon Garlic Roasted Chicken recipe frame,
+  its actual native locators, screenshot, assets and observations. Do not fetch a
+  website equivalent or replace the reference with an imagined layout.
+  Build the data model based on the screen.
+  Use the data-model skill after reading the completed vision and Recipes section.
+  The route-bearing entity is node.recipe, full view mode with field-map rendering;
+  it must be a real entity mapping, not an inline Canvas page masquerading as an entity.
+  Include title, recipe image, description, difficulty, servings, structured repeatable
+  ingredients (quantity, unit, ingredient name) and ordered preparation steps.
+  Use supported Drupal field/entity types from the installed integration; do not invent schemas.
+  Use numeric field_prep_minutes and field_cook_minutes. Their sum is displayed as total
+  time in the later mapping; do not store a second independently editable total-time field.
+  Include related recipes only when visible. Do not add an author entity unless the selected
+  frame actually shows author information. Do not model search, bookings or commerce.
+  Declare all mapped base fields explicitly, including taxonomy name and author description.
+  Then use the sample-data skill: primary recipe Lemon Garlic Roasted Chicken, stable id
+  lemon-garlic-roasted-chicken, first recipe record (index 0), section recipes.
+  Copy visible title, ingredients, instructions, servings, difficulty and assets from the
+  reference. Demo-only timing assumption: 20 minutes preparation + 40 minutes cooking = 60
+  minutes; identify this split as our sample data, not as separately observed Figma fields.
+  Add only the records needed for related cards visible in the captured frame.
+assert:
+- type: javascript
+  value: output.completedWorkflows['data-model']?.state?.status === 'completed'
+- type: javascript
+  value: '!!output.fileContents[''designbook/data-model.yml'']?.content?.node?.recipe?.fields?.field_prep_minutes
+    && !!output.fileContents[''designbook/data-model.yml'']?.content?.node?.recipe?.fields?.field_cook_minutes'
+- type: javascript
+  value: Object.keys(output.fileContents || {}).some(f => f === 'designbook/data/node.recipe.yml')
+- type: javascript
+  value: output.completedWorkflows['sample-data']?.state?.status === 'completed'

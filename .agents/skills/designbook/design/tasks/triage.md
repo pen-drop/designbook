@@ -67,41 +67,8 @@ Review the full issue list across all checks and breakpoints:
 
 5. **Assign priority** — `critical` before `major`. Within same severity, group by file (so one polish task can fix multiple properties in one file).
 
-## Step 3: Report Consolidated Issues
+## Result: issues
 
-The polish stage uses `each: issues`. Report the consolidated issues array as a task result so the engine can expand them.
-
-Each issue object must contain `id` and the params that `polish.md` needs:
-
-```json
-{
-  "id": "issue-001",
-  "storyId": "designbook-design-system-scenes--shell",
-  "checkKey": "sm--header",
-  "severity": "critical",
-  "description": "Hero Heading: fontSize 14px → 48px, fontFamily 'Nunito Sans' → 'Inter', color #1D1B20 → #FFFFFF. File: components/hero/hero.twig. Breakpoints: sm, xl.",
-  "file_hint": "components/hero/hero.twig",
-  "properties": [
-    {"property": "fontSize", "expected": "48px", "actual": "14px"},
-    {"property": "fontFamily", "expected": "Inter", "actual": "Nunito Sans"}
-  ]
-}
-```
-
-The workflow engine expands polish tasks from the `issues` result via `each: issues`.
-
-## Output
-
-```
-## Triage: {story_id}
-
-Read 12 draft issues from 6 checks.
-Consolidated to 4 issues:
-
-1. issue-001 [critical] Hero Heading: fontSize 14px → 48px, fontFamily → Inter, color → white. File: hero.twig. Breakpoints: sm, xl.
-2. issue-002 [major] Navigation: gap 8px → 16px, fontSize 14px → 16px. File: navigation.twig. Breakpoints: sm, xl.
-3. issue-003 [major] Footer Copyright: color #1D1B20 → #49454F. File: footer.twig. Breakpoints: sm, xl.
-4. issue-004 [major] Header: background-color #FFFFFF → transparent. File: header.twig. Breakpoints: sm, xl.
-
-Consolidated 4 issues. Polish stage will create 4 fix tasks.
-```
+Return the complete consolidated issue list with stable IDs, severity, affected targets and evidence.
+Completion: every input finding is accounted for. After this check completes, its intake hands
+these issues to a separate repair intake; the checking workflow's task list remains fixed.

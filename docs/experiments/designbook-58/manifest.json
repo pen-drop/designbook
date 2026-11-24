@@ -1,0 +1,74 @@
+{
+  "ticket": "DESIGNBOOK-58",
+  "status": "measurement-preflight",
+  "base_commit": "90a8e5ef36c4e8c8b55b1bda32a80af4a0414e23",
+  "train": {
+    "suite": "drupal-web",
+    "case": "design-shell"
+  },
+  "held_out": [
+    {
+      "suite": "drupal-web",
+      "case": "design-entity"
+    },
+    {
+      "suite": "drupal-web",
+      "case": "design-screen"
+    }
+  ],
+  "case_sha256": {
+    "fixtures/drupal-web/cases/design-shell.yaml": "88395c36fd165df0de271d78c8787138e8e7faea7f79e263ebe8ff67be7f7a46",
+    "fixtures/drupal-web/cases/design-entity.yaml": "cbd9f353e7bcb8c127e920c07c2ca0cd99d1803f35e077dcca7c6d9606e6cd3b",
+    "fixtures/drupal-web/cases/design-screen.yaml": "f9ebbbcc4189e92bd10f77a49611a807ce8396229bf860207b303202003eff56",
+    "fixtures/drupal-web/cases/design-verify-shell.yaml": "824c4ab984a0b532b4e50de5fe28a5ab101670fa8f7384d4c55774fe8e781a5c",
+    "fixtures/drupal-web/cases/design-verify-entity-signage.yaml": "ebdd17dd2eb679e19dbc605d3c623f65c660de4aca490efaeab1e8cbc5c82648",
+    "fixtures/drupal-web/cases/design-verify-screen.yaml": "12ec5bf348d4b4b79821992d3f67def34f184ae9996eff4b2339428a15b5704f"
+  },
+  "models": {
+    "codex": {
+      "id": "gpt-5.6-luna",
+      "version": "0.153.4",
+      "reasoning_effort": "medium"
+    },
+    "claude": {
+      "id": "claude-opus-5",
+      "version": "2.1.233",
+      "reasoning_effort": "cli-default"
+    },
+    "grok": {
+      "id": "grok-4.6",
+      "version": "1.0.13 (5e9a58528b76)",
+      "reasoning_effort": "cli-default",
+      "subagents": false
+    }
+  },
+  "cli_timeout_ms": 3600000,
+  "promptfoo_cache": false,
+  "repetitions_per_comparison": 3,
+  "research_limits": {
+    "candidates": 25,
+    "consecutive_rejections": 5
+  },
+  "reference": {
+    "url": "https://leando.de/",
+    "breakpoints": [
+      "sm",
+      "xl"
+    ],
+    "threshold_ratio": 0.03,
+    "content_freeze": "pending: capture reference artifacts before efficiency comparisons"
+  },
+  "preflight": {
+    "grok_smoke_log": "promptfoo/reports/designbook-58-preflight/grok-smoke.jsonl",
+    "grok_session": "01a07bd1-6cd8-7b30-95a2-f82969292094",
+    "turns": 2,
+    "input_tokens": 66125,
+    "cached_input_tokens": 33024,
+    "output_tokens": 125,
+    "total_tokens": 66250,
+    "duration_ms": 13570,
+    "usage_scope": "session-no-subagents",
+    "reasoning_tokens": null
+  },
+  "optimizer_usage": null
+}

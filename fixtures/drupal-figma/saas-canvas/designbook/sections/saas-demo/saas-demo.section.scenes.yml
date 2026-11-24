@@ -1,0 +1,18 @@
+id: saas-demo
+title: SaaS Demo
+description: >-
+  SaaS marketing landing page implemented from the Figma SaaS Website UI Kit
+  (Community) — hero, product showcase with feature grid, and pricing plans.
+status: in-progress
+order: 2
+group: Designbook/Sections/SaaS Demo
+scenes:
+  - name: landing
+    section: saas-demo
+    items:
+      - scene: design-system:shell
+        with:
+          content:
+            - entity: canvas_page.landing_page
+              view_mode: full
+              record: 0

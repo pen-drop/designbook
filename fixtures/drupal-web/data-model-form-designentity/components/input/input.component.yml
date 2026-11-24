@@ -1,0 +1,25 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Input
+status: stable
+group: Form
+description: A lean text-based input — the actual input element embedded in a form_element's children slot. Input type is controlled via HTML attributes.
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+slots:
+  children:
+    title: Children
+    description: Optional additional elements after the input.
+props:
+  type: object
+  properties:
+    value:
+      title: Value
+      type: string
+    input_type:
+      title: Input type
+      type: string
+    pattern:
+      title: Pattern
+      type: string

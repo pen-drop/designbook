@@ -1,0 +1,45 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Form element
+status: stable
+group: Form
+description: Universal wrapper around a label and a form input — provides consistent structure for label, prefix/suffix, the input, and error display.
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+slots:
+  label:
+    title: Label
+    description: The label component.
+  prefix:
+    title: Prefix
+    description: Content before the input.
+  suffix:
+    title: Suffix
+    description: Content after the input.
+  errors:
+    title: Errors
+    description: Error message shown after the input.
+  children:
+    title: Children
+    description: The actual input element.
+props:
+  type: object
+  properties:
+    type:
+      title: Type
+      type: string
+    label_display:
+      title: Label display
+      type: string
+      enum:
+        - before
+        - after
+        - invisible
+    description_display:
+      title: Description display
+      type: string
+      enum:
+        - before
+        - after
+        - invisible

@@ -1,0 +1,36 @@
+- id: '1'
+  field_short_title: New City Library Opens
+  field_landing_page_image: '1'
+  field_landing_page_type: '1'
+  __designbook:
+    section: startseite
+- id: '2'
+  field_short_title: Join the Tree Planting Day
+  field_landing_page_image: '2'
+  field_landing_page_type: '3'
+  __designbook:
+    section: startseite
+- id: '3'
+  field_short_title: Summer Festival Programme
+  field_landing_page_image: '3'
+  field_landing_page_type: '3'
+  __designbook:
+    section: startseite
+- id: '4'
+  field_short_title: Faster Resident Services
+  field_landing_page_image: '4'
+  field_landing_page_type: '2'
+  __designbook:
+    section: startseite
+- id: '5'
+  field_short_title: New Riverside Cycle Path
+  field_landing_page_image: '5'
+  field_landing_page_type: '1'
+  __designbook:
+    section: startseite
+- id: '6'
+  field_short_title: Playground Renovation Complete
+  field_landing_page_image: '6'
+  field_landing_page_type: '2'
+  __designbook:
+    section: startseite

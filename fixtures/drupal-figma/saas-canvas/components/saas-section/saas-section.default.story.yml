@@ -1,0 +1,32 @@
+component: test_integration_drupal:saas-section
+name: Default
+slots:
+  header:
+    - type: component
+      component: test_integration_drupal:saas-heading-group
+      slots:
+        eyebrow:
+          - type: component
+            component: test_integration_drupal:saas-tag
+            slots:
+              label:
+                - type: element
+                  tag: span
+                  value: Boost your productivity
+        heading:
+          - type: element
+            tag: span
+            value: A more effective way to track progress
+        body:
+          - type: element
+            tag: span
+            value: >-
+              Effortlessly turn your ideas into a fully functional, responsive,
+              no-code SaaS website in just minutes with the set of free
+              components for Framer.
+  media:
+    - type: image
+      uri: /saas-kit/product-image.png
+      attributes:
+        alt: Task board of the productivity app
+        class: w-full

@@ -1,0 +1,50 @@
+fixtures:
+  - vision
+  - tokens
+  - css-generate
+  - sections
+  - reference-header
+prompt: |-
+  You are working in {{workspace}}. Invoke /debo design-component.
+  Create PetMatch's nav-header component (test_integration_drupal:nav-header) from the already published, screenshot-approved reference revision 9710f2819b47e1ac/85fa2c97919940e1 (website https://example.test/header, subject header, views mobile and desktop, state rest). Do not capture a new reference. Reproduce the observed header: a horizontal flex row with an 8px gap containing a logo image and the visible text "Home". Author one default story file.
+  For the reference, follow the design reference intake: show the revision, its relevant capture tuples and their Storybook reference links, and record the suitability decision. The requester already answered the suitability question for this revision and scope (subject header; views mobile, desktop; state rest): yes, rationale "same site header as the component to build".
+  During intake freeze concrete story URLs, selectors and checks in the saved definition. Plan actual `pnpm build-storybook` (theme cwd), artifact validation, and `npx storybook-addon-designbook storybook check <story-url>` for the new story at desktop 1280x800 and mobile 390x844. A build is separate from browser verification.
+  After execution save evidence JSON from actual command outputs and browser observations, as specified by debo-test run's evidence contract. The required observation keys and exact expected values are:
+    - header.display: 'flex'
+    - header.gap: '8px'
+    - header.text: 'Home'
+    - reference.binding: '9710f2819b47e1ac/85fa2c97919940e1'
+    - reference.suitability: 'yes'
+    - reference.link: the Storybook reference link you presented for header · desktop · rest
+  Preserve the definition before execution and score this case; validate workflow: none. Execute now without clarification; all requested targets and acceptance criteria are supplied.
+validate: none
+evidence:
+  files:
+    - components/nav-header/nav-header.component.yml
+    - components/nav-header/nav-header.twig
+    - components/nav-header/nav-header.default.story.yml
+    # Collected so the approval-gate assertion below can compare it against the baseline.
+    - designbook/references/9710f2819b47e1ac/85fa2c97919940e1/approval.yml
+assert:
+  - type: javascript
+    value: output.runs.length > 0 && output.runs.every(r => r.componentPrerequisites?.passed === true)
+  - type: javascript
+    value: output.runs.length === 1 && output.runs.every(r => r.complete && r.definitionUnchanged)
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0 && output.definitionUnchanged === true
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.build?.command === 'pnpm build-storybook' && r.evidence.build.exitCode === 0 && Array.isArray(r.evidence.checks) && r.evidence.checks.length > 0 && r.evidence.checks.every(c => /^https?:/.test(c.url) && c.result?.ok === true))
+  - type: javascript
+    value: output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["header.display"] === 'flex'))
+  - type: javascript
+    value: output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["header.gap"] === '8px'))
+  - type: javascript
+    value: output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["header.text"] === 'Home'))
+  # Suitability: exact revision, recorded answer and a link to the D-2 reference entry of the tuple.
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.checks?.some(c => c.observations?.["reference.binding"] === '9710f2819b47e1ac/85fa2c97919940e1' && c.observations?.["reference.suitability"] === 'yes' && /\?path=\/story\/designbook-references-9710f2819b47e1ac-85fa2c97919940e1--header-desktop-rest$/.test(String(c.observations?.["reference.link"]))))
+  # The approval gate stays intact: the seeded approval is untouched.
+  - type: javascript
+    value: output.unchangedFiles.includes('designbook/references/9710f2819b47e1ac/85fa2c97919940e1/approval.yml')

@@ -1,0 +1,34 @@
+schema_version: 1
+id: minimal-fixture
+ticket: DESIGNBOOK-62
+primary_key:
+  branch: feat/designbook-62-task-und-ru
+  experiment: minimal-fixture
+hypothesis: |
+  Minimal valid experiment for schema contract tests.
+affected:
+  tasks: []
+  rules: []
+baseline:
+  repo: designbook
+  branch: feat/designbook-56-designbook
+  commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+candidate:
+  repo: designbook
+  branch: feat/designbook-62-task-und-ru
+  commit: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+cases:
+  - suite: drupal-web
+    case: design-shell
+    validate: none
+expected_effect:
+  quality: improve_or_hold
+  flow: fewer_corrections
+  tokens: reduce_or_hold
+models_constant: true
+budget:
+  probe_first: true
+  repetitions_per_variant: 1
+harness:
+  commit: cccccccccccccccccccccccccccccccccccccccc
+  promptfoo_schema: 1

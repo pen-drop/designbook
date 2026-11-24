@@ -1,0 +1,11 @@
+decided_at: '2026-10-10T23:04:59.644Z'
+fingerprint: eb9f6fce76e5762cff247d56b5175dcb1f56978124ffe3b8af21ce19f38ff102
+note: User confirmed the displayed capture and its suitability for shell and recipe screen with okay dann weiter.
+scope:
+  states:
+    - rest
+  subjects:
+    - recipe
+  views:
+    - desktop
+status: approved

@@ -1,0 +1,16 @@
+$schema: >-
+  https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Label
+status: experimental
+group: Data Display
+provider: test_integration_drupal
+description: >-
+  Plain inline text label; inherits typography from the parent slot that places
+  it (category pill, difficulty text).
+slots:
+  text:
+    title: Text
+    description: Plain text, e.g. a taxonomy term name.
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

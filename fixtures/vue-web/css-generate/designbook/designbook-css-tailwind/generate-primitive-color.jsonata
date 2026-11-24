@@ -1,0 +1,14 @@
+/** @config
+ {
+   "input": "../design-system/design-tokens.yml",
+   "output": "../../css/tokens/primitive-color.src.css"
+ }
+ */
+(
+  $leaves := function($node, $name) {
+    $exists($node."$value")
+      ? "  --color-" & $name & ": " & $node."$value" & ";"
+      : $join($each($node, function($v, $k) { $substring($k, 0, 1) != "$" ? $leaves($v, $name & "-" & $k) }), "\n")
+  };
+  "@theme static {\n" & $join($each($$.primitive.color, function($v, $k) { $leaves($v, $k) }), "\n") & "\n}\n"
+)

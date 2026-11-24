@@ -1,0 +1,38 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: "Navigation"
+status: "experimental"
+group: "Navigation"
+provider: "test_integration_drupal"
+description: "Flat menu link list (Drupal menu item structure)."
+variants:
+  main:
+    title: "Main"
+    description: "Header links: active item underlined in accent, inactive at 40% opacity."
+  footer:
+    title: "Footer"
+    description: "Light links on dark, separated by 16px rules."
+props:
+  type: "object"
+  properties:
+    items:
+      type: "array"
+      title: "Menu items"
+      description: "Drupal menu link tree items."
+      items:
+        type: "object"
+        properties:
+          title:
+            type: "string"
+          url:
+            type: "string"
+          in_active_trail:
+            type: "boolean"
+          below:
+            type: "array"
+    separator_src:
+      type: "string"
+      title: "Separator image"
+      description: "Footer only: image URL drawn between items."
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

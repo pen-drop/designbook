@@ -1,0 +1,14 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: "page"
+status: "experimental"
+group: "Shell"
+slots:
+  header:
+    title: "Header"
+  content:
+    title: "Content"
+  footer:
+    title: "Footer"
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

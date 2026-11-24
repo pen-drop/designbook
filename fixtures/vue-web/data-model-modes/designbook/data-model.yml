@@ -1,0 +1,35 @@
+content:
+  node:
+    article:
+      title: Article
+      description: A blog article with body — mapped and unmapped view/form modes.
+      fields:
+        field_body:
+          type: text_long
+          title: Body
+      view_modes:
+        full:
+          template: field-map
+        teaser:
+          template: field-map
+      form_modes:
+        default:
+          template: form
+        edit:
+          template: form
+          label: Edit
+    basic_page:
+      title: Basic Page
+      description: A simple static page with no view or form modes.
+      fields:
+        field_body:
+          type: text_long
+          title: Body
+config:
+  view:
+    recent_articles:
+      title: Recent Articles
+      description: A view listing recent articles.
+      view_modes:
+        default:
+          template: field-map

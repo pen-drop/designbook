@@ -1,0 +1,19 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: "Header"
+status: "experimental"
+group: "Shell"
+provider: "test_integration_drupal"
+description: "Rounded site header bar: logo, centered main navigation, search + subscribe actions."
+slots:
+  logo:
+    title: "Logo"
+    description: "Site logo / brand mark."
+  navigation:
+    title: "Navigation"
+    description: "Main navigation component (required)."
+  actions:
+    title: "Actions"
+    description: "Search and subscribe buttons."
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

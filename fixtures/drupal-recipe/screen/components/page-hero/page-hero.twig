@@ -1,0 +1,9 @@
+<header{{ attributes.addClass(['page-hero', 'flex', 'flex-col', 'items-center', 'gap-xl']) }}>
+  <div class="flex max-w-[var(--container-lg)] flex-col items-center gap-sm text-center">
+    {% block category %}{% if category %}<span class="inline-flex rounded-md bg-accent px-md py-xs font-body text-tagline uppercase text-on-accent">{{ category }}</span>{% endif %}{% endblock %}
+    <h1 class="font-heading text-heading-2 uppercase text-foreground md:text-headline-1">{% block title %}{{ title }}{% endblock %}</h1>
+    {% block description %}{% if description %}<p class="max-w-[var(--container-md)] font-body text-paragraph-1 text-foreground-muted">{{ description }}</p>{% endif %}{% endblock %}
+  </div>
+  {% block meta %}{% if meta %}{{ meta }}{% endif %}{% endblock %}
+  {% block image %}{% if image %}<div class="w-full overflow-hidden rounded-lg">{{ image }}</div>{% endif %}{% endblock %}
+</header>

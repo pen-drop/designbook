@@ -1,0 +1,16 @@
+@theme static {
+  --color-neutral-50: #fffbf2;
+  --color-neutral-100: #f0ebe1;
+  --color-neutral-950: #262522;
+  --color-neutral-100-8: rgba(240, 235, 225, 0.08);
+  --color-neutral-800-40: rgba(51, 51, 51, 0.4);
+  --color-neutral-800-80: rgba(51, 51, 51, 0.8);
+  --color-neutral-950-8: rgba(38, 37, 34, 0.08);
+  --color-neutral-950-16: rgba(38, 37, 34, 0.16);
+  --color-neutral-950-24: rgba(38, 37, 34, 0.24);
+  --color-neutral-950-60: rgba(38, 37, 34, 0.6);
+  --color-black-20: rgba(0, 0, 0, 0.2);
+  --color-green-400: #9fdc26;
+  --color-orange-400: #f29c33;
+  --color-red-400: #ee6352;
+}

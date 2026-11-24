@@ -1,0 +1,148 @@
+{
+  "rect": {
+    "x": 0,
+    "y": 576,
+    "width": 1280,
+    "height": 467
+  },
+  "style": {
+    "display": "inline",
+    "background": "rgba(0, 0, 0, 0)",
+    "color": "rgb(33, 37, 41)",
+    "padding": "0px 0px 0px 0px",
+    "margin": "0px 0px 0px 0px",
+    "gap": "normal",
+    "fontFamily": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", \"Noto Sans\", \"Liberation Sans\", Arial, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+    "fontSize": "16px",
+    "lineHeight": "24px"
+  },
+  "texts": [
+    {
+      "tag": "h2",
+      "text": "ausbilden",
+      "href": ""
+    },
+    {
+      "tag": "button",
+      "text": "ausbilden",
+      "href": ""
+    },
+    {
+      "tag": "h2",
+      "text": "ausbilden",
+      "href": ""
+    },
+    {
+      "tag": "p",
+      "text": "Ausbilderinnen und Ausbilder finden auf Leando anwendungsbezogene Themenbeiträge, qualitätsgesicherte Informationen zu aktuellen Trends sowie nützliche Praxis-Tipps.",
+      "href": ""
+    },
+    {
+      "tag": "a",
+      "text": "Ausbildung",
+      "href": "/de/ausbildung"
+    },
+    {
+      "tag": "h2",
+      "text": "prüfen",
+      "href": ""
+    },
+    {
+      "tag": "button",
+      "text": "prüfen",
+      "href": ""
+    },
+    {
+      "tag": "h2",
+      "text": "prüfen",
+      "href": ""
+    },
+    {
+      "tag": "p",
+      "text": "Prüferinnen und Prüfer finden auf Leando nützliche Informationen für die Praxis - von gesetzlichen Grundlagen und Basiswissen bis hin zu Arbeitshilfen und aktuellen Entwicklungen.",
+      "href": ""
+    },
+    {
+      "tag": "a",
+      "text": "Prüfung",
+      "href": "/de/pruefung"
+    },
+    {
+      "tag": "h2",
+      "text": "vernetzen",
+      "href": ""
+    },
+    {
+      "tag": "button",
+      "text": "vernetzen",
+      "href": ""
+    },
+    {
+      "tag": "h2",
+      "text": "vernetzen",
+      "href": ""
+    },
+    {
+      "tag": "p",
+      "text": "Tauschen Sie sich aus und teilen Sie Ihre Erfahrungen in unseren Communitys. Sobald Sie angemeldet sind, steht Ihnen der volle Funktionsumfang von Leando zur Verfügung",
+      "href": ""
+    },
+    {
+      "tag": "a",
+      "text": "Registrieren",
+      "href": "https://drupal.leando.de/de/user/register?destination=/de/oauth/authorize%3Fclient_id%3Dleando-frontend%26code_challenge%3DpARd5CWuul-oYjWbQRMAxx7eTi3r28Zix96HB4pCSHA%26code_challenge_method%3DS256%26nonce%3Da7ed23ea79538eb0879d47a48c3b2d3932tqBzj3l%26redirect_uri%3Dhttps%253A//leando.de%26response_type%3Dcode%26scope%3Dopenid%2520profile%2520email%26state%3Dcab3f85fb41b497f9b389f395a4eb74d6ahg4v7Bf"
+    }
+  ],
+  "links": [
+    {
+      "text": "Ausbildung",
+      "href": "https://leando.de/de/ausbildung"
+    },
+    {
+      "text": "Prüfung",
+      "href": "https://leando.de/de/pruefung"
+    },
+    {
+      "text": "Registrieren",
+      "href": "https://drupal.leando.de/de/user/register?destination=/de/oauth/authorize%3Fclient_id%3Dleando-frontend%26code_challenge%3DpARd5CWuul-oYjWbQRMAxx7eTi3r28Zix96HB4pCSHA%26code_challenge_method%3DS256%26nonce%3Da7ed23ea79538eb0879d47a48c3b2d3932tqBzj3l%26redirect_uri%3Dhttps%253A//leando.de%26response_type%3Dcode%26scope%3Dopenid%2520profile%2520email%26state%3Dcab3f85fb41b497f9b389f395a4eb74d6ahg4v7Bf"
+    }
+  ],
+  "buttons": [
+    {
+      "text": "ausbilden",
+      "bg": "rgba(0, 0, 0, 0)",
+      "color": "rgb(0, 0, 0)",
+      "borderRadius": "0px",
+      "padding": "1px 0px 1px 0px",
+      "border": "0px none rgb(0, 0, 0)"
+    },
+    {
+      "text": "prüfen",
+      "bg": "rgba(0, 0, 0, 0)",
+      "color": "rgb(0, 0, 0)",
+      "borderRadius": "0px",
+      "padding": "1px 0px 1px 0px",
+      "border": "0px none rgb(0, 0, 0)"
+    },
+    {
+      "text": "vernetzen",
+      "bg": "rgba(0, 0, 0, 0)",
+      "color": "rgb(0, 0, 0)",
+      "borderRadius": "0px",
+      "padding": "1px 0px 1px 0px",
+      "border": "0px none rgb(0, 0, 0)"
+    }
+  ],
+  "cards": [
+    {
+      "tag": "section",
+      "cls": "wrapper section-up",
+      "width": 1280,
+      "height": 467,
+      "bg": "rgba(0, 0, 0, 0)",
+      "display": "block",
+      "gap": "normal",
+      "padding": "0px 76.7969px 0px 76.7969px"
+    }
+  ]
+}

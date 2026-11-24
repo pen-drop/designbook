@@ -1,0 +1,45 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Pager
+status: experimental
+group: Data Display
+description: >
+  Pager navigation controls for a paginated result set — previous/next controls, an enumerated
+  page-link list, and the current-page indicator. Composed by its own Pager-Presenter
+  (data-mapping/blueprints/pager.md); never reconstructs its links from raw view output itself.
+  This is the SDC the pager region binds to regardless of the view's build form (V-5).
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+props:
+  type: object
+  properties:
+    variant:
+      title: Variant
+      type: string
+      description: Which pager configuration this instance renders.
+      enum:
+        - standard
+        - mini
+        - infinite-scroll
+    current:
+      title: Current page
+      type: number
+      description: The current page index.
+    heading_id:
+      title: Heading id
+      type: string
+      description: Id for the pager's accessible heading/label.
+slots:
+  previous:
+    title: Previous
+    description: Previous-page link (present unless on the first page).
+  next:
+    title: Next
+    description: Next-page link (present unless on the last page).
+  pages:
+    title: Pages
+    description: Enumerated page-link items (standard variant only; omitted for mini/infinite-scroll).
+  load_more:
+    title: Load more
+    description: The load-more control (infinite-scroll variant only).

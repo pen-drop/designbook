@@ -1,5 +1,7 @@
 # Designbook
 
+<img src="docs/assets/logo/logo-hero.png" alt="Designbook handwritten wordmark with coral underline" width="560">
+
 **AI workflows that structure your design for CMS implementation.**
 
 Start from anywhere — Figma, Figma Make, Google Stitch, an existing website, or directly through AI conversation. Designbook's job is what comes after: turning your design into structured specs ready for implementation in any CMS (Drupal, WordPress, ...) and any frontend framework (React, Vue, Twig, Web Components, ...).
@@ -19,28 +21,32 @@ Design Tool (Figma, Make, Stitch, ...)
 
 Framework-agnostic: the same pipeline works regardless of your frontend framework, CSS tooling, or CMS.
 
+## Handbook
+
+The public handbook is at [https://pen-drop.github.io/designbook/](https://pen-drop.github.io/designbook/). It covers Get started, Extend Designbook, Integrations, and Advanced. This README stays the repository entry; the handbook is the user manual.
+
 ## Installation
 
-The user-facing skills are distributed as four plugins: `designbook` (core, skill name `debo`), `designbook-drupal`, `designbook-css-tailwind`, and `designbook-stitch`.
+Designbook ships as one npm package, `storybook-addon-designbook`: the CLI, the core skill and all integrations. Agents get a thin entry skill that calls the CLI. See [Install Designbook](docs/get-started/install.md).
 
-### Claude Code plugin marketplace
+```bash
+npm i -D storybook-addon-designbook
+```
+
+Entry skill — Claude Code:
 
 ```
 /plugin marketplace add pen-drop/designbook
 /plugin install designbook@designbook
-/plugin install designbook-drupal@designbook   # pick the integrations you need
 ```
 
-### skills CLI (any agent)
-
-Installs into the project's agent directories (`.agents/skills/` plus per-agent symlinks):
+Entry skill — skills CLI (any agent):
 
 ```bash
-npx skills add pen-drop/designbook                 # interactive picker
-npx skills add pen-drop/designbook --skill debo    # specific skill
+npx skills add pen-drop/designbook --skill designbook
 ```
 
-Internal development skills are marked `metadata.internal: true` in their `SKILL.md` and are hidden from the skills CLI (override with `INSTALL_INTERNAL_SKILLS=1`).
+Own or shared skills install as npm [skill packages](docs/extend/skill-packages.md) and are listed under `skills:` in `designbook.config.yml`.
 
 ### Local development
 
@@ -51,6 +57,14 @@ Test workspaces symlink the repo's `.agents`/`.claude` directories — no instal
 ```
 
 ## Development
+
+Claude Code in this repository uses the worktree's local skills through
+`.claude/skills/`, and the CLI prefers them over the skills bundled in the addon
+package (`dist/skills/`, copied at build by `scripts/copy-skills.mjs`). The
+marketplace in `.claude-plugin/marketplace.json` ships only the entry skill
+(`plugins/designbook-entry`). Project settings disable the installed Designbook
+plugins so their commands cannot load files from another checkout. A new
+top-level bundle that should ship must be added to `copy-skills.mjs`.
 
 ```bash
 pnpm run dev          # Addon watcher + Storybook (parallel)
@@ -64,4 +78,3 @@ autonomous, SkillOpt-style train/val loop (`debo-test research`). See
 ## License
 
 [MIT](./LICENSE)
-

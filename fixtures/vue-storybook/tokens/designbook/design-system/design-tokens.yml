@@ -1,0 +1,40 @@
+primitive:
+  color:
+    ink-900:
+      $value: "#1C1B1F"
+      $type: color
+      description: Ink — primary text
+    paper-50:
+      $value: "#FBFAF7"
+      $type: color
+      description: Paper — background
+    rust-600:
+      $value: "#B4522F"
+      $type: color
+      description: Rust — accent, call-to-action
+    moss-600:
+      $value: "#3F6B4D"
+      $type: color
+      description: Moss — success, in-stock
+    slate-400:
+      $value: "#8A8D91"
+      $type: color
+      description: Slate — muted text
+theme:
+  light:
+    color:
+      background:
+        $value: "{primitive.color.paper-50}"
+        $type: color
+      foreground:
+        $value: "{primitive.color.ink-900}"
+        $type: color
+      accent:
+        $value: "{primitive.color.rust-600}"
+        $type: color
+      success:
+        $value: "{primitive.color.moss-600}"
+        $type: color
+      muted:
+        $value: "{primitive.color.slate-400}"
+        $type: color

@@ -10,13 +10,28 @@ metadata:
 
 Authoritative reference for authoring and maintaining Designbook skills. Load this skill before modifying any file under `.agents/skills/`.
 
+## Required Authoring Skills
+
+Before creating, editing, or reviewing skill instructions, load and apply these
+skills from the available catalog:
+
+- `writing-for-agents` — instruction writing and placement.
+- `ponytail` — smallest complete change (default `full`; user override wins).
+
+If either skill is unavailable, report the missing dependency before authoring.
+
+Load [rules/writing-files.md](rules/writing-files.md) alongside them for the
+Designbook-specific writing checks (`WRITE-01` .. `WRITE-04`). Before completing
+the work, review every changed instruction against the loaded skills and these checks; resolve findings or
+report those that remain; for a review-only request, report findings without edits.
+
 ## Three-Part Project Architecture
 
 ```
 Part 1 — Core skill (one nested sub-skill per workflow)
   .agents/skills/designbook/
     SKILL.md                               # thin index + global flags
-    skills/<workflow>/SKILL.md             # per-workflow sub-skill (loads the engine)
+    skills/<workflow>/SKILL.md             # domain intake index
     skills/<workflow>/workflows/<id>.md    # workflow definition
     skills/<workflow>/{tasks,rules,blueprints}/  # this workflow's content + schemas.yml
     design/  scenes/                       # shared, workflow-less content roots (beside skills/)
@@ -35,7 +50,11 @@ Part 3 — Integration skills
   → each extends Part 1 with its own tasks/, rules/, blueprints/
 ```
 
-## 4-Level Skill Model
+## Intake and execution
+
+Domain intake → agent-authored complete document → execute-workflow. Follow the [builder](../designbook/resources/workflow-building.md).
+
+## Template content model
 
 ```
 workflow
@@ -47,7 +66,7 @@ workflow
 
 | Level | File location | Purpose |
 |-------|--------------|---------|
-| **Workflow** | `designbook/skills/<workflow>/workflows/<id>.md` | Declares stages and steps |
+| **Workflow** | `designbook/skills/<workflow>/workflows/<id>.md` | Planning template of executable building blocks |
 | **Stage** | (filename of task file) | Groups tasks; name = filename |
 | **Task** | `tasks/<stage-name>.md` | Declares outputs; WHAT not HOW |
 | **Blueprint** | `blueprints/<name>.md` | Overridable starting point |
@@ -70,11 +89,6 @@ Each rule file contains narrative + correct/wrong examples (authoring guidance) 
 `## Checks` table (validation source of truth). The same files are loaded by the
 validator runner — see [resources/validate.md](resources/validate.md).
 
-On top of the structural rules above, [rules/writing-files.md](rules/writing-files.md) governs the
-**writing layer** — context pointers, the two loads, information hierarchy, completion criteria,
-and pruning — for every agent-read document, including `SKILL.md` descriptions and the always-loaded
-`CLAUDE.md`. Load it before writing any such prose (`WRITE-01` .. `WRITE-04`).
-
 ## Schema Reference
 
 See [`resources/schemas.md`](resources/schemas.md) for `schemas.yml` format, `$ref` syntax, and result conventions.
@@ -87,7 +101,7 @@ See [`resources/skill-map.md`](resources/skill-map.md) for a full listing of all
 
 ## Research Mode
 
-See `.agents/skills/designbook-test/workflows/research.md` for the autonomous research-mode loop protocol. The audit criteria are in `.agents/skills/designbook-test/resources/audit-criteria.md`.
+See `.agents/skills/designbook-test/skills/research/resources/research.md` for the autonomous research-mode loop protocol. The audit criteria are in `.agents/skills/designbook-test/resources/audit-criteria.md`.
 
 ## Skill Validation
 

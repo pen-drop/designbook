@@ -1,5 +1,5 @@
 ---
-title: "Sync config to Drupal"
+title: "Sync to backend"
 trigger:
   steps: [sync-to:sync]
 params:
@@ -10,18 +10,15 @@ params:
       type: object
       resolve: backend_cmd
       description: >
-        Backend command strings from designbook.config.yml. Provides import
-        (runs config-import against the backend's view of the config-sync
-        directory).
+        Backend command strings from designbook.config.yml. Provides import (applies the
+        generated files in the sync target directory to the live backend).
       required: [import]
       properties:
         import:
           type: string
           description: >
-            Complete command that imports the config-sync directory into the
-            live backend. The engine runs this string opaquely — no
-            drush/Drupal/path knowledge lives in this task.
-          examples: ["ddev drush config:import --partial -y --source=/var/www/html/web/sites/default/files/sync"]
+            Complete command that applies the generated files to the live backend. The engine
+            runs this string opaquely — no backend knowledge lives in this task.
 result:
   type: object
   required: [sync-result]
@@ -32,7 +29,7 @@ result:
 
 # Sync
 
-Apply the config-sync directory to the live Drupal site by running:
+Apply the generated units to the live backend by running:
 
 ```
 {{ backend_cmd.import }}
@@ -40,13 +37,10 @@ Apply the config-sync directory to the live Drupal site by running:
 
 Capture stdout, stderr, and the exit code.
 
-**On a non-zero exit code:**
-
-- If `scope.validation_gate` is `'soft'` (eval/gradient-scoring mode) — record the outcome in `sync-result` and **continue**. The scorer needs the result even on failure.
-- Otherwise (`scope.validation_gate` is `'hard'` or absent) — record `drush_summary` and `cim_ok: false`, then **abort** the stage immediately and surface the drush output as the failure reason.
+On a non-zero exit code, retain stdout/stderr as failure evidence. Correct the cause and retry this task. If it cannot be corrected within the saved definition, block the task with the attempted correction and the command output. A failed import does not complete this task.
 
 ## Result: sync-result
 
-- `drush_summary`: the complete captured stdout/stderr from the drush invocation.
-- `applied_config_names`: the list of config names that drush reported as imported during this run, parsed from the drush output.
-- `cim_ok`: `true` if `drush config:import --partial` exited 0; `false` otherwise.
+- `summary`: the complete captured stdout/stderr of the import command.
+- `applied`: the unit names the import reported as applied, parsed from its output.
+- `ok`: `true` when the import command exited 0.

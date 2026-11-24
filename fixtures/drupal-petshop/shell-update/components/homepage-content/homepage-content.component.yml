@@ -1,0 +1,12 @@
+name: homepage-content
+status: experimental
+props:
+  type: object
+  properties:
+    heading:
+      type: string
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+group: Data Display
+provider: test_integration_drupal

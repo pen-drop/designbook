@@ -1,0 +1,7 @@
+@import 'tailwindcss' source(none);
+
+@source '.';
+@source '../../../docs/get-started';
+@source '../../../docs/extend';
+@source '../../../docs/integrations';
+@source '../../../docs/advanced';

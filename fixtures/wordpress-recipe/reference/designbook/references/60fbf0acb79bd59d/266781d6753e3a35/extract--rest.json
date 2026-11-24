@@ -1,0 +1,3592 @@
+{
+  "format": "designbook-observations",
+  "capture": {
+    "role": "reference",
+    "source": {
+      "kind": "figma",
+      "identity": "https://www.figma.com/design/jNxa1mBeUyh2eoAQrjcvhd",
+      "revision": null
+    },
+    "scope": [
+      {
+        "subject": "recipe",
+        "locator": {
+          "kind": "figma-node",
+          "value": "58:2"
+        },
+        "view": "desktop",
+        "state": "rest",
+        "session": "anonymous"
+      }
+    ]
+  },
+  "state": "rest",
+  "captured_at": "2026-10-10T21:36:08.115496+00:00",
+  "extract": {
+    "subjects": [
+      {
+        "id": "recipe",
+        "locator": {
+          "kind": "figma-node",
+          "value": "58:2"
+        },
+        "samples": [
+          {
+            "view": "desktop",
+            "state": "rest",
+            "structure": {
+              "roots": [
+                "58:2"
+              ],
+              "nodes": [
+                {
+                  "id": "58:2",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "58:2"
+                  },
+                  "children": [
+                    "73:71",
+                    "144:249",
+                    "146:1516",
+                    "146:1590",
+                    "146:1607"
+                  ]
+                },
+                {
+                  "id": "73:71",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "73:71"
+                  },
+                  "children": [
+                    "73:57",
+                    "73:70"
+                  ]
+                },
+                {
+                  "id": "73:57",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "73:57"
+                  },
+                  "children": [
+                    "60:367",
+                    "146:1720",
+                    "60:384"
+                  ]
+                },
+                {
+                  "id": "60:367",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "60:367"
+                  },
+                  "children": [
+                    "144:96",
+                    "60:369",
+                    "60:370"
+                  ]
+                },
+                {
+                  "id": "144:96",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:96"
+                  },
+                  "children": [
+                    "60:368"
+                  ]
+                },
+                {
+                  "id": "60:368",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "60:368"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "60:369",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "60:369"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "60:370",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "60:370"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1720",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1720"
+                  },
+                  "children": [
+                    "146:1722",
+                    "146:1735",
+                    "146:1724",
+                    "146:1736",
+                    "146:1725"
+                  ]
+                },
+                {
+                  "id": "146:1722",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1722"
+                  },
+                  "children": [
+                    "146:1733",
+                    "60:399"
+                  ]
+                },
+                {
+                  "id": "146:1733",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1733"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "60:399",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "60:399"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1735",
+                  "kind": "ellipse",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1735"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1724",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1724"
+                  },
+                  "children": [
+                    "146:1731",
+                    "146:1719"
+                  ]
+                },
+                {
+                  "id": "146:1731",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1731"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1719",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1719"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1736",
+                  "kind": "ellipse",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1736"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1725",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1725"
+                  },
+                  "children": [
+                    "146:1726",
+                    "146:1721"
+                  ]
+                },
+                {
+                  "id": "146:1726",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1726"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1721",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1721"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "60:384",
+                  "kind": "rounded-rectangle",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "60:384"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "73:70",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "73:70"
+                  },
+                  "children": [
+                    "73:66",
+                    "64:495"
+                  ]
+                },
+                {
+                  "id": "73:66",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "73:66"
+                  },
+                  "children": [
+                    "83:152",
+                    "83:155",
+                    "82:144",
+                    "73:60",
+                    "73:61",
+                    "75:3",
+                    "73:62",
+                    "75:2",
+                    "73:63",
+                    "111:209",
+                    "73:64",
+                    "83:200",
+                    "83:190",
+                    "83:192"
+                  ]
+                },
+                {
+                  "id": "83:152",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:152"
+                  },
+                  "children": [
+                    "83:154"
+                  ]
+                },
+                {
+                  "id": "83:154",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:154"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "83:155",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:155"
+                  },
+                  "children": [
+                    "83:156",
+                    "83:162",
+                    "83:157",
+                    "83:160",
+                    "83:161",
+                    "83:163",
+                    "83:164",
+                    "83:165"
+                  ]
+                },
+                {
+                  "id": "83:156",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:156"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "83:162",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:162"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "83:157",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:157"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "83:160",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:160"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "83:161",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:161"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "83:163",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:163"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "83:164",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:164"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "83:165",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:165"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "82:144",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "82:144"
+                  },
+                  "children": [
+                    "82:145",
+                    "82:146"
+                  ]
+                },
+                {
+                  "id": "82:145",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "82:145"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "82:146",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "82:146"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "73:60",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "73:60"
+                  },
+                  "children": [
+                    "60:397",
+                    "60:392"
+                  ]
+                },
+                {
+                  "id": "60:397",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "60:397"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "60:392",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "60:392"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "73:61",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "73:61"
+                  },
+                  "children": [
+                    "64:405",
+                    "64:404"
+                  ]
+                },
+                {
+                  "id": "64:405",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "64:405"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "64:404",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "64:404"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "75:3",
+                  "kind": "rounded-rectangle",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "75:3"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "73:62",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "73:62"
+                  },
+                  "children": [
+                    "64:407",
+                    "64:406"
+                  ]
+                },
+                {
+                  "id": "64:407",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "64:407"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "64:406",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "64:406"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "75:2",
+                  "kind": "rounded-rectangle",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "75:2"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "73:63",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "73:63"
+                  },
+                  "children": [
+                    "64:409",
+                    "64:408"
+                  ]
+                },
+                {
+                  "id": "64:409",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "64:409"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "64:408",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "64:408"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "111:209",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "111:209"
+                  },
+                  "children": [
+                    "60:386",
+                    "111:204"
+                  ]
+                },
+                {
+                  "id": "60:386",
+                  "kind": "rounded-rectangle",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "60:386"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "111:204",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "111:204"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "73:64",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "73:64"
+                  },
+                  "children": [
+                    "64:411",
+                    "64:412",
+                    "83:166",
+                    "83:167",
+                    "64:432"
+                  ]
+                },
+                {
+                  "id": "64:411",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "64:411"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "64:412",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "64:412"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "83:166",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:166"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "83:167",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:167"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "64:432",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "64:432"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "83:200",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:200"
+                  },
+                  "children": [
+                    "83:201",
+                    "83:202"
+                  ]
+                },
+                {
+                  "id": "83:201",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:201"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "83:202",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:202"
+                  },
+                  "children": [
+                    "83:203",
+                    "83:205",
+                    "83:207"
+                  ]
+                },
+                {
+                  "id": "83:203",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:203"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "83:205",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:205"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "83:207",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:207"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "83:190",
+                  "kind": "line",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:190"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "83:192",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:192"
+                  },
+                  "children": [
+                    "83:191",
+                    "83:196"
+                  ]
+                },
+                {
+                  "id": "83:191",
+                  "kind": "rounded-rectangle",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:191"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "83:196",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:196"
+                  },
+                  "children": [
+                    "83:199",
+                    "83:197"
+                  ]
+                },
+                {
+                  "id": "83:199",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:199"
+                  },
+                  "children": [
+                    "83:194",
+                    "83:195"
+                  ]
+                },
+                {
+                  "id": "83:194",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:194"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "83:195",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:195"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "83:197",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:197"
+                  },
+                  "children": [
+                    "83:198"
+                  ]
+                },
+                {
+                  "id": "83:198",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:198"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "64:495",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "64:495"
+                  },
+                  "children": [
+                    "73:58",
+                    "83:168",
+                    "83:179",
+                    "83:189"
+                  ]
+                },
+                {
+                  "id": "73:58",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "73:58"
+                  },
+                  "children": [
+                    "60:394",
+                    "60:388"
+                  ]
+                },
+                {
+                  "id": "60:394",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "60:394"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "60:388",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "60:388"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "83:168",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:168"
+                  },
+                  "children": [
+                    "83:169",
+                    "83:170"
+                  ]
+                },
+                {
+                  "id": "83:169",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:169"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "83:170",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:170"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "83:179",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:179"
+                  },
+                  "children": [
+                    "83:180",
+                    "83:181",
+                    "83:183"
+                  ]
+                },
+                {
+                  "id": "83:180",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:180"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "83:181",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:181"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "83:183",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:183"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "83:189",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "83:189"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "144:249",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:249"
+                  },
+                  "children": [
+                    "144:250",
+                    "144:259"
+                  ]
+                },
+                {
+                  "id": "144:250",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:250"
+                  },
+                  "children": [
+                    "144:251",
+                    "144:252"
+                  ]
+                },
+                {
+                  "id": "144:251",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:251"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "144:252",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:252"
+                  },
+                  "children": [
+                    "144:253",
+                    "144:256"
+                  ]
+                },
+                {
+                  "id": "144:253",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:253"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "144:256",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:256"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "144:259",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:259"
+                  },
+                  "children": [
+                    "144:260",
+                    "144:270"
+                  ]
+                },
+                {
+                  "id": "144:260",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:260"
+                  },
+                  "children": [
+                    "144:261",
+                    "144:262"
+                  ]
+                },
+                {
+                  "id": "144:261",
+                  "kind": "rounded-rectangle",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:261"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "144:262",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:262"
+                  },
+                  "children": [
+                    "144:263",
+                    "144:266"
+                  ]
+                },
+                {
+                  "id": "144:263",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:263"
+                  },
+                  "children": [
+                    "144:264",
+                    "144:265"
+                  ]
+                },
+                {
+                  "id": "144:264",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:264"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "144:265",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:265"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "144:266",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:266"
+                  },
+                  "children": [
+                    "144:267",
+                    "144:268"
+                  ]
+                },
+                {
+                  "id": "144:267",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:267"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "144:268",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:268"
+                  },
+                  "children": [
+                    "144:269"
+                  ]
+                },
+                {
+                  "id": "144:269",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:269"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "144:270",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:270"
+                  },
+                  "children": [
+                    "144:271",
+                    "144:272",
+                    "144:280"
+                  ]
+                },
+                {
+                  "id": "144:271",
+                  "kind": "rounded-rectangle",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:271"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "144:272",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:272"
+                  },
+                  "children": [
+                    "144:273",
+                    "144:276"
+                  ]
+                },
+                {
+                  "id": "144:273",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:273"
+                  },
+                  "children": [
+                    "144:274",
+                    "144:275"
+                  ]
+                },
+                {
+                  "id": "144:274",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:274"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "144:275",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:275"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "144:276",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:276"
+                  },
+                  "children": [
+                    "144:277",
+                    "144:278"
+                  ]
+                },
+                {
+                  "id": "144:277",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:277"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "144:278",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:278"
+                  },
+                  "children": [
+                    "144:279"
+                  ]
+                },
+                {
+                  "id": "144:279",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:279"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "144:280",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:280"
+                  },
+                  "children": [
+                    "144:281",
+                    "144:286",
+                    "144:292"
+                  ]
+                },
+                {
+                  "id": "144:281",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:281"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "144:286",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:286"
+                  },
+                  "children": [
+                    "144:287",
+                    "144:288",
+                    "144:289",
+                    "144:290",
+                    "144:291"
+                  ]
+                },
+                {
+                  "id": "144:287",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:287"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "144:288",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:288"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "144:289",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:289"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "144:290",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:290"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "144:291",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:291"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "144:292",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:292"
+                  },
+                  "children": [
+                    "144:293",
+                    "144:294",
+                    "144:295",
+                    "144:296",
+                    "144:297"
+                  ]
+                },
+                {
+                  "id": "144:293",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:293"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "144:294",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:294"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "144:295",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:295"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "144:296",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:296"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "144:297",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "144:297"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1516",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1516"
+                  },
+                  "children": [
+                    "146:1517",
+                    "146:1523",
+                    "146:1532"
+                  ]
+                },
+                {
+                  "id": "146:1517",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1517"
+                  },
+                  "children": [
+                    "146:1518",
+                    "146:1522"
+                  ]
+                },
+                {
+                  "id": "146:1518",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1518"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1522",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1522"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1523",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1523"
+                  },
+                  "children": [
+                    "146:1524",
+                    "146:1526",
+                    "146:1528",
+                    "146:1530"
+                  ]
+                },
+                {
+                  "id": "146:1524",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1524"
+                  },
+                  "children": [
+                    "146:1525"
+                  ]
+                },
+                {
+                  "id": "146:1525",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1525"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1526",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1526"
+                  },
+                  "children": [
+                    "146:1527"
+                  ]
+                },
+                {
+                  "id": "146:1527",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1527"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1528",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1528"
+                  },
+                  "children": [
+                    "146:1529"
+                  ]
+                },
+                {
+                  "id": "146:1529",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1529"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1530",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1530"
+                  },
+                  "children": [
+                    "146:1531"
+                  ]
+                },
+                {
+                  "id": "146:1531",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1531"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1532",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1532"
+                  },
+                  "children": [
+                    "146:1533",
+                    "146:1536"
+                  ]
+                },
+                {
+                  "id": "146:1533",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1533"
+                  },
+                  "children": [
+                    "146:1534"
+                  ]
+                },
+                {
+                  "id": "146:1534",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1534"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1536",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1536"
+                  },
+                  "children": [
+                    "146:1537"
+                  ]
+                },
+                {
+                  "id": "146:1537",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1537"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1590",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1590"
+                  },
+                  "children": [
+                    "146:1591",
+                    "146:1597"
+                  ]
+                },
+                {
+                  "id": "146:1591",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1591"
+                  },
+                  "children": [
+                    "146:1592",
+                    "146:1593"
+                  ]
+                },
+                {
+                  "id": "146:1592",
+                  "kind": "rounded-rectangle",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1592"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1593",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1593"
+                  },
+                  "children": [
+                    "146:1594",
+                    "146:1595",
+                    "146:1596"
+                  ]
+                },
+                {
+                  "id": "146:1594",
+                  "kind": "rounded-rectangle",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1594"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1595",
+                  "kind": "ellipse",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1595"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1596",
+                  "kind": "ellipse",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1596"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1597",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1597"
+                  },
+                  "children": [
+                    "146:1598",
+                    "146:1602"
+                  ]
+                },
+                {
+                  "id": "146:1598",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1598"
+                  },
+                  "children": [
+                    "146:1599",
+                    "146:1600",
+                    "146:1601"
+                  ]
+                },
+                {
+                  "id": "146:1599",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1599"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1600",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1600"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1601",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1601"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1602",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1602"
+                  },
+                  "children": [
+                    "146:1603",
+                    "146:1605"
+                  ]
+                },
+                {
+                  "id": "146:1603",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1603"
+                  },
+                  "children": [
+                    "146:1604"
+                  ]
+                },
+                {
+                  "id": "146:1604",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1604"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1605",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1605"
+                  },
+                  "children": [
+                    "146:1606"
+                  ]
+                },
+                {
+                  "id": "146:1606",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1606"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1607",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1607"
+                  },
+                  "children": [
+                    "146:1608",
+                    "146:1632"
+                  ]
+                },
+                {
+                  "id": "146:1608",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1608"
+                  },
+                  "children": [
+                    "146:1609",
+                    "146:1615",
+                    "146:1623"
+                  ]
+                },
+                {
+                  "id": "146:1609",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1609"
+                  },
+                  "children": [
+                    "146:1610",
+                    "146:1614"
+                  ]
+                },
+                {
+                  "id": "146:1610",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1610"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1614",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1614"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1615",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1615"
+                  },
+                  "children": [
+                    "146:1616",
+                    "146:1617",
+                    "146:1618",
+                    "146:1619",
+                    "146:1620",
+                    "146:1621",
+                    "146:1622"
+                  ]
+                },
+                {
+                  "id": "146:1616",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1616"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1617",
+                  "kind": "line",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1617"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1618",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1618"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1619",
+                  "kind": "line",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1619"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1620",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1620"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1621",
+                  "kind": "line",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1621"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1622",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1622"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1623",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1623"
+                  },
+                  "children": [
+                    "146:1624",
+                    "146:1626",
+                    "146:1628",
+                    "146:1630"
+                  ]
+                },
+                {
+                  "id": "146:1624",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1624"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1626",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1626"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1628",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1628"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1630",
+                  "kind": "frame",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1630"
+                  },
+                  "children": []
+                },
+                {
+                  "id": "146:1632",
+                  "kind": "text",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "146:1632"
+                  },
+                  "children": []
+                }
+              ]
+            },
+            "observations": {
+              "layout": {
+                "frame": {
+                  "node": "58:2",
+                  "name": "Cooking Blog CMS",
+                  "width": 1440,
+                  "height": 6847,
+                  "background": "#F0EBE1"
+                },
+                "color_styles": {
+                  "Light": "#FFFBF2",
+                  "Background": "#F0EBE1",
+                  "Dark": "#262522",
+                  "Primary Color 1": "#9FDC26",
+                  "Primary Color 2": "#F29C33",
+                  "Primary Color 3": "#EE6352"
+                },
+                "regions": [
+                  {
+                    "id": "header",
+                    "node": "146:1516",
+                    "box": {
+                      "x": 64,
+                      "y": 16,
+                      "w": 1312,
+                      "h": 70
+                    },
+                    "fill": "#F0EBE1",
+                    "border": "1px rgba(38,37,34,0.24)",
+                    "radius": 32,
+                    "padding": "16px 24px",
+                    "layout": "row space-between",
+                    "children": {
+                      "logo": "146:1517 (40x35 svg + wordmark)",
+                      "links": "146:1523 gap 24, active link border-bottom 4px #EE6352, inactive opacity 0.4",
+                      "actions": "146:1532 search pill bg rgba(38,37,34,0.08) radius 16 + subscribe button bg #262522 text #F0EBE1 radius 24 padding 12px 24px"
+                    }
+                  },
+                  {
+                    "id": "blog",
+                    "node": "73:71",
+                    "box": {
+                      "x": 64,
+                      "y": 102,
+                      "w": 1312,
+                      "h": 5423
+                    },
+                    "border": "1px rgba(38,37,34,0.24)",
+                    "radius": 32,
+                    "padding": "64px 40px",
+                    "gap": 40
+                  },
+                  {
+                    "id": "hero",
+                    "node": "73:57",
+                    "box": {
+                      "x": 104,
+                      "y": 166,
+                      "w": 1232,
+                      "h": 1078
+                    },
+                    "gap": 40,
+                    "align": "center",
+                    "children": {
+                      "text": "60:367 width 870 gap 12",
+                      "tag": "144:96 bg #EE6352 radius 16 padding 8px 16px",
+                      "metadata": "146:1720 row gap 24, items icon 24px + gap 8, 4px ellipse separators",
+                      "hero_image": "60:384 1232x640 radius 24 object-cover"
+                    }
+                  },
+                  {
+                    "id": "blog-wrapper",
+                    "node": "73:70",
+                    "box": {
+                      "x": 175,
+                      "y": 1284,
+                      "w": 1161,
+                      "h": 4177
+                    },
+                    "layout": "row",
+                    "gap": 56
+                  },
+                  {
+                    "id": "body-column",
+                    "node": "73:66",
+                    "box": {
+                      "x": 175,
+                      "y": 1284,
+                      "w": 645,
+                      "h": 4177
+                    },
+                    "width": 645,
+                    "gap": 40,
+                    "text_width": 560,
+                    "images": "75:3, 75:2, 60:386 645x480 radius 24 border 1px rgba(51,51,51,0.4); 60:386 overlay rgba(0,0,0,0.2) + 64px play icon 111:204"
+                  },
+                  {
+                    "id": "sidebar",
+                    "node": "64:495",
+                    "box": {
+                      "x": 876,
+                      "y": 1284,
+                      "w": 460,
+                      "h": 801
+                    },
+                    "fill": "#F0EBE1",
+                    "radius": 24,
+                    "padding": "40px 16px 16px",
+                    "gap": 16,
+                    "cards": "73:58 / 83:168 / 83:179 bg #FFFBF2 border 1px rgba(38,37,34,0.24) radius 24 padding 24px 16px gap 16"
+                  },
+                  {
+                    "id": "share",
+                    "node": "83:200",
+                    "box": {
+                      "x": 175,
+                      "y": 5152,
+                      "w": 231,
+                      "h": 48
+                    },
+                    "border": "1px #262522",
+                    "radius": 24,
+                    "padding": "12px 24px",
+                    "gap": 48,
+                    "icons": "3x 24px gap 12"
+                  },
+                  {
+                    "id": "separator",
+                    "node": "83:190",
+                    "box": {
+                      "x": 175,
+                      "y": 5240,
+                      "w": 748,
+                      "h": 0
+                    },
+                    "width": 748
+                  },
+                  {
+                    "id": "author",
+                    "node": "83:192",
+                    "box": {
+                      "x": 175,
+                      "y": 5280,
+                      "w": 645,
+                      "h": 181
+                    },
+                    "gap": 16,
+                    "image": "83:191 120x120 radius 12",
+                    "button": "83:197 border 1px #262522 radius 24 padding 12px 24px"
+                  },
+                  {
+                    "id": "similar-recipes",
+                    "node": "144:249",
+                    "box": {
+                      "x": 64,
+                      "y": 5561,
+                      "w": 1312,
+                      "h": 573
+                    },
+                    "fill": "#F0EBE1",
+                    "border": "1px rgba(38,37,34,0.24)",
+                    "radius": 32,
+                    "padding": "40px 16px 16px",
+                    "gap": 40,
+                    "cards": "144:260 / 144:270 632x437, image 632x234 top radius 24, body bg #FFFBF2 border 1px rgba(38,37,34,0.16) bottom radius 24 padding 24px 24px 16px gap 40; badge 144:280 bg #9FDC26 radius 34.435"
+                  },
+                  {
+                    "id": "cta",
+                    "node": "146:1590",
+                    "box": {
+                      "x": 71,
+                      "y": 6193,
+                      "w": 1312,
+                      "h": 486
+                    },
+                    "fill": "#EE6352",
+                    "radius": 32,
+                    "height": 486,
+                    "decoration": "146:1593 ellipse overlay svg",
+                    "input": "146:1603 426x50 bg #FFFBF2 radius 24, inline button bg #262522"
+                  },
+                  {
+                    "id": "footer",
+                    "node": "146:1607",
+                    "box": {
+                      "x": 71,
+                      "y": 6695,
+                      "w": 1313,
+                      "h": 136
+                    },
+                    "fill": "#262522",
+                    "radius": 32,
+                    "padding": "0 40px 24px",
+                    "gap": 15,
+                    "children": "146:1608 row space-between border-bottom 1px rgba(240,235,225,0.08) padding 24px 0: logo, links gap 16 with 16px separators, 4 social icons 24px gap 16; copyright 146:1632"
+                  }
+                ]
+              },
+              "typography": [
+                {
+                  "name": "Headline 1",
+                  "family": "Montserrat",
+                  "style": "ExtraBold",
+                  "size_px": 80,
+                  "weight": 800,
+                  "line_height": 1,
+                  "letter_spacing_percent": -1,
+                  "transform": "uppercase",
+                  "color": "#262522",
+                  "nodes": [
+                    "60:369"
+                  ]
+                },
+                {
+                  "name": "Header 2",
+                  "family": "Montserrat",
+                  "style": "Bold",
+                  "size_px": 40,
+                  "weight": 700,
+                  "line_height": 1,
+                  "letter_spacing_percent": 1,
+                  "transform": "uppercase",
+                  "nodes": [
+                    "82:145",
+                    "144:251"
+                  ]
+                },
+                {
+                  "name": "Header 3",
+                  "family": "Montserrat",
+                  "style": "Bold",
+                  "size_px": 24,
+                  "weight": 700,
+                  "line_height": 1.2,
+                  "letter_spacing_percent": -1,
+                  "nodes": [
+                    "83:156",
+                    "144:264",
+                    "144:274"
+                  ]
+                },
+                {
+                  "name": "Subtitle",
+                  "family": "Montserrat",
+                  "style": "SemiBold",
+                  "size_px": 18,
+                  "weight": 600,
+                  "line_height": 1,
+                  "letter_spacing_percent": 2,
+                  "transform": "uppercase",
+                  "color": "#EE6352 (section labels) / #262522 (hero metadata)",
+                  "nodes": [
+                    "60:394",
+                    "83:169",
+                    "83:180",
+                    "60:397",
+                    "64:405",
+                    "64:407",
+                    "64:409",
+                    "64:411",
+                    "83:162",
+                    "83:163",
+                    "60:399",
+                    "146:1719",
+                    "146:1721"
+                  ]
+                },
+                {
+                  "name": "Tagline",
+                  "family": "Roboto",
+                  "style": "Medium",
+                  "size_px": 18,
+                  "weight": 500,
+                  "line_height": 1,
+                  "letter_spacing_percent": 0,
+                  "transform": "uppercase",
+                  "color": "#FFFBF2 on #EE6352 pill",
+                  "nodes": [
+                    "60:368"
+                  ]
+                },
+                {
+                  "name": "Paragraph 1",
+                  "family": "Roboto",
+                  "style": "Regular",
+                  "size_px": 21,
+                  "weight": 400,
+                  "line_height": 1.4,
+                  "letter_spacing_percent": 1,
+                  "color": "rgba(38,37,34,0.6) hero / #262522 ingredients",
+                  "nodes": [
+                    "60:370",
+                    "60:388"
+                  ]
+                },
+                {
+                  "name": "Paragraph 2",
+                  "family": "Roboto",
+                  "style": "Light",
+                  "size_px": 16,
+                  "weight": 300,
+                  "line_height": 1.4,
+                  "letter_spacing_percent": 1,
+                  "color": "rgba(51,51,51,0.8)",
+                  "nodes": [
+                    "83:154",
+                    "82:146",
+                    "60:392",
+                    "64:404",
+                    "64:406",
+                    "64:408",
+                    "64:412",
+                    "64:432"
+                  ]
+                },
+                {
+                  "name": "Bold Text",
+                  "family": "Roboto",
+                  "style": "Medium",
+                  "size_px": 16,
+                  "weight": 500,
+                  "line_height": 1.2,
+                  "letter_spacing_percent": 1,
+                  "color": "#262522",
+                  "nodes": [
+                    "83:170",
+                    "83:194"
+                  ]
+                },
+                {
+                  "name": "Link Text",
+                  "family": "Roboto",
+                  "style": "Regular",
+                  "size_px": 16,
+                  "weight": 400,
+                  "line_height": 1.2,
+                  "letter_spacing_percent": 1,
+                  "color": "#EE6352",
+                  "decoration": "underline",
+                  "nodes": [
+                    "83:166",
+                    "83:167"
+                  ]
+                },
+                {
+                  "name": "Small Text",
+                  "family": "Roboto",
+                  "style": "Medium",
+                  "size_px": 12,
+                  "weight": 500,
+                  "line_height": 1.2,
+                  "letter_spacing_percent": 1,
+                  "transform": "uppercase",
+                  "nodes": [
+                    "83:189",
+                    "83:201",
+                    "144:267",
+                    "146:1632"
+                  ]
+                },
+                {
+                  "name": "ButtonText",
+                  "family": "Roboto",
+                  "style": "Medium",
+                  "size_px": 14,
+                  "weight": 500,
+                  "line_height": 1,
+                  "letter_spacing_percent": 0,
+                  "transform": "uppercase",
+                  "nodes": [
+                    "146:1525",
+                    "146:1537",
+                    "83:198",
+                    "144:269"
+                  ]
+                },
+                {
+                  "name": "Logo wordmark",
+                  "family": "Roboto",
+                  "style": "Bold",
+                  "size_px": 15,
+                  "weight": 700,
+                  "line_height": 1,
+                  "letter_spacing_percent": 0,
+                  "color": "#262522",
+                  "nodes": [
+                    "146:1522"
+                  ]
+                }
+              ],
+              "content": [
+                {
+                  "node": "146:1522",
+                  "text": "Cooks Delight",
+                  "style": "logo-wordmark",
+                  "region": "header",
+                  "box": {
+                    "x": 136,
+                    "y": 36,
+                    "w": 50,
+                    "h": 30
+                  }
+                },
+                {
+                  "node": "146:1525",
+                  "text": "Home",
+                  "style": "nav-link",
+                  "region": "header",
+                  "active": true,
+                  "box": {
+                    "x": 534,
+                    "y": 44,
+                    "w": 40,
+                    "h": 14
+                  }
+                },
+                {
+                  "node": "146:1527",
+                  "text": "recipes",
+                  "style": "nav-link",
+                  "region": "header",
+                  "opacity": 0.4,
+                  "box": {
+                    "x": 614,
+                    "y": 44,
+                    "w": 56,
+                    "h": 14
+                  }
+                },
+                {
+                  "node": "146:1529",
+                  "text": "cooking tips",
+                  "style": "nav-link",
+                  "region": "header",
+                  "opacity": 0.4,
+                  "box": {
+                    "x": 710,
+                    "y": 44,
+                    "w": 94,
+                    "h": 14
+                  }
+                },
+                {
+                  "node": "146:1531",
+                  "text": "about us",
+                  "style": "nav-link",
+                  "region": "header",
+                  "opacity": 0.4,
+                  "box": {
+                    "x": 844,
+                    "y": 44,
+                    "w": 67,
+                    "h": 14
+                  }
+                },
+                {
+                  "node": "146:1537",
+                  "text": "subscribe",
+                  "style": "ButtonText",
+                  "region": "header",
+                  "box": {
+                    "x": 1254,
+                    "y": 44,
+                    "w": 74,
+                    "h": 14
+                  }
+                },
+                {
+                  "node": "60:368",
+                  "text": "recipe",
+                  "style": "Tagline",
+                  "region": "hero",
+                  "box": {
+                    "x": 689.5,
+                    "y": 174,
+                    "w": 61,
+                    "h": 18
+                  }
+                },
+                {
+                  "node": "60:369",
+                  "text": "Lemon Garlic Roasted Chicken",
+                  "style": "Headline 1",
+                  "region": "hero",
+                  "box": {
+                    "x": 285,
+                    "y": 212,
+                    "w": 870,
+                    "h": 160
+                  }
+                },
+                {
+                  "node": "60:370",
+                  "text": "Welcome to Cooks Delight, where culinary dreams come alive! Today, we embark on a journey of flavors with a dish that promises to elevate your dining experience – our Citrus Infusion Delight: Lemon Garlic Roasted Chicken.",
+                  "style": "Paragraph 1",
+                  "region": "hero",
+                  "box": {
+                    "x": 396,
+                    "y": 384,
+                    "w": 648,
+                    "h": 116
+                  }
+                },
+                {
+                  "node": "60:399",
+                  "text": "1 hour",
+                  "style": "Subtitle",
+                  "region": "recipe-metadata",
+                  "icon": "146:1733",
+                  "box": {
+                    "x": 512,
+                    "y": 543,
+                    "w": 71,
+                    "h": 18
+                  }
+                },
+                {
+                  "node": "146:1719",
+                  "text": "hard prep",
+                  "style": "Subtitle",
+                  "region": "recipe-metadata",
+                  "icon": "146:1731",
+                  "box": {
+                    "x": 667,
+                    "y": 543,
+                    "w": 116,
+                    "h": 18
+                  }
+                },
+                {
+                  "node": "146:1721",
+                  "text": "4 serves",
+                  "style": "Subtitle",
+                  "region": "recipe-metadata",
+                  "icon": "146:1726",
+                  "box": {
+                    "x": 867,
+                    "y": 543,
+                    "w": 93,
+                    "h": 18
+                  }
+                },
+                {
+                  "node": "83:154",
+                  "text": "Picture succulent chicken infused with the bright notes of lemon and the aromatic richness of garlic. It's a symphony of flavors that will have your taste buds dancing. Join us as we delve into the art of roasting and uncover the secrets behind creating a masterpiece that's not just a meal but a celebration of culinary craftsmanship.\n\nAs you preheat your oven, envision the kitchen filling with the tantalizing aroma of herbs and citrus, setting the stage for a delightful meal that transcends the ordinary. The anticipation builds as the chicken roasts to golden perfection, promising a dining experience that marries simplicity with sophistication. Whether you're a seasoned chef or a kitchen novice, this recipe invites you to become a culinary artist, creating a masterpiece that will leave a lasting impression on your guests and loved ones.",
+                  "style": "Paragraph 2",
+                  "region": "body",
+                  "box": {
+                    "x": 175,
+                    "y": 1284,
+                    "w": 560,
+                    "h": 286
+                  }
+                },
+                {
+                  "node": "83:156",
+                  "text": "Let’s go over the basics– the do’s, and the don’ts– for How to Cook a chicken",
+                  "style": "Header 3",
+                  "region": "body",
+                  "box": {
+                    "x": 175,
+                    "y": 1610,
+                    "w": 560,
+                    "h": 58
+                  }
+                },
+                {
+                  "node": "83:162",
+                  "text": "Do’s:",
+                  "style": "Subtitle",
+                  "region": "body",
+                  "box": {
+                    "x": 175,
+                    "y": 1684,
+                    "w": 560,
+                    "h": 18
+                  }
+                },
+                {
+                  "node": "83:157",
+                  "text": "Thoroughly Clean Hands and Surfaces: | Before and after handling raw chicken, ensure your hands, utensils, and surfaces are clean to prevent cross-contamination.",
+                  "style": "Bold Text + Paragraph 2",
+                  "region": "body",
+                  "box": {
+                    "x": 175,
+                    "y": 1718,
+                    "w": 560,
+                    "h": 65
+                  }
+                },
+                {
+                  "node": "83:160",
+                  "text": "Use Separate Cutting Boards: | Dedicate specific cutting boards for raw chicken to avoid the spread of bacteria to other foods.",
+                  "style": "Bold Text + Paragraph 2",
+                  "region": "body",
+                  "box": {
+                    "x": 175,
+                    "y": 1799,
+                    "w": 560,
+                    "h": 65
+                  }
+                },
+                {
+                  "node": "83:161",
+                  "text": "Check Internal Temperature: | Invest in a reliable meat thermometer to ensure the chicken reaches the safe internal temperature of 165°F (74°C).",
+                  "style": "Bold Text + Paragraph 2",
+                  "region": "body",
+                  "box": {
+                    "x": 175,
+                    "y": 1880,
+                    "w": 560,
+                    "h": 66
+                  }
+                },
+                {
+                  "node": "83:163",
+                  "text": "Don'ts:",
+                  "style": "Subtitle",
+                  "region": "body",
+                  "box": {
+                    "x": 175,
+                    "y": 1962,
+                    "w": 560,
+                    "h": 18
+                  }
+                },
+                {
+                  "node": "83:164",
+                  "text": "Thaw Chicken at Room Temperature: | Avoid thawing chicken on the counter. Instead, thaw it in the refrigerator to prevent bacterial growth.",
+                  "style": "Bold Text + Paragraph 2",
+                  "region": "body",
+                  "box": {
+                    "x": 175,
+                    "y": 1996,
+                    "w": 560,
+                    "h": 65
+                  }
+                },
+                {
+                  "node": "83:165",
+                  "text": "Overcrowd the Pan: | When roasting, ensure the chicken pieces have space between them for even cooking. Overcrowding can lead to unevenly cooked chicken.",
+                  "style": "Bold Text + Paragraph 2",
+                  "region": "body",
+                  "box": {
+                    "x": 175,
+                    "y": 2077,
+                    "w": 560,
+                    "h": 65
+                  }
+                },
+                {
+                  "node": "82:145",
+                  "text": "Instructions",
+                  "style": "Header 2",
+                  "region": "instructions",
+                  "box": {
+                    "x": 175,
+                    "y": 2182,
+                    "w": 320,
+                    "h": 40
+                  }
+                },
+                {
+                  "node": "82:146",
+                  "text": "This recipe goes beyond the basics, inviting you to savor the richness of a creamy tomato basil sauce that clings to each strand of perfectly cooked pasta. It's a celebration of simplicity, where every ingredient plays a crucial role in creating a dish that is as comforting as it is delightful.\n\nAllow the chicken to rest for 10 minutes before carving. This brief resting period is essential; it allows the juices to redistribute, ensuring each slice is succulent and bursting with flavor. As you carve into the golden exterior, be prepared for the enticing aroma that fills the air, signaling that your Citrus Infusion Delight is ready to be savored.",
+                  "style": "Paragraph 2",
+                  "region": "instructions",
+                  "box": {
+                    "x": 175,
+                    "y": 2238,
+                    "w": 560,
+                    "h": 220
+                  }
+                },
+                {
+                  "node": "60:397",
+                  "text": "Preheat and Prepare",
+                  "style": "Subtitle",
+                  "region": "instructions",
+                  "box": {
+                    "x": 175,
+                    "y": 2498,
+                    "w": 237,
+                    "h": 18
+                  }
+                },
+                {
+                  "node": "60:392",
+                  "text": [
+                    "Preheat your oven to 375°F (190°C).",
+                    "Rinse the chicken inside and out, then pat it dry with paper towels."
+                  ],
+                  "style": "Paragraph 2",
+                  "region": "instructions",
+                  "list": "disc",
+                  "box": {
+                    "x": 175,
+                    "y": 2532,
+                    "w": 560,
+                    "h": 44
+                  }
+                },
+                {
+                  "node": "64:405",
+                  "text": "Citrus Infusion",
+                  "style": "Subtitle",
+                  "region": "instructions",
+                  "box": {
+                    "x": 175,
+                    "y": 2616,
+                    "w": 172,
+                    "h": 18
+                  }
+                },
+                {
+                  "node": "64:404",
+                  "text": [
+                    "Carefully lift the skin of the chicken and rub minced garlic directly onto the meat.",
+                    "Place lemon slices under the skin, ensuring they cover as much surface as possible."
+                  ],
+                  "style": "Paragraph 2",
+                  "region": "instructions",
+                  "list": "disc",
+                  "box": {
+                    "x": 175,
+                    "y": 2650,
+                    "w": 560,
+                    "h": 88
+                  }
+                },
+                {
+                  "node": "64:407",
+                  "text": "Herb Blend",
+                  "style": "Subtitle",
+                  "region": "instructions",
+                  "box": {
+                    "x": 175,
+                    "y": 3298,
+                    "w": 128,
+                    "h": 18
+                  }
+                },
+                {
+                  "node": "64:406",
+                  "text": [
+                    "In a small bowl, mix olive oil, dried thyme, dried rosemary, salt, and black pepper to create a herb-infused mixture.",
+                    "Brush the entire chicken with the herb-infused mixture, making sure it's evenly coated.",
+                    "Season the exterior with additional salt and black pepper to taste."
+                  ],
+                  "style": "Paragraph 2",
+                  "region": "instructions",
+                  "list": "disc",
+                  "box": {
+                    "x": 175,
+                    "y": 3332,
+                    "w": 560,
+                    "h": 110
+                  }
+                },
+                {
+                  "node": "64:409",
+                  "text": "Roast to Perfection",
+                  "style": "Subtitle",
+                  "region": "instructions",
+                  "box": {
+                    "x": 175,
+                    "y": 4002,
+                    "w": 227,
+                    "h": 18
+                  }
+                },
+                {
+                  "node": "64:408",
+                  "text": [
+                    "Place the chicken in a roasting pan, breast side up.",
+                    "Roast in the preheated oven for approximately 1 hour or until the internal temperature reaches 165°F (74°C).",
+                    "Allow the chicken to rest for 10 minutes before carving.",
+                    "Serve with the pan juices and roasted lemon slices for an extra burst of flavor."
+                  ],
+                  "style": "Paragraph 2",
+                  "region": "instructions",
+                  "list": "disc",
+                  "box": {
+                    "x": 175,
+                    "y": 4036,
+                    "w": 560,
+                    "h": 132
+                  }
+                },
+                {
+                  "node": "64:411",
+                  "text": "Pairing Suggestions",
+                  "style": "Subtitle",
+                  "region": "instructions",
+                  "box": {
+                    "x": 175,
+                    "y": 4728,
+                    "w": 225,
+                    "h": 18
+                  }
+                },
+                {
+                  "node": "64:412",
+                  "text": [
+                    "Side Dish: Serve alongside roasted vegetables or a simple green salad.",
+                    "Wine: Pair with a crisp white wine or a light rosé for a well-balanced meal."
+                  ],
+                  "style": "Paragraph 2",
+                  "region": "instructions",
+                  "list": "decimal",
+                  "box": {
+                    "x": 175,
+                    "y": 4762,
+                    "w": 560,
+                    "h": 44
+                  }
+                },
+                {
+                  "node": "83:166",
+                  "text": "Roasted Vegetables: The vibrant flavors of the roasted chicken complement beautifully with seasonal vegetables.",
+                  "style": "Link Text (underlined #EE6352) + Paragraph 2",
+                  "region": "instructions",
+                  "box": {
+                    "x": 175,
+                    "y": 4822,
+                    "w": 560,
+                    "h": 38
+                  }
+                },
+                {
+                  "node": "83:167",
+                  "text": "Herb-infused Quinoa: Create a wholesome meal by serving it alongside a bed of herb-infused quinoa.",
+                  "style": "Link Text (underlined #EE6352) + Paragraph 2",
+                  "region": "instructions",
+                  "box": {
+                    "x": 175,
+                    "y": 4876,
+                    "w": 560,
+                    "h": 44
+                  }
+                },
+                {
+                  "node": "64:432",
+                  "text": "The combination of fresh lemon and aromatic garlic creates a citrus-infused masterpiece that takes the classic roast chicken to a whole new level. The acidity of the lemons not only adds brightness but also helps to tenderize the meat, resulting in a juicy and flavorful dish.\nWhether you're hosting a family dinner or looking for a show-stopping centerpiece for a special celebration, this Lemon Garlic Roasted Chicken is the answer. The simplicity of the ingredients allows the natural flavors to shine, making it a versatile and impressive dish.",
+                  "style": "Paragraph 2",
+                  "region": "instructions",
+                  "box": {
+                    "x": 175,
+                    "y": 4936,
+                    "w": 560,
+                    "h": 176
+                  }
+                },
+                {
+                  "node": "83:201",
+                  "text": "Share",
+                  "style": "Small Text",
+                  "region": "share",
+                  "box": {
+                    "x": 199,
+                    "y": 5169,
+                    "w": 39,
+                    "h": 14
+                  }
+                },
+                {
+                  "node": "83:194",
+                  "text": "Isabella Russo",
+                  "style": "Bold Text",
+                  "region": "author",
+                  "box": {
+                    "x": 311,
+                    "y": 5280,
+                    "w": 509,
+                    "h": 19
+                  }
+                },
+                {
+                  "node": "83:195",
+                  "text": "In the world of pots and pans, I'm on a mission to turn every meal into a masterpiece. Cooks Delight is not just a blog; it's a shared space where the love for food transcends boundaries. Here, we celebrate the art of crafting meals that not only nourish the body but also feed the soul.",
+                  "style": "Paragraph 2",
+                  "region": "author",
+                  "box": {
+                    "x": 311,
+                    "y": 5311,
+                    "w": 509,
+                    "h": 88
+                  }
+                },
+                {
+                  "node": "83:198",
+                  "text": "Learn more",
+                  "style": "ButtonText",
+                  "region": "author",
+                  "box": {
+                    "x": 335,
+                    "y": 5435,
+                    "w": 86,
+                    "h": 14
+                  }
+                },
+                {
+                  "node": "60:394",
+                  "text": "Ingredients",
+                  "style": "Subtitle",
+                  "region": "sidebar-ingredients",
+                  "box": {
+                    "x": 908,
+                    "y": 1348,
+                    "w": 133,
+                    "h": 18
+                  }
+                },
+                {
+                  "node": "60:388",
+                  "text": [
+                    "1 whole chicken (about 3-4 pounds)",
+                    "2 lemons, sliced",
+                    "6 cloves garlic, minced",
+                    "2 tablespoons olive oil",
+                    "1 teaspoon dried thyme",
+                    "1 teaspoon dried rosemary",
+                    "Salt and black pepper to taste"
+                  ],
+                  "style": "Paragraph 1",
+                  "region": "sidebar-ingredients",
+                  "list": "disc",
+                  "box": {
+                    "x": 908,
+                    "y": 1382,
+                    "w": 396,
+                    "h": 203
+                  }
+                },
+                {
+                  "node": "83:169",
+                  "text": "Equipment Needed for Preparation",
+                  "style": "Subtitle",
+                  "region": "sidebar-equipment",
+                  "box": {
+                    "x": 908,
+                    "y": 1649,
+                    "w": 396,
+                    "h": 36
+                  }
+                },
+                {
+                  "node": "83:170",
+                  "text": [
+                    "Roasting pan",
+                    "Meat thermometer",
+                    "Cutting board",
+                    "Kitchen twine"
+                  ],
+                  "style": "Bold Text",
+                  "region": "sidebar-equipment",
+                  "list": "disc",
+                  "box": {
+                    "x": 908,
+                    "y": 1701,
+                    "w": 396,
+                    "h": 76
+                  }
+                },
+                {
+                  "node": "83:180",
+                  "text": "Nutritional Value",
+                  "style": "Subtitle",
+                  "region": "sidebar-nutrition",
+                  "box": {
+                    "x": 908,
+                    "y": 1841,
+                    "w": 396,
+                    "h": 18
+                  }
+                },
+                {
+                  "node": "83:181",
+                  "text": "Per serving (based on a 4-pound chicken):",
+                  "style": "Paragraph 2",
+                  "region": "sidebar-nutrition",
+                  "box": {
+                    "x": 908,
+                    "y": 1875,
+                    "w": 396,
+                    "h": 22
+                  }
+                },
+                {
+                  "node": "83:183",
+                  "text": [
+                    "Calories: ~250",
+                    "Protein: ~30g",
+                    "Total Fat: ~13g",
+                    "Carbohydrates: ~5g"
+                  ],
+                  "style": "Bold Text label + Paragraph 2 value",
+                  "region": "sidebar-nutrition",
+                  "box": {
+                    "x": 908,
+                    "y": 1913,
+                    "w": 396,
+                    "h": 88
+                  }
+                },
+                {
+                  "node": "83:189",
+                  "text": "Note: Nutritional values are approximate and may vary based on specific ingredients and portion sizes.",
+                  "style": "Small Text",
+                  "region": "sidebar",
+                  "box": {
+                    "x": 892,
+                    "y": 2041,
+                    "w": 428,
+                    "h": 28
+                  }
+                },
+                {
+                  "node": "144:251",
+                  "text": "Similar recipes",
+                  "style": "Header 2",
+                  "region": "similar-recipes",
+                  "box": {
+                    "x": 104,
+                    "y": 5601,
+                    "w": 426,
+                    "h": 40
+                  }
+                },
+                {
+                  "node": "144:264",
+                  "text": "Savory Herb-Infused Chicken",
+                  "style": "Header 3",
+                  "region": "similar-recipes",
+                  "box": {
+                    "x": 104,
+                    "y": 5939,
+                    "w": 379,
+                    "h": 29
+                  }
+                },
+                {
+                  "node": "144:265",
+                  "text": "Indulge in the rich and savory symphony of flavors with our Savory Herb-Infused Chicken",
+                  "style": "Paragraph 2",
+                  "region": "similar-recipes",
+                  "box": {
+                    "x": 104,
+                    "y": 5980,
+                    "w": 584,
+                    "h": 44
+                  }
+                },
+                {
+                  "node": "144:267",
+                  "text": "40 Min - easy prep - 3 serves",
+                  "style": "Small Text",
+                  "region": "similar-recipes",
+                  "box": {
+                    "x": 104,
+                    "y": 6076,
+                    "w": 178,
+                    "h": 14
+                  }
+                },
+                {
+                  "node": "144:269",
+                  "text": "view recipe",
+                  "style": "ButtonText",
+                  "region": "similar-recipes",
+                  "box": {
+                    "x": 580,
+                    "y": 6076,
+                    "w": 84,
+                    "h": 14
+                  }
+                },
+                {
+                  "node": "144:274",
+                  "text": "Decadent Chocolate Mousse",
+                  "style": "Header 3",
+                  "region": "similar-recipes",
+                  "box": {
+                    "x": 752,
+                    "y": 5939,
+                    "w": 379,
+                    "h": 29
+                  }
+                },
+                {
+                  "node": "144:275",
+                  "text": "Dive into the velvety indulgence of our Decadent Chocolate Mousse. A dessert that transcends sweetness!",
+                  "style": "Paragraph 2",
+                  "region": "similar-recipes",
+                  "box": {
+                    "x": 752,
+                    "y": 5980,
+                    "w": 584,
+                    "h": 44
+                  }
+                },
+                {
+                  "node": "144:277",
+                  "text": "30 Min - medium prep- 4 serves",
+                  "style": "Small Text",
+                  "region": "similar-recipes",
+                  "box": {
+                    "x": 752,
+                    "y": 6076,
+                    "w": 193,
+                    "h": 14
+                  }
+                },
+                {
+                  "node": "144:279",
+                  "text": "view recipe",
+                  "style": "ButtonText",
+                  "region": "similar-recipes",
+                  "box": {
+                    "x": 1228,
+                    "y": 6076,
+                    "w": 84,
+                    "h": 14
+                  }
+                },
+                {
+                  "node": "144:286",
+                  "text": "vegan (circular badge text, rotated letters, 10.35px Roboto Medium)",
+                  "style": "badge",
+                  "region": "similar-recipes",
+                  "box": {
+                    "x": 1303,
+                    "y": 5889.89764213562,
+                    "w": 30.644745639936446,
+                    "h": 37.53490685565066
+                  }
+                },
+                {
+                  "node": "146:1599",
+                  "text": "subscribe",
+                  "style": "Roboto Bold 18 uppercase rgba(255,251,242,0.8)",
+                  "region": "cta",
+                  "box": {
+                    "x": 679,
+                    "y": 6257,
+                    "w": 96,
+                    "h": 18
+                  }
+                },
+                {
+                  "node": "146:1600",
+                  "text": "Join the fun\nSubscribe now!",
+                  "style": "Header 2 variant: Montserrat Bold 80 #FFFBF2",
+                  "region": "cta",
+                  "box": {
+                    "x": 289,
+                    "y": 6287,
+                    "w": 876,
+                    "h": 160
+                  }
+                },
+                {
+                  "node": "146:1601",
+                  "text": "Subscribe to our newsletter for a weekly serving of recipes, cooking tips, and exclusive insights straight to your inbox.",
+                  "style": "Roboto Bold 21 #FFFBF2",
+                  "region": "cta",
+                  "box": {
+                    "x": 403,
+                    "y": 6459,
+                    "w": 648,
+                    "h": 58
+                  }
+                },
+                {
+                  "node": "146:1604",
+                  "text": "Email Address",
+                  "style": "input placeholder Roboto Bold 21 rgba(38,37,34,0.4)",
+                  "region": "cta",
+                  "box": {
+                    "x": 538,
+                    "y": 6578,
+                    "w": 139,
+                    "h": 24
+                  }
+                },
+                {
+                  "node": "146:1606",
+                  "text": "subscribe",
+                  "style": "ButtonText bold",
+                  "region": "cta",
+                  "box": {
+                    "x": 834,
+                    "y": 6583,
+                    "w": 75,
+                    "h": 14
+                  }
+                },
+                {
+                  "node": "146:1614",
+                  "text": "Cooks Delight",
+                  "style": "footer logo wordmark Roboto Regular 14 #F0EBE1",
+                  "region": "footer",
+                  "box": {
+                    "x": 159,
+                    "y": 6722.5,
+                    "w": 50,
+                    "h": 28
+                  }
+                },
+                {
+                  "node": "146:1616",
+                  "text": "Home",
+                  "style": "nav-link #F0EBE1",
+                  "region": "footer",
+                  "box": {
+                    "x": 569,
+                    "y": 6729.5,
+                    "w": 40,
+                    "h": 14
+                  }
+                },
+                {
+                  "node": "146:1618",
+                  "text": "recipes",
+                  "style": "nav-link #F0EBE1",
+                  "region": "footer",
+                  "box": {
+                    "x": 641,
+                    "y": 6729.5,
+                    "w": 56,
+                    "h": 14
+                  }
+                },
+                {
+                  "node": "146:1620",
+                  "text": "cooking tips",
+                  "style": "nav-link #F0EBE1",
+                  "region": "footer",
+                  "box": {
+                    "x": 729,
+                    "y": 6729.5,
+                    "w": 94,
+                    "h": 14
+                  }
+                },
+                {
+                  "node": "146:1622",
+                  "text": "About us",
+                  "style": "nav-link #F0EBE1",
+                  "region": "footer",
+                  "box": {
+                    "x": 855,
+                    "y": 6729.5,
+                    "w": 67,
+                    "h": 14
+                  }
+                },
+                {
+                  "node": "146:1632",
+                  "text": "Copyright: © 2024 Cooks Delight.",
+                  "style": "Small Text rgba(240,235,225,0.6)",
+                  "region": "footer",
+                  "box": {
+                    "x": 621.5,
+                    "y": 6793,
+                    "w": 212,
+                    "h": 14
+                  }
+                }
+              ],
+              "properties": {
+                "figma_file_key": "jNxa1mBeUyh2eoAQrjcvhd",
+                "figma_page": "0:1 Template",
+                "frame_name": "Cooking Blog CMS",
+                "frame_canvas_position": {
+                  "x": 3819,
+                  "y": 118
+                },
+                "evidence_tools": [
+                  "get_metadata",
+                  "get_design_context",
+                  "get_screenshot",
+                  "download_assets"
+                ],
+                "evidence": "live Figma MCP (not fixture)"
+              }
+            },
+            "dependencies": {
+              "parent_ids": [],
+              "asset_ids": [
+                "figma-node:60:384#image-fill-1",
+                "figma-node:60:384#image-fill-2",
+                "figma-node:75:3#image-fill-1",
+                "figma-node:75:2#image-fill-1",
+                "figma-node:60:386#image-fill-1",
+                "figma-node:60:386#image-fill-2",
+                "figma-node:83:191#image-fill-1",
+                "figma-node:144:261#image-fill-1",
+                "figma-node:144:261#image-fill-2",
+                "figma-node:144:271#image-fill-1",
+                "figma-node:144:271#image-fill-2",
+                "figma-node:146:1518#svg",
+                "figma-node:146:1534#svg",
+                "figma-node:146:1733#svg",
+                "figma-node:146:1735#svg",
+                "figma-node:146:1731#svg",
+                "figma-node:146:1726#svg",
+                "figma-node:111:204#svg",
+                "figma-node:83:203#svg",
+                "figma-node:83:205#svg",
+                "figma-node:83:207#svg",
+                "figma-node:83:190#svg",
+                "figma-node:144:253#svg",
+                "figma-node:144:256#svg",
+                "figma-node:144:281#svg",
+                "figma-node:146:1593#svg",
+                "figma-node:146:1610#svg",
+                "figma-node:146:1617#svg",
+                "figma-node:146:1624#svg",
+                "figma-node:146:1626#svg",
+                "figma-node:146:1628#svg",
+                "figma-node:146:1630#svg"
+              ],
+              "font_families": [
+                "Montserrat",
+                "Roboto"
+              ]
+            },
+            "unavailable": [
+              {
+                "property": "source.revision",
+                "reason": "Host Figma MCP tools (get_metadata, get_design_context, get_screenshot, download_assets) return no file version id.",
+                "required": false
+              },
+              {
+                "property": "fonts.files",
+                "reason": "Figma MCP exposes font family/style/weight but no font binaries; Montserrat and Roboto are Google fonts not delivered by the Figma source.",
+                "required": false
+              },
+              {
+                "property": "image fill stacking order",
+                "reason": "download_assets lists multiple raw image fills for 60:384, 60:386, 144:261, 144:271 without paint order or visibility; both fills are stored.",
+                "required": false
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "parents": [],
+    "images": [
+      {
+        "url": "figma-node:60:384#image-fill-1",
+        "reference_path": "assets/60-384--fill-1.png",
+        "role": "hero",
+        "location": "main",
+        "width": "1232px",
+        "height": "640px",
+        "alt": "Lemon garlic roasted chicken"
+      },
+      {
+        "url": "figma-node:60:384#image-fill-2",
+        "reference_path": "assets/60-384--fill-2.png",
+        "role": "hero",
+        "location": "main",
+        "width": "1232px",
+        "height": "640px",
+        "alt": ""
+      },
+      {
+        "url": "figma-node:75:3#image-fill-1",
+        "reference_path": "assets/75-3--fill-1.jpeg",
+        "role": "illustration",
+        "location": "main",
+        "width": "645px",
+        "height": "480px",
+        "alt": ""
+      },
+      {
+        "url": "figma-node:75:2#image-fill-1",
+        "reference_path": "assets/75-2--fill-1.jpeg",
+        "role": "illustration",
+        "location": "main",
+        "width": "645px",
+        "height": "480px",
+        "alt": ""
+      },
+      {
+        "url": "figma-node:60:386#image-fill-1",
+        "reference_path": "assets/60-386--fill-1.png",
+        "role": "illustration",
+        "location": "main",
+        "width": "645px",
+        "height": "480px",
+        "alt": ""
+      },
+      {
+        "url": "figma-node:60:386#image-fill-2",
+        "reference_path": "assets/60-386--fill-2.png",
+        "role": "illustration",
+        "location": "main",
+        "width": "645px",
+        "height": "480px",
+        "alt": ""
+      },
+      {
+        "url": "figma-node:83:191#image-fill-1",
+        "reference_path": "assets/83-191--fill-1.jpeg",
+        "role": "avatar",
+        "location": "main",
+        "width": "120px",
+        "height": "120px",
+        "alt": "Isabella Russo"
+      },
+      {
+        "url": "figma-node:144:261#image-fill-1",
+        "reference_path": "assets/144-261--fill-1.png",
+        "role": "illustration",
+        "location": "main",
+        "width": "632px",
+        "height": "234px",
+        "alt": ""
+      },
+      {
+        "url": "figma-node:144:261#image-fill-2",
+        "reference_path": "assets/144-261--fill-2.png",
+        "role": "illustration",
+        "location": "main",
+        "width": "632px",
+        "height": "234px",
+        "alt": ""
+      },
+      {
+        "url": "figma-node:144:271#image-fill-1",
+        "reference_path": "assets/144-271--fill-1.png",
+        "role": "illustration",
+        "location": "main",
+        "width": "632px",
+        "height": "234px",
+        "alt": ""
+      },
+      {
+        "url": "figma-node:144:271#image-fill-2",
+        "reference_path": "assets/144-271--fill-2.png",
+        "role": "illustration",
+        "location": "main",
+        "width": "632px",
+        "height": "234px",
+        "alt": ""
+      },
+      {
+        "url": "figma-node:146:1518#svg",
+        "reference_path": "assets/146-1518-logo.svg",
+        "role": "logo",
+        "location": "header",
+        "width": "40px",
+        "height": "35px"
+      },
+      {
+        "url": "figma-node:146:1534#svg",
+        "reference_path": "assets/146-1534-search-icon.svg",
+        "role": "icon",
+        "location": "header",
+        "width": "21px",
+        "height": "21px"
+      },
+      {
+        "url": "figma-node:146:1733#svg",
+        "reference_path": "assets/146-1733-mdi-timer.svg",
+        "role": "icon",
+        "location": "main",
+        "width": "24px",
+        "height": "24px"
+      },
+      {
+        "url": "figma-node:146:1735#svg",
+        "reference_path": "assets/146-1735-ellipse.svg",
+        "role": "icon",
+        "location": "main",
+        "width": "4px",
+        "height": "4px"
+      },
+      {
+        "url": "figma-node:146:1731#svg",
+        "reference_path": "assets/146-1731-weight.svg",
+        "role": "icon",
+        "location": "main",
+        "width": "24px",
+        "height": "24px"
+      },
+      {
+        "url": "figma-node:146:1726#svg",
+        "reference_path": "assets/146-1726-serving-dome.svg",
+        "role": "icon",
+        "location": "main",
+        "width": "24px",
+        "height": "24px"
+      },
+      {
+        "url": "figma-node:111:204#svg",
+        "reference_path": "assets/111-204-play-icon.svg",
+        "role": "icon",
+        "location": "main",
+        "width": "64px",
+        "height": "64px"
+      },
+      {
+        "url": "figma-node:83:203#svg",
+        "reference_path": "assets/83-203-share-icon.svg",
+        "role": "icon",
+        "location": "main",
+        "width": "24px",
+        "height": "24px"
+      },
+      {
+        "url": "figma-node:83:205#svg",
+        "reference_path": "assets/83-205-share-icon.svg",
+        "role": "icon",
+        "location": "main",
+        "width": "24px",
+        "height": "24px"
+      },
+      {
+        "url": "figma-node:83:207#svg",
+        "reference_path": "assets/83-207-share-icon.svg",
+        "role": "icon",
+        "location": "main",
+        "width": "24px",
+        "height": "24px"
+      },
+      {
+        "url": "figma-node:83:190#svg",
+        "reference_path": "assets/83-190-separation-line.svg",
+        "role": "other",
+        "location": "main",
+        "width": "748px",
+        "height": "1px"
+      },
+      {
+        "url": "figma-node:144:253#svg",
+        "reference_path": "assets/144-253-arrow-left.svg",
+        "role": "icon",
+        "location": "main",
+        "width": "40px",
+        "height": "40px"
+      },
+      {
+        "url": "figma-node:144:256#svg",
+        "reference_path": "assets/144-256-arrow-right.svg",
+        "role": "icon",
+        "location": "main",
+        "width": "40px",
+        "height": "40px"
+      },
+      {
+        "url": "figma-node:144:281#svg",
+        "reference_path": "assets/144-281-tag-icon.svg",
+        "role": "icon",
+        "location": "main",
+        "width": "20.087px",
+        "height": "20.087px"
+      },
+      {
+        "url": "figma-node:146:1593#svg",
+        "reference_path": "assets/146-1593-cta-bg.svg",
+        "role": "background",
+        "location": "main",
+        "width": "1312px",
+        "height": "486px"
+      },
+      {
+        "url": "figma-node:146:1610#svg",
+        "reference_path": "assets/146-1610-logo-footer.svg",
+        "role": "logo",
+        "location": "footer",
+        "width": "40px",
+        "height": "35px"
+      },
+      {
+        "url": "figma-node:146:1617#svg",
+        "reference_path": "assets/146-1617-footer-separator.svg",
+        "role": "other",
+        "location": "footer",
+        "width": "16px",
+        "height": "1px"
+      },
+      {
+        "url": "figma-node:146:1624#svg",
+        "reference_path": "assets/146-1624-tiktok.svg",
+        "role": "icon",
+        "location": "footer",
+        "width": "24px",
+        "height": "24px"
+      },
+      {
+        "url": "figma-node:146:1626#svg",
+        "reference_path": "assets/146-1626-social-icon.svg",
+        "role": "icon",
+        "location": "footer",
+        "width": "24px",
+        "height": "24px"
+      },
+      {
+        "url": "figma-node:146:1628#svg",
+        "reference_path": "assets/146-1628-social-icon.svg",
+        "role": "icon",
+        "location": "footer",
+        "width": "24px",
+        "height": "24px"
+      },
+      {
+        "url": "figma-node:146:1630#svg",
+        "reference_path": "assets/146-1630-social-icon.svg",
+        "role": "icon",
+        "location": "footer",
+        "width": "24px",
+        "height": "24px"
+      }
+    ],
+    "fonts": [
+      {
+        "family": "Montserrat",
+        "source": "google",
+        "weights": [
+          600,
+          700,
+          800
+        ],
+        "styles": [
+          "normal"
+        ],
+        "files": []
+      },
+      {
+        "family": "Roboto",
+        "source": "google",
+        "weights": [
+          300,
+          400,
+          500,
+          700
+        ],
+        "styles": [
+          "normal"
+        ],
+        "files": []
+      }
+    ],
+    "captures": [
+      {
+        "subject": "recipe",
+        "view": "desktop",
+        "state": "rest",
+        "path": "desktop--recipe--rest.png",
+        "width": 1440,
+        "height": 6847
+      }
+    ]
+  }
+}

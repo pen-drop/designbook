@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Designbook · Recipe animatic</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#111b22;color:#f6f5f0;font-family:Arial,sans-serif}#world{position:absolute;transform-origin:0 0}.panel{position:absolute;top:0;border:1px solid #617982;border-radius:14px;overflow:hidden;box-shadow:0 24px 90px #0009}.figma{left:0;width:1440px;height:900px;background:#eee}.figma img{width:100%}.figma .missing{position:absolute;inset:0;background:#101820a8;display:grid;place-content:center;text-align:center;font-size:35px;line-height:1.5}.missing small{font-size:20px;color:#e4cda4}.terminal{left:1580px;top:120px;width:1000px;height:600px;background:#18232a;padding:34px;color:#e6eee7;font:27px/1.55 monospace}.terminal header{font:17px Arial;letter-spacing:2px;color:#d6ad91;border-bottom:1px solid #49616d;padding-bottom:25px}.terminal .source{font-size:17px;color:#94abb4;margin:24px 0}.terminal .prompt{font-size:31px;margin-top:30px;white-space:pre-wrap}.terminal .reply{font-size:21px;color:#9cdeb7;margin-top:25px}.terminal .caret{color:#ff996a}.storybook{left:2800px;width:1440px;height:760px;background:white}.chrome{position:absolute;inset:0;width:1440px;height:900px}.sidebar{position:absolute;top:146px;left:0;width:299px;height:614px;background:#f6f9fc;color:#36414b;padding:10px 12px}.sidebar .group{font-size:11px;letter-spacing:2px;height:25px;padding:7px 8px;font-weight:700}.nav-row{display:block;width:275px;height:28px;object-fit:contain;object-position:left center;margin:0}.pair-row{position:absolute;left:12px;width:275px;height:28px;transform-origin:left center}.pair-row img{width:100%;height:100%;object-fit:contain;object-position:left center}.pair-row.active{background:#d9faee;border-radius:4px;box-shadow:inset 3px 0 #13af89}.stage{position:absolute;left:300px;top:40px;width:1140px;height:720px;overflow:hidden;background:#f0ebe1}.stage .full{position:absolute;left:0;top:0;width:1140px;transform-origin:0 0}.foundation{position:absolute;inset:0;overflow:hidden;background:white}.foundation img{position:absolute;width:1440px;left:-300px;top:-40px}.target{position:absolute;border:4px solid #10c99a;border-radius:9px;background:#2effbb15;box-shadow:0 0 0 5px #fff9,0 0 26px #37dfb855;pointer-events:none}.target.component{border-color:#ed8054;box-shadow:0 0 0 5px #fff9,0 0 26px #ffb57877;background:#ff9c4010}.target.align-right span{left:auto;right:0}.target span{position:absolute;left:0;top:-34px;background:#101e27;color:white;font:600 19px/30px Arial;padding:0 12px;white-space:nowrap;border-radius:4px}#model img{left:45px;top:60px;width:1050px;height:640px;object-fit:contain}.ai-edge{position:absolute;bottom:18px;left:12px;right:12px;padding:12px 10px;background:#18232a;color:#ace4c0;font:14px monospace;border-radius:5px}.ai-edge small{display:block;font-size:10px;letter-spacing:1px;color:#c9d6dc;margin-bottom:6px}#caption{position:absolute;left:40px;top:22px;z-index:10;text-shadow:0 2px 20px #000}#caption small{display:block;font-size:11px;letter-spacing:2px;color:#a2bdc4;margin-bottom:7px}#caption strong{font-size:35px;letter-spacing:-1px}#caption p{margin:5px 0;font-size:18px;color:#a2bdc4}.badge{position:absolute;right:34px;top:27px;font-size:12px;letter-spacing:2px;color:#a2bdc4}.progress{position:absolute;bottom:0;left:0;height:3px;background:#da895e}.link{position:absolute;inset:0;width:1440px;height:900px;pointer-events:none;overflow:visible}.link path{fill:none;stroke:#10c99a;stroke-width:3;stroke-dasharray:7 5}.figma-editor{display:none;width:1440px;height:900px;object-fit:contain;background:#222}
+</style>
+<div id="world">
+ <section class="panel figma"><img src="screenshots/reference.png" alt="Original Figma recipe frame"><img class="figma-editor" id="figma-editor" alt="Figma editor capture"><div class="missing" id="figma-missing">FIGMA EDITOR CAPTURE<small>Animatic placeholder · actual editor capture pending</small></div></section>
+ <section class="panel terminal"><header>✳ CLAUDE CODE <span style="float:right;font-size:12px">PROMPT EXCERPTS · REPLAY</span></header><div class="source">↳ Figma · Cooking Blog CMS · 58:2<br>jNxa1mBeUyh2eoAQrjcvhd</div><div class="prompt" id="prompt"></div><div class="reply" id="reply"></div></section>
+ <section class="panel storybook"><img class="chrome" src="screenshots/chrome.png" alt="Storybook"><div class="sidebar"><div class="group">DESIGNBOOK</div><img class="nav-row" src="screenshots/rows/foundation.png" alt="Foundation"><img class="nav-row" src="screenshots/rows/design-system.png" alt="Design System"><img class="nav-row" src="screenshots/rows/sections.png" alt="Sections"><img class="nav-row" id="scene-row" src="screenshots/rows/scene.png" alt="Recipe Detail"><div class="group" id="entities-label">ENTITIES</div><div class="group" id="components-label" style="position:absolute;top:300px">COMPONENTS</div><div id="rows"></div><div class="ai-edge"><small>CLAUDE · RECORDED WORKFLOW</small><span id="ai-state">Extracting foundations…</span></div></div><div class="stage"><img class="full" id="recipe" src="screenshots/recipe-full.png" alt="Rendered recipe"><div class="foundation" id="model"><img src="screenshots/model-graph.png" alt="Real data model graph"></div><div class="foundation" id="tokens"><img src="screenshots/tokens.png" alt="Real design tokens"></div><div id="targets"></div></div><svg class="link"><path id="connector"/></svg></section>
+</div>
+<div style="position:absolute;inset:0 0 auto;height:94px;background:#111b22;z-index:8"></div><div id="caption"><small id="step"></small><strong id="title"></strong><p id="subtitle"></p></div><div class="badge">DESIGNBOOK / ANIMATIC</div><div class="progress"></div>
+<script>
+let pairs=[];
+const smooth=x=>{x=Math.min(1,Math.max(0,x));return x*x*(3-2*x)};
+// The camera is expressed in source-image coordinates; the screenshots never change shape.
+const keys=[
+ [0,720,450,.65],[1.5,760,420,.72],
+ [2.2,2080,420,.97],[3.35,2080,420,.97],
+ [4.05,3520,400,.79],[4.8,3700,430,.95],[5.45,3640,440,.9],
+ [6.1,3730,400,1.02],[7.1,3710,410,1.02],
+ [7.65,2080,430,.99],[8.45,2080,430,.99],
+ [9.05,3610,390,.88],[9.65,3720,400,1.02],[10,3520,390,.81],
+ [13.4,3520,390,.81],[13.9,3570,400,.88],[14.05,3520,390,.81],
+ [17.8,3520,390,.81],[18.65,3520,380,.75],[19,3520,380,.75]
+];
+const chapters=[
+ [0,'01 / SOURCE','Bring your design.'],[2,'02 / AI INSTRUCTION','Let AI do the building.'],
+ [4,'03 / FOUNDATIONS','Extract your data and tokens.'],[7.5,'04 / AI INSTRUCTION','Build your scene.'],
+ [9,'04 / SCENE','Build your scene.'],[10,'05 / ENTITIES','Structure your content.'],
+ [13.5,'06 / COMPONENTS','Reveal your components.'],[18,'07 / RESULT','Not a design tool.']
+];
+window.ready=Promise.all([fetch('pairs.json').then(r=>r.json()),fetch('prompts.json').then(r=>r.json())]).then(async([p,prompts])=>{
+ pairs=p;window.prompts=prompts;
+ for(const [i,pair] of pairs.entries()){
+  const row=document.createElement('div');row.className='pair-row';row.dataset.id=pair.id;
+  row.style.top=`${i<4?180+i*30:332+(i-4)*30}px`;
+  const img=document.createElement('img');img.src=`screenshots/rows/${pair.id}.png`;img.alt=pair.name;row.append(img);document.querySelector('#rows').append(row);
+  const target=document.createElement('div');target.className='target '+pair.kind+(pair.box.x>650?' align-right':'');target.dataset.id=pair.id;
+  const label=document.createElement('span');label.textContent=(pair.kind==='entity'?'Entity · ':'Component · ')+pair.name;target.append(label);document.querySelector('#targets').append(target);
+ }
+ const response=await fetch('figma.json');
+ if(response.ok){const asset=await response.json();if(asset.path){const img=document.querySelector('#figma-editor');img.src=asset.path;await img.decode();img.style.display='block';img.style.position='absolute';img.style.inset=0;document.querySelector('#figma-missing').style.display='none';}}
+ window.setTime(0);
+});
+window.setTime=input=>{
+ const t=Math.min(19,Math.max(0,input));
+ let a=keys[0],b=keys.at(-1);for(let i=1;i<keys.length;i++){if(t<keys[i][0]){a=keys[i-1];b=keys[i];break;}a=b=keys[i];}
+ const f=a===b?0:smooth((t-a[0])/(b[0]-a[0]));const [cx,cy,scale]=[1,2,3].map(i=>a[i]+(b[i]-a[i])*f);
+ document.querySelector('#world').style.transform=`translate(${640-cx*scale}px,${410-cy*scale}px) scale(${scale})`;
+ const chapter=chapters.findLast(c=>t>=c[0]);document.querySelector('#step').textContent=chapter[1];document.querySelector('#title').textContent=chapter[2];document.querySelector('#subtitle').textContent=t>=18?'AI builds your design system.':'';
+ const build=t>=7.5;const prompt=build?window.prompts.build:window.prompts.extract;
+ const elapsed=t-(build?7.5:2);document.querySelector('#prompt').textContent='❯ '+prompt.slice(0,Math.max(0,Math.floor(elapsed*155)))+(elapsed<.8?'▍':'');document.querySelector('#reply').textContent=elapsed>.9?(build?'↳ design-shell → design-screen':'↳ data-model → tokens → css-generate'):'';
+ const showModel=t>=3.6&&t<5.9,showTokens=t>=5.9&&t<7.5;
+ document.querySelector('#model').style.opacity=showModel?1:0;document.querySelector('#tokens').style.opacity=showTokens?1:0;
+ document.querySelector('#recipe').style.opacity=t>=8.7?1:0;
+ document.querySelector('#scene-row').style.opacity=t>=8.7?1:0;document.querySelector('#entities-label').style.opacity=t>=10?1:0;document.querySelector('#components-label').style.opacity=t>=13.5?1:0;
+ document.querySelector('#ai-state').textContent=t<8.7?'Extracting foundations…':t<18?'Building recipe screen…':'Recipe screen built';
+ let scroll=0,active=null;
+ // First reveal entities, then repeat the top-to-bottom path for their components.
+ for(let i=0;i<pairs.length;i++){
+  const pair=pairs[i],end=i===3?13.5:i===8?18:pairs[i+1].at;
+  if(t>=pair.at&&t<end)active=pair;
+  const row=document.querySelector(`.pair-row[data-id="${pair.id}"]`),dt=t-pair.at;
+  row.style.opacity=dt>=0?1:0;row.style.transform=`translateX(${dt<0?-35:(1-smooth(dt/.2))*35}px) scale(${dt<0?.9:1+Math.sin(Math.min(1,dt/.28)*Math.PI)*.08})`;
+  row.classList.toggle('active',active===pair);
+ }
+ const stops=[[9,0],...pairs.slice(0,4).map(p=>[p.at,Math.max(0,p.box.y-220)]),[13.9,0],...pairs.slice(4).map(p=>[p.at,Math.max(0,p.box.y-220)]),[18.55,0]];
+ for(let i=1;i<stops.length;i++){
+  const prev=stops[i-1],next=stops[i];
+  if(t<next[0]){scroll=prev[1]+(next[1]-prev[1])*smooth((t-(next[0]-.32))/.32);break;}
+  scroll=next[1];
+ }
+ document.querySelector('#recipe').style.transform=`translateY(${-scroll}px)`;
+ for(const pair of pairs){
+  const target=document.querySelector(`.target[data-id="${pair.id}"]`),box=pair.box;
+  const on=active===pair;target.style.opacity=on?1:0;target.style.left=`${box.x-6}px`;target.style.top=`${box.y-scroll-6}px`;target.style.width=`${box.width+12}px`;target.style.height=`${box.height+12}px`;
+ }
+ const connector=document.querySelector('#connector');
+ if(active){const i=pairs.indexOf(active),y=146+(i<4?180+i*30:332+(i-4)*30)+14,x2=300+active.box.x,y2=40+active.box.y-scroll+active.box.height/2;
+  connector.setAttribute('d',`M 278 ${y} C 320 ${y}, ${x2-30} ${y2}, ${x2} ${y2}`);connector.style.stroke=active.kind==='entity'?'#10c99a':'#ed8054';connector.style.opacity='.7';
+ }else connector.style.opacity=0;
+ document.querySelector('.progress').style.width=`${t/19*1280}px`;
+};
+</script></html>

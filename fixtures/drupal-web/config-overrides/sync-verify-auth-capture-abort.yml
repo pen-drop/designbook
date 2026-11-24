@@ -1,0 +1,25 @@
+workspace: .
+
+backend: drupal
+frameworks:
+  component: sdc
+  css: tailwind
+designbook:
+  cmd: npx storybook dev
+  home: .
+dirs:
+  components: components
+  css:
+    tokens: css/tokens
+    themes: css/themes
+css:
+  app: css/app.src.css
+component:
+  namespace: 'test_integration_drupal'
+  src: components
+# DESIGNBOOK-65 Task 10 (F-8) — the changed surface for this case is the AUTHCAP abort
+# mechanic, not the entity's own render. renderUrlCommand ignores {config_id}/{story_id} and
+# always resolves Drupal's own `/admin/content` route — a route every Drupal install ships
+# with, requiring "access content overview" — so the candidate side is a real protected
+# subject: anonymous hits the login wall, an authenticated session reaches the real listing.
+renderUrlCommand: 'ddev drush eval "print rtrim(\Drupal::request()->getSchemeAndHttpHost(), \"/\") . \"/admin/content\";"'

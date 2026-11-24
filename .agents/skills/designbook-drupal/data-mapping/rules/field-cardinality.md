@@ -1,6 +1,9 @@
 ---
 trigger:
   domain: data-mapping
+  paths: ['$DESIGNBOOK_DATA/*/*.jsonata']
+filter:
+  backend: drupal
 ---
 
 # Rule: Field Cardinality Mapping

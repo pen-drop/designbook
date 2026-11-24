@@ -1,0 +1,268 @@
+/**
+ * Build an MD plan from an agent-authored task list.
+ *
+ * The agent passes only the decisions — the complete list of tasks with their
+ * step, template, title and params. The CLI resolves the full intake context
+ * itself (reading rule/blueprint/task bodies from disk), validates each task's
+ * params against its `params_schema` and that every required step is covered,
+ * embeds each rule/blueprint/task body once in a shared registry, freezes the
+ * output contracts and definitions, computes the digest, and writes the plan.
+ * The agent never handles the ~200 KB of embedded context.
+ */
+
+import { readFileSync } from 'node:fs';
+import { basename } from 'node:path';
+import Ajv from 'ajv';
+import { resolveIntakeContext, type ResolveIntakeOptions, type TaskContract } from './intake-resolve.js';
+import { interpolate } from '../shared/template/interpolate.js';
+import {
+  parsePlan,
+  serializePlan,
+  planDigest,
+  type ContextEntry,
+  type Plan,
+  type PlanStep,
+  type PlanTask,
+} from './plan-document.js';
+import {
+  deriveComposition,
+  verifyCompositionHashes,
+  WRITING_DESIGN_WORKFLOWS,
+  type CompositionInputs,
+} from './plan-composition.js';
+import { verifyReusedMappingSources } from './plan-composition-result.js';
+
+export interface TaskDecision {
+  /** Execution step this task belongs to. */
+  step: string;
+  /** Task-template name from the palette to instantiate (may repeat, e.g. write-component). */
+  task: string;
+  title?: string;
+  params?: Record<string, unknown>;
+}
+export interface TaskList {
+  workflow: string;
+  selectors?: Record<string, string>;
+  tasks: TaskDecision[];
+  composition?: CompositionInputs;
+}
+export interface BuildResult {
+  plan: Plan | null;
+  /** Directory persisted plans live under (`<DESIGNBOOK_DATA>/plans`) — see IntakeContext.plans_dir. */
+  plans_dir: string;
+  errors: string[];
+}
+
+function sealComposition(composition: CompositionInputs, config: Record<string, unknown>): CompositionInputs {
+  const namespace = config['component.namespace'];
+  const data = config.data;
+  return {
+    ...composition,
+    ...(typeof namespace === 'string' && namespace ? { namespace } : {}),
+    ...(typeof data === 'string' && data ? { data_dir: data } : {}),
+  };
+}
+
+export async function buildPlan(taskList: TaskList, opts: ResolveIntakeOptions = {}): Promise<BuildResult> {
+  const intake = await resolveIntakeContext(taskList.workflow, opts);
+  const errors: string[] = [];
+
+  const ajv = new Ajv({ allErrors: true, strict: false });
+  for (const [name, schema] of Object.entries(intake.definitions))
+    ajv.addSchema(schema as object, `#/definitions/${name}`);
+
+  // The palette is every task the intake advertises — the step tasks AND the gated
+  // (open-selector) tasks. The agent decides which come along; the build imposes no
+  // fixed set. Gated tasks also carry the context to embed for their step.
+  const palette = new Map<string, TaskContract>();
+  for (const s of intake.steps) for (const t of s.tasks) palette.set(`${t.step}::${t.name}`, t);
+  const gatedContextByStep = new Map<string, ContextEntry[]>();
+  for (const g of intake.gated) {
+    for (const t of g.tasks) {
+      palette.set(`${t.step}::${t.name}`, t);
+      const arr = gatedContextByStep.get(t.step) ?? [];
+      arr.push(...g.context);
+      gatedContextByStep.set(t.step, arr);
+    }
+  }
+
+  // Shared registry: rule/blueprint bodies (from intake.context) + task bodies, each once.
+  const registry: Record<string, ContextEntry> = {};
+  const instrKeyBySource = new Map<string, string>();
+  const usedKeys = new Set<string>();
+  const embedTask = (source: string): string => {
+    const existing = instrKeyBySource.get(source);
+    if (existing) return existing;
+    let key = `task:${basename(source).replace(/\.md$/, '')}`;
+    if (usedKeys.has(key)) {
+      let i = 2;
+      while (usedKeys.has(`${key}-${i}`)) i++;
+      key = `${key}-${i}`;
+    }
+    usedKeys.add(key);
+    registry[key] = { key, kind: 'task', source, content: readFileSync(source, 'utf8') };
+    instrKeyBySource.set(source, key);
+    return key;
+  };
+
+  const byStep = new Map<string, PlanTask[]>();
+  for (const d of taskList.tasks) {
+    const contract = palette.get(`${d.step}::${d.task}`);
+    if (!contract) {
+      errors.push(`unknown task "${d.task}" for step "${d.step}"`);
+      continue;
+    }
+    const params = resolveParams(d.params ?? {}, contract.resolves, intake.config);
+    const validate = ajv.compile({ ...contract.params_schema, definitions: intake.definitions });
+    if (!validate(params))
+      errors.push(`task "${d.task}" (${d.title ?? ''}) params: ${ajv.errorsText(validate.errors)}`);
+    // Resolve `{{ param }}` templates in each output path against this task's params,
+    // so the frozen contract carries the concrete file path — not an unrendered template.
+    const outputs: Record<string, PlanTask['contract']['outputs'][string]> = {};
+    for (const [key, out] of Object.entries(contract.outputs)) {
+      outputs[key] = out.path
+        ? {
+            ...out,
+            path: await interpolate(out.path, params, {
+              lenient: true,
+              envMap: { DESIGNBOOK_DATA: String(intake.config.data ?? '') },
+            }),
+            ...(out.validators?.length ? { validators: await renderValidators(out.validators, params) } : {}),
+          }
+        : out;
+    }
+    const planTask: PlanTask = {
+      name: d.task,
+      title: d.title ?? '',
+      done: false,
+      instruction: embedTask(contract.source),
+      params,
+      contract: { outputs },
+      results: null,
+    };
+    if (!byStep.has(d.step)) byStep.set(d.step, []);
+    byStep.get(d.step)!.push(planTask);
+  }
+
+  // No fixed-set completeness gate — the agent decides which tasks come along.
+  // Hard requirements are enforced by `plan validate` (obligation rules), not here.
+  // AJV failure short-circuits semantic composition traversal.
+  if (errors.length > 0) return { plan: null, plans_dir: intake.plans_dir, errors };
+
+  if (WRITING_DESIGN_WORKFLOWS.has(taskList.workflow)) {
+    if (!taskList.composition) errors.push('composition snapshot is required');
+    else {
+      const validateComposition = ajv.compile({
+        $ref: '#/definitions/CompositionInputs',
+        definitions: intake.definitions,
+      });
+      if (!validateComposition(taskList.composition))
+        errors.push(`composition: ${ajv.errorsText(validateComposition.errors)}`);
+      else errors.push(...verifyCompositionHashes(taskList.composition));
+    }
+    if (errors.length > 0) return { plan: null, plans_dir: intake.plans_dir, errors };
+  }
+
+  // Assemble steps in the order the agent listed them (first-seen). Each step embeds
+  // its intake-step context keys, or its gated context entries for a selector step.
+  const intakeStepMap = new Map(intake.steps.map((s) => [s.name, s]));
+  const stepOrder: string[] = [];
+  const seenStep = new Set<string>();
+  for (const d of taskList.tasks) {
+    if (!seenStep.has(d.step)) {
+      seenStep.add(d.step);
+      stepOrder.push(d.step);
+    }
+  }
+  const steps: PlanStep[] = [];
+  for (const stepName of stepOrder) {
+    const tasks = byStep.get(stepName);
+    if (!tasks || tasks.length === 0) continue;
+    const contextKeys = new Set<string>();
+    for (const key of intakeStepMap.get(stepName)?.context ?? []) {
+      if (intake.context[key]) {
+        registry[key] = intake.context[key]!;
+        contextKeys.add(key);
+      }
+    }
+    for (const entry of gatedContextByStep.get(stepName) ?? []) {
+      registry[entry.key] = entry;
+      contextKeys.add(entry.key);
+    }
+    steps.push({ name: stepName, context: [...contextKeys], tasks });
+  }
+
+  const draft: Plan = {
+    workflow: taskList.workflow,
+    digest: '',
+    definitions: intake.definitions,
+    context: registry,
+    steps,
+    ...(taskList.composition ? { composition: sealComposition(taskList.composition, intake.config) } : {}),
+  };
+  if (WRITING_DESIGN_WORKFLOWS.has(taskList.workflow) && draft.composition) {
+    const semantic = deriveComposition(draft);
+    if (semantic.errors.length > 0) return { plan: null, plans_dir: intake.plans_dir, errors: semantic.errors };
+    const reused = verifyReusedMappingSources(draft);
+    if (reused.length > 0) return { plan: null, plans_dir: intake.plans_dir, errors: reused };
+  }
+  // Seal on the canonical parsed form: parsePlan trims embedded bodies, so the
+  // digest must be computed over what execution will re-parse — not the raw
+  // in-memory plan — or `plan done` would report a digest mismatch.
+  const plan = parsePlan(serializePlan(draft));
+  plan.digest = planDigest(plan);
+  return { plan, plans_dir: intake.plans_dir, errors: [] };
+}
+
+/**
+ * Renders `{{ param }}` templates in a contract's `cmd:` validators against the task's params.
+ * A validator that still references an absent param (an optional backend command left
+ * unconfigured) does not apply and is dropped; `{{ file }}` stays for validation time.
+ */
+export async function renderValidators(validators: string[], params: Record<string, unknown>): Promise<string[]> {
+  const rendered: string[] = [];
+  for (const validator of validators) {
+    if (!validator.startsWith('cmd:')) {
+      rendered.push(validator);
+      continue;
+    }
+    const cmd = await interpolate(validator, { ...params, file: '{{ file }}' }, { lenient: true });
+    if (!/\{\{(?!\s*file\s*\}\})[^}]*\}\}/.test(cmd)) rendered.push(cmd);
+  }
+  return rendered;
+}
+
+/**
+ * Fills `resolve: <config key>` params from the flattened config: an absent param takes the
+ * config value, an object param keeps its given keys over the config's, so a partial override
+ * never drops configured keys.
+ */
+export function resolveParams(
+  params: Record<string, unknown>,
+  resolves: Record<string, string> | undefined,
+  config: Record<string, unknown>,
+): Record<string, unknown> {
+  if (!resolves) return params;
+  const out = { ...params };
+  for (const [param, key] of Object.entries(resolves)) {
+    let value: unknown = config[key];
+    if (value === undefined) {
+      const nested: Record<string, unknown> = {};
+      for (const [flat, v] of Object.entries(config)) {
+        if (!flat.startsWith(`${key}.`)) continue;
+        const path = flat.slice(key.length + 1).split('.');
+        let node = nested;
+        for (const seg of path.slice(0, -1)) node = (node[seg] ??= {}) as Record<string, unknown>;
+        node[path[path.length - 1]!] = v;
+      }
+      if (Object.keys(nested).length) value = nested;
+    }
+    if (value === undefined) continue;
+    const given = out[param];
+    out[param] =
+      given && typeof given === 'object' && value && typeof value === 'object'
+        ? { ...(value as object), ...(given as object) }
+        : (given ?? value);
+  }
+  return out;
+}

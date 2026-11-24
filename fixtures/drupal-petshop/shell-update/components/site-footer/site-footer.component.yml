@@ -1,0 +1,10 @@
+name: site-footer
+status: experimental
+props:
+  type: object
+  properties: {}
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+group: Shell
+provider: test_integration_drupal

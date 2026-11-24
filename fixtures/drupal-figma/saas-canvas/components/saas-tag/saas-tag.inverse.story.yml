@@ -1,0 +1,8 @@
+component: test_integration_drupal:saas-tag
+name: Inverse
+variant: inverse
+slots:
+  label:
+    - type: element
+      tag: span
+      value: Most Popular

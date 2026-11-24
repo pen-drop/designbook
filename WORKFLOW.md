@@ -1,72 +1,56 @@
 # designbook — WORKFLOW
 
-Per-state **policy overrides** for this repo, consumed by the `gaia` skill. Each `## State: <state>`
-section carries a YAML config object with **only the keys this project overrides**; every omitted
-key (and every empty section) takes the engine default.
+Invoke `bakers:bb-workflow` and follow it for the ticket's current state.
 
-- **Schema, vocabularies, engine defaults, and the defaults-⊕-overrides merge rule** live in the
-  skill: `.claude/skills/gaia/reference/workflow-config.md`.
-- **Mechanics** (dispatch, auth, payload shapes, merge signature, phase-comment + acceptance→test→
-  .feature lifecycle) live in `.claude/skills/gaia/SKILL.md` + `reference/**`.
-- **No** general prose, decision tables, dropsh `--data` JSON, or step-by-step HOW belong in this
-  file — only this project's overrides. Validate with the `gaia` skill's `workflow:validate` workflow.
+Project policy lives in `CLAUDE.md` (including: on-disk artifacts are disposable, never add
+migrations or backward compatibility; the four-level skill architecture).
 
-In practice the only project-specific content is the enabled **aspects** below (cross-cutting
-behaviour, ≥ 2 states) and the per-state **prose tooling bullets** (`- if …: …`, single-state
-build/verify tooling) under each `## State:` section.
+## bb-phase-provision
 
-## Aspects
+Integration testing: rebuild a standalone workspace with `./scripts/setup-workspace.sh <name>` from
+the current repository or worktree. A Drupal `sync-*` fixture needing a live target is provisioned
+by the selected `debo-test` fixture through `start-drupal-workspace.sh`. Parallel runs of the same
+suite each get their own `--workspace <path>`. Run `debo-test` from the ticket's git worktree; its
+setup may reset and clean only the workspace theme repository after asserting that directory is its
+own git toplevel — never the enclosing checkout.
 
-```yaml
-# designbook IS the design surface: the `design` aspect drives every UI artifact through the
-# `debo` skill (design-entity | design-component | sections | design-screen) — planned in spec
-# (--plan), executed in coding (--from-plan). No hand-coded components.
-aspects:
-  - name: design
-```
+Before `debo-test` on a suite, read the `backend` in `fixtures/<suite>/designbook.config.yml` and
+call the `provision_up` tool once per worktree: `drupal` or no `backend` → profile
+`drupal-fixture`, `wordpress` → `wordpress-fixture`, `none` → nothing. The conductor materializes
+the fixture on the host, so the workspace setup inside a sandboxed run needs no Docker. `sync-*`
+and `seed-*` cases start a ddev site from inside the run; they run only under `runtime:system`.
 
-## State: triage
+## bb-phase-work
 
-```yaml
-# defaults suffice
-```
+| When | Skill |
+|---|---|
+| Ticket of type feature, bug or chore | `bakers:bb-recipe-superpowers` |
+| Any Designbook design-system workflow or UI artifact | The matching domain skill, such as `design-component`, `design-screen`, `design-shell`, `tokens` or `data-model`; do not hand-code a parallel component implementation outside it |
+| Creating or editing a task, rule, blueprint, workflow, or `schemas.yml` under `.agents/skills/designbook/`, `.agents/skills/designbook-*/`, or the skill creator's own guarded directories | `designbook-skill-creator` |
+| Changing the Storybook addon TypeScript package | `designbook-addon-skills` |
+| Changing Drupal integration behavior | `designbook-drupal` |
+| Verifying changed Designbook skill behavior | `debo-test` |
+| Ticket of type ship | `bakers:bb-recipe-ship` |
 
-## State: spec
+*Ship*: version command `node scripts/release-version.mjs <SHA> --notes -`; npm package
+`storybook-addon-designbook`.
 
-```yaml
-# ui_or_design handled by the `design` aspect (plan UI artifacts with `debo` in --plan mode)
-# debo-test task-kind — a tester ticket records its target suite/case + validate workflow here; no design planning.
-```
+## bb-phase-validate
 
-- if the ticket targets a debo-test suite/case (a designbook-test tester run, not a UI/design change): determine and record the target debo-test `<suite>` and `<case>`, plus which validate workflow to run after the main workflow (typically `design-verify`; "none" = no validate pass) — when unspecified, list options with `debo-test run <suite>` (no case arg) and confirm the pick. That recording is the whole spec — no design/component planning, and no BDD: the executable test IS `debo-test run <suite> <case>` (with `--validate <workflow>` when spec recorded one), so the `test` also-author comment just names that invocation (no Gherkin/`.feature`). Write `Task-Art: debo-test` into the spec comment so coding and review pick up the kind.
+If no fixture exercises changed skill behavior, author the fixture first.
 
-## State: diagnose
+| When | Command |
+|---|---|
+| Before committing any repository change | `pnpm check` |
+| A Designbook skill changes runtime behavior | `debo-test run <suite> <case>` using the matching fixture; add `--validate <workflow>` when the approved spec names a validation workflow |
+| A `debo-test` task ticket | `debo-test run <suite> <case>` using the suite and case recorded in the ticket; add `--validate <workflow>` only when recorded |
+| A scored audit is explicitly required | `debo-test research <suite> <case> --baseline-only` |
 
-```yaml
-# defaults suffice
-```
+Runtime skill changes need real fixture evidence: record the command, observed result and tested
+commit. A `debo-test` task ticket's recorded invocation is its executable test; review gates on its
+result even without a merge request, and records whether a scored research run was warranted.
 
-## State: coding
+## bb-phase-deliver
 
-```yaml
-# ui_or_design handled by the `design` aspect (execute the spec's plans with `debo` --from-plan).
-# The verify tooling below is designbook-specific. Any change to a designbook skill
-# (workflow/task/rule/blueprint/schema) is verified through the matching `debo-test`
-# tester — never ad-hoc — over the suite/case whose fixture exercises the change.
-tasks:
-  - when: the ticket's Task-Art is debo-test
-    reasoning: []   # the work is running one fixed tester command, not writing code — TDD does not apply
-```
-
-- if the ticket's Task-Art is debo-test: run `debo-test run <suite> <case> --validate <workflow>` for the suite+case and validate workflow recorded by spec (append `--validate` only when spec recorded one) — never ad-hoc — and capture the tester output (the `workflow summary --json` block). Do not hand-edit skill files. Run the tester from **inside the ticket's git worktree**, never a shared plain checkout: each worktree owns its own `workspaces/` tree, so parallel same-suite runs (e.g. an A/B across agents on the same case) stay isolated and cannot clobber each other via the setup `rm -rf workspaces/<suite>`. The setup `git reset --hard`/`git clean -fd` targets only the workspace theme dir (its own git repo) and is fenced by a git-toplevel assert in `setup-test.sh`, so it never reaches the enclosing worktree.
-- if the change has a runtime surface: verify it end-to-end through the matching `debo-test` tester (never ad-hoc) — pick the suite/case whose fixture exercises the changed skill and run `debo-test run <suite> <case>` for a single functional pass, or `debo-test research <suite> <case> --baseline-only` for a scored audit; the tester provisions the test workspace (and, for a Drupal `sync-*` case, the live Drupal target via `start-drupal-workspace.sh`) and exercises the changed workflow. If no fixture exercises the change yet, author it first. Run `pnpm check` (typecheck → lint → test) in addition when the change touches the addon/TS. NOTE: run the tester from inside the ticket's git worktree (isolated `workspaces/` per ticket — the collision guard for parallel same-suite runs). `debo-test`'s setup `git reset --hard`/`git clean -fd` targets only the workspace theme dir (its own git repo) and `setup-test.sh` asserts that dir is its own git toplevel before resetting, so it is safe inside a worktree and never touches the enclosing checkout.
-- on app change: run `pnpm check` (typecheck → lint → test, fail-fast) from the repo root.
-- on conductor change: run `pnpm check` (typecheck → lint → test, fail-fast) from the repo root.
-
-## State: review
-
-```yaml
-# defaults suffice for non-debo-test tickets (green_pipeline gate, confirm-gate, ok→done / not_ok→coding)
-```
-
-- if the ticket's Task-Art is debo-test: decide — and document the decision in the summary — whether an additional `debo-test research <suite> <case> --baseline-only` (scored audit) pass is warranted beyond coding's `run`. Post the `summary` comment holding the tester/workflow results (run outcome + any research score); that comment is the write-back to the ticket. A debo-test ticket may have no MR/diff — gate on the tester result, not a pipeline.
+Work lands through a merge request targeting the ticket's `base_branch`; squash and
+source-branch deletion only for the ticket's short-lived branch. `pnpm check` must pass.

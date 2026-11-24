@@ -1,0 +1,12 @@
+/vendor/
+/wp-admin/
+/wp-includes/
+/wp-*.php
+/index.php
+/license.txt
+/readme.html
+/xmlrpc.php
+/wp-content/plugins/
+/wp-content/uploads/
+/wp-content/index.php
+/wp-content/themes/index.php

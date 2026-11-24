@@ -1,0 +1,30 @@
+- id: '1'
+  field_media_image:
+    alt: Sunlit modern city library reading hall with rows of desks
+  __designbook:
+    section: startseite
+- id: '2'
+  field_media_image:
+    alt: Volunteers planting trees in a green urban park
+  __designbook:
+    section: startseite
+- id: '3'
+  field_media_image:
+    alt: Crowd enjoying an open-air summer festival at dusk
+  __designbook:
+    section: startseite
+- id: '4'
+  field_media_image:
+    alt: Council staff assisting a resident at a service desk
+  __designbook:
+    section: startseite
+- id: '5'
+  field_media_image:
+    alt: Cyclists riding along a riverside bike path in autumn
+  __designbook:
+    section: startseite
+- id: '6'
+  field_media_image:
+    alt: Children playing in a colourful public playground
+  __designbook:
+    section: startseite

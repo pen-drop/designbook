@@ -1,0 +1,6 @@
+@theme static {
+  --layout-spacing-none: 0;
+  --layout-spacing-sm: var(--spacing-6);
+  --layout-spacing-md: var(--spacing-8);
+  --layout-spacing-lg: var(--spacing-10);
+}

@@ -1,0 +1,37 @@
+- id: '1'
+  __designbook:
+    section: signage
+  field_title: ausbilden
+  field_description: Ausbilderinnen und Ausbilder finden auf Leando anwendungsbezogene Themenbeiträge, qualitätsgesicherte Informationen zu aktuellen Trends sowie nützliche Praxis-Tipps.
+  field_icon: school
+  field_links:
+    - title: Ausbildung
+      url: /de/ausbildung
+  field_button_anonymous:
+    title: Registrieren
+    url: /de/user/register
+  field_button_authenticated: <a href="/de/ausbildung">Ausbildung öffnen</a>
+- id: '2'
+  __designbook:
+    section: signage
+  field_title: prüfen
+  field_description: Prüferinnen und Prüfer finden auf Leando nützliche Informationen für die Praxis - von gesetzlichen Grundlagen und Basiswissen bis zu Arbeitshilfen.
+  field_icon: fact_check
+  field_links:
+    - title: Prüfung
+      url: /de/pruefung
+  field_button_anonymous:
+    title: Registrieren
+    url: /de/user/register
+  field_button_authenticated: <a href="/de/pruefung">Prüfung öffnen</a>
+- id: '3'
+  __designbook:
+    section: signage
+  field_title: vernetzen
+  field_description: Tauschen Sie sich aus und teilen Sie Ihre Erfahrungen in unseren Communitys. Angemeldet steht Ihnen der volle Funktionsumfang von Leando zur Verfügung.
+  field_icon: groups
+  field_links: []
+  field_button_anonymous:
+    title: Registrieren
+    url: /de/user/register
+  field_button_authenticated: <a href="/de/community">Community öffnen</a>

@@ -1,0 +1,6 @@
+@theme static {
+  --grid-none: 0;
+  --grid-sm: var(--spacing-3);
+  --grid-md: var(--spacing-5);
+  --grid-lg: var(--spacing-7);
+}

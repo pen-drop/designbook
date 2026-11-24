@@ -1,0 +1,19 @@
+@theme static {
+  --color-background: var(--color-neutral-100);
+  --color-surface: var(--color-neutral-50);
+  --color-foreground: var(--color-neutral-900);
+  --color-foreground-body: var(--color-neutral-800);
+  --color-foreground-muted: var(--color-neutral-900-a60);
+  --color-foreground-subtle: var(--color-neutral-800-a80);
+  --color-outline: var(--color-neutral-900-a24);
+  --color-outline-soft: var(--color-neutral-900-a16);
+  --color-control-muted: var(--color-neutral-900-a08);
+  --color-control-placeholder: var(--color-neutral-900-a40);
+  --color-primary: var(--color-coral-500);
+  --color-secondary: var(--color-lime-400);
+  --color-tertiary: var(--color-orange-400);
+  --color-on-primary: var(--color-neutral-50);
+  --color-image-overlay: var(--color-black-a20);
+  --color-footer-subtle: var(--color-neutral-100-a60);
+  --color-footer-divider: var(--color-neutral-100-a08);
+}

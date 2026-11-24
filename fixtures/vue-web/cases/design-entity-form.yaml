@@ -1,0 +1,56 @@
+workflow: design-entity
+
+fixtures:
+  - vision
+  - tokens
+  - data-model-form-designentity
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo design-entity workflow for the "block_content.hero" entity, building its
+  EDITING half — the non-default "edit" form mode (form_mode: edit; do NOT pass a view_mode).
+  Do NOT ask any questions. The product is "LEANDO".
+
+  Use https://leando.de/ as the design reference. Inspect its form controls
+  during intake and select the matching control regions for visual verification;
+  the editing form's fields and structure still come from the data model below.
+  Use breakpoints sm and xl with comparison threshold 3%.
+  If no matching reference control exists, report that comparison as unavailable.
+
+  The bundle is fully pre-seeded: its reading half already exists
+  (designbook/entity-mapping/block_content.hero.default.jsonata) and every component the
+  form needs already exists — reuse them, create NO new components:
+    - form_element (a form row: label slot + children slot)
+    - label (a field label)
+    - input (a text/url input)
+
+  Build the form mapping for the "edit" form mode: map the hero's fields to the form
+  components, one form_element per field, each wrapping a label (the field title) and an
+  input bound to the field value:
+    field_title  → form_element(label "Title",  input type text, value field_title)
+    field_content→ form_element(label "Content", input type text, value field_content)
+    field_action → form_element(label "Action",  input type url,  value field_action.uri)
+
+  The workflow must write exactly ONE mapping file for this run:
+    - designbook/form-mapping/block_content.hero.edit.jsonata (the form mapping)
+  It must NOT write any file under designbook/entity-mapping/ (this is a form run).
+  After generating all files, run `pnpm build-storybook` to verify everything renders,
+  including the "edit (form)" story tagged `form`.
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: output.newFiles.some(f => f.endsWith('form-mapping/block_content.hero.edit.jsonata'))
+  - type: javascript
+    # Pre-seeded reading half (block_content.hero.default.jsonata) is part of the
+    # fixture baseline and appears in newFiles after workspace setup — allow it.
+    # Fail only if this form run authored any *other* entity-mapping.
+    value: '!output.newFiles.some((f) => /entity-mapping\/.*\.jsonata$/.test(f) && !f.endsWith("entity-mapping/block_content.hero.default.jsonata"))'
+  - type: javascript
+    value: output.completedWorkflows['design-entity']?.state?.status === 'completed'
+  - type: javascript
+    value: Object.values(output.completedWorkflows['design-entity']?.state?.tasks || {}).every(t => t.status === 'done')
+  - type: javascript
+    value: output.newFiles.some((f) => f.includes('form-mapping/') && f.endsWith('.jsonata'))
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0

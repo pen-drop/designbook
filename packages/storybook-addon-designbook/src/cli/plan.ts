@@ -1,0 +1,354 @@
+import { readFileSync, writeFileSync, renameSync, mkdirSync, existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { randomUUID } from 'node:crypto';
+import { dump as dumpYaml } from 'js-yaml';
+import type { Command } from 'commander';
+import {
+  parsePlan,
+  serializePlan,
+  planDigest,
+  validateTaskResult,
+  validatePlanCompleteness,
+  type Plan,
+  type PlanTask,
+} from '../workflow/plan-document.js';
+import { buildPlan, type TaskList } from '../workflow/plan-build.js';
+import { deriveComposition, renderCompositionTree, type CompositionTree } from '../workflow/plan-composition.js';
+import { compilePlannedMapping, validateCompositionResult } from '../workflow/plan-composition-result.js';
+import { validateByKeys } from '../validation/validation-registry.js';
+import type { DesignbookConfig } from '../shared/config.js';
+
+function print(value: unknown): void {
+  process.stdout.write(JSON.stringify(value, null, 2));
+}
+
+function fail(message: string): void {
+  console.error(message);
+  process.exitCode = 1;
+}
+
+type OutputFormat = 'text' | 'json';
+
+function parseFormat(raw: string | undefined): OutputFormat | null {
+  const value = (raw ?? 'text').toLowerCase();
+  if (value === 'text' || value === 'json') return value;
+  return null;
+}
+
+function emitTree(tree: CompositionTree, format: OutputFormat): void {
+  if (format === 'json') {
+    print(tree);
+    return;
+  }
+  const text = renderCompositionTree(tree);
+  if (text) process.stdout.write(`${text}\n`);
+}
+
+function compositionTree(plan: Plan): CompositionTree | null {
+  const { tree, errors } = deriveComposition(plan);
+  if (errors.length) {
+    console.error(errors.join('\n'));
+    process.exitCode = 1;
+    return null;
+  }
+  return tree;
+}
+
+function isTaskListPath(path: string): boolean {
+  return path.toLowerCase().endsWith('.json');
+}
+
+/** Write the plan back atomically so a crash never leaves a half-written definition. */
+function writePlan(path: string, md: string): void {
+  mkdirSync(dirname(path), { recursive: true });
+  const tmp = `${path}.tmp`;
+  writeFileSync(tmp, md);
+  renameSync(tmp, path);
+}
+
+/** Normalize a caller-supplied initiative name into a filesystem-safe slug. */
+function slugify(name: string): string {
+  const slug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  if (!slug) throw new Error('--name produced an empty slug');
+  return slug;
+}
+
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * Compute the file `plan build` actually writes to. `--output` wins outright.
+ * `--ephemeral` writes a flat, sidecar-free file under `.ephemeral/` (no slug
+ * needed — the UUID is the identity). Otherwise a per-initiative folder
+ * `<date>-<slug>/plan.md`, auto-suffixing the slug on a same-day collision so a
+ * colliding name never overwrites a different initiative (AC-2).
+ */
+function resolveTarget(plansDir: string, opts: { output?: string; ephemeral?: boolean; name?: string }): string {
+  if (opts.output) return opts.output;
+  if (opts.ephemeral) return join(plansDir, '.ephemeral', `${randomUUID()}.md`);
+  const base = slugify(opts.name!);
+  const date = todayIso();
+  let slug = base;
+  let n = 2;
+  while (existsSync(join(plansDir, `${date}-${slug}`))) slug = `${base}-${n++}`;
+  return join(plansDir, `${date}-${slug}`, 'plan.md');
+}
+
+/**
+ * Address a task by name, disambiguated by `title` when a name repeats (e.g.
+ * write-component for header and footer). Returns `'ambiguous'` when the name
+ * matches several tasks and no title singles one out.
+ */
+function findTask(steps: { tasks: PlanTask[] }[], name: string, title?: string): PlanTask | 'ambiguous' | undefined {
+  const byName = steps.flatMap((s) => s.tasks).filter((t) => t.name === name);
+  const matches = title !== undefined ? byName.filter((t) => t.title === title) : byName;
+  if (matches.length > 1) return 'ambiguous';
+  return matches[0];
+}
+
+/**
+ * `plan` — execution commands against a saved MD plan. The executor reads only the
+ * plan: no discovery, no flow construction. `done` validates against the frozen
+ * in-plan contract and refuses when the stored digest no longer matches (AC-6).
+ */
+export function register(program: Command): void {
+  const plan = program.command('plan').description('Build and execute a saved MD workflow plan');
+
+  plan
+    .command('build <workflow>')
+    .description('Assemble, validate and seal the MD plan from an agent-authored task list')
+    .requiredOption(
+      '--tasks <path>',
+      'JSON task list: { workflow, selectors?, tasks: [{ step, task, title?, params }] }',
+    )
+    .option('--output <path>', 'Write the plan here instead of the computed plans_dir target')
+    .option('--ephemeral', 'Seal under plans/.ephemeral/ instead of a durable per-initiative folder')
+    .option(
+      '--name <text>',
+      'Concrete initiative name — required to persist a plan (ignored with --ephemeral, overridden by --output)',
+    )
+    .option('--config-dir <path>', 'Workspace dir to resolve skills root and sources from')
+    .option('--config <path>', 'Draft configuration JSON (skips designbook.config.yml lookup)')
+    .option('--format <fmt>', 'Output format: text (default) or json', 'text')
+    .action(
+      async (
+        workflow: string,
+        opts: {
+          tasks: string;
+          output?: string;
+          ephemeral?: boolean;
+          name?: string;
+          configDir?: string;
+          config?: string;
+          format?: string;
+        },
+      ) => {
+        const format = parseFormat(opts.format);
+        if (!format) return fail(`invalid format "${opts.format}" (expected text or json)`);
+        if (!opts.output && !opts.ephemeral && !opts.name) {
+          return fail('--name is required to persist a plan (or pass --output/--ephemeral)');
+        }
+        const taskList = JSON.parse(readFileSync(opts.tasks, 'utf8')) as TaskList;
+        taskList.workflow = workflow;
+        const draft = opts.config ? JSON.parse(readFileSync(opts.config, 'utf8')) : undefined;
+        const {
+          plan: built,
+          plans_dir,
+          errors,
+        } = await buildPlan(taskList, {
+          configDir: opts.configDir,
+          config: draft,
+        });
+        if (!built) {
+          console.error(errors.join('\n'));
+          process.exitCode = 1;
+          return;
+        }
+        let target: string;
+        try {
+          target = resolveTarget(plans_dir, opts);
+        } catch (err: unknown) {
+          return fail(err instanceof Error ? err.message : String(err));
+        }
+        writePlan(target, serializePlan(built));
+        const tree = compositionTree(built);
+        if (!tree) return;
+        if (format === 'json') {
+          print({
+            ok: true,
+            plan: target,
+            ...(opts.ephemeral ? { ephemeral: true } : {}),
+            steps: built.steps.length,
+            tasks: built.steps.flatMap((s) => s.tasks).length,
+            tree,
+          });
+          return;
+        }
+        const rendered = renderCompositionTree(tree);
+        process.stdout.write(rendered ? `${target}\n${rendered}\n` : `${target}\n`);
+      },
+    );
+
+  plan
+    .command('tree <path>')
+    .description('Render the composition tree from a sealed plan or a JSON task-list preview')
+    .option('--format <fmt>', 'Output format: text (default) or json', 'text')
+    .option('--workflow <name>', 'Workflow id when <path> is a JSON task list')
+    .option('--config-dir <path>', 'Workspace dir to resolve skills root and sources from')
+    .option('--config <path>', 'Draft configuration JSON (skips designbook.config.yml lookup)')
+    .action(async (path: string, opts: { format?: string; workflow?: string; configDir?: string; config?: string }) => {
+      const format = parseFormat(opts.format);
+      if (!format) return fail(`invalid format "${opts.format}" (expected text or json)`);
+      if (!existsSync(path)) return fail(`file not found: ${path}`);
+      if (isTaskListPath(path)) {
+        const taskList = JSON.parse(readFileSync(path, 'utf8')) as TaskList;
+        if (opts.workflow) taskList.workflow = opts.workflow;
+        if (!taskList.workflow) return fail('--workflow is required for a task-list preview');
+        const draft = opts.config ? JSON.parse(readFileSync(opts.config, 'utf8')) : undefined;
+        const { plan: built, errors } = await buildPlan(taskList, {
+          configDir: opts.configDir,
+          config: draft,
+        });
+        if (!built) {
+          console.error(errors.join('\n'));
+          process.exitCode = 1;
+          return;
+        }
+        const tree = compositionTree(built);
+        if (!tree) return;
+        emitTree(tree, format);
+        return;
+      }
+      const parsed = parsePlan(readFileSync(path, 'utf8'));
+      if (planDigest(parsed) !== parsed.digest) return fail('plan digest mismatch');
+      const tree = compositionTree(parsed);
+      if (!tree) return;
+      emitTree(tree, format);
+    });
+
+  plan
+    .command('done <path>')
+    .requiredOption('--task <name>', 'Task name to complete')
+    .option('--title <title>', 'Disambiguate when several tasks share the name')
+    .requiredOption('--data-file <path>', 'JSON result object')
+    .action(async (path: string, opts: { task: string; title?: string; dataFile: string }) => {
+      const parsed = parsePlan(readFileSync(path, 'utf8'));
+      if (planDigest(parsed) !== parsed.digest) return fail('plan digest mismatch');
+      const task = findTask(parsed.steps, opts.task, opts.title);
+      if (task === 'ambiguous') return fail(`task "${opts.task}" is ambiguous — pass --title to select one instance`);
+      if (!task) return fail(`unknown task "${opts.task}"${opts.title ? ` with title "${opts.title}"` : ''}`);
+      const result = JSON.parse(readFileSync(opts.dataFile, 'utf8')) as Record<string, unknown>;
+      const validation = validateTaskResult(task, result, parsed.definitions);
+      if (!validation.ok) return fail(validation.errors.join('; '));
+      const composition = await validateCompositionResult(parsed, task, result);
+      if (!composition.ok) return fail(composition.errors.join('; '));
+      // Materialize `data` outputs that declare a path: the plan is the definition,
+      // so completing the task writes the workspace artifact (vision.yml, …).
+      for (const [key, output] of Object.entries(task.contract.outputs)) {
+        if (output.submission === 'data' && output.path && key in result) {
+          const value = result[key];
+          // A string result is written raw (twig, js, css, or yaml-as-text); an
+          // object is dumped as YAML for a .yml target, otherwise JSON.
+          const body =
+            typeof value === 'string'
+              ? value
+              : /\.ya?ml$/.test(output.path)
+                ? dumpYaml(value)
+                : JSON.stringify(value, null, 2) + '\n';
+          mkdirSync(dirname(output.path), { recursive: true });
+          writeFileSync(output.path, body);
+        }
+      }
+      // A written file output must pass its contract's `cmd:` validators before the task
+      // counts as done; a failure leaves the task open for a corrected result.
+      for (const [key, output] of Object.entries(task.contract.outputs)) {
+        const cmds = (output.validators ?? []).filter((v) => v.startsWith('cmd:'));
+        if (!output.path || !cmds.length || !existsSync(output.path)) continue;
+        const check = await validateByKeys(cmds, output.path, {} as DesignbookConfig);
+        if (!check.valid) return fail(`output "${key}" failed validation: ${check.error}`);
+      }
+      // Only check the task off. The result content lives in the output files
+      // (data outputs are written above); it is deliberately NOT stored in the plan.
+      task.done = true;
+      writePlan(path, serializePlan(parsed));
+      print({ ok: true, task: task.name });
+    });
+
+  plan
+    .command('seal <path>')
+    .description('Compute and write the plan digest, freezing the definition for execution')
+    .action((path: string) => {
+      const parsed = parsePlan(readFileSync(path, 'utf8'));
+      parsed.digest = planDigest(parsed);
+      writePlan(path, serializePlan(parsed));
+      print({ ok: true, digest: parsed.digest });
+    });
+
+  plan
+    .command('validate <path>')
+    .description('Report obligations whose required task is absent from the plan (AC-5)')
+    .action((path: string) => {
+      const parsed = parsePlan(readFileSync(path, 'utf8'));
+      const report = validatePlanCompleteness(parsed);
+      print(report);
+      if (!report.ok) process.exitCode = 1;
+    });
+
+  plan
+    .command('steps <path>')
+    .description('List steps and per-task checkbox state; reads the plan only')
+    .action((path: string) => {
+      const parsed = parsePlan(readFileSync(path, 'utf8'));
+      print(overview(parsed));
+    });
+
+  plan
+    .command('instructions <path>')
+    .requiredOption('--step <name>', 'Step to read')
+    .description('Emit a step: its referenced context (resolved from the registry) and task contracts')
+    .action((path: string, opts: { step: string }) => {
+      const parsed = parsePlan(readFileSync(path, 'utf8'));
+      const step = parsed.steps.find((s) => s.name === opts.step);
+      if (!step) return fail(`unknown step "${opts.step}"`);
+      print({
+        step: step.name,
+        context: step.context.map((key) => parsed.context[key]).filter(Boolean),
+        tasks: step.tasks.map((t) => ({
+          ...t,
+          instruction_body: t.instruction ? (parsed.context[t.instruction]?.content ?? null) : null,
+          ...(t.name.includes('map-entity') && t.params.component
+            ? { expected_mapping: compilePlannedMapping(t, parsed) }
+            : {}),
+        })),
+      });
+    });
+
+  plan
+    .command('summary <path>')
+    .description('Report done/total task counts and any incomplete tasks')
+    .action((path: string) => {
+      const parsed = parsePlan(readFileSync(path, 'utf8'));
+      const tasks = parsed.steps.flatMap((s) => s.tasks);
+      print({
+        workflow: parsed.workflow,
+        done: tasks.filter((t) => t.done).length,
+        total: tasks.length,
+        pending: tasks.filter((t) => !t.done).map((t) => t.name),
+      });
+    });
+}
+
+function overview(plan: Plan): unknown {
+  return {
+    workflow: plan.workflow,
+    steps: plan.steps.map((step) => ({
+      name: step.name,
+      context: step.context,
+      tasks: step.tasks.map((t) => ({ name: t.name, title: t.title, done: t.done })),
+    })),
+  };
+}

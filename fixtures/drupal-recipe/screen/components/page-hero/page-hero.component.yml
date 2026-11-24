@@ -1,0 +1,28 @@
+$schema: >-
+  https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Page hero
+status: experimental
+group: Layout
+provider: test_integration_drupal
+description: >-
+  Centered detail-page hero: category pill, H1 title, intro text, metadata line
+  and full-width rounded image.
+slots:
+  category:
+    title: Category
+    description: Rendered category label, wrapped in the accent pill.
+  title:
+    title: Title
+    description: Title text (H1).
+  description:
+    title: Description
+    description: Intro text.
+  meta:
+    title: Meta
+    description: Metadata line (meta-line default).
+  image:
+    title: Image
+    description: Hero ImageNode (ratio_77_40).
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

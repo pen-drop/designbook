@@ -1,0 +1,21 @@
+<article class="flex w-full max-w-[632px] flex-col">
+  <img class="h-[234px] w-full rounded-t-lg object-cover" src="{{ image_src|e }}" alt="{{ image_alt|e }}">
+  <div class="flex flex-col gap-10 rounded-b-lg border border-outline-soft bg-surface px-6 pt-6 pb-4">
+    <div class="flex flex-col gap-3">
+      <h3 class="font-montserrat text-header-3 tracking-[-0.01em] text-foreground">{{ title|e }}</h3>
+      {% if description %}
+        <p class="font-roboto text-paragraph-2 tracking-[0.01em] text-foreground-subtle">{{ description|e }}</p>
+      {% endif %}
+    </div>
+    {% if total_time or difficulty or servings or url %}
+      <div class="flex items-center justify-between">
+        {% if total_time or difficulty or servings %}
+          <p class="font-roboto text-small-text uppercase tracking-[0.01em] text-foreground">{{ total_time|e }} - {{ difficulty|e }} - {{ servings|e }}</p>
+        {% endif %}
+        {% if url %}
+          <a class="font-roboto text-button-text uppercase text-foreground" href="{{ url|e }}">view recipe</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</article>

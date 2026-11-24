@@ -4,6 +4,8 @@ name: header
 priority: 10
 trigger:
   domain: components.shell
+filter:
+  frameworks.component: sdc
 ---
 
 # Blueprint: Header

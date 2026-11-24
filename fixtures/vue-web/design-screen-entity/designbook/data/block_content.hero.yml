@@ -1,0 +1,48 @@
+- id: '1'
+  __designbook:
+    section: startseite
+  field_title: Ausbildung gestalten
+  field_content: <p>Leando bündelt Themenbeiträge, qualitätsgesicherte Informationen und Praxis-Tipps für die berufliche Bildung an einem Ort.</p>
+  field_action:
+    title: Jetzt registrieren
+    url: /de/registrieren
+- id: '2'
+  __designbook:
+    section: startseite
+  field_title: Prüfen mit System
+  field_content: <p>Prüferinnen und Prüfer finden gesetzliche Grundlagen, Basiswissen und <strong>Arbeitshilfen</strong> für eine faire und rechtssichere Prüfung.</p>
+  field_action:
+    title: Prüfung entdecken
+    url: /de/pruefung
+- id: '3'
+  __designbook:
+    section: startseite
+  field_title: Wissen teilen und vernetzen
+  field_content: <p>Tauschen Sie sich in unseren Communitys aus und teilen Sie Ihre Erfahrungen mit Fachkolleginnen und -kollegen aus der ganzen Republik.</p>
+  field_action:
+    title: Zur Community
+    url: /de/community
+- id: '4'
+  __designbook:
+    section: startseite
+  field_title: Qualität in der Berufsbildung
+  field_content: <p>Aktuelle Trends, fundierte Fachbeiträge und geprüfte Quellen unterstützen Sie dabei, Ausbildung auf hohem Niveau zu gestalten.</p>
+  field_action:
+    title: Mehr erfahren
+    url: /de/qualitaet
+- id: '5'
+  __designbook:
+    section: startseite
+  field_title: Digitale Lernangebote nutzen
+  field_content: '<p>Von <strong>Selbstlernkursen</strong> bis zu interaktiven Formaten: Entdecken Sie digitale Angebote, die zu Ihrem Ausbildungsalltag passen.</p>'
+  field_action:
+    title: Lernangebote ansehen
+    url: /de/lernen
+- id: '6'
+  __designbook:
+    section: startseite
+  field_title: Praxis-Tipps für den Alltag
+  field_content: <p>Konkrete Empfehlungen und erprobte Methoden helfen Ihnen, Auszubildende gezielt zu begleiten und zu motivieren.</p>
+  field_action:
+    title: Tipps entdecken
+    url: /de/praxis-tipps

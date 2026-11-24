@@ -10,7 +10,7 @@ description: >
   Layout-Builder page-content Scene (the page node.landing is implicit — its LB-enabled full display
   has empty default sections; the seed attaches the entity override that carries these blocks and
   creates the view's row content), NOT a design-screen scene, so the design-screen
-  route-bearer invariant (screen-scene-constraints, gated to design-screen:create-scene) does not
+  route-bearer invariant (screen-scene-constraints, gated to design-screen:write-scene) does not
   apply. Both config and render sides are live-validated end-to-end from a clean Drupal 11.3.13
   baseline; the remaining sync-verify delta is the page's shell chrome, tracked in DESIGNBOOK-53.
 status: planned

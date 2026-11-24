@@ -1,0 +1,133 @@
+{
+  "format": "designbook-observations",
+  "capture": {
+    "role": "reference",
+    "source": {
+      "kind": "figma",
+      "identity": "synthetic-file-key",
+      "revision": null
+    },
+    "scope": [
+      {
+        "subject": "hero",
+        "view": "desktop",
+        "state": "rest",
+        "session": "anonymous",
+        "locator": {
+          "kind": "figma-node",
+          "value": "12:34"
+        }
+      }
+    ]
+  },
+  "state": "rest",
+  "captured_at": "2026-10-10T08:00:00.000Z",
+  "extract": {
+    "subjects": [
+      {
+        "id": "hero",
+        "locator": {
+          "kind": "figma-node",
+          "value": "12:34"
+        },
+        "samples": [
+          {
+            "view": "desktop",
+            "state": "rest",
+            "structure": {
+              "roots": [
+                "12:34"
+              ],
+              "nodes": [
+                {
+                  "id": "12:34",
+                  "kind": "FRAME",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "12:34"
+                  },
+                  "children": [
+                    "I12:34;56:78"
+                  ]
+                },
+                {
+                  "id": "I12:34;56:78",
+                  "kind": "INSTANCE",
+                  "locator": {
+                    "kind": "figma-node",
+                    "value": "I12:34;56:78"
+                  },
+                  "children": []
+                }
+              ]
+            },
+            "observations": {
+              "layout": {
+                "layoutMode": "VERTICAL",
+                "itemSpacing": 24
+              },
+              "typography": [
+                {
+                  "family": "Inter",
+                  "weight": 500,
+                  "size": 13
+                }
+              ],
+              "content": [
+                {
+                  "text": "Build faster"
+                }
+              ],
+              "properties": {
+                "fills": [
+                  "#ffffff"
+                ]
+              }
+            },
+            "dependencies": {
+              "parent_ids": [],
+              "asset_ids": [
+                "figma-image:hero-logo"
+              ],
+              "font_families": [
+                "Inter"
+              ]
+            },
+            "unavailable": [
+              {
+                "property": "interactions",
+                "reason": "Host tools return no prototype data",
+                "required": false
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "parents": [],
+    "images": [
+      {
+        "url": "figma-image:hero-logo",
+        "role": "logo",
+        "reference_path": "assets/hero-logo.svg"
+      }
+    ],
+    "fonts": [
+      {
+        "family": "Inter",
+        "source": "other",
+        "files": []
+      }
+    ],
+    "captures": [
+      {
+        "subject": "hero",
+        "view": "desktop",
+        "state": "rest",
+        "path": "desktop--hero--rest.png",
+        "width": 187,
+        "height": 1024
+      }
+    ]
+  }
+}

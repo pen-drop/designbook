@@ -1,0 +1,5 @@
+<section{{ attributes.addClass(['step-block', 'flex', 'flex-col', 'gap-md']) }}>
+  <h3 class="font-heading text-subtitle uppercase text-accent">{{ title }}</h3>
+  <ul class="list-disc pl-lg font-body text-paragraph-2 text-body-text">{% for item in items %}<li>{{ item }}</li>{% endfor %}</ul>
+  {% if image %}<div class="mt-lg overflow-hidden rounded-lg border border-media-outline">{{ image }}</div>{% endif %}
+</section>

@@ -1,0 +1,20 @@
+$schema: >-
+  https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Profile card
+status: experimental
+group: Data Display
+provider: test_integration_drupal
+description: 'Author/profile row: square rounded portrait, name and short bio.'
+slots:
+  image:
+    title: Image
+    description: Portrait ImageNode (ratio_1_1).
+  name:
+    title: Name
+    description: Name text.
+  description:
+    title: Description
+    description: Bio text.
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

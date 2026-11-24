@@ -1,0 +1,24 @@
+{#
+/**
+ * @file
+ * SaaS kit landing hero.
+ *
+ * Available variables:
+ * - eyebrow, title, lead, actions, media: Slots
+ */
+#}
+{% set hero_body %}
+  <div class="relative flex flex-col items-center gap-10 py-16 lg:flex-row lg:gap-0 lg:py-20">
+    <img src="/saas-kit/hero-cylinder.png" alt="" class="pointer-events-none absolute top-0 left-1/3 hidden w-52 lg:block" aria-hidden="true">
+    <div class="relative z-10 flex w-full flex-col items-start gap-7 lg:w-1/2">
+      {% if eyebrow %}{{ eyebrow }}{% endif %}
+      {% if title %}<h1 class="bg-linear-to-b from-brand-ink to-brand-heading-end bg-clip-text pb-2 font-brand text-6xl leading-none font-bold tracking-tighter text-transparent lg:text-hero-title">{{ title }}</h1>{% endif %}
+      {% if lead %}<div class="w-full font-body text-lg tracking-tight text-brand-text md:text-lead lg:w-11/12">{{ lead }}</div>{% endif %}
+      {% if actions %}<div class="flex flex-wrap items-center gap-4">{{ actions }}</div>{% endif %}
+    </div>
+    {% if media %}<div class="w-full -scale-x-100 sm:w-3/4 lg:w-1/2">{{ media }}</div>{% endif %}
+  </div>
+{% endset %}
+<section{{ attributes.addClass(['relative', 'overflow-hidden', 'bg-linear-193', 'from-brand-tint', 'from-45%', 'to-brand-glow', 'to-97%']) }}>
+  {% include 'test_integration_drupal:container' with { max_width: 'xl', padding_top: 'none', padding_bottom: 'none', content: hero_body } only %}
+</section>

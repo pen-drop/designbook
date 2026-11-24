@@ -1,0 +1,42 @@
+- id: lemon-garlic-roasted-chicken-ingredient-1
+  field_quantity: '1'
+  field_unit: ''
+  field_ingredient_name: whole chicken (about 3-4 pounds)
+  __designbook:
+    section: recipes
+- id: lemon-garlic-roasted-chicken-ingredient-2
+  field_quantity: '2'
+  field_unit: ''
+  field_ingredient_name: lemons, sliced
+  __designbook:
+    section: recipes
+- id: lemon-garlic-roasted-chicken-ingredient-3
+  field_quantity: '6'
+  field_unit: cloves
+  field_ingredient_name: garlic, minced
+  __designbook:
+    section: recipes
+- id: lemon-garlic-roasted-chicken-ingredient-4
+  field_quantity: '2'
+  field_unit: tablespoons
+  field_ingredient_name: olive oil
+  __designbook:
+    section: recipes
+- id: lemon-garlic-roasted-chicken-ingredient-5
+  field_quantity: '1'
+  field_unit: teaspoon
+  field_ingredient_name: dried thyme
+  __designbook:
+    section: recipes
+- id: lemon-garlic-roasted-chicken-ingredient-6
+  field_quantity: '1'
+  field_unit: teaspoon
+  field_ingredient_name: dried rosemary
+  __designbook:
+    section: recipes
+- id: lemon-garlic-roasted-chicken-ingredient-7
+  field_quantity: ''
+  field_unit: ''
+  field_ingredient_name: Salt and black pepper to taste
+  __designbook:
+    section: recipes

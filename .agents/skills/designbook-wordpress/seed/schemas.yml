@@ -1,0 +1,9 @@
+# WordPress seed schemas
+
+SeedScript:
+  type: string
+  title: WP-CLI Seed Script
+  description: >
+    PHP script run inside WordPress by `backend_cmd.seed_cmd` (WP-CLI eval-file). It upserts every
+    selected sample record by its `_designbook_id` meta and prints one line per record:
+    `created <record id>`, `updated <record id>` or `failed <record id>: <reason>`.

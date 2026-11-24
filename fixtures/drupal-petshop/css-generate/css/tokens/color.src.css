@@ -1,0 +1,16 @@
+@theme static {
+  --color-primary: var(--color-indigo-500);
+  --color-primary-content: var(--color-white);
+  --color-secondary: var(--color-emerald-500);
+  --color-secondary-content: var(--color-white);
+  --color-accent: var(--color-amber-500);
+  --color-accent-content: var(--color-black);
+  --color-neutral: var(--color-gray-900);
+  --color-neutral-content: var(--color-slate-100);
+  --color-background: var(--color-gray-100);
+  --color-surface: var(--color-gray-200);
+  --color-border: var(--color-gray-300);
+  --color-foreground: var(--color-gray-900);
+  --color-success: var(--color-green-500);
+  --color-error: var(--color-red-500);
+}

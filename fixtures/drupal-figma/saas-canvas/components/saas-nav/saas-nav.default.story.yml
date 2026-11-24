@@ -1,0 +1,24 @@
+component: test_integration_drupal:saas-nav
+name: Default
+props:
+  items:
+    - title: About
+      url: /about
+      in_active_trail: false
+      below: []
+    - title: Features
+      url: /features
+      in_active_trail: false
+      below: []
+    - title: Customers
+      url: /customers
+      in_active_trail: false
+      below: []
+    - title: Updates
+      url: /updates
+      in_active_trail: false
+      below: []
+    - title: Help
+      url: /help
+      in_active_trail: false
+      below: []

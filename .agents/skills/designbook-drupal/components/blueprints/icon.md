@@ -4,6 +4,8 @@ name: icon
 priority: 10
 trigger:
   domain: components
+filter:
+  frameworks.component: sdc
 ---
 
 # Blueprint: Icon

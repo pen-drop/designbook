@@ -1,0 +1,123 @@
+[
+  {
+    "id": "recipe",
+    "kind": "entity",
+    "name": "Recipe",
+    "locator": "hero",
+    "at": 10.1,
+    "mapping": "node.recipe.full.jsonata",
+    "box": {
+      "x": 135,
+      "y": 213,
+      "width": 870,
+      "height": 160
+    }
+  },
+  {
+    "id": "ingredient",
+    "kind": "entity",
+    "name": "Ingredient",
+    "locator": "test_integration_drupal:quantity-item@0.content.ingredients.0",
+    "at": 10.95,
+    "mapping": "paragraph.ingredient.default.jsonata",
+    "box": {
+      "x": 886,
+      "y": 1228.671875,
+      "width": 116,
+      "height": 117.5625
+    }
+  },
+  {
+    "id": "step",
+    "kind": "entity",
+    "name": "Recipe Step",
+    "locator": "test_integration_drupal:step-block@0.content.steps.0",
+    "at": 11.8,
+    "mapping": "paragraph.recipe_step.default.jsonata",
+    "box": {
+      "x": 169,
+      "y": 2344.71875,
+      "width": 604,
+      "height": 120.78125
+    }
+  },
+  {
+    "id": "author",
+    "kind": "entity",
+    "name": "Author",
+    "locator": "test_integration_drupal:profile-card@0.content.author",
+    "at": 12.65,
+    "mapping": "taxonomy_term.author.default.jsonata",
+    "box": {
+      "x": 169,
+      "y": 5008.546875,
+      "width": 604,
+      "height": 143.140625
+    }
+  },
+  {
+    "id": "header",
+    "kind": "component",
+    "name": "Header",
+    "locator": "test_integration_drupal:header@0.header",
+    "at": 14.05,
+    "box": {
+      "x": 64,
+      "y": 16,
+      "width": 1012,
+      "height": 70
+    }
+  },
+  {
+    "id": "detail",
+    "kind": "component",
+    "name": "Detail page",
+    "locator": "hero",
+    "at": 14.8,
+    "box": {
+      "x": 135,
+      "y": 213,
+      "width": 870,
+      "height": 160
+    }
+  },
+  {
+    "id": "quantity",
+    "kind": "component",
+    "name": "Quantity item",
+    "locator": "test_integration_drupal:quantity-item@0.content.ingredients.0",
+    "at": 15.55,
+    "box": {
+      "x": 886,
+      "y": 1228.671875,
+      "width": 116,
+      "height": 117.5625
+    }
+  },
+  {
+    "id": "step-block",
+    "kind": "component",
+    "name": "Step block",
+    "locator": "test_integration_drupal:step-block@0.content.steps.0",
+    "at": 16.3,
+    "box": {
+      "x": 169,
+      "y": 2344.71875,
+      "width": 604,
+      "height": 120.78125
+    }
+  },
+  {
+    "id": "profile",
+    "kind": "component",
+    "name": "Profile card",
+    "locator": "test_integration_drupal:profile-card@0.content.author",
+    "at": 17.05,
+    "box": {
+      "x": 169,
+      "y": 5008.546875,
+      "width": 604,
+      "height": 143.140625
+    }
+  }
+]

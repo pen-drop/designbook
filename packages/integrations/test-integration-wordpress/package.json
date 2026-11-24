@@ -1,0 +1,23 @@
+{
+    "name": "test-integration-wordpress",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "storybook": "storybook dev -p 6011",
+        "storybook:clean": "rm -rf node_modules/.cache/storybook",
+        "build-storybook": "storybook build",
+        "build": "tailwindcss -i css/app.src.css -o css/app.css --minify && sed -i 's,url(../fonts/,url(fonts/,g' css/app.css"
+    },
+    "devDependencies": {
+        "@storybook/addon-docs": "^10.0.0",
+        "@storybook/html": "^10.0.0",
+        "@storybook/html-vite": "^10.0.0",
+        "@tailwindcss/cli": "^4.1.18",
+        "@tailwindcss/vite": "^4.1.18",
+        "storybook": "^10.0.0",
+        "storybook-addon-designbook": "workspace:*",
+        "tailwindcss": "^4.0.0-beta.9",
+        "twing": "^7.3.0",
+        "vite": "^6.3.5"
+    }
+}

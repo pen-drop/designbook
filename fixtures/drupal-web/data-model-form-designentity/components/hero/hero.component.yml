@@ -1,0 +1,38 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Hero
+status: stable
+group: Layout
+description: A hero section with a title, body text, and an action button — rendered as a UI-Patterns layout on the Layout Builder path.
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+slots:
+  title:
+    title: Title
+    description: Hero title. Plain text.
+  text:
+    title: Text
+    description: Hero body text.
+  button:
+    title: Button
+    description: Hero call-to-action.
+props:
+  type: object
+  properties:
+    heading_level:
+      title: Heading level
+      type: integer
+      enum:
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+        - 6
+    reverse:
+      title: Reverse order
+      type: boolean
+    overlay_image:
+      title: Overlay image
+      $ref: "ui-patterns://url"

@@ -1,0 +1,13 @@
+<div{{ attributes.addClass([
+  'list-view',
+  'flex',
+  'flex-col',
+  'gap-[var(--grid-md)]',
+]) }}>
+  {% if title %}
+    <h2 class="list-view__title font-heading text-foreground">{{ title }}</h2>
+  {% endif %}
+  <div class="list-view__rows grid gap-[var(--grid-md)] sm:grid-cols-2 lg:grid-cols-3">
+    {{ rows }}
+  </div>
+</div>

@@ -1,0 +1,16 @@
+{#
+/**
+ * Pager component — previous/next controls plus, for a standard pager, the enumerated
+ * page-link list with the current page indicated. No prop carries a total item/page count.
+ */
+#}
+<nav{{ attributes.addClass(['pager', 'pager--' ~ (variant|default('standard'))]) }}
+  {% if heading_id %}aria-labelledby="{{ heading_id }}"{% endif %}>
+  {% if heading_id %}<h4 id="{{ heading_id }}" class="visually-hidden">Pagination</h4>{% endif %}
+  <ul class="pager__items">
+    {% if previous %}<li class="pager__item pager__item--previous">{{ previous }}</li>{% endif %}
+    {% if pages %}<li class="pager__item pager__item--pages">{{ pages }}</li>{% endif %}
+    {% if load_more %}<li class="pager__item pager__item--load-more">{{ load_more }}</li>{% endif %}
+    {% if next %}<li class="pager__item pager__item--next">{{ next }}</li>{% endif %}
+  </ul>
+</nav>

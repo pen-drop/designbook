@@ -1,0 +1,45 @@
+$schema: >-
+  https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Meta line
+status: experimental
+group: Data Display
+provider: test_integration_drupal
+description: >-
+  Recipe metadata line: computed total duration from preparation + cooking
+  minutes, difficulty and servings.
+variants:
+  default:
+    title: Default
+    description: >-
+      Centered hero row: 24px icon + Montserrat subtitle uppercase items
+      separated by 4px dots.
+  compact:
+    title: Compact
+    description: >-
+      Single Roboto small uppercase line 'X MIN - Y PREP - N SERVES' for teaser
+      cards.
+props:
+  type: object
+  properties:
+    prep_minutes:
+      type: integer
+      title: Preparation minutes
+      minimum: 0
+    cook_minutes:
+      type: integer
+      title: Cooking minutes
+      minimum: 0
+    servings:
+      type: integer
+      title: Servings
+      minimum: 0
+  required:
+    - prep_minutes
+    - cook_minutes
+slots:
+  difficulty:
+    title: Difficulty
+    description: Rendered difficulty term (taxonomy_term.difficulty default -> label).
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

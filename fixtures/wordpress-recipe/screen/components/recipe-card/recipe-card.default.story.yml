@@ -1,0 +1,14 @@
+component: test_integration_wordpress:recipe-card
+name: Default
+props:
+  image_src: /images/recipe-card-chicken.png
+  image_alt: Savory Herb-Infused Chicken
+  title: Savory Herb-Infused Chicken
+  description: >-
+    Indulge in the rich and savory symphony of flavors with our Savory
+    Herb-Infused Chicken
+  total_time: 40 Min
+  difficulty: easy prep
+  servings: 3 serves
+  url: '#'
+slots: {}

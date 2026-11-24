@@ -1,0 +1,23 @@
+name: avatar
+status: experimental
+props:
+  type: object
+  properties:
+    username:
+      type: string
+    role:
+      type: string
+    image_url:
+      type: string
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+group: Data Display
+variants:
+  small:
+    title: Small
+  medium:
+    title: Medium
+  large:
+    title: Large
+provider: test_integration_drupal

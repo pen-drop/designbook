@@ -12,12 +12,12 @@
 # Exercises the new sync-to paths in one Layout-Builder Scene:
 #   - a block_content block (hero)               → block-decision ⇒ block_content
 #   - a block_plugin block (the view as a block) → block-decision ⇒ block_plugin
-#   - an embedded view with template: list-view  → view-template (UI-Patterns rows) whose wrapper
+#   - an embedded view with template: presenter  → UI-Patterns rows whose wrapper
 #     (pager / exposed filter) is theme-methods-only → presenter-template (the presenter surface here)
 # The row bundle (node.landing_page teaser) supplies the view's rows.
 config:
   # The view a screen renders / a scene embeds as a block. Declared like every display:
-  # a config.view.<id> with its own view_modes.default.template: list-view (the view-template).
+  # a config.view.<id> with its own view_modes.default.template: presenter (its build form).
   view:
     landing_teasers:
       label: Landing teasers
@@ -27,7 +27,7 @@ config:
         view_mode: teaser
       view_modes:
         default:
-          template: list-view
+          template: presenter
   views.view.landing_teasers:
     label: Landing teasers
     purpose: >
@@ -47,7 +47,7 @@ config:
       created: DESC
     view_modes:
       default:
-        template: list-view
+        template: presenter
   # A view rendered as a block reaches the page as a block_plugin (a plugin placement), not a route.
   # A `views_block:<view>-<display>` plugin needs the view to expose that Block display. This open
   # view config carries only `view_modes.default`; the `block_1` Block display is authored on

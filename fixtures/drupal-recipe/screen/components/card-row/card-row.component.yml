@@ -1,0 +1,24 @@
+$schema: >-
+  https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Card row
+status: experimental
+group: Layout
+provider: test_integration_drupal
+description: >-
+  Rounded bordered band with an H2 heading, decorative arrow icons and a
+  responsive card grid (1 col mobile, 2 cols md+).
+props:
+  type: object
+  properties:
+    heading:
+      type: string
+      title: Heading
+  required:
+    - heading
+slots:
+  items:
+    title: Items
+    description: Cards (rendered teaser entities).
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

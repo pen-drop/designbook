@@ -1,0 +1,17 @@
+component: test_integration_drupal:hero
+name: Default
+props:
+  heading_level: 1
+  reverse: false
+slots:
+  title: Ausbildung gestalten
+  text: <p>Leando bündelt Themenbeiträge, qualitätsgesicherte Informationen und Praxis-Tipps für die berufliche Bildung.</p>
+  button:
+    - type: component
+      component: test_integration_drupal:button
+      variant: primary
+      props:
+        url: /de/registrieren
+        size: lg
+      slots:
+        label: Jetzt registrieren

@@ -1,0 +1,42 @@
+$schema: >-
+  https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: saas-logo
+status: experimental
+group: Data Display
+description: >-
+  Brand mark with soft spectrum glow, optionally followed by a credit line with
+  partner wordmark.
+variants:
+  default:
+    title: Default
+    description: Mark plus credit label and partner wordmark (header).
+  mark_only:
+    title: Mark only
+    description: Mark without credit (footer).
+props:
+  type: object
+  required:
+    - src
+    - alt
+  properties:
+    href:
+      type: string
+      title: Link
+    src:
+      type: string
+      title: Mark image
+    alt:
+      type: string
+      title: Mark alt text
+    credit_label:
+      type: string
+      title: Credit label
+    credit_src:
+      type: string
+      title: Credit wordmark image
+    credit_alt:
+      type: string
+      title: Credit wordmark alt text
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

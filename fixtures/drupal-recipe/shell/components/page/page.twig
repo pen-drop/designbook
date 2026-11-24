@@ -1,0 +1,5 @@
+<div{{ attributes.addClass(['page', 'min-h-screen', 'w-full', 'bg-background', 'font-body']) }}>
+  <div class="page__header px-md pt-md md:px-4xl">{% block header %}{% if header %}{{ header }}{% endif %}{% endblock %}</div>
+  <main class="page__content w-full">{% block content %}{% if content %}{{ content }}{% endif %}{% endblock %}</main>
+  <div class="page__footer px-md pb-md md:px-4xl">{% block footer %}{% if footer %}{{ footer }}{% endif %}{% endblock %}</div>
+</div>

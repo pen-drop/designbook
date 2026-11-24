@@ -1,0 +1,11 @@
+{% set variant = variant|default('primary') %}
+{% set button_classes = variant == 'icon_pill'
+  ? ['inline-flex', 'items-center', 'justify-center', 'shrink-0', 'p-xs', 'bg-surface-muted', 'rounded-md']
+  : ['inline-flex', 'items-center', 'px-lg', 'py-sm', 'bg-inverse-surface', 'text-inverse-foreground', 'rounded-lg', 'font-body', 'text-button', 'uppercase', 'no-underline', 'whitespace-nowrap'] %}
+<a{{ attributes.addClass(button_classes) }} href="{{ href }}"{% if variant == 'icon_pill' %} aria-label="{{ label }}"{% endif %}>
+  {%- if variant == 'icon_pill' -%}
+    {% if icon %}{{ icon }}{% endif %}
+  {%- else -%}
+    {{ label }}
+  {%- endif -%}
+</a>

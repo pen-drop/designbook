@@ -1,0 +1,51 @@
+config: canvas.yml
+workflow: design-entity
+validate: none
+
+fixtures:
+  - vision
+  - tokens
+  - css-generate
+  - design-entity-component-tree
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo design-entity workflow for the "canvas_page.landing_page" entity, "full" view mode.
+  Do NOT ask any questions. There is no graphical reference for this case.
+  The bundle's `components` field has type `component_tree`. Its sample records carry the page
+  composition; the mapping passes that field through.
+  Reuse the existing section, hero and rich_snippet components unchanged; create no new component.
+  Create exactly two sample records in section "pages", in this order:
+    1. id "home": section (max_width lg) → slot column_1 → hero → slot content →
+       rich_snippet with headline "Welcome home".
+    2. id "about": section (max_width md) → slot column_1 → rich_snippet with headline "About us".
+  The workflow must produce:
+    - designbook/data/canvas_page.landing_page.yml (both records, each tagged __designbook.section)
+    - designbook/entity-mapping/canvas_page.landing_page.full.jsonata (the passthrough mapping)
+  Present the composition tree before building the plan. After generating all files, run
+  `pnpm build-storybook` in the theme directory, then check each record's preview story with
+  `npx storybook-addon-designbook storybook check <story-url>`; record the story IDs you checked.
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0
+  - type: javascript
+    value: output.completedWorkflows['design-entity']?.state?.status === 'completed'
+  - type: javascript
+    value: Object.values(output.completedWorkflows['design-entity']?.state?.tasks || {}).every(t => t.status === 'done')
+  - type: javascript
+    value: |-
+      const rows = output.fileContents['designbook/data/canvas_page.landing_page.yml'];
+      const strip = n => ({ component: n.component, props: n.props || {}, slots: Object.fromEntries(Object.entries(n.slots || {}).map(([k, v]) => [k, Array.isArray(v) ? v.map(strip) : v])) });
+      const home = [{ component: 'test_integration_drupal:section', props: { max_width: 'lg' }, slots: { column_1: [{ component: 'test_integration_drupal:hero', props: {}, slots: { content: [{ component: 'test_integration_drupal:rich_snippet', props: { headline: 'Welcome home' }, slots: {} }] } }] } }];
+      const about = [{ component: 'test_integration_drupal:section', props: { max_width: 'md' }, slots: { column_1: [{ component: 'test_integration_drupal:rich_snippet', props: { headline: 'About us' }, slots: {} }] } }];
+      return Array.isArray(rows) && rows.length === 2 && rows[0].id === 'home' && rows[1].id === 'about' && rows.every(r => r.__designbook?.section === 'pages' && Array.isArray(r.components)) && JSON.stringify(rows[0].components.map(strip)) === JSON.stringify(home) && JSON.stringify(rows[1].components.map(strip)) === JSON.stringify(about);
+  - type: javascript
+    value: |-
+      const src = output.fileContents['designbook/entity-mapping/canvas_page.landing_page.full.jsonata'];
+      return typeof src === 'string' && /\$record\s*:=\s*\$\s*;\s*\$record\.components\s*\)?\s*$/.test(src.replace(/\/\*[\s\S]*?\*\//g, '').trim()) && !/"component"\s*:/.test(src);
+  - type: javascript
+    value: |-
+      const expected = {'components/hero/hero.component.yml':'85f6d01e98501c34efbc1e233a7b4411a9ee51d77833aaaf27e47ee6ec064d01','components/rich_snippet/rich_snippet.component.yml':'42c85ec43ce53a09ad7bb95c629d5e3a1dcb335911f56fce5ee60de12720cb3a','components/section/section.component.yml':'1b436215db1b6d888c38949f839e2bfc2bcb5ea315ed8cfa8ffd670c8b7428d1','components/hero/hero.twig':'20e3071260350ea7d3cd8fdacaf4e3972b1b6af9dc3b72b2fef5155dc674f8cd','components/rich_snippet/rich_snippet.twig':'9a38e82fdda180448b8f76e40c19e32b8e7cb41b9163cb2462b6c8f0ceaa8e3c','components/section/section.twig':'6f2c632874dd264491a311c219983ae303406ab5a05c23db474b470c47959d56'};
+      return Object.entries(expected).every(([file, hash]) => Object.entries(output.fileHashes).some(([path, actual]) => path.endsWith(file) && actual === hash));

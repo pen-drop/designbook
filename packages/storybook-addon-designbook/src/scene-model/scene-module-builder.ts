@@ -1,0 +1,348 @@
+/**
+ * Scene Module Builder — orchestrates the async build pipeline.
+ *
+ * Build time (async, Node.js):
+ *   SceneNode[] → BuilderRegistry → ComponentNode[] → buildCsfModule() → CSF string
+ *
+ * Runtime (sync, browser):
+ *   renderComponent(args.__scene, __imports) → framework-native output
+ */
+
+import { readFileSync, existsSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { load as parseYaml } from 'js-yaml';
+import { readBundleFiles, namespaceFor } from './data-pool';
+
+import { extractGroup, buildExportName, fileBaseName, extractScenes } from './scene-metadata';
+import { expandEntries } from './parser';
+import { BuilderRegistry } from './builder-registry';
+import { entityBuilder } from './builders/entity-builder';
+import { sceneBuilder } from './builders/scene-builder';
+import { componentBuilder } from './builders/component-builder';
+import { imageStyleBuilder } from './builders/image-style-builder';
+import { buildCsfModule } from './csf-prep';
+import { view } from './view';
+import { validateSceneNodes } from './validate-scene-nodes';
+
+import type {
+  BuildContext,
+  DataModel,
+  DesignbookConfig,
+  SampleData,
+  SceneNode,
+  SceneNodeBuilder,
+  SceneTreeNode,
+  ComponentNode,
+  ComponentModule,
+} from './types';
+
+// ── Default SDC import resolver ────────────────────────────────────────
+
+/**
+ * Default import path resolver for SDC (.component.yml) components.
+ * Resolves 'provider:component' → absolute path to component.yml
+ */
+export function defaultSdcResolver(componentId: string, designbookDir: string): string | null {
+  const parts = componentId.split(':');
+  if (parts.length !== 2 || !parts[1]) return null;
+
+  const componentName = parts[1];
+  // Try both underscore and hyphen conventions (Drupal SDC uses hyphens in dirs)
+  const candidates = [componentName, componentName.replace(/_/g, '-')];
+
+  for (const dirName of candidates) {
+    // Try both underscore and hyphen for the yml filename too
+    for (const fileName of [componentName, dirName]) {
+      const componentYml = join(resolve(designbookDir, '..', 'components', dirName), `${fileName}.component.yml`);
+      if (existsSync(componentYml)) return componentYml;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Default sibling-JS resolver for SDC components: the co-located `<name>.js`
+ * next to the resolved `.component.yml`. Returns null when absent.
+ */
+export function defaultSdcScriptResolver(componentId: string, designbookDir: string): string | null {
+  const componentYml = defaultSdcResolver(componentId, designbookDir);
+  if (!componentYml) return null;
+  const js = componentYml.replace(/\.component\.yml$/, '.js');
+  return existsSync(js) ? js : null;
+}
+
+// ── Default Vue import resolver ────────────────────────────────────────
+
+/**
+ * Default import path resolver for Vue (`.vue`) components.
+ * Resolves 'provider:component' → absolute path to the `<name>.vue` SFC,
+ * mirroring `defaultSdcResolver`'s directory/naming conventions.
+ */
+export function defaultVueResolver(componentId: string, designbookDir: string): string | null {
+  const parts = componentId.split(':');
+  if (parts.length !== 2 || !parts[1]) return null;
+
+  const componentName = parts[1];
+  // Try both underscore and hyphen conventions (Drupal SDC uses hyphens in dirs)
+  const candidates = [componentName, componentName.replace(/_/g, '-')];
+
+  for (const dirName of candidates) {
+    // Try both underscore and hyphen for the .vue filename too
+    for (const fileName of [componentName, dirName]) {
+      const vueFile = join(resolve(designbookDir, '..', 'components', dirName), `${fileName}.vue`);
+      if (existsSync(vueFile)) return vueFile;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Default `wrapImport` for Vue components: wraps the SFC's default export
+ * into a `ComponentModule.render()` that produces a VNode via Vue's `h()`.
+ * Slots are resolved (strings/VNodes/arrays) by `resolveSlots`, but Vue SFCs
+ * read slots as `$slots.<name>()` — i.e. each slot must be a *function*
+ * returning children, not the raw resolved value. Wrap each entry in a
+ * thunk so `<slot name="...">` consumption works without Vue's "Non-function
+ * value encountered for slot" warning.
+ */
+export function defaultVueWrapImport(alias: string): string {
+  return `{ render: (p, s) => h(${alias}.default, {...p}, Object.fromEntries(Object.entries(s).map(([k, v]) => [k, () => v]))) }`;
+}
+
+/**
+ * Extra module-level import lines required by `defaultVueWrapImport` (the
+ * `h` binding it calls) and by `renderComponent`'s nested-VNode `db:s:`/
+ * `db:e:` marker wrapping (`createCommentVNode`, `Fragment` — see
+ * `VueMarkerHelpers` in renderer.ts). Pass as `extraImportLines` alongside
+ * the wrapper; csf-prep.ts also threads these three bindings into the
+ * generated `renderComponent(...)` call as its `vueHelpers` argument.
+ */
+export const defaultVueExtraImportLines: string[] = ["import { h, createCommentVNode, Fragment } from 'vue';"];
+
+// ── Default Twig import resolver ───────────────────────────────────────
+
+/** Resolves 'provider:component' → absolute path to `components/<dir>/<file>.twig`. */
+export function defaultTwigResolver(componentId: string, designbookDir: string): string | null {
+  const parts = componentId.split(':');
+  if (parts.length !== 2 || !parts[1]) return null;
+  const name = parts[1];
+  for (const dirName of [name, name.replace(/_/g, '-')]) {
+    for (const fileName of [name, dirName]) {
+      const file = join(resolve(designbookDir, '..', 'components', dirName), `${fileName}.twig`);
+      if (existsSync(file)) return file;
+    }
+  }
+  return null;
+}
+
+/**
+ * Twig modules export `(ctx) => html`. Slots arrive pre-rendered; a multi-child slot is an
+ * array of HTML strings, joined here because Twig prints an array as `Array`.
+ */
+export function defaultTwigWrapImport(alias: string): string {
+  return `{ render: (p, s) => ${alias}.default({ ...p, ...Object.fromEntries(Object.entries(s).map(([k, v]) => [k, Array.isArray(v) ? v.join('') : v])) }) }`;
+}
+
+// ── Data loading ────────────────────────────────────────────────────────
+
+export function loadDataModel(designbookDir: string): DataModel {
+  const dataModelPath = join(designbookDir, 'data-model.yml');
+  try {
+    return parseYaml(readFileSync(dataModelPath, 'utf-8')) as DataModel;
+  } catch {
+    console.warn('[Designbook] No data-model.yml found, scene entities will not resolve');
+    return { content: {} };
+  }
+}
+
+function loadDesignbookConfig(designbookDir: string): DesignbookConfig | undefined {
+  const configPath = join(resolve(designbookDir, '..'), 'designbook.config.yml');
+  if (!existsSync(configPath)) {
+    const altPath = join(resolve(designbookDir, '..'), 'designbook.config.yaml');
+    if (!existsSync(altPath)) return undefined;
+    try {
+      return parseYaml(readFileSync(altPath, 'utf-8')) as DesignbookConfig;
+    } catch {
+      return undefined;
+    }
+  }
+  try {
+    return parseYaml(readFileSync(configPath, 'utf-8')) as DesignbookConfig;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Merge every `data/<entity_type>.<bundle>.yml` file into one SampleData pool.
+ * Namespace (content/config) is resolved by data-model lookup. No fallback.
+ *
+ * @param dataModel - optional pre-loaded DataModel; when omitted, loaded from disk.
+ */
+export function loadSampleData(designbookDir: string, dataModel?: DataModel): SampleData {
+  const resolvedDataModel = dataModel ?? loadDataModel(designbookDir);
+  const pool: SampleData = {};
+
+  for (const { entityType, bundle, records } of readBundleFiles(join(designbookDir, 'data'))) {
+    const ns = namespaceFor(resolvedDataModel, entityType, bundle);
+    if (!ns) {
+      console.warn(`[Designbook] data/${entityType}.${bundle}.yml: not in data-model — skipped`);
+      continue;
+    }
+    pool[ns] ??= {};
+    pool[ns]![entityType] ??= {};
+    pool[ns]![entityType]![bundle] = records;
+  }
+
+  return pool;
+}
+
+// ── Render context ──────────────────────────────────────────────────────
+
+export function buildRenderContext(args: {
+  dataModel: DataModel;
+  sampleData: SampleData;
+  designbookDir: string;
+  config: DesignbookConfig | undefined;
+  builders?: SceneNodeBuilder[];
+}): BuildContext {
+  const registry = new BuilderRegistry();
+  registry.register(componentBuilder);
+  registry.register(entityBuilder);
+  registry.register(sceneBuilder);
+  registry.register(imageStyleBuilder);
+  for (const builder of args.builders ?? []) {
+    registry.register(builder);
+  }
+  return registry.createContext({
+    dataModel: args.dataModel,
+    sampleData: args.sampleData,
+    designbookDir: args.designbookDir,
+    config: args.config,
+  });
+}
+
+// ── Main entry point ────────────────────────────────────────────────────
+
+export interface SceneModuleOptions {
+  builders?: SceneNodeBuilder[];
+  /**
+   * Framework-specific component import path resolver.
+   * Defaults to the SDC (.component.yml) resolver.
+   */
+  resolveImportPath?: (componentId: string) => string | null;
+  /**
+   * Optional wrapper for each __imports map entry.
+   * Defaults to the SDC wrapper: { render: (p, s) => alias.default.component({...p, ...s}) }
+   */
+  wrapImport?: (alias: string) => string;
+  /**
+   * Optional sibling-JS resolver: component ID → absolute `<name>.js` path (or null).
+   * Defaults to the SDC `defaultSdcScriptResolver`.
+   */
+  resolveScriptPath?: (componentId: string) => string | null;
+  /**
+   * Extra module-level import lines the custom `wrapImport` needs (e.g.
+   * `import { h } from 'vue';`). Ignored when `wrapImport` is not set.
+   */
+  extraImportLines?: string[];
+  /**
+   * Override for the `designbook:*` built-in component render functions
+   * (e.g. `vueBuiltInComponents`). Defaults to the HTML-string `builtInComponents`.
+   */
+  builtInComponents?: Record<string, ComponentModule>;
+}
+
+/**
+ * Build a CSF story module from a parsed scenes YAML object.
+ *
+ * Async build time: YAML → SceneNode[] → BuilderRegistry → ComponentNode[] → CSF string.
+ * No markers. Fully resolved.
+ */
+export async function buildSceneModule(
+  id: string,
+  raw: Record<string, unknown>,
+  designbookDir: string,
+  options: SceneModuleOptions = {},
+): Promise<string> {
+  // ── 1. Parse scenes from YAML ─────────────────────────────────────
+  const scenesArray = extractScenes(raw);
+
+  // ── 2. Load data model + sample data ──────────────────────────────
+  const dataModel = loadDataModel(designbookDir);
+  const sampleData = loadSampleData(designbookDir, dataModel);
+
+  // ── 2b. Load designbook config ──────────────────────────────��─────
+  const config = loadDesignbookConfig(designbookDir);
+
+  // ── 3. Build registry with built-in + custom builders ─────────────
+  const ctx = buildRenderContext({ dataModel, sampleData, designbookDir, config, builders: options.builders });
+
+  // ── 4. Scene metadata ─────────────────────────────────────────────
+  const fileBase = fileBaseName(id);
+  const group = extractGroup(raw, fileBase);
+
+  // ── 5. Build each scene: items → SceneTree → RenderTree ────────────
+  const resolvedScenes: Array<{
+    name: string;
+    exportName: string;
+    nodes: ComponentNode[];
+    theme?: string;
+    tree: SceneTreeNode[];
+  }> = [];
+
+  for (const rawScene of scenesArray) {
+    const scene = rawScene as Record<string, unknown>;
+    const sceneName = (scene.name as string) || 'Default';
+    const sceneTheme = (scene.theme as string) || undefined;
+    const items = expandEntries((scene.items as unknown[] | undefined) ?? []);
+
+    // build() → SceneTree
+    const tree: SceneTreeNode[] = [];
+    for (const entry of items) {
+      const built = await ctx.buildNode(entry as SceneNode);
+      tree.push(...built);
+    }
+
+    // view() → RenderTree
+    const nodes = view(tree);
+
+    // Validate: built scene must contain only proper ComponentNodes
+    const validationErrors = validateSceneNodes(nodes, `scene:${sceneName}`);
+    for (const err of validationErrors) {
+      console.error(`[Designbook] Invalid node in built scene at ${err.path}: ${err.reason}`, err.node);
+    }
+
+    resolvedScenes.push({
+      name: sceneName,
+      exportName: buildExportName(sceneName),
+      nodes,
+      theme: sceneTheme,
+      tree,
+    });
+  }
+
+  // ── 6. CSF Prep ───────────────────────────────────────────────────
+  const resolveImportPath =
+    options.resolveImportPath ?? ((componentId) => defaultSdcResolver(componentId, designbookDir));
+
+  // Default SDC wrapper: modules from .component.yml expose .default.component()
+  const wrapImport =
+    options.wrapImport ?? ((alias) => `{ render: (p, s) => ${alias}.default.component({...p, ...s}) }`);
+
+  const resolveScriptPath =
+    options.resolveScriptPath ?? ((componentId) => defaultSdcScriptResolver(componentId, designbookDir));
+
+  return buildCsfModule({
+    group,
+    source: fileBase + '.scenes.yml',
+    scenes: resolvedScenes,
+    resolveImportPath,
+    wrapImport,
+    resolveScriptPath,
+    extraImportLines: options.extraImportLines,
+    builtInComponents: options.builtInComponents,
+  });
+}

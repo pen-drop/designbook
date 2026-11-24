@@ -1,0 +1,17 @@
+[
+  {
+    "name": "vision",
+    "source": "promptfoo/reports/02-vision-main-InIsMF/MODEL-OUTPUT.md",
+    "text": "Beide Schritte sind abgeschlossen: Die Vision und die eine Section `recipes` sind geschrieben, beide Pläne melden 1/1 erledigt und `plan done` hat beide Ergebnisse gegen den Plan validiert."
+  },
+  {
+    "name": "model",
+    "source": "promptfoo/reports/03-data-model-main-1QKU0Y/MODEL-OUTPUT.md",
+    "text": "Beide Workflows sind gelaufen: data-model 1/1, sample-data 6/6 Tasks erledigt. `validate data` meldet `valid: true` mit 10 Warnungen (unten erklärt). Nichts wurde nach Drupal gesynct. Die Referenz-Revision und die drei älteren Ephemeral-Pläne sind unverändert."
+  },
+  {
+    "name": "tokens",
+    "source": "promptfoo/reports/04-tokens-main-msMQqS/MODEL-OUTPUT.md",
+    "text": "Ich habe die Tokens aus dem Lemon-Garlic-Roasted-Chicken-Frame abgeleitet und daraus das CSS erzeugt. Beide Pläne sind vollständig abgeschlossen: `tokens` 1/1, `css-generate` 18/18, keine offenen Tasks. Der Font- und Token-Check (`guard-css`) meldet `{\"ok\":true}`: Alle 118 Token-Variablen kommen in `:root` an, Montserrat und Roboto werden geladen, keine unaufgelösten Platzhalter. Stylelint über die Token-Dateien meldet keine Fehler."
+  }
+]

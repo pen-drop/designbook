@@ -9,14 +9,34 @@ fixtures:
   - design-screen-homepage
 prompt: |
   You are working in the directory {{workspace}}.
-  Run the "/debo design-verify homepage" workflow.
-  Verify the homepage section.
-  Execute the workflow now and Do NOT ask any questions.
+  Run /debo design-verify for the homepage landing scene. Do NOT ask questions.
+  This case checks the separate repair handoff against a deterministic local reference.
+
+  During intake, render the pristine homepage at 1280x1600 and save a frozen reference
+  screenshot. Wait for images and fonts before capture. Record the original hero root
+  classes as reference evidence. Then seed one visual defect in components/hero/hero.twig:
+  add min-h-[2400px] to the hero root class array. Preserve all other markup.
+  Rebuild CSS so the defect is present in the actual render.
+
+  Plan a check of that same viewport and the complete homepage against the frozen
+  reference, then execute the saved check document. Collect every observed issue.
+  After check completion, automatically invoke repair intake with the entire issue list.
+  Plan and execute a separate repair document, including a capture and recheck.
+  Do not append tasks to the check or start another repair from remaining recheck issues.
 
 assert:
   - type: javascript
-    value: output.archivedWorkflows['design-verify']?.status === 'completed'
+    value: output.completedWorkflows['design-verify']?.state?.status === 'completed'
   - type: javascript
-    value: output.archivedWorkflows['design-verify']?.tasks?.every(t => t.status === 'done')
+    value: Object.values(output.completedWorkflows['design-verify']?.state?.tasks || {}).every(t => t.status === 'done')
   - type: javascript
     value: Object.keys(output.pendingWorkflows).length === 0
+  - type: javascript
+    value: output.definitionUnchanged === true
+  - type: javascript
+    value: output.completedWorkflows['repair']?.state?.status === 'completed'
+  - type: javascript
+    value: >
+      const check = output.completedWorkflows['design-verify'];
+      const issues = Object.values(check?.state.tasks || {}).flatMap(t => t.results?.issues?.value || []);
+      return issues.length > 0 && issues.some(issue => JSON.stringify(issue).includes('hero'));

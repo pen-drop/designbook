@@ -1,0 +1,15 @@
+(
+  $fields := $;
+  [
+    {
+      "component": "test_integration_drupal:quantity-item",
+      "props": {
+        "quantity": $fields.field_quantity,
+        "unit": $fields.field_unit
+      },
+      "slots": {
+        "name": $fields.field_ingredient_name
+      }
+    }
+  ]
+)

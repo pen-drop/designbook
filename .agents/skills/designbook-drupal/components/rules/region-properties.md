@@ -1,11 +1,13 @@
 ---
 trigger:
-  steps: [create-component]
+  steps: [write-component]
 filter:
   frameworks.component: sdc
 ---
 
 # Region Properties — SDC / Twig output
+
+Apply captured-style derivations only when intake supplied `region_properties`; text-only changes use the saved criteria and preserved structure.
 
 How to materialize `region_properties` into SDC Twig templates. See the
 core `designbook:design:region-properties` rule for the integration-

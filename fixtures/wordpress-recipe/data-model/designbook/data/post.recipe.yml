@@ -1,0 +1,128 @@
+- id: lemon-garlic-roasted-chicken
+  __designbook:
+    section: recipes
+  title: Lemon Garlic Roasted Chicken
+  featured_image:
+    path: >-
+      designbook/references/60fbf0acb79bd59d/266781d6753e3a35/assets/60-384--fill-1.png
+    alt: Lemon garlic roasted chicken
+    width: 1232
+    height: 640
+  description: >-
+    Welcome to Cooks Delight, where culinary dreams come alive! Today, we embark
+    on a journey of flavors with a dish that promises to elevate your dining
+    experience – our Citrus Infusion Delight: Lemon Garlic Roasted Chicken.
+  excerpt: >-
+    Welcome to Cooks Delight, where culinary dreams come alive! Today, we embark
+    on a journey of flavors with a dish that promises to elevate your dining
+    experience – our Citrus Infusion Delight: Lemon Garlic Roasted Chicken.
+  difficulty: hard
+  servings: 4
+  prep_minutes: 20
+  cook_minutes: 40
+  category: chicken
+  author_description: >-
+    In the world of pots and pans, I'm on a mission to turn every meal into a
+    masterpiece. Cooks Delight is not just a blog; it's a shared space where the
+    love for food transcends boundaries. Here, we celebrate the art of crafting
+    meals that not only nourish the body but also feed the soul.
+  ingredients:
+    - quantity: '1'
+      unit: whole
+      ingredient_name: chicken (about 3-4 pounds)
+    - quantity: '2'
+      unit: ''
+      ingredient_name: lemons, sliced
+    - quantity: '6'
+      unit: cloves
+      ingredient_name: garlic, minced
+    - quantity: '2'
+      unit: tablespoons
+      ingredient_name: olive oil
+    - quantity: '1'
+      unit: teaspoon
+      ingredient_name: dried thyme
+    - quantity: '1'
+      unit: teaspoon
+      ingredient_name: dried rosemary
+    - quantity: ''
+      unit: ''
+      ingredient_name: Salt and black pepper to taste
+  steps:
+    - stage: Preheat and Prepare
+      instruction: Preheat your oven to 375°F (190°C).
+    - stage: Preheat and Prepare
+      instruction: Rinse the chicken inside and out, then pat it dry with paper towels.
+    - stage: Citrus Infusion
+      instruction: >-
+        Carefully lift the skin of the chicken and rub minced garlic directly
+        onto the meat.
+    - stage: Citrus Infusion
+      instruction: >-
+        Place lemon slices under the skin, ensuring they cover as much surface
+        as possible.
+    - stage: Herb Blend
+      instruction: >-
+        In a small bowl, mix olive oil, dried thyme, dried rosemary, salt, and
+        black pepper to create a herb-infused mixture.
+    - stage: Herb Blend
+      instruction: >-
+        Brush the entire chicken with the herb-infused mixture, making sure it's
+        evenly coated.
+    - stage: Herb Blend
+      instruction: Season the exterior with additional salt and black pepper to taste.
+    - stage: Roast to Perfection
+      instruction: Place the chicken in a roasting pan, breast side up.
+    - stage: Roast to Perfection
+      instruction: >-
+        Roast in the preheated oven for approximately 1 hour or until the
+        internal temperature reaches 165°F (74°C).
+    - stage: Roast to Perfection
+      instruction: Allow the chicken to rest for 10 minutes before carving.
+    - stage: Roast to Perfection
+      instruction: >-
+        Serve with the pan juices and roasted lemon slices for an extra burst of
+        flavor.
+    - stage: Pairing Suggestions
+      instruction: 'Side Dish: Serve alongside roasted vegetables or a simple green salad.'
+    - stage: Pairing Suggestions
+      instruction: >-
+        Wine: Pair with a crisp white wine or a light rosé for a well-balanced
+        meal.
+  related_recipes:
+    - savory-herb-infused-chicken
+    - decadent-chocolate-mousse
+- id: savory-herb-infused-chicken
+  __designbook:
+    section: recipes
+  title: Savory Herb-Infused Chicken
+  featured_image:
+    path: >-
+      designbook/references/60fbf0acb79bd59d/266781d6753e3a35/assets/144-261--fill-1.png
+    alt: ''
+    width: 632
+    height: 234
+  description: >-
+    Indulge in the rich and savory symphony of flavors with our Savory
+    Herb-Infused Chicken
+  difficulty: easy
+  servings: 3
+  prep_minutes: 20
+  cook_minutes: 20
+- id: decadent-chocolate-mousse
+  __designbook:
+    section: recipes
+  title: Decadent Chocolate Mousse
+  featured_image:
+    path: >-
+      designbook/references/60fbf0acb79bd59d/266781d6753e3a35/assets/144-271--fill-1.png
+    alt: ''
+    width: 632
+    height: 234
+  description: >-
+    Dive into the velvety indulgence of our Decadent Chocolate Mousse. A dessert
+    that transcends sweetness!
+  difficulty: medium
+  servings: 4
+  prep_minutes: 15
+  cook_minutes: 15

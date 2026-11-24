@@ -22,7 +22,7 @@ This blueprint self-selects for `core.entity_form_display.*` config units via `t
 
 ## Two paired config names
 
-For a bundle's `form_modes`, `sync-to`'s resolve-filter emits up to two config names per mode:
+For a bundle's `form_modes`, the sync-to intake emits up to two config names per mode:
 
 - `core.entity_form_display.<et>.<bundle>.<form_mode>` — the display authored by this blueprint.
 - `core.entity_form_mode.<et>.<form_mode>` — the mode *definition*, emitted only for **non-default**

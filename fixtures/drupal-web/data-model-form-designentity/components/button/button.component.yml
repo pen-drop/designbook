@@ -1,0 +1,32 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Button
+status: stable
+group: Actions
+description: A call-to-action button — nested inside a hero slot as a per-item UI-Patterns component.
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+variants:
+  default:
+    title: Default
+  primary:
+    title: Primary
+  secondary:
+    title: Secondary
+slots:
+  label:
+    title: Label
+props:
+  type: object
+  properties:
+    url:
+      title: URL
+      $ref: "ui-patterns://url"
+    size:
+      title: Size
+      type: string
+      enum:
+        - sm
+        - md
+        - lg

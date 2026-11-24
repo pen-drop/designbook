@@ -1,0 +1,11 @@
+{
+  "extract": "Build the data model based on the screen.\nBuild the tokens based on the screen.",
+  "build": "Build the shell and show the shell.\nDesign the recipe screen and show the result.",
+  "sources": [
+    "fixtures/drupal-recipe/cases/03-data-model.yaml",
+    "fixtures/drupal-recipe/cases/04-tokens.yaml",
+    "fixtures/drupal-recipe/cases/05-shell.yaml",
+    "fixtures/drupal-recipe/cases/06-screen.yaml"
+  ],
+  "presentation": "Prompt excerpts combined for an editorial replay, not a new live CLI run."
+}

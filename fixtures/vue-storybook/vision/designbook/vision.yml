@@ -1,0 +1,14 @@
+product_name: Prosaic
+description: A boutique online bookstore connecting independent publishers with readers through curated catalogs, rich book profiles, and publisher storefronts.
+problems:
+  - title: Independent publishers lack a storefront that highlights their catalog
+    solution: Publisher profile pages with a curated, filterable book catalog and consistent card/detail presentation.
+  - title: Readers can't quickly judge a book before opening its detail page
+    solution: Compact book cards with cover, title, author, price and stock status, promoted to a rich detail view on click.
+  - title: The catalog needs a consistent shell across browsing and detail pages
+    solution: Shared shell with named header/content/footer regions and a nested primary navigation slot.
+features:
+  - Book catalog browser with card and detail views
+  - Publisher storefront pages
+  - Stock status and pricing on every card
+  - Responsive catalog grid optimized for mobile browsing

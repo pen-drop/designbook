@@ -1,0 +1,23 @@
+source:
+  kind: figma
+  identity: "https://www.figma.com/design/ErxLeXHIKYIBLlu0L4HUCY/SaaS-Website-UI-Kit--Community-?node-id=1-2"
+  revision: null
+role: reference
+assets_dir: assets
+elements:
+  - id: scene-page
+    locator: { kind: figma-node, value: "1:2" }
+    states: [{ name: rest, session: anonymous }]
+    views: [{ id: desktop, width: 1200, height: 6605 }]
+  - id: scene-hero
+    locator: { kind: figma-node, value: "28:1211" }
+    states: [{ name: rest, session: anonymous }]
+    views: [{ id: desktop, width: 1200, height: 710 }]
+  - id: scene-product
+    locator: { kind: figma-node, value: "14:615" }
+    states: [{ name: rest, session: anonymous }]
+    views: [{ id: desktop, width: 1200, height: 1495 }]
+  - id: scene-pricing
+    locator: { kind: figma-node, value: "28:1209" }
+    states: [{ name: rest, session: anonymous }]
+    views: [{ id: desktop, width: 1200, height: 1211 }]

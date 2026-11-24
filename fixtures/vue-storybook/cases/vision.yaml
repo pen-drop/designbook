@@ -1,0 +1,40 @@
+fixtures: []
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo vision workflow. Do NOT ask any questions — use the following inputs directly:
+
+  Product name: Prosaic
+  Description: A boutique online bookstore connecting independent publishers with readers
+  Problems & Solutions:
+  1. Independent publishers lack a storefront → Publisher profile pages with a curated catalog
+  2. Readers can't judge a book before opening its detail page → Compact cards promoted to a rich detail view
+  3. The catalog needs a consistent shell across pages → Shared shell with named header/content/footer regions
+  Key Features:
+  - Book catalog browser with card and detail views
+  - Publisher storefront pages
+  - Stock status and pricing on every card
+  - Responsive catalog grid optimized for mobile browsing
+
+  Default mode is ephemeral. Seal with `_debo plan build vision --tasks <tasks.json> --ephemeral`.
+  Do not write a durable per-initiative plan folder under `$DESIGNBOOK_DATA/plans/`.
+  Execute the ephemeral plan. Leave the ephemeral plan file in place for scoring — do not delete it before this run ends.
+
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: output.newFiles.some(f => f === 'designbook/vision.yml')
+  - type: javascript
+    value: output.completedWorkflows['vision']?.state?.status === 'completed'
+  - type: javascript
+    value: Object.values(output.completedWorkflows['vision']?.state?.tasks || {}).every(t => t.status === 'done')
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0
+  - type: javascript
+    value: output.fileContents['designbook/vision.yml']?.product_name === 'Prosaic'
+  - type: javascript
+    value: output.definitionUnchanged === true
+  - type: javascript
+    value: |
+      return !output.newFiles.some((f) => /^designbook\/plans\/(?!\.ephemeral\/)[^/]+\/plan\.md$/.test(f));

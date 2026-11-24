@@ -21,6 +21,8 @@ extends:
                 $extensions:
                   designbook:
                     renderer: container
+filter:
+  frameworks.component: sdc
 ---
 
 # Blueprint: Container

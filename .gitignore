@@ -1,15 +1,20 @@
-node_modules/*
+node_modules/
 dist/*
 .idea
 *.css
 components/*/*.js
 !*.src.css
+!packages/integrations/test-integration-wordpress/style.css
+!website/.vitepress/theme/**/*.css
+website/.vitepress/cache
+website/.vitepress/dist
 !*.src.js
 package-lock.json
 !.storybook/*js
 .eslintcache
 tmp
 promptfoo/workspaces/
+promptfoo/evidence/
 workspaces/
 autoresearch-results.tsv
 .claude/worktrees/
@@ -17,7 +22,10 @@ autoresearch-results.tsv
 .pnpm-store/
 /designbook/
 /research-runs/
-# gaia / dropsh local state (not committed)
+# bakers / dropsh local state (not committed)
 .dropsh/
-.gaia/conductor.config.local.js
+.bakers/connection.config.js
+.bakers/conductor.config.local.js
+.bakers-worktrees
 .gaia-worktrees
+/assets-ai/

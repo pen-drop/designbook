@@ -1,0 +1,225 @@
+- id: '1'
+  title: SaaS landing page
+  components:
+    - component: test_integration_drupal:saas-hero
+      slots:
+        eyebrow:
+          - component: test_integration_drupal:saas-tag
+            slots:
+              label: Version 2.0 is here
+        title: Pathway to productivity
+        lead: >-
+          Celebrate the joy of accomplishment with an app designed to track your
+          progress, motivate your efforts, and celebrate your successes.
+        actions:
+          - component: test_integration_drupal:saas-button
+            props:
+              variant: default
+              label: Get for free
+              url: /signup
+          - component: test_integration_drupal:saas-button
+            props:
+              variant: text
+              label: Learn more
+              url: /features
+        media:
+          - image: ratio_1_1
+            src: /saas-kit/hero-visual.png
+            alt: Iridescent blue 3D starburst
+    - component: test_integration_drupal:saas-section
+      props:
+        variant: showcase
+      slots:
+        header:
+          - component: test_integration_drupal:saas-heading-group
+            slots:
+              eyebrow:
+                - component: test_integration_drupal:saas-tag
+                  slots:
+                    label: Boost your productivity
+              heading: A more effective way to track progress
+              body: >-
+                Effortlessly turn your ideas into a fully functional,
+                responsive, no-code SaaS website in just minutes with the set of
+                free components for Framer.
+        media:
+          - image: ratio_8_5
+            src: /saas-kit/product-image.png
+            alt: >-
+              Launch task board of the productivity app with marketing, product
+              and finance projects
+        items:
+          - component: test_integration_drupal:grid
+            props:
+              columns: 4
+              gap: md
+            slots:
+              items:
+                - component: test_integration_drupal:saas-feature
+                  slots:
+                    icon:
+                      - image: ratio_1_1
+                        src: /saas-kit/feature-icon-1.svg
+                        alt: Leaf icon
+                    title: Integration ecosystem
+                    summary: Track your progress and motivate your efforts everyday.
+                    link:
+                      - component: test_integration_drupal:saas-button
+                        props:
+                          variant: text
+                          label: Learn more
+                          url: /features/integrations
+                - component: test_integration_drupal:saas-feature
+                  slots:
+                    icon:
+                      - image: ratio_1_1
+                        src: /saas-kit/feature-icon-3.svg
+                        alt: Target icon
+                    title: Goal setting and tracking
+                    summary: Set and track goals with manageable task breakdowns.
+                    link:
+                      - component: test_integration_drupal:saas-button
+                        props:
+                          variant: text
+                          label: Learn more
+                          url: /features/goals
+                - component: test_integration_drupal:saas-feature
+                  slots:
+                    icon:
+                      - image: ratio_1_1
+                        src: /saas-kit/feature-icon-2.svg
+                        alt: Lock icon
+                    title: Secure data encryption
+                    summary: Ensure your data’s safety with top-tier encryption.
+                    link:
+                      - component: test_integration_drupal:saas-button
+                        props:
+                          variant: text
+                          label: Learn more
+                          url: /features/security
+                - component: test_integration_drupal:saas-feature
+                  slots:
+                    icon:
+                      - image: ratio_1_1
+                        src: /saas-kit/feature-icon-4.svg
+                        alt: Bell icon
+                    title: Customizable notifications
+                    summary: Get alerts on tasks and deadlines that matter most.
+                    link:
+                      - component: test_integration_drupal:saas-button
+                        props:
+                          variant: text
+                          label: Learn more
+                          url: /features/notifications
+    - component: test_integration_drupal:saas-section
+      props:
+        variant: plain
+      slots:
+        header:
+          - component: test_integration_drupal:saas-heading-group
+            slots:
+              eyebrow:
+                - component: test_integration_drupal:saas-tag
+                  slots:
+                    label: Boost your productivity
+              heading: A more effective way to track progress
+              body: >-
+                Effortlessly turn your ideas into a fully functional,
+                responsive, no-code SaaS website in just minutes with the set of
+                free components for Framer.
+        items:
+          - component: test_integration_drupal:grid
+            props:
+              columns: 3
+              gap: lg
+            slots:
+              items:
+                - component: test_integration_drupal:saas-pricing-card
+                  props:
+                    variant: default
+                  slots:
+                    name: Free
+                    badge: []
+                    price: '&#36;0'
+                    period: /monthly
+                    action:
+                      - component: test_integration_drupal:saas-button
+                        props:
+                          variant: default
+                          label: Get started for free
+                          url: /signup?plan=free
+                          full_width: true
+                    features:
+                      - component: test_integration_drupal:saas-check-list
+                        props:
+                          variant: default
+                          items:
+                            - Up to 5 project members
+                            - Unlimited tasks and projects
+                            - 2GB storage
+                            - Integrations
+                            - Basic support
+                - component: test_integration_drupal:saas-pricing-card
+                  props:
+                    variant: highlighted
+                  slots:
+                    name: Pro
+                    badge:
+                      - component: test_integration_drupal:saas-tag
+                        props:
+                          variant: inverse
+                        slots:
+                          label: Most Popular
+                    price: '&#36;9'
+                    period: /monthly
+                    action:
+                      - component: test_integration_drupal:saas-button
+                        props:
+                          variant: light
+                          label: Sign up now
+                          url: /signup?plan=pro
+                          full_width: true
+                    features:
+                      - component: test_integration_drupal:saas-check-list
+                        props:
+                          variant: inverse
+                          items:
+                            - Up to 50 project members
+                            - Unlimited tasks and projects
+                            - 50GB storage
+                            - Integrations
+                            - Priority support
+                            - Advanced support
+                            - Export support
+                - component: test_integration_drupal:saas-pricing-card
+                  props:
+                    variant: default
+                  slots:
+                    name: Business
+                    badge: []
+                    price: '&#36;19'
+                    period: /monthly
+                    action:
+                      - component: test_integration_drupal:saas-button
+                        props:
+                          variant: default
+                          label: Sign up now
+                          url: /signup?plan=business
+                          full_width: true
+                    features:
+                      - component: test_integration_drupal:saas-check-list
+                        props:
+                          variant: default
+                          items:
+                            - Up to 5 project members
+                            - Unlimited tasks and projects
+                            - 200GB storage
+                            - Integrations
+                            - Dedicated account manager
+                            - Custom fields
+                            - Advanced analytics
+                            - Export capabilities
+                            - API access
+                            - Advanced security features
+  __designbook:
+    section: saas-demo

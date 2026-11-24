@@ -1,0 +1,9 @@
+component: test_integration_drupal:saas-check-list
+name: Default
+props:
+  items:
+    - Up to 5 project members
+    - Unlimited tasks and projects
+    - 2GB storage
+    - Integrations
+    - Basic support

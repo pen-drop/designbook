@@ -56,3 +56,11 @@ here as guidance:
   import fails.
 
 All other field types accept an empty or absent `settings` object.
+
+## Fields used by mappings
+
+Declare every field consumed by a view-mode mapping under the bundle's `fields`,
+including Drupal base fields such as taxonomy `name` and `description`. Use the
+entity-type blueprint's `base_fields` definitions for their types. The sealed
+composition resolves fields from the model; blueprint defaults alone are not
+part of that model.

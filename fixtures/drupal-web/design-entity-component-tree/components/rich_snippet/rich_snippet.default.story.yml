@@ -1,0 +1,4 @@
+name: Default
+props:
+  headline: Rich snippet headline
+  text: Supporting text.

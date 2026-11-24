@@ -1,0 +1,34 @@
+workflow: tokens
+fixtures:
+  - empty
+  - reference
+  - vision
+  - data-model
+prompt: |
+  You are working in {{workspace}}. This is the Cooks Delight recipe demo.
+  Use the installed Designbook skills and the configured Drupal / SDC / Tailwind integration.
+  Read the actual SKILL.md for each skill named below and follow its instructions.
+  Execute only this case and its explicitly named prerequisite skills.
+  Preserve all completed earlier steps and the published reference. Do not sync to Drupal.
+  Do not launch Promptfoo or rebuild this prepared workspace from inside the case.
+  If required evidence, access or approval is missing, stop with the exact blocker; never invent it.
+  Read the published Figma reference in designbook/references/ under the configured
+  Designbook home. Use only the captured Lemon Garlic Roasted Chicken recipe frame,
+  its actual native locators, screenshot, assets and observations. Do not fetch a
+  website equivalent or replace the reference with an imagined layout.
+  Build the tokens based on the screen.
+  Use the tokens skill. Derive the color palette, typography, spacing and radii supported by
+  the installed token schema from the captured observations. Preserve actual font families
+  and values; do not substitute a generic theme. Clearly distinguish observed values from
+  any necessary inferred token grouping. Do not invent mobile observations.
+  Then use the css-generate skill so the new tokens are available to Storybook and components.
+  Keep app CSS imports working. Do not create a shell or recipe components yet.
+assert:
+- type: javascript
+  value: output.completedWorkflows['tokens']?.state?.status === 'completed'
+- type: javascript
+  value: Object.keys(output.fileHashes || {}).some(f => f.endsWith('/design-tokens.yml'))
+- type: javascript
+  value: Object.keys(output.fileHashes || {}).some(f => /(^|\/)css\/tokens\/.*\.css$/.test(f))
+- type: javascript
+  value: output.completedWorkflows['css-generate']?.state?.status === 'completed'

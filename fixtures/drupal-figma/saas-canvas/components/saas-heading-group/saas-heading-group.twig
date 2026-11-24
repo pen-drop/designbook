@@ -1,0 +1,22 @@
+{#
+/**
+ * @file
+ * SaaS kit section intro.
+ *
+ * Available variables:
+ * - eyebrow, heading, body: Slots
+ *
+ * Tailwind source hint: the container component builds its width class
+ * dynamically ('max-w-' ~ max_width); this intro relies on: max-w-sm
+ */
+#}
+{% set intro %}
+  <div class="flex flex-col items-center gap-5 text-center">
+    {% if eyebrow %}{{ eyebrow }}{% endif %}
+    {% if heading %}<h2 class="bg-linear-to-b from-brand-ink to-brand-heading-end bg-clip-text pb-1 font-brand text-4xl font-bold tracking-tighter text-transparent md:text-section-title">{{ heading }}</h2>{% endif %}
+    {% if body %}<div class="font-body text-lg tracking-tight text-brand-text md:text-lead">{{ body }}</div>{% endif %}
+  </div>
+{% endset %}
+<div{{ attributes.addClass(['w-full']) }}>
+  {% include 'test_integration_drupal:container' with { max_width: 'sm', padding_top: 'none', padding_bottom: 'none', content: intro } only %}
+</div>

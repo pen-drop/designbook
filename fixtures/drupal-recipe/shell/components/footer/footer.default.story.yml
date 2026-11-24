@@ -1,0 +1,54 @@
+component: "test_integration_drupal:footer"
+name: "Default"
+props:
+  copyright: "Copyright: © 2024 Cooks Delight."
+  social_links:
+    - title: "TikTok"
+      url: "#tiktok"
+      icon: "/images/shell/tiktok.svg"
+    - title: "Facebook"
+      url: "#facebook"
+      icon: "/images/shell/facebook.svg"
+    - title: "Instagram"
+      url: "#instagram"
+      icon: "/images/shell/instagram.svg"
+    - title: "YouTube"
+      url: "#youtube"
+      icon: "/images/shell/youtube.svg"
+slots:
+  logo:
+    - type: "component"
+      component: "test_integration_drupal:logo"
+      props:
+        variant: "inverse"
+        href: "/"
+        label: "Cooks Delight"
+      slots:
+        media:
+          - type: "image"
+            uri: "/images/shell/logo-footer.svg"
+            attributes:
+              alt: ""
+  navigation:
+    - type: "component"
+      component: "test_integration_drupal:navigation"
+      props:
+        variant: "footer"
+        items:
+          - title: "Home"
+            url: "/"
+            in_active_trail: false
+            below: []
+          - title: "recipes"
+            url: "/recipes"
+            in_active_trail: false
+            below: []
+          - title: "cooking tips"
+            url: "/cooking-tips"
+            in_active_trail: false
+            below: []
+          - title: "About us"
+            url: "/about-us"
+            in_active_trail: false
+            below: []
+        separator_src: "/images/shell/footer-separator.svg"

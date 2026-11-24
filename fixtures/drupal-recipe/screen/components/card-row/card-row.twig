@@ -1,0 +1,4 @@
+<section{{ attributes.addClass(['card-row', 'mx-auto', 'flex', 'w-full', 'max-w-[var(--container-2xl)]', 'flex-col', 'gap-xl', 'rounded-xl', 'border', 'border-outline', 'bg-background', 'px-md', 'pt-xl', 'pb-md']) }}>
+  <div class="flex items-center justify-between gap-md md:px-lg"><h2 class="font-heading text-heading-2 uppercase text-foreground">{{ heading }}</h2><div class="hidden items-center gap-xs md:flex" aria-hidden="true"><img src="/images/icons/arrow-left.svg" alt="" width="40" height="40"><img src="/images/icons/arrow-right.svg" alt="" width="40" height="40"></div></div>
+  <div class="grid grid-cols-1 gap-md md:grid-cols-2">{% block items %}{{ items }}{% endblock %}</div>
+</section>

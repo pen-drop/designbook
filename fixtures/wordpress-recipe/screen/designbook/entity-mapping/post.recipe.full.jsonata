@@ -1,0 +1,18 @@
+(
+  $recipe := $;
+  [
+    {
+      "component": "test_integration_wordpress:recipe-card",
+      "variant": "default",
+      "props": {
+        "image_src": $recipe.featured_image.path,
+        "image_alt": $recipe.featured_image.alt,
+        "title": $recipe.title,
+        "description": $recipe.description,
+        "total_time": $string($recipe.prep_minutes + $recipe.cook_minutes) & " Min",
+        "difficulty": $uppercase($recipe.difficulty),
+        "servings": $string($recipe.servings)
+      }
+    }
+  ]
+)

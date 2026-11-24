@@ -1,0 +1,16 @@
+workflow: tokens
+fixtures:
+  - empty
+prompt: |
+  You are working in {{workspace}}.
+  Read the installed tokens SKILL.md and follow the tokens skill.
+  Derive design tokens from the desktop recipe screen at
+  https://www.figma.com/design/jNxa1mBeUyh2eoAQrjcvhd/?node-id=58-2.
+  Use the screen's observed colors, typography, spacing and radii.
+assert:
+  - type: javascript
+    value: /ReferenceNeed/.test(output.text || '')
+  - type: javascript
+    value: Object.keys(output.completedWorkflows || {}).length === 0 && Object.keys(output.pendingWorkflows || {}).length === 0
+  - type: javascript
+    value: '!Object.keys(output.fileHashes || {}).some(f => /^designbook\/(references|plans)\//.test(f) || f.endsWith("/design-tokens.yml"))'

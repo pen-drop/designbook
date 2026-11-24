@@ -1,0 +1,16 @@
+component: test_integration_drupal:card-row
+name: Default
+props:
+  heading: Similar recipes
+slots:
+  items:
+    - type: element
+      tag: div
+      value: Card A
+      attributes:
+        style: height:200px;background:#FFFBF2
+    - type: element
+      tag: div
+      value: Card B
+      attributes:
+        style: height:200px;background:#FFFBF2

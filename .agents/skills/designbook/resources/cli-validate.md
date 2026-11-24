@@ -30,7 +30,7 @@ Resolves path: `$DESIGNBOOK_DATA/design-system/design-tokens.yml`.
 
 ## `validate component`
 
-Validate a component YAML against the Drupal SDC schema.
+Validate a component YAML against the SDC component schema.
 
 ```bash
  validate component <name>

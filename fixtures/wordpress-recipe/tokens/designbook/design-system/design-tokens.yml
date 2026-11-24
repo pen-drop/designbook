@@ -1,0 +1,431 @@
+primitive:
+  color:
+    neutral-50:
+      $value: '#FFFBF2'
+      $type: color
+      $description: Observed Figma Light color.
+    neutral-100:
+      $value: '#F0EBE1'
+      $type: color
+      $description: Observed Figma Background color.
+    neutral-800:
+      $value: '#333333'
+      $type: color
+      $description: Observed in image borders and body text.
+    neutral-900:
+      $value: '#262522'
+      $type: color
+      $description: Observed Figma Dark color.
+    neutral-900-a08:
+      $value: rgba(38,37,34,0.08)
+      $type: color
+      $description: Observed search pill fill.
+    neutral-900-a16:
+      $value: rgba(38,37,34,0.16)
+      $type: color
+      $description: Observed card border.
+    neutral-900-a24:
+      $value: rgba(38,37,34,0.24)
+      $type: color
+      $description: Observed region/header border.
+    neutral-900-a40:
+      $value: rgba(38,37,34,0.4)
+      $type: color
+      $description: Observed input placeholder/border opacity.
+    neutral-900-a60:
+      $value: rgba(38,37,34,0.6)
+      $type: color
+      $description: Observed hero paragraph opacity.
+    neutral-800-a80:
+      $value: rgba(51,51,51,0.8)
+      $type: color
+      $description: Observed paragraph opacity.
+    black-a20:
+      $value: rgba(0,0,0,0.2)
+      $type: color
+      $description: Observed video image overlay.
+    lime-400:
+      $value: '#9FDC26'
+      $type: color
+      $description: Observed Figma Primary Color 1.
+    orange-400:
+      $value: '#F29C33'
+      $type: color
+      $description: Observed Figma Primary Color 2.
+    coral-500:
+      $value: '#EE6352'
+      $type: color
+      $description: Observed Figma Primary Color 3.
+    neutral-100-a08:
+      $value: rgba(240,235,225,0.08)
+      $type: color
+      $description: Observed footer divider opacity.
+    neutral-100-a60:
+      $value: rgba(240,235,225,0.6)
+      $type: color
+      $description: Observed footer copyright opacity.
+  fontFamily:
+    montserrat:
+      $value: Montserrat
+      $type: fontFamily
+      $description: Observed Google font family.
+    roboto:
+      $value: Roboto
+      $type: fontFamily
+      $description: Observed Google font family.
+  fontSize:
+    '12':
+      $value: 12px
+      $type: dimension
+      $description: Observed Small Text.
+    '14':
+      $value: 14px
+      $type: dimension
+      $description: Observed ButtonText and footer wordmark.
+    '15':
+      $value: 15px
+      $type: dimension
+      $description: Observed header logo wordmark.
+    '16':
+      $value: 16px
+      $type: dimension
+      $description: Observed Paragraph 2, Bold Text and Link Text.
+    '18':
+      $value: 18px
+      $type: dimension
+      $description: Observed Subtitle, Tagline and CTA label.
+    '21':
+      $value: 21px
+      $type: dimension
+      $description: Observed Paragraph 1 and CTA body.
+    '24':
+      $value: 24px
+      $type: dimension
+      $description: Observed Header 3.
+    '40':
+      $value: 40px
+      $type: dimension
+      $description: Observed Header 2.
+    '80':
+      $value: 80px
+      $type: dimension
+      $description: Observed Headline 1 and CTA heading.
+    10-35:
+      $value: 10.35px
+      $type: dimension
+      $description: Observed rotated vegan badge text.
+  fontWeight:
+    '300':
+      $value: 300
+      $type: fontWeight
+    '400':
+      $value: 400
+      $type: fontWeight
+    '500':
+      $value: 500
+      $type: fontWeight
+    '600':
+      $value: 600
+      $type: fontWeight
+    '700':
+      $value: 700
+      $type: fontWeight
+    '800':
+      $value: 800
+      $type: fontWeight
+  lineHeight:
+    '1':
+      $value: 1
+      $type: number
+    1-2:
+      $value: 1.2
+      $type: number
+    1-4:
+      $value: 1.4
+      $type: number
+  letterSpacing:
+    '0':
+      $value: 0%
+      $type: dimension
+    '1':
+      $value: 1%
+      $type: dimension
+    '2':
+      $value: 2%
+      $type: dimension
+    minus-1:
+      $value: '-1%'
+      $type: dimension
+  spacing:
+    '4':
+      $value: 4px
+      $type: dimension
+    '8':
+      $value: 8px
+      $type: dimension
+    '12':
+      $value: 12px
+      $type: dimension
+    '15':
+      $value: 15px
+      $type: dimension
+    '16':
+      $value: 16px
+      $type: dimension
+    '24':
+      $value: 24px
+      $type: dimension
+    '32':
+      $value: 32px
+      $type: dimension
+    '40':
+      $value: 40px
+      $type: dimension
+    '48':
+      $value: 48px
+      $type: dimension
+    '56':
+      $value: 56px
+      $type: dimension
+    '64':
+      $value: 64px
+      $type: dimension
+  radius:
+    '12':
+      $value: 12px
+      $type: dimension
+    '16':
+      $value: 16px
+      $type: dimension
+    '24':
+      $value: 24px
+      $type: dimension
+    '32':
+      $value: 32px
+      $type: dimension
+    34-435:
+      $value: 34.435px
+      $type: dimension
+semantic:
+  color:
+    background:
+      $value: '{primitive.color.neutral-100}'
+      $type: color
+    surface:
+      $value: '{primitive.color.neutral-50}'
+      $type: color
+    foreground:
+      $value: '{primitive.color.neutral-900}'
+      $type: color
+    foreground-body:
+      $value: '{primitive.color.neutral-800}'
+      $type: color
+    foreground-muted:
+      $value: '{primitive.color.neutral-900-a60}'
+      $type: color
+    foreground-subtle:
+      $value: '{primitive.color.neutral-800-a80}'
+      $type: color
+    outline:
+      $value: '{primitive.color.neutral-900-a24}'
+      $type: color
+    outline-soft:
+      $value: '{primitive.color.neutral-900-a16}'
+      $type: color
+    control-muted:
+      $value: '{primitive.color.neutral-900-a08}'
+      $type: color
+    control-placeholder:
+      $value: '{primitive.color.neutral-900-a40}'
+      $type: color
+    primary:
+      $value: '{primitive.color.coral-500}'
+      $type: color
+    secondary:
+      $value: '{primitive.color.lime-400}'
+      $type: color
+    tertiary:
+      $value: '{primitive.color.orange-400}'
+      $type: color
+    on-primary:
+      $value: '{primitive.color.neutral-50}'
+      $type: color
+    image-overlay:
+      $value: '{primitive.color.black-a20}'
+      $type: color
+    footer-subtle:
+      $value: '{primitive.color.neutral-100-a60}'
+      $type: color
+    footer-divider:
+      $value: '{primitive.color.neutral-100-a08}'
+      $type: color
+  typography:
+    headline-1:
+      $value:
+        fontFamily: '{primitive.fontFamily.montserrat}'
+        fontSize: '{primitive.fontSize.80}'
+        fontWeight: '{primitive.fontWeight.800}'
+        lineHeight: '{primitive.lineHeight.1}'
+        letterSpacing: '{primitive.letterSpacing.minus-1}'
+      $type: typography
+    header-2:
+      $value:
+        fontFamily: '{primitive.fontFamily.montserrat}'
+        fontSize: '{primitive.fontSize.40}'
+        fontWeight: '{primitive.fontWeight.700}'
+        lineHeight: '{primitive.lineHeight.1}'
+        letterSpacing: '{primitive.letterSpacing.1}'
+      $type: typography
+    header-3:
+      $value:
+        fontFamily: '{primitive.fontFamily.montserrat}'
+        fontSize: '{primitive.fontSize.24}'
+        fontWeight: '{primitive.fontWeight.700}'
+        lineHeight: '{primitive.lineHeight.1-2}'
+        letterSpacing: '{primitive.letterSpacing.minus-1}'
+      $type: typography
+    subtitle:
+      $value:
+        fontFamily: '{primitive.fontFamily.montserrat}'
+        fontSize: '{primitive.fontSize.18}'
+        fontWeight: '{primitive.fontWeight.600}'
+        lineHeight: '{primitive.lineHeight.1}'
+        letterSpacing: '{primitive.letterSpacing.2}'
+      $type: typography
+    tagline:
+      $value:
+        fontFamily: '{primitive.fontFamily.roboto}'
+        fontSize: '{primitive.fontSize.18}'
+        fontWeight: '{primitive.fontWeight.500}'
+        lineHeight: '{primitive.lineHeight.1}'
+        letterSpacing: '{primitive.letterSpacing.0}'
+      $type: typography
+    paragraph-1:
+      $value:
+        fontFamily: '{primitive.fontFamily.roboto}'
+        fontSize: '{primitive.fontSize.21}'
+        fontWeight: '{primitive.fontWeight.400}'
+        lineHeight: '{primitive.lineHeight.1-4}'
+        letterSpacing: '{primitive.letterSpacing.1}'
+      $type: typography
+    paragraph-2:
+      $value:
+        fontFamily: '{primitive.fontFamily.roboto}'
+        fontSize: '{primitive.fontSize.16}'
+        fontWeight: '{primitive.fontWeight.300}'
+        lineHeight: '{primitive.lineHeight.1-4}'
+        letterSpacing: '{primitive.letterSpacing.1}'
+      $type: typography
+    bold-text:
+      $value:
+        fontFamily: '{primitive.fontFamily.roboto}'
+        fontSize: '{primitive.fontSize.16}'
+        fontWeight: '{primitive.fontWeight.500}'
+        lineHeight: '{primitive.lineHeight.1-2}'
+        letterSpacing: '{primitive.letterSpacing.1}'
+      $type: typography
+    link-text:
+      $value:
+        fontFamily: '{primitive.fontFamily.roboto}'
+        fontSize: '{primitive.fontSize.16}'
+        fontWeight: '{primitive.fontWeight.400}'
+        lineHeight: '{primitive.lineHeight.1-2}'
+        letterSpacing: '{primitive.letterSpacing.1}'
+      $type: typography
+    small-text:
+      $value:
+        fontFamily: '{primitive.fontFamily.roboto}'
+        fontSize: '{primitive.fontSize.12}'
+        fontWeight: '{primitive.fontWeight.500}'
+        lineHeight: '{primitive.lineHeight.1-2}'
+        letterSpacing: '{primitive.letterSpacing.1}'
+      $type: typography
+    button-text:
+      $value:
+        fontFamily: '{primitive.fontFamily.roboto}'
+        fontSize: '{primitive.fontSize.14}'
+        fontWeight: '{primitive.fontWeight.500}'
+        lineHeight: '{primitive.lineHeight.1}'
+        letterSpacing: '{primitive.letterSpacing.0}'
+      $type: typography
+    logo-wordmark:
+      $value:
+        fontFamily: '{primitive.fontFamily.roboto}'
+        fontSize: '{primitive.fontSize.15}'
+        fontWeight: '{primitive.fontWeight.700}'
+        lineHeight: '{primitive.lineHeight.1}'
+        letterSpacing: '{primitive.letterSpacing.0}'
+      $type: typography
+    badge:
+      $value:
+        fontFamily: '{primitive.fontFamily.roboto}'
+        fontSize: '{primitive.fontSize.10-35}'
+        fontWeight: '{primitive.fontWeight.500}'
+        lineHeight: '{primitive.lineHeight.1-2}'
+      $type: typography
+    cta-label:
+      $value:
+        fontFamily: '{primitive.fontFamily.roboto}'
+        fontSize: '{primitive.fontSize.18}'
+        fontWeight: '{primitive.fontWeight.700}'
+        lineHeight: '{primitive.lineHeight.1}'
+      $type: typography
+    cta-body:
+      $value:
+        fontFamily: '{primitive.fontFamily.roboto}'
+        fontSize: '{primitive.fontSize.21}'
+        fontWeight: '{primitive.fontWeight.700}'
+        lineHeight: '{primitive.lineHeight.1-4}'
+      $type: typography
+    footer-wordmark:
+      $value:
+        fontFamily: '{primitive.fontFamily.roboto}'
+        fontSize: '{primitive.fontSize.14}'
+        fontWeight: '{primitive.fontWeight.400}'
+        lineHeight: '{primitive.lineHeight.1}'
+      $type: typography
+    footer-nav:
+      $value:
+        fontFamily: '{primitive.fontFamily.roboto}'
+        fontSize: '{primitive.fontSize.16}'
+        fontWeight: '{primitive.fontWeight.400}'
+        lineHeight: '{primitive.lineHeight.1-2}'
+      $type: typography
+    footer-copyright:
+      $value:
+        fontFamily: '{primitive.fontFamily.roboto}'
+        fontSize: '{primitive.fontSize.12}'
+        fontWeight: '{primitive.fontWeight.500}'
+        lineHeight: '{primitive.lineHeight.1-2}'
+      $type: typography
+  spacing:
+    sm:
+      $value: '{primitive.spacing.8}'
+      $type: dimension
+    md:
+      $value: '{primitive.spacing.16}'
+      $type: dimension
+    lg:
+      $value: '{primitive.spacing.24}'
+      $type: dimension
+    xl:
+      $value: '{primitive.spacing.40}'
+      $type: dimension
+  radius:
+    sm:
+      $value: '{primitive.radius.12}'
+      $type: dimension
+    md:
+      $value: '{primitive.radius.16}'
+      $type: dimension
+    lg:
+      $value: '{primitive.radius.24}'
+      $type: dimension
+    xl:
+      $value: '{primitive.radius.32}'
+      $type: dimension
+    badge:
+      $value: '{primitive.radius.34-435}'
+      $type: dimension
+component: {}
+themes: {}

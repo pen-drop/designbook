@@ -2,6 +2,7 @@
 trigger:
   domain: data-model
 filter:
+  backend: drupal
   extensions: canvas
 ---
 

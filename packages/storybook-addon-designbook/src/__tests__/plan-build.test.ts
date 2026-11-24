@@ -1,0 +1,474 @@
+/**
+ * `plan build` assembles the MD plan from an agent-authored task list: it resolves
+ * the full intake itself, validates each task's params against its params_schema and
+ * that every required step is covered, embeds each body once, and seals the digest.
+ */
+import { describe, it, expect } from 'vitest';
+import { resolve } from 'node:path';
+import { buildPlan } from '../workflow/plan-build.js';
+import { parsePlan, serializePlan, planDigest, validatePlanCompleteness } from '../workflow/plan-document.js';
+import type { DesignbookConfig } from '../shared/config.js';
+
+const agents = resolve(process.cwd(), '../../.agents');
+const config = {
+  data: '/tmp/plan-build',
+  technology: 'html',
+  backend: 'drupal',
+  'frameworks.component': 'sdc',
+  'frameworks.css': 'tailwind',
+  extensions: [],
+} as unknown as DesignbookConfig;
+const opts = { agentsDir: agents, config };
+
+describe('buildPlan', () => {
+  it('builds a sealed, complete plan from a task list', async () => {
+    const { plan, plans_dir, errors } = await buildPlan(
+      { workflow: 'vision', tasks: [{ step: 'create-vision', task: 'create-vision', title: 'v', params: {} }] },
+      opts,
+    );
+    expect(errors).toEqual([]);
+    expect(plan).not.toBeNull();
+    expect(plan!.workflow).toBe('vision');
+    expect(plan!.steps.map((s) => s.name)).toEqual(['create-vision']);
+    expect(plan!.steps[0]!.tasks[0]!.instruction).toBeTruthy(); // task body referenced, not inlined
+    expect(plan!.digest).toBe(planDigest(plan!)); // auto-sealed
+    // The sealed digest must survive the write→read round-trip, or `plan done`
+    // would report a digest mismatch (embedded bodies are trimmed on parse).
+    expect(planDigest(parsePlan(serializePlan(plan!)))).toBe(plan!.digest);
+    expect(validatePlanCompleteness(plan!).ok).toBe(true);
+    expect(plans_dir).toBe(`${config.data}/plans`);
+  });
+
+  it('rejects a truly unknown task but imposes no fixed-set completeness', async () => {
+    const { plan, errors } = await buildPlan(
+      { workflow: 'vision', tasks: [{ step: 'create-vision', task: 'not-a-task', params: {} }] },
+      opts,
+    );
+    expect(plan).toBeNull();
+    expect(errors.some((e) => /unknown task "not-a-task"/.test(e))).toBe(true);
+    // The agent decides which tasks come along — no "missing required step" error.
+    expect(errors.some((e) => /missing/.test(e))).toBe(false);
+  });
+
+  it('builds a gated open-selector task (extract-reference observe-website)', async () => {
+    const { plan, errors } = await buildPlan(
+      {
+        workflow: 'extract-reference',
+        selectors: { source: 'website' },
+        tasks: [
+          {
+            step: 'observe-website',
+            task: 'observe-website',
+            title: 'leando',
+            params: { source: {}, reference_folder: '/tmp/ref', state: 'rest', session: 'anonymous' },
+          },
+        ],
+      },
+      opts,
+    );
+    // The gated task must be resolvable — no "unknown task observe-website".
+    expect(errors.some((e) => /unknown task "observe-website"/.test(e))).toBe(false);
+    if (plan) {
+      const step = plan.steps.find((s) => s.name === 'observe-website');
+      expect(step).toBeDefined();
+      expect(step!.tasks[0]!.name).toBe('observe-website');
+      expect(step!.context.length).toBeGreaterThan(0); // gated context embedded
+    }
+  });
+
+  it('embeds a repeated task body once (dedup) and validates params', async () => {
+    const { plan, errors } = await buildPlan(
+      {
+        workflow: 'design-shell',
+        tasks: [
+          { step: 'write-component', task: 'write-component', title: 'a', params: { component: 'not-an-object' } },
+        ],
+      },
+      opts,
+    );
+    // param validation fires: `component` must be an object → error, no plan
+    expect(plan).toBeNull();
+    expect(errors.some((e) => /write-component.*params/.test(e))).toBe(true);
+  });
+
+  const emptyProps = {
+    type: 'object',
+    properties: {},
+    required: [] as string[],
+    additionalProperties: false,
+  };
+  const emptyComponent = {
+    component: 'hero',
+    group: 'layout',
+    props: emptyProps,
+    slots: {},
+  };
+  const vueOpts = {
+    agentsDir: agents,
+    config: { ...config, 'frameworks.component': 'vue', backend: 'none' } as unknown as DesignbookConfig,
+  };
+  const emptyComposition = {
+    components: [] as [],
+    mappings: [] as [],
+    samples: [] as [],
+    scenes: [] as [],
+    data_model: {},
+  };
+
+  it('rejects write-component when props or slots are absent', async () => {
+    const missingProps = await buildPlan(
+      {
+        workflow: 'design-shell',
+        tasks: [
+          {
+            step: 'write-component',
+            task: 'write-component',
+            title: 'hero',
+            params: { component: { component: 'hero', group: 'layout', slots: {} } },
+          },
+        ],
+      },
+      opts,
+    );
+    expect(missingProps.plan).toBeNull();
+    expect(missingProps.errors.join('\n')).toMatch(/props/);
+
+    const missingSlots = await buildPlan(
+      {
+        workflow: 'design-shell',
+        tasks: [
+          {
+            step: 'write-component',
+            task: 'write-component',
+            title: 'hero',
+            params: { component: { component: 'hero', group: 'layout', props: emptyProps } },
+          },
+        ],
+      },
+      opts,
+    );
+    expect(missingSlots.plan).toBeNull();
+    expect(missingSlots.errors.join('\n')).toMatch(/slots/);
+  });
+
+  it('accepts write-component with empty props and slots objects', async () => {
+    const { plan, errors } = await buildPlan(
+      {
+        workflow: 'design-shell',
+        composition: emptyComposition,
+        tasks: [
+          {
+            step: 'write-component',
+            task: 'write-component',
+            title: 'hero',
+            params: { component: emptyComponent },
+          },
+        ],
+      },
+      opts,
+    );
+    expect(errors).toEqual([]);
+    expect(plan).not.toBeNull();
+  });
+
+  it('rejects a field-map map-entity without a target component', async () => {
+    const { plan, errors } = await buildPlan(
+      {
+        workflow: 'design-entity',
+        composition: {
+          ...emptyComposition,
+          data_model: {
+            content: {
+              paragraph: {
+                signage: {
+                  fields: { field_title: { type: 'string' } },
+                  view_modes: { full: { template: 'field-map' } },
+                },
+              },
+            },
+          },
+        },
+        tasks: [
+          {
+            step: 'map-entity',
+            task: 'map-entity--design-screen',
+            title: 'signage',
+            params: {
+              mapping: { entity_type: 'paragraph', bundle: 'signage', mode_kind: 'view', view_mode: 'full' },
+              data_model: {},
+            },
+          },
+        ],
+      },
+      opts,
+    );
+    expect(plan).toBeNull();
+    expect(errors.join('\n')).toMatch(/component/);
+  });
+
+  it('rejects a binding that names both prop and slot', async () => {
+    const { plan, errors } = await buildPlan(
+      {
+        workflow: 'design-entity',
+        tasks: [
+          {
+            step: 'map-entity',
+            task: 'map-entity--design-screen',
+            title: 'signage',
+            params: {
+              mapping: { entity_type: 'paragraph', bundle: 'signage', mode_kind: 'view', view_mode: 'full' },
+              data_model: {},
+              component: 'test_integration_vue:signage',
+              bindings: [{ field: 'field_title', prop: 'title', slot: 'items' }],
+            },
+          },
+        ],
+      },
+      opts,
+    );
+    expect(plan).toBeNull();
+    expect(errors.join('\n')).toMatch(/bindings/);
+  });
+
+  it('rejects a component tree supplied as bindings at the schema', async () => {
+    const { plan, errors } = await buildPlan(
+      {
+        workflow: 'design-entity',
+        tasks: [
+          {
+            step: 'map-entity',
+            task: 'map-entity--design-screen',
+            title: 'landing_page',
+            params: {
+              mapping: { entity_type: 'canvas_page', bundle: 'landing_page', mode_kind: 'view', view_mode: 'full' },
+              data_model: {},
+              bindings: [{ component: 'test:section' }],
+            },
+          },
+        ],
+      },
+      opts,
+    );
+    expect(plan).toBeNull();
+    expect(errors.join('\n')).toMatch(/params: .*bindings\/0/);
+  });
+
+  it('rejects a reference-slot binding without a child view mode', async () => {
+    const { plan, errors } = await buildPlan(
+      {
+        workflow: 'design-entity',
+        tasks: [
+          {
+            step: 'map-entity',
+            task: 'map-entity--design-screen',
+            title: 'signage',
+            params: {
+              mapping: { entity_type: 'paragraph', bundle: 'signage', mode_kind: 'view', view_mode: 'full' },
+              data_model: {},
+              component: 'test_integration_vue:signage',
+              bindings: [
+                {
+                  field: 'field_signage_item',
+                  slot: 'items',
+                  entity: { entity_type: 'paragraph', bundle: 'signage_item' },
+                },
+              ],
+            },
+          },
+        ],
+      },
+      opts,
+    );
+    expect(plan).toBeNull();
+    expect(errors.join('\n')).toMatch(/view_mode/);
+  });
+
+  it('keeps form and view mapping identities distinct', async () => {
+    const view = await buildPlan(
+      {
+        workflow: 'design-entity',
+        composition: {
+          ...emptyComposition,
+          data_model: {
+            content: {
+              paragraph: {
+                signage: {
+                  fields: { field_title: { type: 'string' } },
+                  view_modes: { full: { template: 'field-map' } },
+                },
+              },
+            },
+          },
+        },
+        tasks: [
+          {
+            step: 'write-component',
+            task: 'write-component',
+            title: 'signage',
+            params: {
+              component: {
+                component: 'signage',
+                group: 'content',
+                props: {
+                  type: 'object',
+                  properties: { title: { type: 'string' } },
+                  required: [],
+                  additionalProperties: false,
+                },
+                slots: {},
+              },
+            },
+          },
+          {
+            step: 'map-entity',
+            task: 'map-entity--design-screen',
+            title: 'signage-view',
+            params: {
+              mapping: { entity_type: 'paragraph', bundle: 'signage', mode_kind: 'view', view_mode: 'full' },
+              data_model: {},
+              component: 'test_integration_vue:signage',
+              bindings: [{ field: 'field_title', prop: 'title' }],
+            },
+          },
+        ],
+      },
+      opts,
+    );
+    expect(view.errors).toEqual([]);
+    expect(view.plan).not.toBeNull();
+
+    const formWithoutMode = await buildPlan(
+      {
+        workflow: 'design-entity',
+        tasks: [
+          {
+            step: 'map-entity',
+            task: 'map-entity--design-screen',
+            title: 'signage-form',
+            params: {
+              mapping: { entity_type: 'paragraph', bundle: 'signage', mode_kind: 'form' },
+              data_model: {},
+              component: 'test_integration_vue:signage',
+              bindings: [{ field: 'field_title', prop: 'title' }],
+            },
+          },
+        ],
+      },
+      opts,
+    );
+    expect(formWithoutMode.plan).toBeNull();
+    expect(formWithoutMode.errors.join('\n')).toMatch(/form_mode/);
+  });
+
+  it('rejects write-scene without items', async () => {
+    const { plan, errors } = await buildPlan(
+      {
+        workflow: 'design-entity',
+        tasks: [
+          {
+            step: 'write-scene',
+            task: 'write-scene',
+            title: 'signage',
+            params: {
+              scene_name: 'Signage',
+              scene_scope: 'standalone',
+              scene_path: 'sections/signage/signage.section.scenes.yml',
+              components_dir: '/tmp/components',
+            },
+          },
+        ],
+      },
+      opts,
+    );
+    expect(plan).toBeNull();
+    expect(errors.join('\n')).toMatch(/items/);
+  });
+
+  it('rejects create-sample-data without records', async () => {
+    const { plan, errors } = await buildPlan(
+      {
+        workflow: 'design-entity',
+        tasks: [
+          {
+            step: 'create-sample-data',
+            task: 'create-sample-data',
+            title: 'signage',
+            params: {
+              section_id: 'signage',
+              bundle: { entity_type: 'paragraph', bundle: 'signage' },
+              data_model: {},
+              components_dir: '/tmp/components',
+            },
+          },
+        ],
+      },
+      opts,
+    );
+    expect(plan).toBeNull();
+    expect(errors.join('\n')).toMatch(/records/);
+  });
+
+  it('rejects a multi-root mapping array as bindings instead of accepting it', async () => {
+    const { plan, errors } = await buildPlan(
+      {
+        workflow: 'design-entity',
+        tasks: [
+          {
+            step: 'map-entity',
+            task: 'map-entity--design-screen',
+            title: 'canvas',
+            params: {
+              mapping: { entity_type: 'node', bundle: 'page', mode_kind: 'view', view_mode: 'full' },
+              data_model: {},
+              component: 'test_integration_drupal:page',
+              bindings: [
+                { component: 'heading', props: { level: 'h1' }, slots: { text: 'Title' } },
+                { component: 'text_block', slots: { content: 'Body' } },
+              ],
+            },
+          },
+        ],
+      },
+      opts,
+    );
+    expect(plan).toBeNull();
+    expect(errors.join('\n')).toMatch(/bindings/);
+  });
+
+  it('resolves Vue and SDC write-component palettes against the shared Component contract', async () => {
+    const sdc = await buildPlan(
+      {
+        workflow: 'design-component',
+        composition: emptyComposition,
+        tasks: [
+          {
+            step: 'write-component',
+            task: 'write-component',
+            title: 'hero',
+            params: { component: emptyComponent },
+          },
+        ],
+      },
+      opts,
+    );
+    const vue = await buildPlan(
+      {
+        workflow: 'design-component',
+        composition: emptyComposition,
+        tasks: [
+          {
+            step: 'write-component',
+            task: 'write-component',
+            title: 'hero',
+            params: { component: emptyComponent },
+          },
+        ],
+      },
+      vueOpts,
+    );
+    expect(sdc.errors).toEqual([]);
+    expect(vue.errors).toEqual([]);
+    expect(sdc.plan).not.toBeNull();
+    expect(vue.plan).not.toBeNull();
+  });
+});

@@ -1,0 +1,15 @@
+(
+  $fields := $;
+  [
+    {
+      "component": "test_integration_drupal:step-block",
+      "props": {
+        "items": $fields.field_step_items
+      },
+      "slots": {
+        "title": $fields.field_step_title,
+        "image": [$map($fields.field_step_image, function($image) { { "image": "ratio_4_3", "src": $image.src, "alt": $image.alt } })]
+      }
+    }
+  ]
+)

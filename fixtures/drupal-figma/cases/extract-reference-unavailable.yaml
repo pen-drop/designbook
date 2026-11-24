@@ -1,0 +1,65 @@
+workflow: extract-reference
+fixtures: []
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run /extract-reference on the public Untitled UI Free Figma kit as a figma
+  design reference. Do NOT ask any questions.
+  Source kind is figma. Identity is file key bv2nMIdFf4u3dESGail4sm.
+  Subject public-example, state rest, one view, role reference.
+  Use the catalogue from `npx storybook-addon-designbook intake extract-reference` stdout.
+  The CLI is the command contract; skill descriptions are not.
+  This case is fixture evidence, not live Figma access.
+  Keep source kind figma.
+  Do not start a design workflow.
+  Execute extract-reference now.
+
+assert:
+  # Promptfoo javascript asserts run as a function body. Multi-statement
+  # checks use const + return (see fixtures/drupal-web/cases/extract-reference.yaml).
+  - type: javascript
+    value: |
+      const t = String(output.text || '');
+      return /figma/i.test(t) && /(unavailab|not available|absent|missing|cannot|can't|unable|no (callable )?figma|no .*tool)/i.test(t);
+  - type: javascript
+    value: |
+      const files = output.newFiles || [];
+      return !files.some((f) => f.includes('designbook/references/') && /extract--[^/]+\.json$/.test(f));
+  - type: javascript
+    value: |
+      const files = output.newFiles || [];
+      return !files.some((f) => f.includes('designbook/references/') && f.endsWith('/publication.json'));
+  - type: javascript
+    value: |
+      const files = output.newFiles || [];
+      return !files.some((f) => f.includes('designbook/references/') && f.endsWith('.png'));
+  - type: javascript
+    value: |
+      const approval = Object.entries(output.fileContents || {}).find(([p]) =>
+        p.includes('designbook/references/') && p.endsWith('/approval.yml'),
+      )?.[1];
+      return !approval || approval.status !== 'approved';
+  - type: javascript
+    value: |
+      const metas = Object.entries(output.fileContents || {}).filter(([p]) =>
+        p.includes('designbook/references/') && p.endsWith('/meta.yml'),
+      );
+      return metas.every(([, m]) => m?.source?.revision == null);
+  - type: javascript
+    value: |
+      const walk = (v, acc) => {
+        if (!v || typeof v !== 'object') return acc;
+        if (v.kind === 'figma-node' && v.value) acc.push(String(v.value));
+        for (const x of Array.isArray(v) ? v : Object.values(v)) walk(x, acc);
+        return acc;
+      };
+      const refs = Object.fromEntries(
+        Object.entries(output.fileContents || {}).filter(([p]) =>
+          p.includes('designbook/references/'),
+        ),
+      );
+      return walk(refs, []).length === 0;
+  - type: javascript
+    value: |
+      const ids = Object.keys(output.completedWorkflows || {}).concat(Object.keys(output.pendingWorkflows || {}));
+      return !ids.some((id) => id.startsWith('design-'));

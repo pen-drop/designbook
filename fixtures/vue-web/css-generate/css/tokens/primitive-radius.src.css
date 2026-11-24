@@ -1,0 +1,9 @@
+@theme static {
+  --radius-sm: 4px;
+  --radius-md: 7px;
+  --radius-lg: 9px;
+  --radius-xl: 24px;
+  --radius-2xl: 25px;
+  --radius-pill: 40px;
+  --radius-full: 50%;
+}

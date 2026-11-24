@@ -1,0 +1,7 @@
+@theme static {
+  --container-sm: 560px;
+  --container-md: 645px;
+  --container-lg: 870px;
+  --container-xl: 1232px;
+  --container-2xl: 1312px;
+}

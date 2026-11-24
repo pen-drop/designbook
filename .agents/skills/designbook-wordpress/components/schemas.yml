@@ -1,0 +1,215 @@
+# Twig component schemas
+#
+# Single source of truth for the plain-Twig component artefacts: `<name>.twig`,
+# `<name>.schema.yml` and `.story.yml`. Tasks reference these via $ref; authoring
+# constraints live in rules/twig-components.md.
+
+TwigComponent:
+  title: Twig Component Template
+  description: >
+    The `<component>.twig` file — plain Twig rendered by Twing in Storybook and by Timber in
+    WordPress from the same file. Not JSON — this schema describes structural constraints the
+    AI must honour when generating the template.
+
+
+    NAMING — directory name equals file base name; always kebab-case
+    (`recipe-card/recipe-card.twig`).
+
+
+    PLAIN TWIG — the template reads its props and slots as top-level variables. There is no
+    `attributes` object and no CMS-specific function or filter; CSS classes come from props.
+  type: string
+
+TwigComponentSchema:
+  title: Twig Component Schema
+  description: >
+    The `<component>.schema.yml` sidecar — the component's interface. `props` is a JSON Schema
+    object (editor controls are derived from it); `slots` names the regions that receive
+    pre-rendered HTML.
+  type: object
+  required: [name, props]
+  additionalProperties: false
+  properties:
+    name:
+      type: string
+      description: Human-readable component name.
+      examples: [Card, Recipe Card]
+    description:
+      type: string
+      description: One sentence on what the component renders.
+    ui:
+      type: boolean
+      default: true
+      description: >-
+        Whether builder adapters offer the component in their editor. `false` keeps it
+        renderable but out of every builder's component list.
+    group:
+      type: string
+      description: Editor category the builder adapters list the component under.
+      examples: [Content, Media, Layout]
+    props:
+      type: object
+      description: >-
+        JSON Schema of the props. Each property carries `type` and may carry `title`, `enum`,
+        `format` and `default`; `required` lists mandatory props. Prop names are snake_case.
+      required: [type]
+      properties:
+        type: { const: object, description: Always `object`. }
+        properties:
+          type: object
+          description: One JSON Schema per prop, keyed by prop name.
+          additionalProperties: { type: object }
+        required:
+          type: array
+          description: Names of mandatory props.
+          items: { type: string }
+    slots:
+      type: object
+      description: Named slots keyed by snake_case slot name; each value receives raw HTML.
+      additionalProperties:
+        type: object
+        required: [title]
+        properties:
+          title: { type: string, description: Editor label of the slot. }
+          description: { type: string, description: What belongs in the slot. }
+
+TwigStory:
+  title: Twig Story File
+  description: >
+    A `<component>.<story-name>.story.yml` file describing one visually distinct
+    rendering of a component. Same flat shape and node vocabulary as every other
+    designbook story file — framework-neutral at the engine level.
+
+
+    FLAT FORMAT — top-level keys are `component`, `name`, `variant`, `props`, `slots`.
+    There is no `stories:` wrapper.
+
+
+    ONE STORY PER FILE — never combine multiple stories via `---` YAML document
+    separators. Each meaningful story gets its own file.
+
+
+    FILENAME PATTERN — `[component-name].[story-name].story.yml` with a mandatory
+    name segment. Use `default` as the story name for the primary/single story
+    (`book-card.default.story.yml`).
+
+
+    YAML QUOTING — always double quotes.
+  type: object
+  required: [component]
+  properties:
+    component:
+      type: string
+      description: >
+        Fully qualified component reference in `<namespace>:<component-name>` format.
+        Look up the concrete namespace from `designbook.config.yml` → `component.namespace`.
+      examples: ["test_integration_wordpress:book-card"]
+    name:
+      type: string
+      description: Story name shown in Storybook. Use `Default` for the primary story.
+    variant:
+      type: string
+      description: >
+        Variant id this story file selects. The single selection channel for a
+        `.story.yml` file (VARIANT-02). Keep `variant` at the top level of the file.
+      examples: [default, outline, sale]
+    props:
+      type: object
+      description: Prop overrides for this story. Keys match the `props` keys of `<name>.schema.yml` (snake_case).
+      propertyNames:
+        pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+    slots:
+      type: object
+      description: >
+        Slot content for this story. Each key is a slot name declared under `slots` in
+        `<name>.schema.yml`; each value is an array of `TwigStoryNode` objects.
+      propertyNames:
+        pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+      additionalProperties:
+        type: array
+        items:
+          $ref: "#/TwigStoryNode"
+
+TwigStoryNode:
+  title: Twig Story Node
+  description: >
+    A single content item in a story slot. The `type` field (required) selects one of
+    three shapes below.
+
+
+    IMAGE URLS — images in story files use root-relative paths to committed local
+    assets under the preview server's static root (`/images/cover.png`). The same
+    local-asset contract as every other designbook story file.
+  type: object
+  required: [type]
+  properties:
+    type:
+      type: string
+      enum: [element, component, image]
+      description: >
+        Discriminator — picks which shape applies (see `oneOf` below):
+
+        - `element` → renders inline HTML. Requires `value`. Optional: `tag`, `attributes`.
+
+        - `component` → nests another Twig component. Requires `component` (fully qualified
+          `<namespace>:<name>`). Optional: `props`, `slots`.
+
+        - `image` → embeds a local image. Requires `uri`. Optional: `attributes`.
+  oneOf:
+    - title: Element Node
+      description: >
+        Renders inline HTML. MUST use `value:` for text — the key `content:` is NOT
+        supported.
+      required: [type, value]
+      properties:
+        type:
+          type: string
+          const: element
+        value:
+          type: string
+          description: "Text or HTML to render. Use `value:` — never `content:`."
+          examples: ["Hello World", "<strong>Bold text</strong>"]
+        tag:
+          type: string
+          description: HTML wrapper tag. Defaults to `div` when omitted.
+          examples: [p, h2, div, span, button]
+        attributes:
+          type: object
+          description: HTML attributes applied to the wrapper tag (e.g. `class`, `id`).
+    - title: Component Node
+      description: Nests another Twig component inside a slot.
+      required: [type, component]
+      properties:
+        type:
+          type: string
+          const: component
+        component:
+          type: string
+          description: Fully qualified component reference in `<namespace>:<component-name>` format.
+          examples: ["test_integration_wordpress:book-cover"]
+        props:
+          type: object
+          description: Prop overrides for the nested component.
+          propertyNames:
+            pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+        slots:
+          type: object
+          description: Slot content overrides for the nested component (same `TwigStoryNode` array format).
+          propertyNames:
+            pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+    - title: Image Node
+      description: Embeds an image into a slot.
+      required: [type, uri]
+      properties:
+        type:
+          type: string
+          const: image
+        uri:
+          type: string
+          description: >
+            Root-relative path to a committed local image under the preview
+            server's static root.
+          examples: ["/images/cover.png", "/media/hero.jpg"]
+        attributes:
+          type: object
+          description: HTML attributes for the image element (e.g. `class`, `alt`).

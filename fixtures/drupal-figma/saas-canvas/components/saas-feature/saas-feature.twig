@@ -1,0 +1,15 @@
+{#
+/**
+ * @file
+ * SaaS kit feature highlight.
+ *
+ * Available variables:
+ * - icon, title, summary, link: Slots
+ */
+#}
+<article{{ attributes.addClass(['flex', 'flex-col', 'items-start', 'gap-2.5', 'py-10', 'font-body', 'text-brand-ink']) }}>
+  {% if icon %}<div class="size-6">{{ icon }}</div>{% endif %}
+  {% if title %}<h3 class="font-brand text-card-title font-bold tracking-tight">{{ title }}</h3>{% endif %}
+  {% if summary %}<div class="text-base tracking-tight">{{ summary }}</div>{% endif %}
+  {% if link %}<div>{{ link }}</div>{% endif %}
+</article>

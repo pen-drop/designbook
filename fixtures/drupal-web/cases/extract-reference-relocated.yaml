@@ -1,0 +1,83 @@
+workflow: extract-reference
+fixtures:
+  - design-shell
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Do NOT ask any questions. Do NOT run extract-reference, intake, plan build,
+  or any design-* workflow. A published capture revision is already in the
+  fixture. This case only relocates it and queries it through the CLI.
+
+  Published revision (copy this exact folder):
+    web/themes/custom/test_integration_drupal/designbook/references/2d68a6b29fe38980/a24d1d35adf78406
+  (also visible as designbook/references/2d68a6b29fe38980/a24d1d35adf78406).
+
+  1. Copy that entire directory to {{workspace}}/relocated/2d68a6b29fe38980/a24d1d35adf78406/
+     so the folder names stay <id>/<revision> and the absolute path differs.
+  2. Run `_debo reference validate --reference <absolute relocated dir>`.
+     Write {{workspace}}/relocated/validate.yml with only:
+       pass: <boolean from stdout>
+       reference: <absolute relocated dir>
+  3. Write {{workspace}}/relocated/query-request.json:
+       {"reference":"<absolute relocated dir>","package":"component","subjects":["header"],"states":["rest"],"views":["sm"]}
+     Run `_debo reference prepare --request <absolute query-request.json>`.
+     Write that CLI stdout unchanged to {{workspace}}/relocated/query-prepared.json.
+     Run `_debo reference query --request <absolute query-prepared.json>` using the
+     frozen prepare stdout as the request file (it includes fingerprint).
+     Write {{workspace}}/relocated/query.yml with only:
+       checks_scope: <boolean from stdout.checks.scope>
+  4. Run `_debo reference approval-check --reference <absolute relocated dir> --need {"subjects":["header","footer"],"states":["rest"]}`.
+     Write {{workspace}}/relocated/approval.yml with only:
+       ok: <boolean from stdout>
+     Do not overwrite the revision directory's approval.yml.
+  5. Read the relocated publication.json. Write {{workspace}}/relocated/publication.yml
+     with ONLY these keys and no contract schema (fileContents only reads YAML
+     under 8KB):
+       id: <publication.json id>
+       revision: <publication.json revision>
+       keys: [<sorted Object.keys of publication.json>]
+       has_directory: <true iff publication.json has a directory key>
+       has_workflow: <true iff publication.json has a workflow key>
+       has_meta_yml: <true iff publication.json.files['meta.yml'] is present>
+       has_home_path: <true iff JSON.stringify(publication.json) contains /home/>
+       has_users_path: <true iff JSON.stringify(publication.json) contains /Users/>
+     Keep the file under 1KB.
+  6. Stop. Ignore any later instruction to intake extract-reference or author a plan.
+
+assert:
+  # Promptfoo javascript asserts are expression-context: no bare `return`.
+  # Multi-statement checks use an IIFE so `const`/`return` are valid.
+  - type: javascript
+    value: |
+      const ids = Object.keys(output.completedWorkflows).concat(Object.keys(output.pendingWorkflows));
+      return !ids.some((id) => id.startsWith('design-'));
+  - type: javascript
+    value: output.newFiles.some((f) => f.startsWith('relocated/') && /\/[^/]+\/[^/]+\/publication\.json$/.test(f))
+  - type: javascript
+    value: |
+      const pub = output.fileContents['relocated/publication.yml'];
+      return Boolean(
+        pub &&
+          pub.has_directory === false &&
+          pub.has_workflow === false &&
+          pub.has_meta_yml === true &&
+          pub.has_home_path === false &&
+          pub.has_users_path === false &&
+          Array.isArray(pub.keys) &&
+          pub.keys.includes('files') &&
+          pub.keys.includes('id') &&
+          pub.keys.includes('revision') &&
+          !pub.keys.includes('directory') &&
+          !pub.keys.includes('workflow'),
+      );
+  - type: javascript
+    value: output.fileContents['relocated/validate.yml']?.pass === true
+  - type: javascript
+    value: output.fileContents['relocated/query.yml']?.checks_scope === true
+  - type: javascript
+    value: |
+      const compact = output.fileContents['relocated/approval.yml'];
+      const nested = Object.entries(output.fileContents).find(([p]) =>
+        /^relocated\/[^/]+\/[^/]+\/approval\.yml$/.test(p),
+      )?.[1];
+      return compact?.ok === true || nested?.ok === true || nested?.status === 'approved';

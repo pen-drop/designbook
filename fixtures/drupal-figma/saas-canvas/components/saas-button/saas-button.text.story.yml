@@ -1,0 +1,6 @@
+component: test_integration_drupal:saas-button
+name: Text
+variant: text
+props:
+  label: Learn more
+  url: /features

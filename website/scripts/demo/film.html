@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Designbook — from design to a working system</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f5f3ee;color:#163c42;font-family:Arial,sans-serif;width:1280px;height:720px;overflow:hidden}
+header{position:absolute;inset:32px 48px auto;display:flex;justify-content:space-between;font-size:18px;letter-spacing:.02em}header strong{font-size:26px}header span{color:#66797b}
+.scene{position:absolute;inset:0;opacity:0}.heading{position:absolute;left:48px;top:95px;margin:0;font-size:45px;letter-spacing:-1.8px;line-height:1.08}.sub{position:absolute;left:50px;top:157px;color:#557075;font-size:20px}
+.source{position:absolute;left:48px;top:226px;width:720px;height:426px;object-fit:contain;border-radius:10px;box-shadow:0 18px 45px #173e421c}
+.region{position:absolute;border:2px solid #ed7568;border-radius:5px;background:#ed756808;transform-origin:center}
+.region.title{left:72px;top:327px;width:294px;height:111px}
+.region.content{left:72px;top:457px;width:280px;height:57px}
+.region.action{left:72px;top:532px;width:150px;height:30px}
+.mapping{position:absolute;left:858px;width:374px;padding:20px 22px;border-left:3px solid #ed7568;background:#fff;border-radius:6px;box-shadow:0 10px 30px #173e420d}
+.mapping strong{display:block;font-size:24px;margin-bottom:7px}.mapping span{color:#557075;font-size:17px}
+.mapping.tokens{top:266px}.mapping.model{top:395px}.mapping.components{top:524px}
+.connections{position:absolute;inset:0;width:1280px;height:720px;overflow:visible}.connections path{fill:none;stroke:#ed7568;stroke-width:2;stroke-dasharray:700;stroke-dashoffset:700}
+.card{position:absolute;top:245px;width:365px;height:355px;border-radius:12px;background:white;box-shadow:0 12px 35px #173e421a;overflow:hidden;border:1px solid #d9e2df}.card img{width:100%;height:260px;object-fit:contain;object-position:center}.card strong{display:block;font-size:24px;padding:18px 20px 4px}.card small{padding:0 20px;color:#547075;font-size:15px}.card.one{left:48px}.card.two{left:457px}.card.three{left:866px}
+.arrow{position:absolute;top:392px;font-size:35px;color:#ef7568}.arrow.a{left:422px}.arrow.b{left:831px}
+.wide{position:absolute;left:48px;top:210px;width:1184px;height:456px;object-fit:contain;object-position:center;background:white;border-radius:10px;border:1px solid #d3ddda;box-shadow:0 16px 40px #173e4219}
+#agent img{left:405px;width:827px;height:500px;top:166px;object-fit:contain;background:#101820}
+#agent .heading{width:330px;top:230px}#agent .sub{width:300px;top:410px;line-height:1.5}
+#end .heading{top:230px;font-size:64px;width:560px}#end .sub{top:465px;font-size:24px;width:500px;line-height:1.5}
+#end img{position:absolute;left:650px;top:210px;width:582px;height:364px;object-fit:contain;object-position:center;border:8px solid white;border-radius:14px;box-shadow:0 20px 80px #153d4220}
+footer{position:absolute;bottom:16px;left:48px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#718487}.progress{position:absolute;bottom:0;left:0;height:4px;background:#ec7667}
+</style>
+<header><strong>designbook<span style="color:#ef7568">.</span></strong><span>Design → structure → working screen</span></header>
+<section id="input" class="scene"><h1 class="heading">Not a design tool.</h1><p class="sub">Turn the design you already have into a working system.</p><img class="source" src="../../../docs/assets/logo/demo/source.png"></section>
+<section id="split" class="scene"><h2 class="heading">Read the design. Map its parts.</h2><p class="sub">Typography, content and actions become explicit building blocks.</p>
+<img class="source" src="../../../docs/assets/logo/demo/source.png">
+<div class="region title"></div><div class="region content"></div><div class="region action"></div>
+<svg class="connections" viewBox="0 0 1280 720"><path d="M366 330 L800 330 L800 312 L846 312"/><path d="M352 485 L815 485 L815 440 L846 440"/><path d="M222 562 L800 562 L800 568 L846 568"/></svg>
+<div class="mapping tokens"><strong>Design tokens</strong><span>Typography, colours, spacing</span></div>
+<div class="mapping model"><strong>Content structure</strong><span>Define what the screen contains</span></div>
+<div class="mapping components"><strong>SDC components</strong><span>Actions, media, props and slots</span></div></section>
+<section id="parts" class="scene"><h2 class="heading">Tokens. Data model. SDC components.</h2><p class="sub">Explicit structure you can inspect, reuse and change.</p>
+<div class="card one"><img src="../../../docs/assets/logo/demo/designbook-tokens.png"><strong>Design tokens</strong><small>Colour, typography, spacing</small></div><span class="arrow a">→</span>
+<div class="card two"><img src="../../../docs/assets/logo/demo/designbook-model.png"><strong>Data model</strong><small>Content types and fields</small></div><span class="arrow b">→</span>
+<div class="card three"><img src="../../../docs/assets/logo/demo/designbook-components.png"><strong>SDC components</strong><small>Twig, props and slots</small></div></section>
+<section id="agent" class="scene"><h2 class="heading">Your agent.<br>A guided workflow.</h2><p class="sub">Designbook skills guide the build.<br>You inspect the output.</p><img class="wide" src="../../../docs/assets/logo/demo/agent.png"></section>
+<section id="result" class="scene"><h2 class="heading">A real Canvas page. In Designbook.</h2><p class="sub">Inspect the components. Preview the complete screen.</p><img class="wide" src="../../../docs/assets/logo/demo/designbook-result.png"></section>
+<section id="end" class="scene"><h2 class="heading">From design.<br>To a working<br>system.</h2><p class="sub">Designbook<br>Structured workflows for your AI agent.</p><img src="../../../docs/assets/logo/demo/designbook-result.png"></section>
+<footer>Real Figma reference · actual generated output · edited workflow summary</footer><div class="progress"></div>
+<script>
+const scenes=Object.fromEntries([...document.querySelectorAll('.scene')].map(e=>[e.id,e]));
+const ease=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const show=(id,start,end,t)=>{const a=ease((t-start)/.35)*(1-ease((t-end)/.35));scenes[id].style.opacity=a;scenes[id].style.transform='translateY('+((1-ease((t-start)/.5))*16)+'px)'};
+window.setTime=t=>{
+for(const e of Object.values(scenes))e.style.opacity=0;
+show('input',-.5,2.7,t);show('split',2.7,5.6,t);show('parts',5.6,10.3,t);show('agent',10.3,13.6,t);show('result',13.6,18,t);show('end',18,23,t);
+document.querySelectorAll('.region').forEach((e,i)=>e.style.opacity=ease((t-3-i*.25)/.4));
+document.querySelectorAll('.mapping').forEach((e,i)=>{const p=ease((t-3.2-i*.25)/.45);e.style.opacity=p;e.style.transform='translateX('+((1-p)*18)+'px)'});
+document.querySelectorAll('.connections path').forEach((e,i)=>e.style.strokeDashoffset=700*(1-ease((t-3.2-i*.25)/.6)));
+document.querySelectorAll('.card').forEach((e,i)=>e.style.transform='translateY('+((1-ease((t-5.6-i*.14)/.55))*65)+'px)');
+document.querySelector('.progress').style.width=(t/22*100)+'%';
+};
+window.setTime(0);
+</script>
+</html>

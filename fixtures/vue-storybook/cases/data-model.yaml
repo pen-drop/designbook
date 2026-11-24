@@ -1,0 +1,34 @@
+fixtures:
+  - vision
+
+prompt: >
+  You are working in the directory {{workspace}}.
+  Run the /debo data-model workflow. Do NOT ask any questions.
+  The product is "Prosaic". Read the product overview at designbook/vision.yml.
+  Define entity types for: books (title, author, genre, price, cover image, summary, availability status,
+  publisher reference) and publishers (name, location, founded year, about).
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: output.newFiles.includes('designbook/data-model.yml')
+  - type: javascript
+    value: output.completedWorkflows['data-model']?.state?.status === 'completed'
+  - type: javascript
+    value: Object.values(output.completedWorkflows['data-model']?.state?.tasks || {}).every(t => t.status === 'done')
+  - type: javascript
+    value: |
+      const c = output.fileContents['designbook/data-model.yml']?.content;
+      return c?.catalog && Object.keys(c.catalog).length >= 2;
+  - type: javascript
+    value: |
+      const loaded = output.completedWorkflows['data-model']?.definition?.context || {};
+      return Object.values(loaded).some(s => s.source?.endsWith('field-type-constraints.md'));
+  - type: javascript
+    value: |
+      const loaded = output.completedWorkflows['data-model']?.definition?.context || {};
+      return Object.values(loaded).some(s => s.source?.endsWith('sample-template-mapping.md'));
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0
+  - type: javascript
+    value: output.definitionUnchanged === true

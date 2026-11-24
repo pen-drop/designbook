@@ -1,0 +1,12 @@
+/** @config
+ {
+   "input": "../design-system/design-tokens.yml",
+   "output": "../../css/tokens/primitive-radius.src.css"
+ }
+ */
+(
+  $entries := $each($$.primitive.radius, function($v, $k) {
+    $substring($k, 0, 1) != "$" ? "  --radius-" & $k & ": " & $v."$value" & ";"
+  });
+  "@theme static {\n" & $join($entries, "\n") & "\n}\n"
+)

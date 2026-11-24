@@ -1,0 +1,186 @@
+id: debo-design-system
+title: Design System
+description: >-
+  Application shell — SaaS kit header (announcement bar + light brand bar) and
+  black footer, from the approved Figma revision
+  b038c7169c872214/3d439654bc63bcfd.
+status: planned
+order: 0
+group: Designbook/Design System
+scenes:
+  - name: shell
+    items:
+      - component: test_integration_drupal:page
+        slots:
+          header:
+            - component: test_integration_drupal:saas-header
+              props:
+                announcement: This page is included in a free SaaS Website Kit.
+                announcement_link_label: View the complete Kit
+                announcement_url: /kit
+              slots:
+                logo:
+                  - component: test_integration_drupal:saas-logo
+                    props:
+                      href: /
+                      src: /saas-kit/logo-saas.png
+                      alt: SaaS
+                      credit_label: made by
+                      credit_src: /saas-kit/logo-framer.svg
+                      credit_alt: Framer
+                navigation:
+                  - component: test_integration_drupal:saas-nav
+                    props:
+                      items:
+                        - title: About
+                          url: /about
+                          in_active_trail: false
+                          below: []
+                        - title: Features
+                          url: /features
+                          in_active_trail: false
+                          below: []
+                        - title: Customers
+                          url: /customers
+                          in_active_trail: false
+                          below: []
+                        - title: Updates
+                          url: /updates
+                          in_active_trail: false
+                          below: []
+                        - title: Help
+                          url: /help
+                          in_active_trail: false
+                          below: []
+                actions:
+                  - component: test_integration_drupal:saas-button
+                    props:
+                      label: Get for free
+                      url: /signup
+          content: $content
+          footer:
+            - component: test_integration_drupal:saas-footer
+              props:
+                description: >-
+                  Effortlessly turn your ideas into a fully functional,
+                  responsive, no-code SaaS website.
+                social_links:
+                  - label: X
+                    url: https://x.com
+                    icon: /saas-kit/social-6.svg
+                  - label: Instagram
+                    url: https://instagram.com
+                    icon: /saas-kit/social-1.svg
+                  - label: Pinterest
+                    url: https://pinterest.com
+                    icon: /saas-kit/social-5.svg
+                  - label: LinkedIn
+                    url: https://linkedin.com
+                    icon: /saas-kit/social-3.svg
+                  - label: TikTok
+                    url: https://tiktok.com
+                    icon: /saas-kit/social-4.svg
+                  - label: YouTube
+                    url: https://youtube.com
+                    icon: /saas-kit/social-2.svg
+              slots:
+                logo:
+                  - component: test_integration_drupal:saas-logo
+                    props:
+                      variant: mark_only
+                      href: /
+                      src: /saas-kit/logo-saas.png
+                      alt: SaaS
+                navigation:
+                  - component: test_integration_drupal:saas-nav
+                    props:
+                      variant: footer
+                      items:
+                        - title: Product
+                          url: /product
+                          in_active_trail: false
+                          below:
+                            - title: Features
+                              url: /features
+                              in_active_trail: false
+                              below: []
+                            - title: Integrations
+                              url: /integrations
+                              in_active_trail: false
+                              below: []
+                            - title: Updates
+                              url: /updates
+                              in_active_trail: false
+                              below: []
+                            - title: FAQ
+                              url: /faq
+                              in_active_trail: false
+                              below: []
+                            - title: Pricing
+                              url: /pricing
+                              in_active_trail: false
+                              below: []
+                        - title: Company
+                          url: /company
+                          in_active_trail: false
+                          below:
+                            - title: About
+                              url: /about
+                              in_active_trail: false
+                              below: []
+                            - title: Blog
+                              url: /blog
+                              in_active_trail: false
+                              below: []
+                            - title: Careers
+                              url: /careers
+                              in_active_trail: false
+                              below: []
+                            - title: Manifesto
+                              url: /manifesto
+                              in_active_trail: false
+                              below: []
+                            - title: Press
+                              url: /press
+                              in_active_trail: false
+                              below: []
+                            - title: Contact
+                              url: /contact
+                              in_active_trail: false
+                              below: []
+                        - title: Resources
+                          url: /resources
+                          in_active_trail: false
+                          below:
+                            - title: Examples
+                              url: /examples
+                              in_active_trail: false
+                              below: []
+                            - title: Community
+                              url: /community
+                              in_active_trail: false
+                              below: []
+                            - title: Guides
+                              url: /guides
+                              in_active_trail: false
+                              below: []
+                            - title: Docs
+                              url: /docs
+                              in_active_trail: false
+                              below: []
+                        - title: Legal
+                          url: /legal
+                          in_active_trail: false
+                          below:
+                            - title: Privacy
+                              url: /privacy
+                              in_active_trail: false
+                              below: []
+                            - title: Terms
+                              url: /terms
+                              in_active_trail: false
+                              below: []
+                            - title: Security
+                              url: /security
+                              in_active_trail: false
+                              below: []

@@ -2,6 +2,7 @@
 provides: reference.url
 trigger:
   domain: design.intake
+  steps: [compare-observations, observe-website]
 filter:
   extensions: stitch
 ---
@@ -12,7 +13,7 @@ When a reference source has `origin: stitch`, resolve the Stitch screen ID to a 
 
 ## When to Apply
 
-This rule triggers during `design-verify:intake` when the user provides a Stitch screen ID as the reference source.
+This rule matches the design-verify and extract-reference catalogues when the user provides a Stitch screen ID as the reference source.
 
 ## Execution
 
@@ -34,5 +35,5 @@ This rule triggers during `design-verify:intake` when the user provides a Stitch
 
 ## Error Handling
 
-- If `get_screen` fails or returns no usable URL, warn the user and leave `url` empty. The `design-verify:intake` task will prompt for an alternative.
+- If `get_screen` fails or returns no usable URL, warn the user and leave `url` empty. Planning asks for an alternative.
 - If the screen has a `screenshot.downloadUrl` but no HTML preview, use the download URL and set `hasMarkup: false`.

@@ -1,0 +1,38 @@
+workflow: design-shell
+validate: none
+fixtures:
+  - empty
+  - reference
+  - vision
+  - data-model
+  - tokens
+  - shell
+  - screen
+prompt: |
+  In {{workspace}}, read and use the installed design-shell SKILL.md to fix only
+  the top menu wrapping in the existing Cooks Delight recipe shell. The user says
+  everything else is good. This is a concrete text-only responsive correction;
+  preserve the existing desktop appearance and all reference bytes, no recapture.
+  Measured problem: at 1024px the four links wrap 2+2 in the middle grid column,
+  at 768px they wrap 2+1+1, and at 390px they wrap 3+1 with About us alone.
+  Limit component changes to header and the main variant of navigation, plus their
+  stories only if required. Preserve footer navigation, logo, buttons, shell content
+  injection, recipe screen, mappings, samples, model, tokens, fonts and assets.
+  Acceptance: at 1440 and 1024px all four main links occupy one row between logo
+  and actions without overlap. At 768px the links may use a full-width second header
+  row, all four on one line. At 390 and 320px use a balanced 2-by-2 arrangement;
+  never split Cooking tips or About us internally. No horizontal page overflow.
+  Use only existing styling tokens. Keep the existing link order, labels, targets,
+  active underline, colors and font sizes. Do not fix unrelated variant previews.
+  Complete the named skill's plan and verify the consuming recipe-detail scene
+  using the actual live-index story ID. Measure link bounding boxes at all five
+  widths, build Storybook, and capture 1440px and 390px through the Designbook CLI.
+  Save the measurements and screenshot paths in designbook/verification/menu-wrap/.
+  Preserve all unrelated artifacts. Do not inspect addon source, start Promptfoo,
+  provision fixtures or run a reference comparison. This case checks responsive
+  behavior, not a new Figma fidelity score. Report the saved plan and exact changes.
+assert:
+  - type: javascript
+    value: output.completedWorkflows['design-shell']?.state?.status === 'completed'
+  - type: javascript
+    value: output.fileContents['designbook/design-system/design-system.scenes.yml']?.scenes?.filter(s => s.name === 'shell').length === 1

@@ -1,0 +1,141 @@
+fixtures:
+  - vision
+  - tokens
+  - css-generate
+  - screen-prerequisites
+  - shell-update
+prompt: |-
+  You are working in {{workspace}}. Invoke /debo design-shell.
+  Update canonical design-system:shell in designbook/design-system/design-system.scenes.yml, file id debo-design-system. Change adoption navigation label from Adopt to Find a pet and destination from /pets to /adopt, in both desktop and mobile navigation. Change accessible mobile toggle label from Menu to Browse pets while preserving working initially closed/open/close behavior. Update the header default story to match. Keep the shell identity, docs, footer, one $content injection, consuming homepage scene, mappings and data unchanged. Render the consuming homepage at 1280x800 and 390x844; confirm main heading/content remains intact and navigation works in both viewports.
+  During intake freeze concrete story URLs, selectors and checks in the saved definition. Plan actual `pnpm build-storybook` (theme cwd), artifact validation, and `npx storybook-addon-designbook storybook check <story-url>` for every affected story. Run browser observations at desktop 1280x800 and mobile 390x844 where applicable. A build is separate from browser verification.
+  After execution save evidence JSON from actual command outputs and browser observations, as specified by debo-test run's evidence contract. The required observation keys and exact expected values are:
+    - desktop.adoptLink: '/adopt'
+    - desktop.adoptLabel: 'Find a pet'
+    - mobile.toggleLabel: 'Browse pets'
+    - mobile.initiallyClosed: True
+    - mobile.opens: True
+    - mobile.closes: True
+    - homepage.heading: 'Find your next companion'
+  Preserve the definition before execution and score this case; validate workflow: none. Execute now without clarification; all requested targets and acceptance criteria are supplied.
+validate: none
+evidence:
+  files:
+    - components/homepage-content/homepage-content.component.yml
+    - components/homepage-content/homepage-content.default.story.yml
+    - components/homepage-content/homepage-content.twig
+    - components/page/page.component.yml
+    - components/page/page.default.story.yml
+    - components/page/page.twig
+    - components/site-footer/site-footer.component.yml
+    - components/site-footer/site-footer.default.story.yml
+    - components/site-footer/site-footer.twig
+    - components/site-header/site-header.component.yml
+    - components/site-header/site-header.default.story.yml
+    - components/site-header/site-header.twig
+    - designbook/data-model.yml
+    - designbook/data/node.homepage.yml
+    - designbook/design-system/design-system.scenes.yml
+    - designbook/design-system/design-tokens.yml
+    - designbook/designbook-css-tailwind/generate-color.jsonata
+    - designbook/designbook-css-tailwind/generate-primitive-color.jsonata
+    - designbook/designbook-css-tailwind/generate-primitive-font.jsonata
+    - designbook/designbook-css-tailwind/generate-primitive-leading.jsonata
+    - designbook/designbook-css-tailwind/generate-primitive-text.jsonata
+    - designbook/designbook-css-tailwind/generate-primitive-weight.jsonata
+    - designbook/designbook-css-tailwind/generate-typography.jsonata
+    - designbook/entity-mapping/node.homepage.full.jsonata
+    - designbook/sections/homepage/homepage.section.scenes.yml
+    - designbook/vision.yml
+assert:
+  - type: javascript
+    value: output.runs.length > 0 && output.runs.every(r => r.componentPrerequisites?.passed === true)
+  - type: javascript
+    value: output.runs.length === 1 && output.runs.every(r => r.complete && r.definitionUnchanged)
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0 && output.definitionUnchanged === true
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.build?.command === 'pnpm build-storybook' && r.evidence.build.exitCode === 0
+      && typeof r.evidence.build.stdout === 'string' && r.evidence.build.stdout.trim().length > 0 && r.evidence.build.cwd.endsWith('/web/themes/custom/test_integration_drupal')
+      && Array.isArray(r.evidence.checks) && r.evidence.checks.length > 0 && r.evidence.checks.every(c => /^https?:/.test(c.url)
+      && c.result?.ok === true))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["desktop.adoptLink"]
+      === "/adopt"))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["desktop.adoptLabel"]
+      === "Find a pet"))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["mobile.toggleLabel"]
+      === "Browse pets"))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["mobile.initiallyClosed"]
+      === true))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["mobile.opens"]
+      === true))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["mobile.closes"]
+      === true))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["homepage.heading"]
+      === "Find your next companion"))
+  - type: javascript
+    value:
+      const refs = []; const walk = value => { if (!value || typeof value !== 'object') return; if (typeof value.component
+      === 'string') refs.push(value.component); Object.values(value).forEach(walk); }; Object.entries(output.fileContents).filter(([file])
+      => /\.(scenes|story)\.yml$/.test(file)).forEach(([,value]) => walk(value)); Object.values(output.mappingResults).forEach(walk);
+      return refs.length > 0 && refs.every(ref => ref.startsWith('test_integration_drupal:') && output.componentIds.includes(ref.split(':')[1]));
+  - type: javascript
+    value:
+      output.fileContents['designbook/design-system/design-system.scenes.yml']?.id === 'debo-design-system' && output.fileContents['designbook/design-system/design-system.scenes.yml'].scenes.filter(s
+      => s.name === 'shell').length === 1
+  - type: javascript
+    value:
+      (JSON.stringify(output.fileContents['designbook/design-system/design-system.scenes.yml']).match(/\$content/g) ||
+      []).length === 1
+  - type: javascript
+    value: "!JSON.stringify(output.fileContents['designbook/design-system/design-system.scenes.yml']).includes('node.homepage')"
+  - type: javascript
+    value: output.fileContents['designbook/design-system/design-system.scenes.yml'].scenes[0].docs === output.baselineContents['designbook/design-system/design-system.scenes.yml'].scenes[0].docs
+  - type: javascript
+    value: |-
+      const file='designbook/design-system/design-system.scenes.yml';
+      const expected=JSON.parse(JSON.stringify(output.baselineContents[file]));
+      const header=expected.scenes[0].items[0].slots.header[0];
+      header.props.adopt_label='Find a pet';
+      header.props.adopt_url='/adopt';
+      return JSON.stringify(output.fileContents[file]) === JSON.stringify(expected);
+  - type: javascript
+    value: output.unchangedFiles.includes('designbook/sections/homepage/homepage.section.scenes.yml')
+  - type: javascript
+    value: output.unchangedFiles.includes('designbook/data-model.yml')
+  - type: javascript
+    value: output.unchangedFiles.includes('designbook/data/node.homepage.yml')
+  - type: javascript
+    value: output.unchangedFiles.includes('designbook/entity-mapping/node.homepage.full.jsonata')
+  - type: javascript
+    value: output.unchangedFiles.includes('components/site-footer/site-footer.twig')
+  - type: javascript
+    value: output.unchangedFiles.includes('components/page/page.twig')
+  - type: javascript
+    value: JSON.stringify(output.componentIds.sort()) === JSON.stringify(output.baselineComponentIds.sort())
+  - type: javascript
+    value:
+      '["components/homepage-content/homepage-content.component.yml", "components/homepage-content/homepage-content.default.story.yml",
+      "components/homepage-content/homepage-content.twig", "components/page/page.component.yml", "components/page/page.default.story.yml",
+      "components/page/page.twig", "components/site-footer/site-footer.component.yml", "components/site-footer/site-footer.default.story.yml",
+      "components/site-footer/site-footer.twig", "components/site-header/site-header.component.yml", "designbook/data-model.yml",
+      "designbook/data/node.homepage.yml", "designbook/design-system/design-tokens.yml", "designbook/designbook-css-tailwind/generate-color.jsonata",
+      "designbook/designbook-css-tailwind/generate-primitive-color.jsonata", "designbook/designbook-css-tailwind/generate-primitive-font.jsonata",
+      "designbook/designbook-css-tailwind/generate-primitive-leading.jsonata", "designbook/designbook-css-tailwind/generate-primitive-text.jsonata",
+      "designbook/designbook-css-tailwind/generate-primitive-weight.jsonata", "designbook/designbook-css-tailwind/generate-typography.jsonata",
+      "designbook/entity-mapping/node.homepage.full.jsonata", "designbook/sections/homepage/homepage.section.scenes.yml",
+      "designbook/vision.yml"].every(file => output.unchangedFiles.includes(file))'

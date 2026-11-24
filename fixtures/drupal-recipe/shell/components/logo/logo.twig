@@ -1,0 +1,14 @@
+{% set variant = variant|default('full') %}
+{% set wordmark_classes = variant == 'inverse'
+  ? ['w-min', 'font-body', 'text-button', 'font-regular']
+  : ['w-min', 'font-body', 'text-logo'] %}
+<a{{ attributes.addClass([
+  'inline-flex',
+  'items-center',
+  'gap-xs',
+  'no-underline',
+  variant == 'inverse' ? 'text-inverse-foreground' : 'text-foreground',
+]) }} href="{{ href|default('/') }}">
+  {% if media %}<span class="shrink-0">{{ media }}</span>{% endif %}
+  <span class="{{ wordmark_classes|join(' ') }}">{{ label }}</span>
+</a>

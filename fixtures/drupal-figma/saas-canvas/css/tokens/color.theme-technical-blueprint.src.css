@@ -1,0 +1,36 @@
+@layer theme {
+  [data-theme="technical-blueprint"] {
+    --color-primary: #004fa8;
+    --color-primary-container: #0366d6;
+    --color-on-primary: #ffffff;
+    --color-on-primary-container: #e5ebff;
+    --color-inverse-primary: #adc6ff;
+    --color-secondary: #006e2c;
+    --color-secondary-container: #88fb9a;
+    --color-on-secondary: #ffffff;
+    --color-on-secondary-container: #00742f;
+    --color-tertiary: #4d5259;
+    --color-tertiary-container: #656a71;
+    --color-on-tertiary: #ffffff;
+    --color-on-tertiary-container: #e7ebf3;
+    --color-background: #f7f9ff;
+    --color-on-background: #171c22;
+    --color-surface: #f7f9ff;
+    --color-surface-container-lowest: #ffffff;
+    --color-surface-container-low: #f0f4fc;
+    --color-surface-container: #eaeef6;
+    --color-surface-container-high: #e4e8f0;
+    --color-surface-container-highest: #dee3eb;
+    --color-surface-variant: #dee3eb;
+    --color-on-surface: #171c22;
+    --color-on-surface-variant: #424753;
+    --color-outline: #727785;
+    --color-outline-variant: #c2c6d6;
+    --color-inverse-surface: #2c3137;
+    --color-inverse-on-surface: #edf1f9;
+    --color-error: #ba1a1a;
+    --color-error-container: #ffdad6;
+    --color-on-error: #ffffff;
+    --color-on-error-container: #93000a;
+  }
+}

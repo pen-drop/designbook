@@ -41,6 +41,8 @@ const config = {
     },
   ],
   core: {
+    // Storybook's own host check; true = allow any host (e.g. gaia ports tunnels).
+    allowedHosts: true,
     builder: {
       name: '@storybook/builder-vite',
     },
@@ -69,6 +71,8 @@ const config = {
         cssMinify: 'esbuild',
       },
       server: {
+        // Allow any host (e.g. gaia ports tunnels) to reach the dev server.
+        allowedHosts: true,
         watch: {
           usePolling: false,
           awaitWriteFinish: {

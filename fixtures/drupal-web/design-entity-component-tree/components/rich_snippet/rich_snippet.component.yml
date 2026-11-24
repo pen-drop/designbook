@@ -1,0 +1,16 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Rich snippet
+status: stable
+group: Content
+description: A headline with optional body text.
+provider: test_integration_drupal
+props:
+  type: object
+  required: [headline]
+  properties:
+    headline:
+      title: Headline
+      type: string
+    text:
+      title: Text
+      type: string

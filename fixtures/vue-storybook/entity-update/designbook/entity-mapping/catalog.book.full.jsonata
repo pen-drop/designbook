@@ -1,0 +1,1 @@
+[{"component":"test_integration_vue:book-detail","props":{"title":title,"author":field_author,"genre":field_genre,"price":field_price,"cover_url":field_cover_url,"summary":field_summary,"status":field_status}}]

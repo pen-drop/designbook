@@ -1,0 +1,26 @@
+{#
+/**
+ * @file
+ * SaaS kit call-to-action.
+ *
+ * Available variables:
+ * - variant: default | light | text
+ * - label: Visible label
+ * - url: Link target (renders a button element when empty)
+ * - full_width: Stretch to the parent width
+ */
+#}
+{% set variant = variant|default('default') %}
+{% set variant_classes = {
+  'default': ['bg-brand-ink', 'text-brand-surface', 'px-4', 'py-2.5', 'hover:bg-brand-ink/85'],
+  'light': ['bg-brand-surface', 'text-brand-ink', 'px-4', 'py-2.5', 'hover:bg-brand-surface/85'],
+  'text': ['gap-1', 'py-2.5', 'text-brand-ink', 'hover:text-brand-ink/70'],
+} %}
+{% set classes = ['inline-flex', 'items-center', 'justify-center', 'rounded-lg', 'font-body', 'text-base', 'font-medium', 'tracking-tight', 'whitespace-nowrap', 'transition-colors', full_width ? 'w-full']|merge(variant_classes[variant]|default(variant_classes['default'])) %}
+{% set tag = url ? 'a' : 'button' %}
+<{{ tag }}{{ attributes.addClass(classes|filter(c => c)) }}{% if url %} href="{{ url }}"{% else %} type="button"{% endif %}>
+  {{ label }}
+  {% if variant == 'text' %}
+    <img src="/saas-kit/icon-arrow-b.svg" alt="" class="size-5" aria-hidden="true">
+  {% endif %}
+</{{ tag }}>

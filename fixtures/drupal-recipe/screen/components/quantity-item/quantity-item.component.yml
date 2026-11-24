@@ -1,0 +1,25 @@
+$schema: >-
+  https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Quantity item
+status: experimental
+group: Data Display
+provider: test_integration_drupal
+description: >-
+  One list item 'quantity unit name'; empty quantity/unit are omitted. Root is
+  <li>, placed inside a parent list.
+props:
+  type: object
+  properties:
+    quantity:
+      type: string
+      title: Quantity
+    unit:
+      type: string
+      title: Unit
+slots:
+  name:
+    title: Name
+    description: Item name text.
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

@@ -1,0 +1,29 @@
+<footer{{ attributes.addClass([
+  'flex',
+  'flex-col',
+  'gap-md',
+  'w-full',
+  'max-w-[var(--container-2xl)]',
+  'mx-auto',
+  'bg-inverse-surface',
+  'rounded-xl',
+  'px-xl',
+  'pb-lg',
+]) }}>
+  <div class="flex flex-col items-center gap-md py-lg border-b border-inverse-outline md:flex-row md:justify-between">
+    {% if logo %}<div class="flex items-center">{{ logo }}</div>{% endif %}
+    {{ navigation }}
+    {% if social_links %}
+      <ul class="flex items-center gap-md">
+        {% for link in social_links %}
+          <li>
+            <a href="{{ link.url }}" aria-label="{{ link.title }}" class="block"><img src="{{ link.icon }}" alt="" width="24" height="24"></a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+  {% if copyright %}
+    <p class="text-center font-body text-small uppercase text-inverse-foreground/60">{{ copyright }}</p>
+  {% endif %}
+</footer>

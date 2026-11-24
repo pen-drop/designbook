@@ -1,0 +1,33 @@
+/** @config
+ {
+   "input": "../design-system/design-tokens.yml",
+   "output": "../../css/tokens/primitive-text.src.css"
+ }
+ */
+(
+  $normalizeCssValue := function($val) {
+    $type($val) = "string"
+      ? $replace($val, /(^|\s|:|,|\()(-?)\.(\d)/, function($m) { $m.groups[0] & $m.groups[1] & "0." & $m.groups[2] })
+      : $val
+  };
+  $walk := function($node, $path) {
+    $reduce(
+      $keys($node),
+      function($acc, $k) {
+        $substring($k, 0, 1) != "$" ? (
+          $v := $lookup($node, $k);
+          $sub := $path = "" ? $k : $path & "-" & $k;
+          $exists($v."$value")
+            ? $append($acc, "  --text-" & $sub & ": " & $normalizeCssValue($v."$value") & ";")
+            : $append($acc, $walk($v, $sub))
+        ) : $acc
+      },
+      []
+    )
+  };
+  $node := $reduce($split("primitive.fontSize", "."), function($a, $s) { $lookup($a, $s) }, $$);
+  $lines := $walk($node, "");
+  $count($lines) > 0
+    ? "@theme static {\n" & $join($lines, "\n") & "\n}\n"
+    : ""
+)
