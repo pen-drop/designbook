@@ -102,6 +102,17 @@ compiles to
 )
 ```
 
+## Formatted Companion Binding
+
+A binding to `<field>_formatted` (the sample-data display companion of a declared `<field>`) compiles like a string field, `$fields.<field>_formatted`. In Drupal it is the display of `<field>` through a field formatter: the exported display places `<field>` in the binding's slot with the formatter derived from `<field>`'s type, or the one `formatters` names.
+
+```yaml
+bindings:
+  - field: field_downloads_formatted
+    slot: meta
+    wrap: { component: "$DESIGNBOOK_COMPONENT_NAMESPACE:list_cell", props: { caption: Downloads }, prop: value }
+```
+
 ## Rules
 
 - Output is a JSONata array expression returning one wrapping `ComponentNode`
@@ -118,3 +129,13 @@ compiles to
 ## Supported Settings
 
 - `primary_image_field` — name of the media reference field mapped to the component's image slot with the reference-slot template above.
+- `formatters` — map `<field>: { type, settings }` in `view_modes.<vm>.settings`; overrides the formatter derived for a `<field>_formatted` binding in that view mode.
+
+```yaml
+view_modes:
+  full:
+    template: field-map
+    settings:
+      formatters:
+        field_rating: { type: number_unformatted, settings: {} }
+```
