@@ -1432,6 +1432,13 @@ describe('deriveComposition — several and wrapped slot bindings', () => {
       'bindings[3].wrap.props.caption: literal does not match string',
     ],
     [
+      'fixed prop repeats wrap.prop',
+      (b: Array<Record<string, unknown>>) => {
+        (b[3]!.wrap as Record<string, unknown>).props = { caption: 'Version', value: 'x' };
+      },
+      'bindings[3].wrap.props.value: duplicates wrap.prop',
+    ],
+    [
       'reference field into a wrapper prop',
       (b: Array<Record<string, unknown>>) => {
         b[5]!.wrap = { component: LIST_CELL, prop: 'value' };

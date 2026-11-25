@@ -532,7 +532,8 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
           }
           for (const [k, v] of Object.entries(w.props ?? {})) {
             const schema = wrapProps[k];
-            if (!(k in wrapProps)) errors.push(`${at(`.props.${k}`)}: unknown prop ${k}`);
+            if (k === w.prop) errors.push(`${at(`.props.${k}`)}: duplicates wrap.prop`);
+            else if (!(k in wrapProps)) errors.push(`${at(`.props.${k}`)}: unknown prop ${k}`);
             else if (!literalTypeOk(schema, v)) {
               const type = isObj(schema) && schema.type != null ? String(schema.type) : 'enum';
               errors.push(`${at(`.props.${k}`)}: literal does not match ${type}`);
