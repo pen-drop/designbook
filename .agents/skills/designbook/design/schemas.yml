@@ -564,8 +564,8 @@ MappingBinding:
   properties:
     field:
       type: string
-      description: Data-model field machine name.
-      examples: [field_title, field_signage_item]
+      description: Data-model field machine name, or `<field>_formatted` — the sample-data display companion of a declared field (string value).
+      examples: [field_title, field_signage_item, field_downloads_formatted]
     path:
       type: array
       description: Optional path within a structured field. The first field remains a real model field.

@@ -10,3 +10,5 @@ trigger:
 For a new pool, use these starting counts when intake has no more specific needs: six for a non-full listing/teaser/card mode, three for full layout-builder/canvas, and one for other full modes or config entities. Intake fixes the actual records and counts from the scene's selectors; a sufficient existing pool takes precedence.
 
 Choose field values from the model's explicit sample template and settings, then the matching field-type guidance, then realistic scalar text. For reference serialization, follow the [sample format](../resources/format.md).
+
+When a planned binding names `<field>_formatted`, write the raw `<field>` value and its display string as a [formatted companion](../resources/format.md#formatted-companions).

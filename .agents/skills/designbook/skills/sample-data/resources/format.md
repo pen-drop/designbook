@@ -94,6 +94,19 @@ config:
 
 Do **not** use the object form for regular content entity reference fields — use the plain string ID instead.
 
+## Formatted Companions
+
+A record may carry `<field>_formatted` beside a declared `<field>`: the same value as a string in the display form the design shows (a formatted number, date, price or relative time). Companions live only in sample data; the data model declares `<field>` alone. `validate data` rejects a companion whose `<field>` is undeclared or whose value is not a string.
+
+```yaml
+content:
+  node:
+    release:
+      - id: "1"
+        field_downloads: 12400
+        field_downloads_formatted: "12,400"
+```
+
 ## Field Templates
 
 Fields may declare `sample_template` in `data-model.yml` to control value structure:
