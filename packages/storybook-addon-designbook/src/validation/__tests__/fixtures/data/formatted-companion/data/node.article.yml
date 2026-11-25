@@ -1,0 +1,6 @@
+- id: "1"
+  title: "A"
+  field_body: "x"
+  field_body_formatted: "<p>x</p>"
+  field_media_formatted: "1 image"
+  _formatted: "bare"
