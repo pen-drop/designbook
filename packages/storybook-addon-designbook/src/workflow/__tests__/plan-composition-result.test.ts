@@ -3,12 +3,18 @@
  * artifacts to the sealed composition contract before plan done completes.
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { buildPlan, type TaskList } from '../plan-build.js';
 import { planDigest, type Plan, type PlanTask } from '../plan-document.js';
-import { compilePlannedMapping, validateCompositionResult } from '../plan-composition-result.js';
+import {
+  compilePlannedMapping,
+  validateCompositionResult,
+  verifyReusedMappingSources,
+} from '../plan-composition-result.js';
+import { signageMeta, LIST_CELL } from '../../__tests__/fixtures/plans/signage-meta.js';
 import type { DesignbookConfig } from '../../shared/config.js';
 import jsonata from 'jsonata';
 import { deriveComposition, renderCompositionTree } from '../plan-composition.js';
@@ -549,5 +555,123 @@ describe('validateCompositionResult — direct missing file', () => {
     const result = await validateCompositionResult(plan, task, { 'entity-mapping': true });
     expect(result.ok).toBe(false);
     expect(result.errors.join('\n')).toMatch(/not found|missing/i);
+  });
+});
+
+describe('compilePlannedMapping — several and wrapped slot bindings', () => {
+  const record = {
+    id: '1',
+    field_paragraph_style: 'default',
+    field_overlapping_top: false,
+    field_version: '1.2',
+    field_license: 'MIT',
+    field_signage_item: ['1', '2'],
+  };
+  const entity = (index: number) => ({ entity: 'paragraph.signage_item', view_mode: 'full', record: index });
+  const cell = (caption: string, value?: string) => ({
+    component: LIST_CELL,
+    props: value === undefined ? { caption } : { caption, value },
+  });
+
+  function mapBindings(list: TaskList): unknown[] {
+    return list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage')!.params!.bindings as unknown[];
+  }
+
+  it('keeps one-binding-per-slot output identical', async () => {
+    const plan = await buildSignage();
+    expect(compilePlannedMapping(findTask(plan, 'map-entity', 'signage'), plan)).toBe(
+      '(\n  $fields := $;\n  [\n    {\n      "component": "test_integration_vue:signage",\n      "props": {\n        "style": $fields.field_paragraph_style,\n        "overlapping": $fields.field_overlapping_top\n      },\n      "slots": {\n        "items": [$map($fields.field_signage_item, function($id) { { "entity": "paragraph.signage_item", "view_mode": "full", "record": $lookup({"1":0,"2":1,"3":2}, $string($id)) } })]\n      }\n    }\n  ]\n)\n',
+    );
+    expect(compilePlannedMapping(findTask(plan, 'map-entity', 'signage_item'), plan)).toBe(
+      '(\n  $fields := $;\n  [\n    {\n      "component": "test_integration_vue:signage_item",\n      "props": {\n        "title": $fields.field_title,\n        "description": $fields.field_description,\n        "icon": $fields.field_icon,\n        "links": $fields.field_links,\n        "buttonAnonymous": $fields.field_button_anonymous,\n        "buttonAuthenticated": $fields.field_button_authenticated\n      }\n    }\n  ]\n)\n',
+    );
+  });
+
+  it('orders several bindings on one slot', async () => {
+    const plan = await buildSignage(signageMeta(fixture));
+    const expr = jsonata(compilePlannedMapping(findTask(plan, 'map-entity', 'signage'), plan));
+    const out = (await expr.evaluate(record))[0];
+    expect(Object.keys(out.slots)).toEqual(['meta', 'items']);
+    expect(out.slots.items).toEqual([entity(0), entity(1)]);
+    expect(out.slots.meta).toEqual(['default', cell('Version', '1.2'), entity(0), entity(1), cell('License', 'MIT')]);
+    const sparse = (await expr.evaluate({ ...record, field_paragraph_style: undefined, field_version: undefined }))[0];
+    expect(sparse.slots.meta).toEqual([cell('Version'), entity(0), entity(1), cell('License', 'MIT')]);
+  });
+
+  it('wraps a field with fixed props', async () => {
+    const list = signageMeta(fixture);
+    const bindings = mapBindings(list);
+    list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage')!.params!.bindings = [
+      bindings[0],
+      bindings[1],
+      bindings[3],
+      bindings[4],
+    ];
+    let plan = await buildSignage(list);
+    let out = (await jsonata(compilePlannedMapping(findTask(plan, 'map-entity', 'signage'), plan)).evaluate(record))[0];
+    expect(out.slots.meta).toEqual(cell('Version', '1.2'));
+
+    const bySlot = structuredClone(list);
+    const wrapped = mapBindings(bySlot)[2] as { wrap: Record<string, unknown> };
+    wrapped.wrap = { component: LIST_CELL, props: { caption: 'Version' }, slot: 'content' };
+    plan = await buildSignage(bySlot);
+    out = (await jsonata(compilePlannedMapping(findTask(plan, 'map-entity', 'signage'), plan)).evaluate(record))[0];
+    expect(out.slots.meta).toEqual({ component: LIST_CELL, props: { caption: 'Version' }, slots: { content: '1.2' } });
+
+    const refs = structuredClone(list);
+    mapBindings(refs)[2] = {
+      field: 'field_signage_item',
+      slot: 'meta',
+      entity: { entity_type: 'paragraph', bundle: 'signage_item', view_mode: 'full' },
+      wrap: { component: LIST_CELL, slot: 'content' },
+    };
+    plan = await buildSignage(refs);
+    out = (await jsonata(compilePlannedMapping(findTask(plan, 'map-entity', 'signage'), plan)).evaluate(record))[0];
+    expect(out.slots.meta).toEqual({ component: LIST_CELL, slots: { content: [entity(0), entity(1)] } });
+  });
+
+  it('accepts the compiled multi/wrapped mapping', async () => {
+    const plan = await buildSignage(signageMeta(fixture));
+    const task = findTask(plan, 'map-entity', 'signage');
+    const compiled = compilePlannedMapping(task, plan);
+    expect(await validateCompositionResult(plan, task, { 'entity-mapping': compiled })).toEqual({
+      ok: true,
+      errors: [],
+    });
+    const swapped = compiled
+      .replace('"caption": "Version"', '"caption": "TMP"')
+      .replace('"caption": "License"', '"caption": "Version"')
+      .replace('"caption": "TMP"', '"caption": "License"');
+    expect(swapped).not.toBe(compiled);
+    expect((await validateCompositionResult(plan, task, { 'entity-mapping': swapped })).ok).toBe(false);
+  });
+
+  it('verifies a reused snapshot with wrapped bindings', async () => {
+    const full = await buildSignage(signageMeta(fixture));
+    const expected = compilePlannedMapping(findTask(full, 'map-entity', 'signage'), full);
+    const dir = mkdtempSync(join(tmpdir(), 'comp-map-wrap-'));
+    const source = join(dir, 'paragraph.signage.view.full.jsonata');
+    writeFileSync(source, expected);
+    try {
+      const list = signageMeta(fixture);
+      const parent = list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage')!;
+      list.composition = {
+        ...list.composition!,
+        mappings: [
+          {
+            identity: parent.params!.mapping as Record<string, unknown>,
+            component: parent.params!.component as string,
+            bindings: parent.params!.bindings as unknown[],
+            source,
+            hash: createHash('sha256').update(expected).digest('hex'),
+          },
+        ],
+      };
+      list.tasks = list.tasks.filter((t) => t !== parent);
+      const plan = await buildSignage(list);
+      expect(verifyReusedMappingSources(plan)).toEqual([]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
