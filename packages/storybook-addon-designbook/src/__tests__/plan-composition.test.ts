@@ -685,6 +685,47 @@ describe('buildPlan composition sealing', () => {
     expect(text).toContain('slot kicker ← field_paragraph_style');
   });
 
+  function withKicker(binding: Record<string, unknown>): TaskList {
+    const list = structuredClone(fixture);
+    const write = list.tasks.find((t) => t.step === 'write-component' && t.title === 'signage')!;
+    (write.params!.component as { slots: Record<string, unknown> }).slots.kicker = {
+      description: 'Display string',
+      required: false,
+    };
+    const map = list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage')!;
+    (map.params!.bindings as unknown[]).push(binding);
+    return list;
+  }
+
+  it('accepts a _formatted companion of a declared field as a slot binding', async () => {
+    const { plan, errors } = await buildPlan(
+      withKicker({ field: 'field_paragraph_style_formatted', slot: 'kicker' }),
+      vueOpts,
+    );
+    expect(errors).toEqual([]);
+    expect(renderCompositionTree(deriveComposition(plan!).tree)).toContain(
+      'slot kicker ← field_paragraph_style_formatted',
+    );
+  });
+
+  it('rejects a _formatted companion whose base is undeclared', async () => {
+    const { plan, errors } = await buildPlan(withKicker({ field: 'field_nope_formatted', slot: 'kicker' }), vueOpts);
+    expect(plan).toBeNull();
+    expect(errors.join('\n')).toMatch(/unknown field field_nope_formatted/);
+  });
+
+  it('rejects an entity descriptor on a _formatted companion', async () => {
+    const { errors } = await buildPlan(
+      withKicker({
+        field: 'field_signage_item_formatted',
+        slot: 'kicker',
+        entity: { entity_type: 'paragraph', bundle: 'signage_item', view_mode: 'full' },
+      }),
+      vueOpts,
+    );
+    expect(errors.join('\n')).toMatch(/field_signage_item_formatted is not a reference field/);
+  });
+
   it('rejects a reference-field slot binding without an entity descriptor', async () => {
     const list = structuredClone(fixture);
     const map = list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage')!;

@@ -140,6 +140,23 @@ describe('compilePlannedMapping', () => {
     expect(expr).toContain('"kicker": $fields.field_paragraph_style');
     expect(expr).toContain('$map($fields.field_signage_item');
   });
+
+  it('compiles a _formatted companion as a direct field expression for slot and prop', async () => {
+    const list = structuredClone(fixture);
+    const write = list.tasks.find((t) => t.step === 'write-component' && t.title === 'signage')!;
+    (write.params!.component as { slots: Record<string, unknown> }).slots.kicker = {
+      description: 'Display string',
+      required: false,
+    };
+    const map = list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage')!;
+    const bindings = map.params!.bindings as Array<{ field: string; prop?: string; slot?: string }>;
+    bindings.find((b) => b.prop === 'style')!.field = 'field_paragraph_style_formatted';
+    bindings.push({ field: 'field_overlapping_top_formatted', slot: 'kicker' });
+    const plan = await buildSignage(list);
+    const expr = compilePlannedMapping(findTask(plan, 'map-entity', 'signage'), plan);
+    expect(expr).toContain('"style": $fields.field_paragraph_style_formatted');
+    expect(expr).toContain('"kicker": $fields.field_overlapping_top_formatted');
+  });
 });
 
 type TreeRecord = { id: string; summary: string; values: Record<string, unknown> };
