@@ -1,0 +1,53 @@
+workflow: design-entity
+validate: none
+
+fixtures:
+  - vision
+  - tokens
+  - css-generate
+  - design-entity-field-map-slots
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo design-entity workflow for the "node.release" entity, "teaser" view mode.
+  Do NOT ask any questions. There is no graphical reference for this case.
+  Reuse the existing release_teaser and list_cell components unchanged; create no new component.
+  Map the release fields to release_teaser:
+    title→title.
+    The meta slot holds three items, in this order:
+      1. field_tagline, placed directly in the slot.
+      2. field_version inside a list_cell with the fixed caption "Version"; the field fills list_cell's value prop.
+      3. field_license inside a list_cell with the fixed caption "License"; the field fills list_cell's value prop.
+  Create exactly two sample records in section "releases", in this order:
+    1. id "r1": title "Release 1.0", field_tagline "First stable", field_version "1.0", field_license "MIT".
+    2. id "r2": title "Release 2.0", field_tagline "Faster", field_version "2.0", field_license "Apache-2.0".
+  The workflow must produce:
+    - designbook/data/node.release.yml (both records, each tagged __designbook.section)
+    - designbook/entity-mapping/node.release.teaser.jsonata (the mapping)
+  Present the composition tree before building the plan. After generating all files, run
+  `pnpm build-storybook` in the theme directory, then check each record's preview story with
+  `npx storybook-addon-designbook storybook check <story-url>`; record the story IDs you checked.
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0
+  - type: javascript
+    value: output.completedWorkflows['design-entity']?.state?.status === 'completed'
+  - type: javascript
+    value: Object.values(output.completedWorkflows['design-entity']?.state?.tasks || {}).every(t => t.status === 'done')
+  - type: javascript
+    value: |-
+      const rows = output.fileContents['designbook/data/node.release.yml'];
+      return Array.isArray(rows) && rows.length === 2 && rows[0].id === 'r1' && rows[1].id === 'r2' && rows.every(r => r.__designbook?.section === 'releases');
+  - type: javascript
+    value: |-
+      const src = (output.fileContents['designbook/entity-mapping/node.release.teaser.jsonata'] || '').replace(/\/\*[\s\S]*?\*\//g, '');
+      const at = (s, from = 0) => src.indexOf(s, from);
+      const order = ['"meta"', '$fields.field_tagline', 'test_integration_drupal:list_cell', '"Version"', '$fields.field_version', 'test_integration_drupal:list_cell', '"License"', '$fields.field_license'];
+      let pos = -1;
+      return /"title"\s*:\s*\$fields\.title\b/.test(src) && order.every(token => (pos = at(token, pos + 1)) >= 0);
+  - type: javascript
+    value: |-
+      const expected = {'components/list_cell/list_cell.component.yml':'9c446b9af3322412f3c27fcb4f4ed314a279a8ad7677d4d8d36fe2b37ddcc0e8','components/list_cell/list_cell.twig':'58e5b2911adab3a93a3c03c52154e69995e016c19eb6d5dc5d630dc95342565e','components/release_teaser/release_teaser.component.yml':'6829cdd9ae186ce03fdb52f1c51253cc6e9210b712fb7de3a7d354e2e9ccdcdc','components/release_teaser/release_teaser.twig':'6e0a83e0ecb570dc027d43b502a6bffb98ca0dea4f01ab0234d26ad9e94a54c8'};
+      return Object.entries(expected).every(([file, hash]) => Object.entries(output.fileHashes).some(([path, actual]) => path.endsWith(file) && actual === hash));
