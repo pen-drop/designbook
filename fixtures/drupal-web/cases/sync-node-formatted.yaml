@@ -49,5 +49,6 @@ assert:
   - type: javascript
     value: |-
       const marker = output.fileContents['designbook/sync-node-formatted.yml'];
-      const names = [...(marker?.written_config || []), ...Object.keys(marker?.field_blocks || {}), ...output.newFiles];
-      return names.length > 0 && !names.some(n => n.includes('_formatted') && !n.endsWith('sync-node-formatted.yml'));
+      const synced = output.newFiles.filter(p => /files\/sync\//.test(p));
+      const names = [...(marker?.written_config || []), ...Object.keys(marker?.field_blocks || {}), ...synced];
+      return names.length > 0 && !names.some(n => n.includes('_formatted'));

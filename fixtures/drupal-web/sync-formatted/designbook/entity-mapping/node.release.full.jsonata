@@ -7,10 +7,7 @@
         "title": $fields.title
       },
       "slots": {
-        "meta": [
-          { "component": "test_integration_drupal:list_cell", "props": { "caption": "Downloads", "value": $fields.field_downloads_formatted } },
-          { "component": "test_integration_drupal:list_cell", "props": { "caption": "Rating", "value": $fields.field_rating_formatted } }
-        ]
+        "meta": [$fields.field_downloads_formatted, $fields.field_rating_formatted]
       }
     }
   ]

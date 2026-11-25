@@ -108,7 +108,8 @@ Each mapped field that fills a slot becomes one UUID-keyed entry under the secti
 
 A `<field>_formatted` value in the mapping (the display companion of `<field>`) places the base
 field: `id: 'field_block:<et>:<bundle>:<field>'` in the binding's slot region, with `<field>`'s
-formatter.
+formatter. A companion inside a wrapper component places the same base-field block, rendered
+through the nested-SDC formatter below for the wrapper.
 
 Which mapped values belong here as `field_block` slots at all — every field-rendered value, incl.
 single-value `title` and `link`/CTA — versus the few that stay scalar props is governed by
