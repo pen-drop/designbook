@@ -13,6 +13,7 @@ import { parsePlan, serializePlan, planDigest, type Plan, type PlanTask } from '
 import { deriveComposition, renderCompositionTree } from '../workflow/plan-composition.js';
 import { compilePlannedMapping } from '../workflow/plan-composition-result.js';
 import type { DesignbookConfig } from '../shared/config.js';
+import { signageMeta, LIST_CELL } from './fixtures/plans/signage-meta.js';
 
 const agents = resolve(process.cwd(), '../../.agents');
 const vueOpts = {
@@ -1336,5 +1337,119 @@ describe('deriveComposition — field-map and frozen tree mappings', () => {
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe('deriveComposition — several and wrapped slot bindings', () => {
+  function bindingsOf(list: TaskList): Array<Record<string, unknown>> {
+    return list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage')!.params!.bindings as Array<
+      Record<string, unknown>
+    >;
+  }
+
+  it('allows several bindings on one slot', async () => {
+    const { plan, errors } = await buildPlan(signageMeta(fixture), vueOpts);
+    expect(errors).toEqual([]);
+    expect(plan).not.toBeNull();
+    expect(deriveComposition(plan!).errors).toEqual([]);
+  });
+
+  it('still rejects two bindings on one prop', async () => {
+    const list = signageMeta(fixture);
+    bindingsOf(list)[1]!.prop = 'style';
+    const { plan, errors } = await buildPlan(list, vueOpts);
+    expect(plan).toBeNull();
+    expect(errors.join('\n')).toContain('bindings[1].prop: duplicate target style');
+  });
+
+  it('renders a wrapped binding in the composition tree', async () => {
+    const { plan } = await buildPlan(signageMeta(fixture), vueOpts);
+    const text = renderCompositionTree(deriveComposition(plan!).tree);
+    expect(text).toMatch(
+      /slot meta ← field_version\n[│ ]*└─ test_integration_vue:list_cell \(neu\)\n[│ ]*└─ prop value ← field_version/,
+    );
+    expect(text).toContain('slot meta ← field_paragraph_style');
+  });
+
+  it.each([
+    [
+      'wrap on a prop binding',
+      (b: Array<Record<string, unknown>>) => {
+        delete b[3]!.slot;
+        b[3]!.prop = 'style';
+      },
+      'bindings[3].wrap: requires a slot binding',
+    ],
+    [
+      'unknown wrapper',
+      (b: Array<Record<string, unknown>>) => {
+        (b[3]!.wrap as Record<string, unknown>).component = 'test_integration_vue:nope';
+      },
+      'bindings[3].wrap.component: no contract for test_integration_vue:nope',
+    ],
+    [
+      'both prop and slot',
+      (b: Array<Record<string, unknown>>) => {
+        (b[3]!.wrap as Record<string, unknown>).slot = 'content';
+      },
+      'bindings[3].wrap: names both prop and slot',
+    ],
+    [
+      'neither prop nor slot',
+      (b: Array<Record<string, unknown>>) => {
+        delete (b[3]!.wrap as Record<string, unknown>).prop;
+      },
+      'bindings[3].wrap: names neither prop nor slot',
+    ],
+    [
+      'unknown wrap prop',
+      (b: Array<Record<string, unknown>>) => {
+        (b[3]!.wrap as Record<string, unknown>).prop = 'nope';
+      },
+      'bindings[3].wrap.prop: unknown prop nope',
+    ],
+    [
+      'unknown wrap slot',
+      (b: Array<Record<string, unknown>>) => {
+        const wrap = b[3]!.wrap as Record<string, unknown>;
+        delete wrap.prop;
+        wrap.slot = 'nope';
+      },
+      'bindings[3].wrap.slot: unknown slot nope',
+    ],
+    [
+      'unknown fixed prop',
+      (b: Array<Record<string, unknown>>) => {
+        (b[3]!.wrap as Record<string, unknown>).props = { nope: 'x' };
+      },
+      'bindings[3].wrap.props.nope: unknown prop nope',
+    ],
+    [
+      'fixed prop literal mismatch',
+      (b: Array<Record<string, unknown>>) => {
+        (b[3]!.wrap as Record<string, unknown>).props = { caption: 5 };
+      },
+      'bindings[3].wrap.props.caption: literal does not match string',
+    ],
+    [
+      'reference field into a wrapper prop',
+      (b: Array<Record<string, unknown>>) => {
+        b[5]!.wrap = { component: LIST_CELL, prop: 'value' };
+      },
+      'bindings[5].wrap.prop: field_signage_item requires wrap.slot',
+    ],
+  ])('rejects an invalid wrapper: %s', async (_name, mutate, message) => {
+    const list = signageMeta(fixture);
+    mutate(bindingsOf(list));
+    const { plan, errors } = await buildPlan(list, vueOpts);
+    expect(plan).toBeNull();
+    expect(errors.join('\n')).toContain(message);
+  });
+
+  it('accepts a reference field placed in a wrapper slot', async () => {
+    const list = signageMeta(fixture);
+    bindingsOf(list)[5]!.wrap = { component: LIST_CELL, props: { caption: 'Items' }, slot: 'content' };
+    const { errors } = await buildPlan(list, vueOpts);
+    expect(errors).toEqual([]);
   });
 });
