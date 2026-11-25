@@ -70,6 +70,38 @@ Map a media entity reference (`type: reference`) into the image slot with `entit
 )
 ```
 
+## Several Fields in One Slot
+
+Several bindings may name the same slot; the slot then holds one array in binding order. A binding with `wrap` places its field inside a wrapper component with fixed literal props, in the wrapper prop or slot that `wrap` names:
+
+```yaml
+bindings:
+  - { field: field_title, prop: title }
+  - { field: field_tagline, slot: meta }
+  - field: field_version
+    slot: meta
+    wrap: { component: "$DESIGNBOOK_COMPONENT_NAMESPACE:list_cell", props: { caption: Version }, prop: value }
+```
+
+compiles to
+
+```jsonata
+(
+  $fields := $;
+  [
+    {
+      "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:teaser",
+      "props": {
+        "title": $fields.field_title
+      },
+      "slots": {
+        "meta": [$fields.field_tagline, { "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:list_cell", "props": { "caption": "Version", "value": $fields.field_version } }]
+      }
+    }
+  ]
+)
+```
+
 ## Rules
 
 - Output is a JSONata array expression returning one wrapping `ComponentNode`
@@ -79,6 +111,9 @@ Map a media entity reference (`type: reference`) into the image slot with `entit
 - Provider prefix must be resolved at generation time: `DESIGNBOOK_COMPONENT_NAMESPACE:component-name`
 - Reference fields (`type: reference`) emit `{ "entity": "<entity_type>.<bundle>", "view_mode": "...", "record": $lookup({ "<id>": <index> }, $string($id)) }` nodes as slot values of the wrapping component. The renderer resolves refs inside slots and at top level.
 - Image slots use that same reference-slot template; `plan instructions` `expected_mapping` is the expression to submit
+- A slot with one binding keeps that binding's single value; a slot with several bindings is one array of their items in binding order, image and reference `$map` items unwrapped inside it
+- A prop takes exactly one binding
+- `wrap` sits on a slot binding only; image and reference fields go into `wrap.slot`
 
 ## Supported Settings
 
