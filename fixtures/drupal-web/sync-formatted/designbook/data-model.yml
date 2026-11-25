@@ -1,0 +1,24 @@
+content:
+  node:
+    release:
+      title: Release
+      description: A software release with its download count and rating.
+      view_modes:
+        full:
+          template: field-map
+          settings:
+            formatters:
+              field_rating:
+                type: number_unformatted
+                settings: {}
+      fields:
+        title:
+          type: string
+          title: Title
+          required: true
+        field_downloads:
+          type: integer
+          title: Downloads
+        field_rating:
+          type: integer
+          title: Rating

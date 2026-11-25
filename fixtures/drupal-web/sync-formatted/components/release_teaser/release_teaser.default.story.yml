@@ -1,0 +1,5 @@
+name: Default
+props:
+  title: Release 1.0
+slots:
+  meta: Meta items
