@@ -69,12 +69,20 @@ export interface CompositionTree {
   roots: CompositionNode[];
 }
 
-interface Binding {
+export interface BindingWrap {
+  component: string;
+  props?: Record<string, unknown>;
+  prop?: string;
+  slot?: string;
+}
+
+export interface Binding {
   field: string;
   prop?: string;
   slot?: string;
   path?: string[];
   entity?: { entity_type: string; bundle: string; view_mode: string };
+  wrap?: BindingWrap;
 }
 
 interface IndexedTask {
@@ -505,10 +513,36 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
         used.add(t);
         if (!(b.prop in props)) errors.push(`${prefix(`${p}.prop`)}: unknown prop ${b.prop}`);
       }
+      if (b.wrap) {
+        const w = b.wrap;
+        const at = (sub: string) => prefix(`${p}.wrap${sub}`);
+        if (!b.slot) errors.push(`${at('')}: requires a slot binding`);
+        if (w.prop && w.slot) errors.push(`${at('')}: names both prop and slot`);
+        else if (!w.prop && !w.slot) errors.push(`${at('')}: names neither prop nor slot`);
+        if (w.prop && (isImageType(field.type) || isRefType(field.type))) {
+          errors.push(`${at('.prop')}: ${b.field} requires wrap.slot`);
+        }
+        const wrapper = components.get(w.component);
+        if (!wrapper) errors.push(`${at('.component')}: no contract for ${w.component}`);
+        else {
+          const wrapProps = contractProps(wrapper.contract);
+          if (w.prop && !(w.prop in wrapProps)) errors.push(`${at('.prop')}: unknown prop ${w.prop}`);
+          if (w.slot && !(w.slot in contractSlots(wrapper.contract))) {
+            errors.push(`${at('.slot')}: unknown slot ${w.slot}`);
+          }
+          for (const [k, v] of Object.entries(w.props ?? {})) {
+            const schema = wrapProps[k];
+            if (k === w.prop) errors.push(`${at(`.props.${k}`)}: duplicates wrap.prop`);
+            else if (!(k in wrapProps)) errors.push(`${at(`.props.${k}`)}: unknown prop ${k}`);
+            else if (!literalTypeOk(schema, v)) {
+              const type = isObj(schema) && schema.type != null ? String(schema.type) : 'enum';
+              errors.push(`${at(`.props.${k}`)}: literal does not match ${type}`);
+            }
+          }
+        }
+      }
       if (b.slot) {
-        const t = `slot:${b.slot}`;
-        if (used.has(t)) errors.push(`${prefix(`${p}.slot`)}: duplicate target ${b.slot}`);
-        used.add(t);
+        // Several slot bindings fill one slot in binding order; only props are unique.
         if (!(b.slot in slots)) errors.push(`${prefix(`${p}.slot`)}: unknown slot ${b.slot}`);
         const imageBinding = b.field in fields && isImageType(field.type);
         if (!imageBinding && b.field in fields && isRefType(field.type) && !b.entity) {
@@ -731,17 +765,29 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
         source: b.field,
         children: [],
       };
+      // A wrapped field hangs below the wrapper component; `carrier` receives its image/entity children.
+      let carrier = node;
+      if (b.wrap) {
+        const into = b.wrap.slot ?? b.wrap.prop ?? '';
+        carrier = { kind: b.wrap.slot ? 'slot' : 'prop', identity: into, target: into, source: b.field, children: [] };
+        node.children.push({
+          kind: 'component',
+          identity: b.wrap.component,
+          status: components.get(b.wrap.component)?.status,
+          children: [carrier],
+        });
+      }
       const imageStyle = imageFieldStyle(model, rec.entity_type, rec.bundle, b.field);
       if (imageStyle !== undefined) {
-        node.children.push({ kind: 'image', identity: imageStyle, source: b.field, children: [] });
+        carrier.children.push({ kind: 'image', identity: imageStyle, source: b.field, children: [] });
       } else if (b.entity) {
-        node.count = selectedCount(rec, b, recordIndex);
+        carrier.count = selectedCount(rec, b, recordIndex);
         const childKey = `${b.entity.entity_type}.${b.entity.bundle}:view:${b.entity.view_mode}`;
         const child = mappings.get(childKey);
         const childComp = child ? components.get(child.component) : undefined;
         const field = treeField(b.entity.entity_type, b.entity.bundle);
         if (field) {
-          node.children.push(
+          carrier.children.push(
             ...treeRecordNodes(
               b.entity.entity_type,
               b.entity.bundle,
@@ -757,7 +803,7 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
           errors.push(
             `${loc(rec.step, rec.task, 'bindings')}: cyclic entity reference ${[...nextChain, childKey].join(' → ')}`,
           );
-          node.children.push({
+          carrier.children.push({
             kind: 'entity',
             identity: `${b.entity.entity_type}.${b.entity.bundle}`,
             mode: b.entity.view_mode,
@@ -766,7 +812,7 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
             children: [],
           });
         } else {
-          node.children.push({
+          carrier.children.push({
             kind: 'entity',
             identity: `${b.entity.entity_type}.${b.entity.bundle}`,
             mode: b.entity.view_mode,

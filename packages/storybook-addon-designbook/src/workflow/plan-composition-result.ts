@@ -6,15 +6,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import jsonata from 'jsonata';
 import { load as parseYaml } from 'js-yaml';
 import type { Plan, PlanTask } from './plan-document.js';
-import { componentTreeFields, imageFieldStyle, overlaySampleRecords } from './plan-composition.js';
-
-interface Binding {
-  field: string;
-  prop?: string;
-  slot?: string;
-  path?: string[];
-  entity?: { entity_type: string; bundle: string; view_mode: string };
-}
+import { componentTreeFields, imageFieldStyle, overlaySampleRecords, type Binding } from './plan-composition.js';
 
 interface SampleRec {
   id: string;
@@ -44,44 +36,49 @@ export function compilePlannedMapping(task: PlanTask, plan: Plan): string {
   const component = String(task.params.component ?? '');
   const bindings = (task.params.bindings as Binding[] | undefined) ?? [];
   if (!component) throw new Error('map-entity is missing component');
+  const mapping = task.params.mapping as { entity_type: string; bundle: string };
   const props: string[] = [];
-  const slots: string[] = [];
+  // Slot items in first-seen slot order; several bindings on one slot keep binding order.
+  const slotItems = new Map<string, Array<{ binding: Binding; single: string; item: string }>>();
   for (const binding of bindings) {
     const fieldExpr = fieldAccess(binding);
-    const mapping = task.params.mapping as { entity_type: string; bundle: string };
     const imageStyle = imageFieldStyle(
       plan.composition?.data_model ?? {},
       mapping.entity_type,
       mapping.bundle,
       binding.field,
     );
+    let item: string;
     if (imageStyle !== undefined) {
       if (!imageStyle || !binding.slot || binding.prop || binding.entity || binding.path?.length) {
         throw new Error(`invalid image binding for field ${binding.field}`);
       }
-      slots.push(
-        `${JSON.stringify(binding.slot)}: [$map(${fieldExpr}, function($image) { { "image": ${JSON.stringify(imageStyle)}, "src": $image.src, "alt": $image.alt } })]`,
-      );
-      continue;
-    }
-    if (binding.prop) {
+      item = `$map(${fieldExpr}, function($image) { { "image": ${JSON.stringify(imageStyle)}, "src": $image.src, "alt": $image.alt } })`;
+    } else if (binding.prop) {
       props.push(`${JSON.stringify(binding.prop)}: ${fieldExpr}`);
       continue;
-    }
-    if (binding.slot && binding.entity) {
+    } else if (binding.slot && binding.entity) {
       const index = indexById(plan, binding.entity.entity_type, binding.entity.bundle);
       const entity = `${binding.entity.entity_type}.${binding.entity.bundle}`;
-      slots.push(
-        `${JSON.stringify(binding.slot)}: [$map(${fieldExpr}, function($id) { { "entity": ${JSON.stringify(entity)}, "view_mode": ${JSON.stringify(binding.entity.view_mode)}, "record": $lookup(${JSON.stringify(index)}, $string($id)) } })]`,
-      );
-      continue;
+      item = `$map(${fieldExpr}, function($id) { { "entity": ${JSON.stringify(entity)}, "view_mode": ${JSON.stringify(binding.entity.view_mode)}, "record": $lookup(${JSON.stringify(index)}, $string($id)) } })`;
+    } else if (binding.slot) {
+      item = fieldExpr;
+    } else {
+      throw new Error(`unrepresentable mapping binding for field ${binding.field}`);
     }
-    if (binding.slot) {
-      slots.push(`${JSON.stringify(binding.slot)}: ${fieldExpr}`);
-      continue;
+    // A lone image or reference binding keeps its array form; a plain field stays bare.
+    let single = item === fieldExpr ? item : `[${item}]`;
+    if (binding.wrap) {
+      item = single = wrapperNode(binding, single);
     }
-    throw new Error(`unrepresentable mapping binding for field ${binding.field}`);
+    const list = slotItems.get(binding.slot) ?? [];
+    list.push({ binding, single, item });
+    slotItems.set(binding.slot, list);
   }
+  const slots = [...slotItems].map(
+    ([slot, list]) =>
+      `${JSON.stringify(slot)}: ${list.length === 1 ? list[0]!.single : `[${list.map((x) => x.item).join(', ')}]`}`,
+  );
   const propsBlock = props.length ? `,\n      "props": {\n        ${props.join(',\n        ')}\n      }` : '';
   const slotsBlock = slots.length ? `,\n      "slots": {\n        ${slots.join(',\n        ')}\n      }` : '';
   return `(
@@ -166,6 +163,16 @@ export function verifyReusedMappingSources(plan: Plan): string[] {
     }
   });
   return errors;
+}
+
+function wrapperNode(binding: Binding, inner: string): string {
+  const wrap = binding.wrap!;
+  const props = Object.entries(wrap.props ?? {}).map(([k, v]) => `${JSON.stringify(k)}: ${JSON.stringify(v)}`);
+  if (wrap.prop) props.push(`${JSON.stringify(wrap.prop)}: ${inner}`);
+  const parts = [`"component": ${JSON.stringify(wrap.component)}`];
+  if (props.length) parts.push(`"props": { ${props.join(', ')} }`);
+  if (wrap.slot) parts.push(`"slots": { ${JSON.stringify(wrap.slot)}: ${inner} }`);
+  return `{ ${parts.join(', ')} }`;
 }
 
 function fieldAccess(binding: Binding): string {
@@ -263,6 +270,8 @@ async function validateMapping(
     return;
   }
   const bindings = (task.params.bindings as Binding[]) ?? [];
+  // Shared or wrapped slots are pinned by the AST comparison above; only a lone reference slot is a plain list.
+  const loneSlot = (b: Binding) => !b.wrap && bindings.filter((other) => other.slot === b.slot).length === 1;
   for (const rec of recordsFor(plan, mapping.entity_type, mapping.bundle)) {
     const values: Record<string, unknown> = { id: rec.id, ...(rec.values ?? {}) };
     let out: unknown;
@@ -287,7 +296,7 @@ async function validateMapping(
           errors.push(`evaluated prop ${binding.prop} does not come from ${binding.field}`);
         }
       }
-      if (binding.slot && binding.entity) {
+      if (binding.slot && binding.entity && loneSlot(binding)) {
         const ids = getPath(values, [binding.field, ...(binding.path ?? [])]);
         const idList = Array.isArray(ids) ? ids : ids == null ? [] : [ids];
         const actual = node?.slots?.[binding.slot];

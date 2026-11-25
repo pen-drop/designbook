@@ -555,8 +555,10 @@ MappingBinding:
   type: object
   title: Field binding
   description: >
-    One source field bound to exactly one component prop or slot. A `path` array
-    selects a structured-field member. `entity` is present only on a reference slot.
+    One source field bound to one component prop or slot. A prop takes one binding;
+    several slot bindings fill the same slot in binding order. A `path` array selects a
+    structured-field member. `entity` is present only on a reference slot. `wrap` places
+    the field inside a wrapper component on a slot binding.
   required: [field]
   additionalProperties: false
   properties:
@@ -577,11 +579,13 @@ MappingBinding:
       examples: [title, style]
     slot:
       type: string
-      description: Target slot name. Exclusive with prop.
+      description: Target slot name. Exclusive with prop. Several bindings may name the same slot.
       pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
-      examples: [items, image]
+      examples: [items, image, meta]
     entity:
       $ref: "#/MappingChildEntity"
+    wrap:
+      $ref: "#/MappingWrap"
   oneOf:
     - required: [prop]
       not:
@@ -589,6 +593,37 @@ MappingBinding:
     - required: [slot]
       not:
         required: [prop]
+
+MappingWrap:
+  type: object
+  title: Wrapper component
+  description: >
+    Wraps a slot binding's field in one component node with fixed props. The field goes into
+    exactly one of `prop` or `slot` of the wrapper; image and reference fields go into `slot`.
+    One level deep: a wrapper has no wrapper.
+  required: [component]
+  additionalProperties: false
+  properties:
+    component:
+      type: string
+      description: Qualified wrapper component ID with a contract.
+      examples: ["ns:list_cell"]
+    props:
+      type: object
+      description: Fixed literal props of the wrapper; each key is a wrapper prop and matches its type.
+      additionalProperties: true
+      examples:
+        - { caption: Versions }
+    prop:
+      type: string
+      description: Wrapper prop that takes the field value. Exclusive with slot.
+      pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+      examples: [value]
+    slot:
+      type: string
+      description: Wrapper slot that takes the field value. Exclusive with prop.
+      pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+      examples: [content]
 
 CompositionComponentSnapshot:
   type: object
