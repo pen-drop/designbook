@@ -53,8 +53,12 @@ describe('skill data-model schema', () => {
 });
 
 describe.each([
-  ['addon', (addonSchema.definitions as Record<string, { properties: object }>).field.properties],
-  ['skill', JSON.parse(JSON.stringify(skillSchema)).properties.content.additionalProperties.additionalProperties.properties.fields.additionalProperties.properties],
+  ['addon', (addonSchema.definitions as { field: { properties: object } }).field.properties],
+  [
+    'skill',
+    JSON.parse(JSON.stringify(skillSchema)).properties.content.additionalProperties.additionalProperties.properties
+      .fields.additionalProperties.properties,
+  ],
 ])('%s field properties', (_name, properties) => {
   it('no longer define sample_template', () => {
     expect(properties).not.toHaveProperty('sample_template');
