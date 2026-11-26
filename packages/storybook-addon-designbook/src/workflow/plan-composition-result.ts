@@ -6,7 +6,14 @@ import { existsSync, readFileSync } from 'node:fs';
 import jsonata from 'jsonata';
 import { load as parseYaml } from 'js-yaml';
 import type { Plan, PlanTask } from './plan-document.js';
-import { componentTreeFields, imageFieldStyle, overlaySampleRecords, type Binding } from './plan-composition.js';
+import {
+  componentTreeFields,
+  imageFieldStyle,
+  isWrapFieldRef,
+  overlaySampleRecords,
+  type Binding,
+  type BindingWrap,
+} from './plan-composition.js';
 
 interface SampleRec {
   id: string;
@@ -69,7 +76,7 @@ export function compilePlannedMapping(task: PlanTask, plan: Plan): string {
     // A lone image or reference binding keeps its array form; a plain field stays bare.
     let single = item === fieldExpr ? item : `[${item}]`;
     if (binding.wrap) {
-      item = single = wrapperNode(binding, single);
+      item = single = wrapperNode(binding.wrap, single);
     }
     const list = slotItems.get(binding.slot) ?? [];
     list.push({ binding, single, item });
@@ -165,9 +172,11 @@ export function verifyReusedMappingSources(plan: Plan): string[] {
   return errors;
 }
 
-function wrapperNode(binding: Binding, inner: string): string {
-  const wrap = binding.wrap!;
-  const props = Object.entries(wrap.props ?? {}).map(([k, v]) => `${JSON.stringify(k)}: ${JSON.stringify(v)}`);
+function wrapperNode(wrap: BindingWrap, field: string): string {
+  const inner = wrap.wrap ? wrapperNode(wrap.wrap, field) : field;
+  const props = Object.entries(wrap.props ?? {}).map(
+    ([k, v]) => `${JSON.stringify(k)}: ${isWrapFieldRef(v) ? fieldAccess(v) : JSON.stringify(v)}`,
+  );
   if (wrap.prop) props.push(`${JSON.stringify(wrap.prop)}: ${inner}`);
   const parts = [`"component": ${JSON.stringify(wrap.component)}`];
   if (props.length) parts.push(`"props": { ${props.join(', ')} }`);
@@ -175,8 +184,8 @@ function wrapperNode(binding: Binding, inner: string): string {
   return `{ ${parts.join(', ')} }`;
 }
 
-function fieldAccess(binding: Binding): string {
-  return `$fields.${[binding.field, ...(binding.path ?? [])].join('.')}`;
+function fieldAccess(ref: { field: string; path?: string[] }): string {
+  return `$fields.${[ref.field, ...(ref.path ?? [])].join('.')}`;
 }
 
 function indexById(plan: Plan, entityType: string, bundle: string): Record<string, number> {
