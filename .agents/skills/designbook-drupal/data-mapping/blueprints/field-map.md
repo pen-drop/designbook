@@ -72,7 +72,7 @@ Map a media entity reference (`type: reference`) into the image slot with `entit
 
 ## Several Fields in One Slot
 
-Several bindings may name the same slot; the slot then holds one array in binding order. A binding with `wrap` places its field inside a wrapper component with fixed literal props, in the wrapper prop or slot that `wrap` names:
+Several bindings may name the same slot; the slot then holds one array in binding order. A binding with `wrap` places its field inside a wrapper component with fixed props, in the wrapper prop or slot that `wrap` names:
 
 ```yaml
 bindings:
