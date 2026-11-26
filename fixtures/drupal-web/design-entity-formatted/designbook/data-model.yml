@@ -1,0 +1,25 @@
+content:
+  node:
+    release:
+      title: Release
+      description: A software release with a tagline and key facts.
+      view_modes:
+        teaser:
+          template: field-map
+      fields:
+        title:
+          type: string
+          title: Title
+          required: true
+        field_tagline:
+          type: string
+          title: Tagline
+        field_version:
+          type: string
+          title: Version
+        field_license:
+          type: string
+          title: License
+        field_downloads:
+          type: integer
+          title: Downloads

@@ -565,7 +565,7 @@ MappingBinding:
     field:
       type: string
       description: Data-model field machine name.
-      examples: [field_title, field_signage_item]
+      examples: [field_title, field_signage_item, field_downloads]
     path:
       type: array
       description: Optional path within a structured field. The first field remains a real model field.

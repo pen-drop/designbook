@@ -3,6 +3,7 @@ import { load as parseYaml } from 'js-yaml';
 import type { ValidationResult } from './types.js';
 import { readBundleFiles } from '../scene-model/data-pool.js';
 import type { DataModel } from '../scene-model/types.js';
+import { formattedBase } from '../shared/formatted-field.js';
 
 interface FieldDef {
   type?: string;
@@ -89,6 +90,18 @@ export function validateData(dataModelPath: string, dataDir: string): Validation
           }
 
           if (!(field in dmFields)) {
+            const base = formattedBase(field);
+            if (base !== undefined) {
+              const value = (rec as Record<string, unknown>)[field];
+              if (!(base in dmFields)) {
+                errors.push(
+                  `Field "${field}" on ${entityType}.${bundle} id=${rid} has no declared base field "${base}"`,
+                );
+              } else if (typeof value !== 'string') {
+                errors.push(`Field "${field}" on ${entityType}.${bundle} id=${rid} must be a string`);
+              }
+              continue;
+            }
             warnings.push(`Field "${field}" on ${entityType}.${bundle} id=${rid} not in data-model`);
             continue;
           }

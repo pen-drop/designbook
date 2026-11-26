@@ -491,12 +491,13 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
     const used = new Set<string>();
     rec.bindings.forEach((b, i) => {
       const p = `bindings[${i}]`;
-      if (!(b.field in fields)) {
+      const known = b.field in fields;
+      if (!known) {
         errors.push(`${prefix(`${p}.field`)}: unknown field ${b.field}`);
       }
       const rawField = fields[b.field];
       const field = isObj(rawField) ? rawField : {};
-      if (b.field in fields && isImageType(field.type)) {
+      if (known && isImageType(field.type)) {
         const style = imageFieldStyle(model, rec.entity_type, rec.bundle, b.field);
         const styles = isObj(model.config) && isObj(model.config.image_style) ? model.config.image_style : {};
         if (!b.slot || b.prop || b.entity || b.path?.length) {
@@ -544,11 +545,11 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
       if (b.slot) {
         // Several slot bindings fill one slot in binding order; only props are unique.
         if (!(b.slot in slots)) errors.push(`${prefix(`${p}.slot`)}: unknown slot ${b.slot}`);
-        const imageBinding = b.field in fields && isImageType(field.type);
-        if (!imageBinding && b.field in fields && isRefType(field.type) && !b.entity) {
+        const imageBinding = known && isImageType(field.type);
+        if (!imageBinding && known && isRefType(field.type) && !b.entity) {
           errors.push(`${prefix(`${p}.entity`)}: reference field ${b.field} requires an entity descriptor`);
         } else if (!imageBinding && b.entity) {
-          if (b.field in fields && !isRefType(field.type)) {
+          if (known && !isRefType(field.type)) {
             errors.push(`${prefix(`${p}.entity`)}: ${b.field} is not a reference field`);
           }
           const settings = fieldSettings(field);

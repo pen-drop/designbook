@@ -685,6 +685,27 @@ describe('buildPlan composition sealing', () => {
     expect(text).toContain('slot kicker ← field_paragraph_style');
   });
 
+  function withKicker(binding: Record<string, unknown>): TaskList {
+    const list = structuredClone(fixture);
+    const write = list.tasks.find((t) => t.step === 'write-component' && t.title === 'signage')!;
+    (write.params!.component as { slots: Record<string, unknown> }).slots.kicker = {
+      description: 'Display string',
+      required: false,
+    };
+    const map = list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage')!;
+    (map.params!.bindings as unknown[]).push(binding);
+    return list;
+  }
+
+  it('rejects a _formatted companion as a binding field: a slot of its base field shows it', async () => {
+    const { plan, errors } = await buildPlan(
+      withKicker({ field: 'field_paragraph_style_formatted', slot: 'kicker' }),
+      vueOpts,
+    );
+    expect(plan).toBeNull();
+    expect(errors.join('\n')).toMatch(/unknown field field_paragraph_style_formatted/);
+  });
+
   it('rejects a reference-field slot binding without an entity descriptor', async () => {
     const list = structuredClone(fixture);
     const map = list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage')!;

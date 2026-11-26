@@ -19,6 +19,7 @@ import type {
   EntityOrigin,
 } from '../types';
 import { extractFieldMappings } from '../jsonata-mapping-analyzer';
+import { displayRecord, withSlotDisplay } from '../../shared/formatted-field';
 
 /**
  * Placeholder ComponentNode returned when JSONata file or sample data is missing.
@@ -94,7 +95,12 @@ export const entityBuilder: SceneNodeBuilder = {
     // 3. Compile and evaluate the JSONata expression
     const source = readFileSync(jsonataPath, 'utf-8');
     const expr = jsonata(source);
-    const result = await expr.evaluate(recordData);
+    const raw = await expr.evaluate(recordData);
+    // A slot shows a field's `<field>_formatted` companion; props keep the raw value.
+    // A mapping that computes on the base field may throw over the display string; keep the raw result then.
+    const display = displayRecord(recordData);
+    const shown = display ? await Promise.resolve(expr.evaluate(display)).catch(() => undefined) : undefined;
+    const result = shown === undefined ? raw : withSlotDisplay(raw, shown);
 
     // 3b. Extract field mappings from the JSONata AST
     let fieldMappings: FieldMapping[] | undefined;
