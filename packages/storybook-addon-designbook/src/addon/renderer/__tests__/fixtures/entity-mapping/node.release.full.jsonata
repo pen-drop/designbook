@@ -1,0 +1,15 @@
+(
+  $fields := $;
+  [
+    {
+      "component": "teaser",
+      "props": {
+        "count": $fields.field_downloads
+      },
+      "slots": {
+        "meta": [$fields.field_downloads, { "component": "list_cell", "props": { "value": $fields.field_downloads }, "slots": { "body": $fields.field_downloads } }],
+        "title": $fields.title
+      }
+    }
+  ]
+)

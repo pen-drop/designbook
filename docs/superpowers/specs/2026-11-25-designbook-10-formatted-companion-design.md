@@ -8,6 +8,13 @@ BAKERS-365 is blocked on this. Sample data gets a companion key `<field>_formatt
 the display string. A mapping binds the companion like any field. On Drupal the binding becomes
 a field formatter on `<field>`, so Drupal renders the display form itself.
 
+## Revision (rework)
+
+A mapping binds `<field>`, never `<field>_formatted`. Where `<field>` fills a slot, Storybook shows
+the companion when the record has one; a prop keeps the raw value. The mapping and the Drupal export
+stay unchanged: a slot-filled field is already a `field_block` with its formatter. The sections below
+describe the first design; where they bind `<field>_formatted`, this revision wins.
+
 ## Goals (acceptance AC-1…AC-8)
 
 - A record with a declared `<field>` and a string `<field>_formatted` validates. The data model

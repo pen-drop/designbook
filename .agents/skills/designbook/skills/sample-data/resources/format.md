@@ -96,7 +96,7 @@ Do **not** use the object form for regular content entity reference fields — u
 
 ## Formatted Companions
 
-A record may carry `<field>_formatted` beside a declared `<field>`: the same value as a string in the display form the design shows (a formatted number, date, price or relative time). Companions live only in sample data; the data model declares `<field>` alone. `validate data` rejects a companion whose `<field>` is undeclared or whose value is not a string.
+A record may carry `<field>_formatted` beside a declared `<field>`: the same value as a string in the display form the design shows (a formatted number, date, price or relative time). Companions live only in sample data; the data model declares `<field>` alone, and a mapping binds `<field>`. Where `<field>` fills a slot, Storybook renders the companion; a prop keeps the raw value. `validate data` rejects a companion whose `<field>` is undeclared or whose value is not a string.
 
 ```yaml
 content:

@@ -106,10 +106,6 @@ Each mapped field that fills a slot becomes one UUID-keyed entry under the secti
 
 `region` equals the target SDC slot name. `weight` orders components within one region.
 
-A `<field>_formatted` value in the mapping (the display companion of `<field>`) places the base
-field: `id: 'field_block:<et>:<bundle>:<field>'` in the binding's slot region, with `<field>`'s
-formatter.
-
 Which mapped values belong here as `field_block` slots at all — every field-rendered value, incl.
 single-value `title` and `link`/CTA — versus the few that stay scalar props is governed by
 *Field-Rendered Content Maps to a Slot, Not a Scalar Prop* in

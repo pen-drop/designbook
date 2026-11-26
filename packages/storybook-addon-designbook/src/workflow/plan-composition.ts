@@ -7,7 +7,6 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, isAbsolute, relative } from 'node:path';
 import { substitute } from '../scene-model/builders/scene-builder.js';
 import type { Plan, PlanTask } from './plan-document.js';
-import { formattedBase } from '../shared/formatted-field.js';
 
 export const WRITING_DESIGN_WORKFLOWS = new Set(['design-entity', 'design-component', 'design-screen', 'design-shell']);
 
@@ -492,14 +491,11 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
     const used = new Set<string>();
     rec.bindings.forEach((b, i) => {
       const p = `bindings[${i}]`;
-      const base = formattedBase(b.field);
-      // A `<field>_formatted` companion of a declared field is a plain string sample value.
-      const companion = !(b.field in fields) && base !== undefined && base in fields;
-      const known = b.field in fields || companion;
+      const known = b.field in fields;
       if (!known) {
         errors.push(`${prefix(`${p}.field`)}: unknown field ${b.field}`);
       }
-      const rawField = companion ? { type: 'string' } : fields[b.field];
+      const rawField = fields[b.field];
       const field = isObj(rawField) ? rawField : {};
       if (known && isImageType(field.type)) {
         const style = imageFieldStyle(model, rec.entity_type, rec.bundle, b.field);

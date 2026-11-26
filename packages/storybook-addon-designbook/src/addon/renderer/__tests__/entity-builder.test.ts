@@ -136,6 +136,32 @@ describe('entityBuilder', () => {
     expect(json).not.toContain('Understanding Modern Architecture');
   });
 
+  it('build() shows a _formatted companion in slots and keeps the raw value in props', async () => {
+    const ctx = makeCtx({
+      sampleData: {
+        content: {
+          node: {
+            release: [{ id: 'r1', title: 'Release', field_downloads: 12400, field_downloads_formatted: '12,400' }],
+          },
+        },
+      },
+    });
+    const result = await entityBuilder.build(
+      { type: 'entity', entity_type: 'node', bundle: 'release', view_mode: 'full', record: 0 },
+      ctx,
+    );
+    expect(result.nodes).toEqual([
+      {
+        component: 'teaser',
+        props: { count: 12400 },
+        slots: {
+          meta: ['12,400', { component: 'list_cell', props: { value: 12400 }, slots: { body: '12,400' } }],
+          title: 'Release',
+        },
+      },
+    ]);
+  });
+
   it('build() returns placeholder for missing jsonata file', async () => {
     const node = {
       type: 'entity',

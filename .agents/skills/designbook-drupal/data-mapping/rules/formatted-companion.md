@@ -8,16 +8,10 @@ filter:
 # Rule: Formatted Companion
 
 `<field>_formatted` is a sample-data display companion of the declared `<field>`, never a Drupal
-field. A mapping value read from `$fields.<field>_formatted` exports as `<field>` rendered through a
-field formatter: the one `view_modes.<vm>.settings.formatters.<field>` names, else the one derived
-from `<field>`'s type.
+field. Drupal produces that display itself: `<field>` in a slot renders through its field
+formatter.
 
 ## Constraints
 
-- Bind the companion directly into a slot of the target component, without `wrap`: a wrapper's
-  prop reads the raw field property, so only a slot carries the formatted display.
-- Place `<field>` (`field_block:<et>:<bundle>:<field>`) where the companion is bound.
-- Choose the formatter per field: a `formatters` entry applies to the field it names only; every
-  other companion's field keeps the formatter derived from its own type.
-- The export holds no `field.storage.*`, no `field.field.*` and no placement named after
-  `<field>_formatted`.
+- The export holds no `field.storage.*`, no `field.field.*`, no placement and no content value
+  named after `<field>_formatted`.

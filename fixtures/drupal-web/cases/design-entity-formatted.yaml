@@ -15,8 +15,8 @@ prompt: |
   Reuse the existing release_teaser component unchanged; create no new component.
   Map the release fields to release_teaser:
     title→title.
-    The meta slot holds one item: field_downloads_formatted (the display companion of the
-    integer field_downloads), bound directly into the slot.
+    The meta slot holds one item: the integer field_downloads, which the design shows with a
+    thousands separator ("12,400").
   Create exactly two sample records in section "releases", in this order:
     1. id "r1": title "Release 1.0", field_downloads 12400, field_downloads_formatted "12,400".
     2. id "r2": title "Release 2.0", field_downloads 980, field_downloads_formatted "980".
@@ -53,12 +53,12 @@ assert:
   - type: javascript
     value: |-
       const src = (output.fileContents['designbook/entity-mapping/node.release.teaser.jsonata'] || '').replace(/\/\*[\s\S]*?\*\//g, '');
-      return src.includes('$fields.field_downloads_formatted') && !/\$fields\.field_downloads(?!_formatted)\b/.test(src);
+      return /\$fields\.field_downloads\b/.test(src) && !src.includes('_formatted');
   - type: javascript
     value: |-
       const nodes = [].concat(output.mappingResults['designbook/entity-mapping/node.release.teaser.jsonata'] || []);
       const teaser = nodes.find(n => n?.component === 'test_integration_drupal:release_teaser');
-      return [].concat(teaser?.slots?.meta ?? []).join('|') === '12,400';
+      return [].concat(teaser?.slots?.meta ?? []).join('|') === '12400';
   - type: javascript
     value: |-
       return ['components/list_cell/list_cell.component.yml', 'components/list_cell/list_cell.twig',

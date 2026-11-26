@@ -4,7 +4,7 @@
     {
       "component": "test_integration_drupal:release_teaser",
       "slots": {
-        "meta": [$fields.field_downloads_formatted, $fields.field_rating_formatted]
+        "meta": [$fields.field_downloads, $fields.field_rating]
       }
     }
   ]
