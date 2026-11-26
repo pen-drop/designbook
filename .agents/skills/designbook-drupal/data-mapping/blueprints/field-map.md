@@ -72,7 +72,7 @@ Map a media entity reference (`type: reference`) into the image slot with `entit
 
 ## Several Fields in One Slot
 
-Several bindings may name the same slot; the slot then holds one array in binding order. A binding with `wrap` places its field inside a wrapper component with fixed literal props, in the wrapper prop or slot that `wrap` names:
+Several bindings may name the same slot; the slot then holds one array in binding order. A binding with `wrap` places its field inside a wrapper component with fixed props, in the wrapper prop or slot that `wrap` names:
 
 ```yaml
 bindings:
@@ -102,6 +102,27 @@ compiles to
 )
 ```
 
+A `wrap.props` value `{ field, path? }` reads that field of the mapped bundle instead of a literal. A nested `wrap` goes into the outer wrapper's `prop` or `slot`; the binding's field goes into the innermost wrapper:
+
+```yaml
+  - field: field_version
+    slot: meta
+    wrap:
+      component: "$DESIGNBOOK_COMPONENT_NAMESPACE:list_cell"
+      props: { caption: Version }
+      slot: content
+      wrap:
+        component: "$DESIGNBOOK_COMPONENT_NAMESPACE:badge"
+        props: { tone: { field: field_channel } }
+        prop: label
+```
+
+compiles its `meta` item to
+
+```jsonata
+{ "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:list_cell", "props": { "caption": "Version" }, "slots": { "content": { "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:badge", "props": { "tone": $fields.field_channel, "label": $fields.field_version } } } }
+```
+
 ## Rules
 
 - Output is a JSONata array expression returning one wrapping `ComponentNode`
@@ -113,7 +134,7 @@ compiles to
 - Image slots use that same reference-slot template; `plan instructions` `expected_mapping` is the expression to submit
 - A slot with one binding keeps that binding's single value; a slot with several bindings is one array of their items in binding order, image and reference `$map` items unwrapped inside it
 - A prop takes exactly one binding
-- `wrap` sits on a slot binding only; image and reference fields go into `wrap.slot`
+- `wrap` sits on a slot binding only; image and reference fields go into the innermost `wrap.slot` and never into a field-valued `wrap.props` entry
 
 ## Supported Settings
 

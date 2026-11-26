@@ -1,0 +1,4 @@
+name: Default
+props:
+  tone: neutral
+  label: '1.0'
