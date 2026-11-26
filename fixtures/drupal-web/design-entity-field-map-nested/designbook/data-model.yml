@@ -1,0 +1,19 @@
+content:
+  node:
+    release:
+      title: Release
+      description: A software release with its version shown as a toned badge.
+      view_modes:
+        teaser:
+          template: field-map
+      fields:
+        title:
+          type: string
+          title: Title
+          required: true
+        field_version:
+          type: string
+          title: Version
+        field_channel:
+          type: string
+          title: Channel

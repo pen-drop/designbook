@@ -1,0 +1,20 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Cell
+status: stable
+group: Content
+description: A captioned cell holding one component.
+provider: test_integration_drupal
+props:
+  type: object
+  properties:
+    caption:
+      type: string
+      title: Caption
+    align:
+      type: string
+      title: Align
+      enum: [start, end]
+slots:
+  value:
+    title: Value
+    description: The cell content.

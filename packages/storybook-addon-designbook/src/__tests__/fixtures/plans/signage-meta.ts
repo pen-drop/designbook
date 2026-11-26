@@ -65,3 +65,29 @@ export function signageMeta(base: TaskList): TaskList {
   ];
   return list;
 }
+
+export const BADGE = 'test_integration_vue:badge';
+
+/** Adds a `badge` component (props `tone`, `label`) for nested wraps. */
+export function withBadge(base: TaskList): TaskList {
+  const list = structuredClone(base);
+  list.tasks.splice(1, 0, {
+    step: 'write-component',
+    task: 'write-component',
+    title: 'badge',
+    params: {
+      component: {
+        component: 'badge',
+        group: 'content',
+        props: {
+          type: 'object',
+          properties: { tone: { type: 'string', enum: ['neutral', 'info'] }, label: { type: 'string' } },
+          required: [],
+          additionalProperties: false,
+        },
+        slots: {},
+      },
+    },
+  });
+  return list;
+}

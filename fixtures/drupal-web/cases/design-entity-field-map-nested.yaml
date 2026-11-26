@@ -1,0 +1,56 @@
+workflow: design-entity
+validate: none
+
+fixtures:
+  - vision
+  - tokens
+  - css-generate
+  - design-entity-field-map-nested
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo design-entity workflow for the "node.release" entity, "teaser" view mode.
+  Do NOT ask any questions. There is no graphical reference for this case.
+  Reuse the existing release_teaser, cell and badge components unchanged; create no new component.
+  Map the release fields to release_teaser:
+    title→title.
+    The meta slot holds one cell with the fixed caption "Version" and the fixed align "end".
+    The cell's value slot holds one badge. The badge's tone comes from field_channel and its
+    label from field_version.
+  Create exactly two sample records in section "releases", in this order:
+    1. id "r1": title "Release 1.0", field_version "1.0", field_channel "neutral".
+    2. id "r2": title "Release 2.0", field_version "2.0", field_channel "info".
+  The workflow must produce:
+    - designbook/data/node.release.yml (both records, each tagged __designbook.section)
+    - designbook/entity-mapping/node.release.teaser.jsonata (the mapping)
+  Present the composition tree before building the plan. After generating all files, run
+  `pnpm build-storybook` in the theme directory, then check each record's preview story with
+  `npx storybook-addon-designbook storybook check <story-url>`; record the story IDs you checked.
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0
+  - type: javascript
+    value: output.completedWorkflows['design-entity']?.state?.status === 'completed'
+  - type: javascript
+    value: Object.values(output.completedWorkflows['design-entity']?.state?.tasks || {}).every(t => t.status === 'done')
+  - type: javascript
+    value: |-
+      const rows = output.fileContents['designbook/data/node.release.yml'];
+      return Array.isArray(rows) && rows.length === 2 && rows[0].id === 'r1' && rows[1].id === 'r2' && rows.every(r => r.__designbook?.section === 'releases');
+  - type: javascript
+    value: |-
+      const src = (output.fileContents['designbook/entity-mapping/node.release.teaser.jsonata'] || '').replace(/\/\*[\s\S]*?\*\//g, '');
+      const at = (s, from = 0) => src.indexOf(s, from);
+      const order = ['"meta"', 'test_integration_drupal:cell', '"value"', 'test_integration_drupal:badge'];
+      let pos = -1;
+      const cell = src.slice(at('test_integration_drupal:cell'), at('test_integration_drupal:badge'));
+      const badge = src.slice(at('test_integration_drupal:badge'));
+      return /"title"\s*:\s*\$fields\.title\b/.test(src) && order.every(token => (pos = at(token, pos + 1)) >= 0)
+        && /"caption"\s*:\s*"Version"/.test(cell) && /"align"\s*:\s*"end"/.test(cell)
+        && /"tone"\s*:\s*\$fields\.field_channel\b/.test(badge) && /"label"\s*:\s*\$fields\.field_version\b/.test(badge);
+  - type: javascript
+    value: |-
+      const expected = {'components/cell/cell.component.yml':'7b06254b8390404533ff319e5c137f7acf9d09ddee629d73c5ae9d0085d26168','components/cell/cell.twig':'8f8a2edb57855b9cde8b73bc0d15bcaa5b6afed3f96b5ee4473da8f54c62c308','components/badge/badge.component.yml':'3f20f98612f52a8e09e35285b1474a5d739be17fefc3d7f314028435d54f6c22','components/badge/badge.twig':'71b041ac1136fd62c759adfc989a77e766b9637b2a25aded00258cba1f39eb6f','components/release_teaser/release_teaser.component.yml':'6829cdd9ae186ce03fdb52f1c51253cc6e9210b712fb7de3a7d354e2e9ccdcdc','components/release_teaser/release_teaser.twig':'6e0a83e0ecb570dc027d43b502a6bffb98ca0dea4f01ab0234d26ad9e94a54c8'};
+      return Object.entries(expected).every(([file, hash]) => Object.entries(output.fileHashes).some(([path, actual]) => path.endsWith(file) && actual === hash));

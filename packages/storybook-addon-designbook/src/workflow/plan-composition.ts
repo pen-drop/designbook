@@ -71,9 +71,28 @@ export interface CompositionTree {
 
 export interface BindingWrap {
   component: string;
+  /** Literal values, or `{ field, path? }` read from the mapped bundle. */
   props?: Record<string, unknown>;
   prop?: string;
   slot?: string;
+  /** Inner wrapper placed into this level's `prop`/`slot`; the binding's field goes into the innermost level. */
+  wrap?: BindingWrap;
+}
+
+export interface WrapFieldRef {
+  field: string;
+  path?: string[];
+}
+
+/** A wrap prop value whose keys are exactly `field` and optional `path` reads a field; anything else is a literal. */
+export function isWrapFieldRef(v: unknown): v is WrapFieldRef {
+  if (typeof v !== 'object' || v === null || Array.isArray(v)) return false;
+  const o = v as Record<string, unknown>;
+  return (
+    typeof o.field === 'string' &&
+    Object.keys(o).every((k) => k === 'field' || k === 'path') &&
+    (o.path === undefined || (Array.isArray(o.path) && o.path.every((x) => typeof x === 'string')))
+  );
 }
 
 export interface Binding {
@@ -515,17 +534,20 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
         if (!(b.prop in props)) errors.push(`${prefix(`${p}.prop`)}: unknown prop ${b.prop}`);
       }
       if (b.wrap) {
-        const w = b.wrap;
-        const at = (sub: string) => prefix(`${p}.wrap${sub}`);
-        if (!b.slot) errors.push(`${at('')}: requires a slot binding`);
-        if (w.prop && w.slot) errors.push(`${at('')}: names both prop and slot`);
-        else if (!w.prop && !w.slot) errors.push(`${at('')}: names neither prop nor slot`);
-        if (w.prop && (isImageType(field.type) || isRefType(field.type))) {
-          errors.push(`${at('.prop')}: ${b.field} requires wrap.slot`);
-        }
-        const wrapper = components.get(w.component);
-        if (!wrapper) errors.push(`${at('.component')}: no contract for ${w.component}`);
-        else {
+        if (!b.slot) errors.push(`${prefix(`${p}.wrap`)}: requires a slot binding`);
+        // Each level is checked alike; only the innermost one receives the binding's field.
+        for (let w: BindingWrap | undefined = b.wrap, path = `${p}.wrap`; w; path += '.wrap', w = w.wrap) {
+          const at = (sub: string) => prefix(`${path}${sub}`);
+          if (w.prop && w.slot) errors.push(`${at('')}: names both prop and slot`);
+          else if (!w.prop && !w.slot) errors.push(`${at('')}: names neither prop nor slot`);
+          if (!w.wrap && w.prop && (isImageType(field.type) || isRefType(field.type))) {
+            errors.push(`${at('.prop')}: ${b.field} requires wrap.slot`);
+          }
+          const wrapper = components.get(w.component);
+          if (!wrapper) {
+            errors.push(`${at('.component')}: no contract for ${w.component}`);
+            continue;
+          }
           const wrapProps = contractProps(wrapper.contract);
           if (w.prop && !(w.prop in wrapProps)) errors.push(`${at('.prop')}: unknown prop ${w.prop}`);
           if (w.slot && !(w.slot in contractSlots(wrapper.contract))) {
@@ -535,7 +557,13 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
             const schema = wrapProps[k];
             if (k === w.prop) errors.push(`${at(`.props.${k}`)}: duplicates wrap.prop`);
             else if (!(k in wrapProps)) errors.push(`${at(`.props.${k}`)}: unknown prop ${k}`);
-            else if (!literalTypeOk(schema, v)) {
+            else if (isWrapFieldRef(v)) {
+              const ref = fields[v.field];
+              if (!(v.field in fields)) errors.push(`${at(`.props.${k}`)}: unknown field ${v.field}`);
+              else if (isObj(ref) && (isImageType(ref.type) || isRefType(ref.type))) {
+                errors.push(`${at(`.props.${k}`)}: ${v.field} is an image or reference field`);
+              }
+            } else if (!literalTypeOk(schema, v)) {
               const type = isObj(schema) && schema.type != null ? String(schema.type) : 'enum';
               errors.push(`${at(`.props.${k}`)}: literal does not match ${type}`);
             }
@@ -766,17 +794,27 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
         source: b.field,
         children: [],
       };
-      // A wrapped field hangs below the wrapper component; `carrier` receives its image/entity children.
+      // A wrapped field hangs below the innermost wrapper component; `carrier` receives its image/entity children.
       let carrier = node;
-      if (b.wrap) {
-        const into = b.wrap.slot ?? b.wrap.prop ?? '';
-        carrier = { kind: b.wrap.slot ? 'slot' : 'prop', identity: into, target: into, source: b.field, children: [] };
-        node.children.push({
+      for (let w = b.wrap; w; w = w.wrap) {
+        const into = w.slot ?? w.prop ?? '';
+        const fieldProps: CompositionNode[] = Object.entries(w.props ?? {}).flatMap(([k, v]) =>
+          isWrapFieldRef(v) ? [{ kind: 'prop' as const, identity: k, target: k, source: v.field, children: [] }] : [],
+        );
+        const next: CompositionNode = {
+          kind: w.slot ? 'slot' : 'prop',
+          identity: into,
+          target: into,
+          source: w.wrap ? undefined : b.field,
+          children: [],
+        };
+        carrier.children.push({
           kind: 'component',
-          identity: b.wrap.component,
-          status: components.get(b.wrap.component)?.status,
-          children: [carrier],
+          identity: w.component,
+          status: components.get(w.component)?.status,
+          children: [...fieldProps, next],
         });
+        carrier = next;
       }
       const imageStyle = imageFieldStyle(model, rec.entity_type, rec.bundle, b.field);
       if (imageStyle !== undefined) {
@@ -1007,7 +1045,7 @@ function formatNode(node: CompositionNode): string {
       return s;
     }
     case 'prop':
-      return `prop ${node.target ?? node.identity} ← ${node.source ?? ''}`;
+      return `prop ${node.target ?? node.identity}${node.source ? ` ← ${node.source}` : ''}`;
     case 'slot': {
       let s = `slot ${node.target ?? node.identity}`;
       if (node.source) s += ` ← ${node.source}`;

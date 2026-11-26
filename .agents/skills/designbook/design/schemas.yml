@@ -598,9 +598,9 @@ MappingWrap:
   type: object
   title: Wrapper component
   description: >
-    Wraps a slot binding's field in one component node with fixed props. The field goes into
-    exactly one of `prop` or `slot` of the wrapper; image and reference fields go into `slot`.
-    One level deep: a wrapper has no wrapper.
+    Wraps a slot binding's field in a component node. Each level names exactly one of `prop` or
+    `slot`: it takes the nested `wrap` when present, else the binding's field. Image and
+    reference fields go into the innermost level's `slot`.
   required: [component]
   additionalProperties: false
   properties:
@@ -610,20 +610,27 @@ MappingWrap:
       examples: ["ns:list_cell"]
     props:
       type: object
-      description: Fixed literal props of the wrapper; each key is a wrapper prop and matches its type.
+      description: >
+        Props of the wrapper; each key is a wrapper prop. A value `{ field, path? }` reads that
+        field of the mapped bundle (never an image or reference field); any other value is a
+        literal matching the prop's type.
       additionalProperties: true
       examples:
         - { caption: Versions }
+        - { tone: neutral, label: { field: field_status } }
     prop:
       type: string
-      description: Wrapper prop that takes the field value. Exclusive with slot.
+      description: Wrapper prop that takes the nested wrap or the field value. Exclusive with slot.
       pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
       examples: [value]
     slot:
       type: string
-      description: Wrapper slot that takes the field value. Exclusive with prop.
+      description: Wrapper slot that takes the nested wrap or the field value. Exclusive with prop.
       pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
       examples: [content]
+    wrap:
+      $ref: "#/MappingWrap"
+      description: Inner wrapper placed into this level's prop or slot.
 
 CompositionComponentSnapshot:
   type: object

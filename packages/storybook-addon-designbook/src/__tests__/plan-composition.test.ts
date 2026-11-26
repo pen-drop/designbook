@@ -13,7 +13,7 @@ import { parsePlan, serializePlan, planDigest, type Plan, type PlanTask } from '
 import { deriveComposition, renderCompositionTree } from '../workflow/plan-composition.js';
 import { compilePlannedMapping } from '../workflow/plan-composition-result.js';
 import type { DesignbookConfig } from '../shared/config.js';
-import { signageMeta, LIST_CELL } from './fixtures/plans/signage-meta.js';
+import { signageMeta, withBadge, LIST_CELL, BADGE } from './fixtures/plans/signage-meta.js';
 
 const agents = resolve(process.cwd(), '../../.agents');
 const vueOpts = {
@@ -1479,5 +1479,123 @@ describe('deriveComposition — several and wrapped slot bindings', () => {
     bindingsOf(list)[5]!.wrap = { component: LIST_CELL, props: { caption: 'Items' }, slot: 'content' };
     const { errors } = await buildPlan(list, vueOpts);
     expect(errors).toEqual([]);
+  });
+});
+
+describe('deriveComposition — field-valued and nested wrap', () => {
+  type B = Array<Record<string, unknown>>;
+  /** Binding 3 (`field_version` in `meta`) wrapped in list_cell → badge, badge tone read from a field. */
+  function nested(): TaskList {
+    const list = withBadge(signageMeta(fixture));
+    const b = list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage')!.params!.bindings as B;
+    b[3]!.wrap = {
+      component: LIST_CELL,
+      props: { caption: 'Version' },
+      slot: 'content',
+      wrap: { component: BADGE, props: { tone: { field: 'field_license' } }, prop: 'label' },
+    };
+    return list;
+  }
+  const bindingsOf = (list: TaskList): B =>
+    list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage')!.params!.bindings as B;
+  const outer = (b: B) => b[3]!.wrap as Record<string, unknown>;
+  const inner = (b: B) => outer(b).wrap as Record<string, unknown>;
+
+  it('accepts a nested binding with field-valued props', async () => {
+    const { errors } = await buildPlan(nested(), vueOpts);
+    expect(errors).toEqual([]);
+  });
+
+  it('renders a nested wrapped binding in the composition tree', async () => {
+    const { plan } = await buildPlan(nested(), vueOpts);
+    const text = renderCompositionTree(deriveComposition(plan!).tree);
+    expect(text).toMatch(
+      new RegExp(
+        [
+          'slot meta ← field_version',
+          `[│ ]*└─ ${LIST_CELL} \\(neu\\)`,
+          '[│ ]*└─ slot content',
+          `[│ ]*└─ ${BADGE} \\(neu\\)`,
+          '[│ ]*├─ prop tone ← field_license',
+          '[│ ]*└─ prop label ← field_version',
+        ].join('\n'),
+      ),
+    );
+  });
+
+  it.each([
+    [
+      'unknown field in a wrap prop',
+      (b: B) => {
+        outer(b).props = { caption: { field: 'nope' } };
+      },
+      'bindings[3].wrap.props.caption: unknown field nope',
+    ],
+    [
+      'image field as a wrap prop',
+      (b: B, list: TaskList) => {
+        const model = list.composition!.data_model as {
+          content: { paragraph: { signage: { fields: Record<string, unknown> } } };
+        };
+        model.content.paragraph.signage.fields.field_logo = { type: 'image', title: 'Logo' };
+        outer(b).props = { caption: { field: 'field_logo' } };
+      },
+      'bindings[3].wrap.props.caption: field_logo is an image or reference field',
+    ],
+    [
+      'reference field as a wrap prop',
+      (b: B) => {
+        inner(b).props = { tone: { field: 'field_signage_item' } };
+      },
+      'bindings[3].wrap.wrap.props.tone: field_signage_item is an image or reference field',
+    ],
+    [
+      'nested wrap without prop or slot',
+      (b: B) => {
+        delete outer(b).slot;
+      },
+      'bindings[3].wrap: names neither prop nor slot',
+    ],
+    [
+      'duplicate prop at the inner level',
+      (b: B) => {
+        inner(b).props = { label: 'x' };
+      },
+      'bindings[3].wrap.wrap.props.label: duplicates wrap.prop',
+    ],
+    [
+      'unknown inner component',
+      (b: B) => {
+        inner(b).component = 'test_integration_vue:nope';
+      },
+      'bindings[3].wrap.wrap.component: no contract for test_integration_vue:nope',
+    ],
+    [
+      'unknown inner prop',
+      (b: B) => {
+        inner(b).prop = 'nope';
+      },
+      'bindings[3].wrap.wrap.prop: unknown prop nope',
+    ],
+    [
+      'inner literal mismatch',
+      (b: B) => {
+        inner(b).props = { tone: 'loud' };
+      },
+      'bindings[3].wrap.wrap.props.tone: literal does not match string',
+    ],
+    [
+      'reference field into the innermost prop',
+      (b: B) => {
+        b[5]!.wrap = { component: LIST_CELL, slot: 'content', wrap: { component: BADGE, prop: 'label' } };
+      },
+      'bindings[5].wrap.wrap.prop: field_signage_item requires wrap.slot',
+    ],
+  ])('rejects an invalid nested wrapper: %s', async (_name, mutate, message) => {
+    const list = nested();
+    mutate(bindingsOf(list), list);
+    const { plan, errors } = await buildPlan(list, vueOpts);
+    expect(plan).toBeNull();
+    expect(errors.join('\n')).toContain(message);
   });
 });

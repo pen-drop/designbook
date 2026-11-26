@@ -14,7 +14,7 @@ import {
   validateCompositionResult,
   verifyReusedMappingSources,
 } from '../plan-composition-result.js';
-import { signageMeta, LIST_CELL } from '../../__tests__/fixtures/plans/signage-meta.js';
+import { signageMeta, withBadge, LIST_CELL, BADGE } from '../../__tests__/fixtures/plans/signage-meta.js';
 import type { DesignbookConfig } from '../../shared/config.js';
 import jsonata from 'jsonata';
 import { deriveComposition, renderCompositionTree } from '../plan-composition.js';
@@ -673,5 +673,84 @@ describe('compilePlannedMapping — several and wrapped slot bindings', () => {
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe('compilePlannedMapping — field-valued and nested wrap', () => {
+  /** Signage with `meta` holding only `binding`, plus a badge component. */
+  function withMeta(binding: Record<string, unknown>): TaskList {
+    const list = withBadge(signageMeta(fixture));
+    const map = list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage')!;
+    const b = map.params!.bindings as unknown[];
+    map.params!.bindings = [b[0], b[1], { field: 'field_version', slot: 'meta', ...binding }, b[4]];
+    return list;
+  }
+
+  async function compiled(binding: Record<string, unknown>): Promise<string> {
+    const plan = await buildSignage(withMeta(binding));
+    return compilePlannedMapping(findTask(plan, 'map-entity', 'signage'), plan);
+  }
+
+  it('compiles a field-valued wrap prop', async () => {
+    expect(
+      await compiled({
+        wrap: { component: BADGE, props: { tone: { field: 'field_license' } }, prop: 'label' },
+      }),
+    ).toContain(
+      `"meta": { "component": "${BADGE}", "props": { "tone": $fields.field_license, "label": $fields.field_version } }`,
+    );
+    expect(
+      await compiled({
+        wrap: { component: BADGE, props: { tone: { field: 'field_license', path: ['value'] } }, prop: 'label' },
+      }),
+    ).toContain('"tone": $fields.field_license.value,');
+  });
+
+  it('compiles a nested wrap into the outer slot', async () => {
+    expect(
+      await compiled({
+        wrap: {
+          component: LIST_CELL,
+          props: { caption: 'Version' },
+          slot: 'content',
+          wrap: { component: BADGE, props: { tone: 'neutral' }, prop: 'label' },
+        },
+      }),
+    ).toContain(
+      `"meta": { "component": "${LIST_CELL}", "props": { "caption": "Version" }, "slots": { "content": { "component": "${BADGE}", "props": { "tone": "neutral", "label": $fields.field_version } } } }`,
+    );
+  });
+
+  it('compiles a nested wrap with field-valued props', async () => {
+    const out = await compiled({
+      wrap: {
+        component: LIST_CELL,
+        props: { caption: { field: 'field_license' } },
+        prop: 'value',
+        wrap: { component: BADGE, props: { tone: 'info' }, prop: 'label' },
+      },
+    });
+    expect(out).toContain(
+      `"meta": { "component": "${LIST_CELL}", "props": { "caption": $fields.field_license, "value": { "component": "${BADGE}", "props": { "tone": "info", "label": $fields.field_version } } } }`,
+    );
+  });
+
+  it('accepts the compiled nested mapping and rejects a differing one', async () => {
+    const plan = await buildSignage(
+      withMeta({
+        wrap: {
+          component: LIST_CELL,
+          props: { caption: 'Version' },
+          slot: 'content',
+          wrap: { component: BADGE, props: { tone: { field: 'field_license' } }, prop: 'label' },
+        },
+      }),
+    );
+    const task = findTask(plan, 'map-entity', 'signage');
+    const expr = compilePlannedMapping(task, plan);
+    expect(await validateCompositionResult(plan, task, { 'entity-mapping': expr })).toEqual({ ok: true, errors: [] });
+    const differing = expr.replace('"label": $fields.field_version', '"label": $fields.field_license');
+    expect(differing).not.toBe(expr);
+    expect((await validateCompositionResult(plan, task, { 'entity-mapping': differing })).ok).toBe(false);
   });
 });
