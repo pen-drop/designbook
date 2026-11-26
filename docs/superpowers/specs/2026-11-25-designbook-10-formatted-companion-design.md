@@ -15,6 +15,11 @@ the companion when the record has one; a prop keeps the raw value. The mapping a
 stay unchanged: a slot-filled field is already a `field_block` with its formatter. The sections below
 describe the first design; where they bind `<field>_formatted`, this revision wins.
 
+Storybook evaluates the mapping twice, once over the raw record and once over the display record.
+When the display evaluation throws (a mapping that computes on the base field, e.g.
+`$number(field) - 1`), the scene uses the raw result. Known limit: a condition on a field with a
+companion can take a different branch over the display string.
+
 ## Goals (acceptance AC-1…AC-8)
 
 - A record with a declared `<field>` and a string `<field>_formatted` validates. The data model

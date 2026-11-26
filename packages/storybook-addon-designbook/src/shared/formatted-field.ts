@@ -1,5 +1,5 @@
 /** Suffix of a sample-data display companion: `<field>_formatted` holds `<field>`'s display string. */
-export const FORMATTED_SUFFIX = '_formatted';
+const FORMATTED_SUFFIX = '_formatted';
 
 /** The base field of a `<field>_formatted` companion name, or undefined when `name` is not one. */
 export function formattedBase(name: string): string | undefined {
@@ -53,5 +53,6 @@ function slotValue(raw: unknown, display: unknown): unknown {
   }
   if (isTree(raw)) return withSlotDisplay(raw, display);
   // Shapes differ only when a condition reads the companion's field; keep the raw value then.
+  // shortcut: a condition with the same shape on both sides (e.g. `field = 0 ? a : b`) may pick another branch over the display string; evaluate conditions on the raw record if that bites.
   return raw === null || raw === undefined || isTree(display) || Array.isArray(display) ? raw : display;
 }

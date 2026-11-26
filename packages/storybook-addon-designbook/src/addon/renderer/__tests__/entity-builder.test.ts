@@ -162,6 +162,19 @@ describe('entityBuilder', () => {
     ]);
   });
 
+  it('build() keeps the raw result when the mapping cannot evaluate over the companion', async () => {
+    const ctx = makeCtx({
+      sampleData: {
+        content: { node: { release: [{ title: 'Release', field_downloads: 3, field_downloads_formatted: 'three' }] } },
+      },
+    });
+    const result = await entityBuilder.build(
+      { type: 'entity', entity_type: 'node', bundle: 'release', view_mode: 'computed', record: 0 },
+      ctx,
+    );
+    expect(result.nodes).toEqual([{ component: 'teaser', props: { count: 2 }, slots: { title: 'Release' } }]);
+  });
+
   it('build() returns placeholder for missing jsonata file', async () => {
     const node = {
       type: 'entity',
