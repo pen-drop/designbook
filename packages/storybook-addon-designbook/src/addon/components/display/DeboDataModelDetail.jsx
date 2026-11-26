@@ -97,10 +97,9 @@ function FieldsTable({ fields }) {
                 <DeboTable.Mono>{JSON.stringify(def.settings)}</DeboTable.Mono>
               </SubRow>
             )}
-            {def.sample_template && (
+            {def.hint && (
               <SubRow>
-                <strong>sample_template:</strong>{' '}
-                <DeboTable.Mono>{JSON.stringify(def.sample_template)}</DeboTable.Mono>
+                <strong>hint:</strong> {def.hint}
               </SubRow>
             )}
             {def.description && (
@@ -148,7 +147,7 @@ function ViewModesSection({ entityType, bundle, viewModes }) {
         <ViewModeCard key={name}>
           <ViewModeTitle>{name}</ViewModeTitle>
           <MetaLine>
-            <strong>template:</strong> <DeboTable.Mono>{def.template}</DeboTable.Mono>
+            <strong>builder:</strong> <DeboTable.Mono>{def.builder}</DeboTable.Mono>
           </MetaLine>
           {def.settings && (
             <MetaLine>
@@ -174,7 +173,7 @@ function FormModesSection({ entityType, bundle, formModes }) {
         <ViewModeCard key={name}>
           <ViewModeTitle>{name}</ViewModeTitle>
           <MetaLine>
-            <strong>template:</strong> <DeboTable.Mono>{def.template}</DeboTable.Mono>
+            <strong>builder:</strong> <DeboTable.Mono>{def.builder}</DeboTable.Mono>
           </MetaLine>
           {def.settings && (
             <MetaLine>

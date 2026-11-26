@@ -171,7 +171,7 @@ describe('buildPlan', () => {
     expect(plan).not.toBeNull();
   });
 
-  it('rejects a field-map map-entity without a target component', async () => {
+  it('rejects an entity-binding map-entity without a target component', async () => {
     const { plan, errors } = await buildPlan(
       {
         workflow: 'design-entity',
@@ -182,7 +182,7 @@ describe('buildPlan', () => {
               paragraph: {
                 signage: {
                   fields: { field_title: { type: 'string' } },
-                  view_modes: { full: { template: 'field-map' } },
+                  view_modes: { full: { builder: 'entity-binding' } },
                 },
               },
             },
@@ -294,7 +294,7 @@ describe('buildPlan', () => {
               paragraph: {
                 signage: {
                   fields: { field_title: { type: 'string' } },
-                  view_modes: { full: { template: 'field-map' } },
+                  view_modes: { full: { builder: 'entity-binding' } },
                 },
               },
             },

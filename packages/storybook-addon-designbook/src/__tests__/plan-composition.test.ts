@@ -770,16 +770,16 @@ describe('buildPlan composition sealing', () => {
     expect(errors.join('\n')).toMatch(/declared target/);
   });
 
-  it('rejects a canvas view-mode template as an unsupported mapping structure', async () => {
+  it('rejects a canvas view-mode builder as unsupported', async () => {
     const list = structuredClone(fixture);
     const model = list.composition!.data_model as {
-      content: { paragraph: { signage: { view_modes: { full: { template: string } } } } };
+      content: { paragraph: { signage: { view_modes: { full: { builder: string } } } } };
     };
-    model.content.paragraph.signage.view_modes.full.template = 'canvas';
+    model.content.paragraph.signage.view_modes.full.builder = 'canvas';
     const { plan, errors } = await buildPlan(list, vueOpts);
     expect(plan).toBeNull();
     expect(errors.join('\n')).toMatch(/paragraph\.signage/);
-    expect(errors.join('\n')).toMatch(/unsupported structure/);
+    expect(errors.join('\n')).toMatch(/unsupported builder/);
     expect(errors.join('\n')).toMatch(/canvas/);
   });
 });
@@ -837,7 +837,7 @@ function canvasTaskList(): TaskList {
           canvas_page: {
             landing_page: {
               fields: { components: { type: 'component_tree' } },
-              view_modes: { full: { template: 'canvas' } },
+              view_modes: { full: { builder: 'canvas' } },
             },
           },
         },
@@ -1029,21 +1029,21 @@ describe('deriveComposition — component_tree mapping contract', () => {
     expect(errors).not.toMatch(/aside.*ComponentNode/);
   });
 
-  it('activates on the field type alone, whatever the field and template are called', async () => {
+  it('activates on the field type alone, whatever the field and builder are called', async () => {
     const list = withRecords(canvasTaskList(), [{ id: 'home', values: { layout: pageTree } }]);
     Object.assign(landingModel(list), {
       fields: { layout: { type: 'component_tree' } },
-      view_modes: { full: { template: 'field-map' } },
+      view_modes: { full: { builder: 'entity-binding' } },
     });
     const text = await treeText(list);
     expect(text).toContain('canvas_page.landing_page [full]');
     expect(text).toContain('test_integration_vue:rich_snippet (neu)');
   });
 
-  it('does not walk a canvas template without a component_tree field', async () => {
+  it('does not walk a canvas builder without a component_tree field', async () => {
     const list = canvasTaskList();
     landingModel(list).fields = { components: { type: 'json' } };
-    expect(await buildErrors(list)).toMatch(/landing_page:full uses unsupported structure canvas/);
+    expect(await buildErrors(list)).toMatch(/landing_page:full uses unsupported builder canvas/);
   });
 });
 
@@ -1214,7 +1214,7 @@ describe('deriveComposition — component_tree display', () => {
               settings: { target_type: 'canvas_page', target_bundle: 'landing_page' },
             },
           },
-          view_modes: { full: { template: 'field-map' } },
+          view_modes: { full: { builder: 'entity-binding' } },
         },
       },
     });
@@ -1329,11 +1329,11 @@ describe('deriveComposition — component_tree identity and node shape', () => {
   });
 });
 
-describe('deriveComposition — field-map and frozen tree mappings', () => {
+describe('deriveComposition — entity-binding and frozen tree mappings', () => {
   it.each([
-    ['bindings', /map-entity \[signage_item\] bindings: field-map mapping requires bindings/],
-    ['component', /map-entity \[signage_item\] component: field-map mapping requires a component/],
-  ])('rejects a field-map mapping without %s', async (key, message) => {
+    ['bindings', /map-entity \[signage_item\] bindings: entity-binding mapping requires bindings/],
+    ['component', /map-entity \[signage_item\] component: entity-binding mapping requires a component/],
+  ])('rejects an entity-binding mapping without %s', async (key, message) => {
     const list = structuredClone(fixture);
     const child = list.tasks.find((t) => t.step === 'map-entity' && t.title === 'signage_item')!;
     delete child.params![key];

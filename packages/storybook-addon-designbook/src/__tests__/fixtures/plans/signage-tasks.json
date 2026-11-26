@@ -25,7 +25,7 @@
               "settings": { "target_type": "paragraph", "target_bundle": "signage_item" }
             }
           },
-          "view_modes": { "full": { "template": "field-map" } }
+          "view_modes": { "full": { "builder": "entity-binding" } }
         },
         "signage_item": {
           "title": "Wegweiser Element",
@@ -37,7 +37,7 @@
             "field_button_anonymous": { "type": "link", "title": "Button anonym" },
             "field_button_authenticated": { "type": "link", "title": "Button angemeldet" }
           },
-          "view_modes": { "full": { "template": "field-map" } }
+          "view_modes": { "full": { "builder": "entity-binding" } }
         }
       }
       }
