@@ -28,16 +28,16 @@ definitions:
   bundle:
     type: object
     title: Bundle
-    description: Bundle definition with its fields and view mode template mappings
+    description: Bundle definition with its fields and view mode builders
     properties:
       purpose:
         type: string
         title: Purpose
-        description: "Semantic intent of this bundle (e.g. landing-page, article, section). Drives view_modes template selection and sample data generation via extension rules."
+        description: "Semantic intent of this bundle (e.g. landing-page, article, section). Drives view_modes builder selection and sample data generation via extension rules."
       view_modes:
         type: object
         title: View Modes
-        description: "Per-view-mode mapping configuration: view_mode_name -> { template, settings }"
+        description: "Per-view-mode mapping configuration: view_mode_name -> { builder, settings }"
         additionalProperties:
           $ref: "#/definitions/view_mode"
       fields:
@@ -53,17 +53,17 @@ definitions:
     title: View Mode
     description: View mode mapping configuration
     properties:
-      template:
+      builder:
         type: string
-        title: Template
-        description: "Mapping template to use (e.g. field-map, layout-builder, canvas, view-entity). Must match a registered rule in skills/*/rules/*.md with when: template: <name>."
+        title: Builder
+        description: "What builds this view mode (e.g. entity-binding, list-binding, theme, layout-builder, canvas)."
       settings:
         type: object
         title: Settings
-        description: Optional template-specific settings passed as context to the template rule. Each template documents its supported settings.
+        description: Optional builder-specific settings. Each builder documents its supported settings.
         additionalProperties: true
     required:
-      - template
+      - builder
     additionalProperties: false
 
   field:
@@ -92,22 +92,10 @@ definitions:
         type: object
         description: Field-specific settings
         additionalProperties: true
-      sample_template:
-        type: object
-        title: Sample Template
-        description: Template configuration for sample data generation. Defines how field values are structured when generating data.yml.
-        properties:
-          template:
-            type: string
-            description: "Template name — must match a rule in skills/*/rules/*.md with when: template: <name>. Common values: formatted-text, link, image."
-          settings:
-            type: object
-            title: Settings
-            description: "Optional template-specific settings. settings.hint guides content generation. Other keys are template-specific and documented per template."
-            additionalProperties: true
-        required:
-          - template
-        additionalProperties: false
+      hint:
+        type: string
+        title: Hint
+        description: Optional guidance for generating this field's sample values.
     required:
       - type
     additionalProperties: true
