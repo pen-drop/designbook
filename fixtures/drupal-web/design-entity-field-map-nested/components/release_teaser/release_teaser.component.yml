@@ -1,0 +1,16 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Release teaser
+status: stable
+group: Content
+description: A release title followed by a row of meta items.
+provider: test_integration_drupal
+props:
+  type: object
+  properties:
+    title:
+      type: string
+      title: Title
+slots:
+  meta:
+    title: Meta
+    description: Meta items shown below the title.

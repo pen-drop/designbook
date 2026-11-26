@@ -1,0 +1,16 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Badge
+status: stable
+group: Content
+description: A short label with a tone.
+provider: test_integration_drupal
+props:
+  type: object
+  properties:
+    tone:
+      type: string
+      title: Tone
+      enum: [neutral, info]
+    label:
+      type: string
+      title: Label

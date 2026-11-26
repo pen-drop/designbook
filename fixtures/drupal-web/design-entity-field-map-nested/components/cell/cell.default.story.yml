@@ -1,0 +1,6 @@
+name: Default
+props:
+  caption: Version
+  align: end
+slots:
+  value: '1.0'
