@@ -3,9 +3,6 @@
   [
     {
       "component": "test_integration_drupal:release_teaser",
-      "props": {
-        "title": $fields.title
-      },
       "slots": {
         "meta": [$fields.field_downloads_formatted, $fields.field_rating_formatted]
       }

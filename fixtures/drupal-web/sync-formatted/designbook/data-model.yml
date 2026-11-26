@@ -12,10 +12,6 @@ content:
                 type: number_unformatted
                 settings: {}
       fields:
-        title:
-          type: string
-          title: Title
-          required: true
         field_downloads:
           type: integer
           title: Downloads

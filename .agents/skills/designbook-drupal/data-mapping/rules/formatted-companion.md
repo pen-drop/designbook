@@ -14,6 +14,8 @@ from `<field>`'s type.
 
 ## Constraints
 
+- Bind the companion directly into a slot of the target component, without `wrap`: a wrapper's
+  prop reads the raw field property, so only a slot carries the formatted display.
 - Place `<field>` (`field_block:<et>:<bundle>:<field>`) where the companion is bound.
 - The export holds no `field.storage.*`, no `field.field.*` and no placement named after
   `<field>_formatted`.

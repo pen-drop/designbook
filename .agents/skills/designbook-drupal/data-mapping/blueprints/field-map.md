@@ -104,13 +104,12 @@ compiles to
 
 ## Formatted Companion Binding
 
-A binding to `<field>_formatted` (the sample-data display companion of a declared `<field>`) compiles like a string field, `$fields.<field>_formatted`. In Drupal it is the display of `<field>` through a field formatter: the exported display places `<field>` in the binding's slot with the formatter derived from `<field>`'s type, or the one `formatters` names.
+A binding to `<field>_formatted` (the sample-data display companion of a declared `<field>`) compiles like a string field, `$fields.<field>_formatted`, and fills a slot of the target component directly. In Drupal it is the display of `<field>` through a field formatter: the exported display places `<field>` in the binding's slot with the formatter derived from `<field>`'s type, or the one `formatters` names.
 
 ```yaml
 bindings:
   - field: field_downloads_formatted
     slot: meta
-    wrap: { component: "$DESIGNBOOK_COMPONENT_NAMESPACE:list_cell", props: { caption: Downloads }, prop: value }
 ```
 
 ## Rules

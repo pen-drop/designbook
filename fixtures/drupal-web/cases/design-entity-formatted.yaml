@@ -12,12 +12,11 @@ prompt: |
   You are working in the directory {{workspace}}.
   Run the /debo design-entity workflow for the "node.release" entity, "teaser" view mode.
   Do NOT ask any questions. There is no graphical reference for this case.
-  Reuse the existing release_teaser and list_cell components unchanged; create no new component.
+  Reuse the existing release_teaser component unchanged; create no new component.
   Map the release fields to release_teaser:
     title→title.
     The meta slot holds one item: field_downloads_formatted (the display companion of the
-    integer field_downloads) inside a list_cell with the fixed caption "Downloads"; the companion
-    fills list_cell's value prop.
+    integer field_downloads), bound directly into the slot.
   Create exactly two sample records in section "releases", in this order:
     1. id "r1": title "Release 1.0", field_downloads 12400, field_downloads_formatted "12,400".
     2. id "r2": title "Release 2.0", field_downloads 980, field_downloads_formatted "980".
@@ -30,6 +29,11 @@ prompt: |
   Execute the workflow now.
 
 evidence:
+  files:
+    - components/list_cell/list_cell.component.yml
+    - components/list_cell/list_cell.twig
+    - components/release_teaser/release_teaser.component.yml
+    - components/release_teaser/release_teaser.twig
   mappings:
     - file: designbook/entity-mapping/node.release.teaser.jsonata
       data: designbook/data/node.release.yml
@@ -52,10 +56,13 @@ assert:
       return src.includes('$fields.field_downloads_formatted') && !/\$fields\.field_downloads(?!_formatted)\b/.test(src);
   - type: javascript
     value: |-
-      const cells = []; const walk = v => { if (!v || typeof v !== 'object') return; if (v.component === 'test_integration_drupal:list_cell') cells.push(v); Object.values(v).forEach(walk); };
-      walk(output.mappingResults['designbook/entity-mapping/node.release.teaser.jsonata']);
-      return cells.length === 1 && cells[0].props?.value === '12,400' && cells[0].props?.caption === 'Downloads';
+      const nodes = [].concat(output.mappingResults['designbook/entity-mapping/node.release.teaser.jsonata'] || []);
+      const teaser = nodes.find(n => n?.component === 'test_integration_drupal:release_teaser');
+      return [].concat(teaser?.slots?.meta ?? []).join('|') === '12,400';
   - type: javascript
     value: |-
-      const expected = {'components/list_cell/list_cell.component.yml':'9c446b9af3322412f3c27fcb4f4ed314a279a8ad7677d4d8d36fe2b37ddcc0e8','components/list_cell/list_cell.twig':'58e5b2911adab3a93a3c03c52154e69995e016c19eb6d5dc5d630dc95342565e','components/release_teaser/release_teaser.component.yml':'6829cdd9ae186ce03fdb52f1c51253cc6e9210b712fb7de3a7d354e2e9ccdcdc','components/release_teaser/release_teaser.twig':'6e0a83e0ecb570dc027d43b502a6bffb98ca0dea4f01ab0234d26ad9e94a54c8'};
-      return Object.entries(expected).every(([file, hash]) => Object.entries(output.fileHashes).some(([path, actual]) => path.endsWith(file) && actual === hash));
+      return ['components/list_cell/list_cell.component.yml', 'components/list_cell/list_cell.twig',
+        'components/release_teaser/release_teaser.component.yml', 'components/release_teaser/release_teaser.twig']
+        .every(file => output.unchangedFiles.includes(file))
+  - type: javascript
+    value: JSON.stringify(output.componentIds.sort()) === JSON.stringify(output.baselineComponentIds.sort())
