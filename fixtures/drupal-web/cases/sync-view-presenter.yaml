@@ -50,7 +50,7 @@ assert:
     value: |
       const cfg = output.newFiles.filter(p => /files\/sync\/.*\.yml$/.test(p)).join('\n');
       return /views\.view\.articles/.test(cfg);
-  # Exactly one view theme template template was written for the view wrapper (base theme-hook
+  # Exactly one view theme template was written for the view wrapper (base theme-hook
   # `views-view`, or its per-view suggestion `views-view--articles`).
   - type: javascript
     value: |
@@ -58,7 +58,7 @@ assert:
       const templates = marker?.theme_templates || [];
       const viewPresenters = templates.filter(p => /views[-_]view/.test(p));
       return viewPresenters.length === 1;
-  # Exactly one Pager theme template template was written for the pager region (base theme-hook
+  # Exactly one Pager theme template was written for the pager region (base theme-hook
   # `pager`, or its per-view suggestion `pager--articles`), distinct from the view wrapper.
   - type: javascript
     value: |

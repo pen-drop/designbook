@@ -6,7 +6,7 @@
 # the WITH-Display-Builder branch:
 #   - the view binds directly through the Display Builder page config (the same mechanism a
 #     Canvas/Layout-Builder page uses for its own build form) — NOT through a generated
-#     view theme template. No view theme template template exists in this branch (negative assertion,
+#     view theme template. No view theme template exists in this branch (negative assertion,
 #     AC-6). This fixture encodes ONLY the decision rule (entity_mapping.builders: canvas) —
 #     it does not build or assert any Display-Builder config-emission mechanic, which is out of
 #     scope for this ticket;

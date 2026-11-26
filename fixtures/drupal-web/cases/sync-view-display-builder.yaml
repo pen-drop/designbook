@@ -6,7 +6,7 @@
 # (data-mapping/blueprints/list-binding.md) this puts the view in the WITH-Display-Builder branch:
 #   - the view binds directly through the Display Builder page config — NO view theme template
 #     (no views-view*.html.twig wrapper) is generated for it. This is a NEGATIVE assertion
-#     (AC-6): proof that no view theme template template is written anywhere in the sync output.
+#     (AC-6): proof that no view theme template is written anywhere in the sync output.
 #   - the pager region still binds through its own dedicated Pager blueprint (V-5), independent
 #     of the build-form branch, as a Pager theme template that calls the Pager SDC (AC-9).
 # This fixture encodes ONLY the decision rule (entity_mapping.builders: canvas) — it does not
@@ -58,7 +58,7 @@ assert:
     value: |
       const cfg = output.newFiles.filter(p => /files\/sync\/.*\.yml$/.test(p)).join('\n');
       return /views\.view\.articles/.test(cfg);
-  # NEGATIVE PROOF (AC-6): no view theme template template (base theme-hook `views-view`, or any
+  # NEGATIVE PROOF (AC-6): no view theme template (base theme-hook `views-view`, or any
   # per-view suggestion like `views-view--articles`) was written ANYWHERE in the sync-to output —
   # not just absent from the marker, but genuinely absent from every written file path. Scoped to
   # the actual sync-to output surfaces (theme templates + exported config under files/sync/);

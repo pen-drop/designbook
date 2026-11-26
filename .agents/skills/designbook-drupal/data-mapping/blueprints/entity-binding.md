@@ -11,7 +11,7 @@ filter:
 
 # Blueprint: Entity Binding
 
-Applies when a view mode declares `builder: entity-binding`. The plan names one target `component` and a `bindings` list. `plan instructions` for the map-entity step includes `expected_mapping`, the compiled JSONata `plan done` AST-compares against. A bundle with a `component_tree` field maps by passing that field through instead; a mapping whose view-mode builder is `layout-builder` or another builder than `entity-binding`, without such a field, is rejected at `plan build` with the selected target and unsupported builder.
+Applies when a view mode declares `builder: entity-binding`. The plan names one target `component` and a `bindings` list. `plan instructions` for the map-entity step includes `expected_mapping`, the compiled JSONata `plan done` AST-compares against. A bundle with a `component_tree` field maps by passing that field through instead; a mapping whose view-mode builder is `layout-builder` or a builder other than `entity-binding`, without such a field, is rejected at `plan build` with the selected target and unsupported builder.
 
 ## Pattern
 
