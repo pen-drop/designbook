@@ -1,0 +1,5 @@
+{
+  "component": "teaser",
+  "props": { "count": $number(field_downloads) - 1 },
+  "slots": { "title": title }
+}

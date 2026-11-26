@@ -25,6 +25,7 @@ Rules and resources for mapping Drupal fields to component props in the `map-ent
 - [data-mapping/blueprints/ui-patterns.md](data-mapping/blueprints/ui-patterns.md), [views.md](data-mapping/blueprints/views.md), [layout-builder-display.md](data-mapping/blueprints/layout-builder-display.md), [presenter-template.md](data-mapping/blueprints/presenter-template.md), [pager.md](data-mapping/blueprints/pager.md) — SDC/UI-Patterns mapping and display-config blueprints (`frameworks.component: sdc`)
 - [data-mapping/rules/image-fields.md](data-mapping/rules/image-fields.md) — Hard constraints for image and reference field mapping
 - [data-mapping/rules/field-cardinality.md](data-mapping/rules/field-cardinality.md) — Cardinality boundary: multi-value fields render as field-level collections; single-value fields may be unwrapped
+- [data-mapping/rules/formatted-companion.md](data-mapping/rules/formatted-companion.md) — A `<field>_formatted` sample-data companion never becomes Drupal config or content
 - [data-mapping/blueprints/canvas.md](data-mapping/blueprints/canvas.md) — Canvas-specific mapping blueprint
 - [data-mapping/blueprints/layout-builder.md](data-mapping/blueprints/layout-builder.md) — Layout Builder mapping blueprint
 - [data-mapping/resources/field-mapping.md](data-mapping/resources/field-mapping.md) — Drupal field type → component mapping guide

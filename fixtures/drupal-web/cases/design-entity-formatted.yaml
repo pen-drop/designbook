@@ -1,0 +1,68 @@
+workflow: design-entity
+validate: none
+
+fixtures:
+  - vision
+  - tokens
+  - css-generate
+  - design-entity-field-map-slots
+  - design-entity-formatted
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo design-entity workflow for the "node.release" entity, "teaser" view mode.
+  Do NOT ask any questions. There is no graphical reference for this case.
+  Reuse the existing release_teaser component unchanged; create no new component.
+  Map the release fields to release_teaser:
+    title→title.
+    The meta slot holds one item: the integer field_downloads, which the design shows with a
+    thousands separator ("12,400").
+  Create exactly two sample records in section "releases", in this order:
+    1. id "r1": title "Release 1.0", field_downloads 12400, field_downloads_formatted "12,400".
+    2. id "r2": title "Release 2.0", field_downloads 980, field_downloads_formatted "980".
+  The workflow must produce:
+    - designbook/data/node.release.yml (both records, each tagged __designbook.section)
+    - designbook/entity-mapping/node.release.teaser.jsonata (the mapping)
+  Present the composition tree before building the plan. After generating all files, run
+  `pnpm build-storybook` in the theme directory, then check each record's preview story with
+  `npx storybook-addon-designbook storybook check <story-url>`; record the story IDs you checked.
+  Execute the workflow now.
+
+evidence:
+  files:
+    - components/list_cell/list_cell.component.yml
+    - components/list_cell/list_cell.twig
+    - components/release_teaser/release_teaser.component.yml
+    - components/release_teaser/release_teaser.twig
+  mappings:
+    - file: designbook/entity-mapping/node.release.teaser.jsonata
+      data: designbook/data/node.release.yml
+
+assert:
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0
+  - type: javascript
+    value: output.completedWorkflows['design-entity']?.state?.status === 'completed'
+  - type: javascript
+    value: Object.values(output.completedWorkflows['design-entity']?.state?.tasks || {}).every(t => t.status === 'done')
+  - type: javascript
+    value: |-
+      const rows = output.fileContents['designbook/data/node.release.yml'];
+      return Array.isArray(rows) && rows.length === 2 && rows[0].id === 'r1' && rows[1].id === 'r2'
+        && rows.every(r => r.__designbook?.section === 'releases' && typeof r.field_downloads === 'number' && typeof r.field_downloads_formatted === 'string');
+  - type: javascript
+    value: |-
+      const src = (output.fileContents['designbook/entity-mapping/node.release.teaser.jsonata'] || '').replace(/\/\*[\s\S]*?\*\//g, '');
+      return /\$fields\.field_downloads\b/.test(src) && !src.includes('_formatted');
+  - type: javascript
+    value: |-
+      const nodes = [].concat(output.mappingResults['designbook/entity-mapping/node.release.teaser.jsonata'] || []);
+      const teaser = nodes.find(n => n?.component === 'test_integration_drupal:release_teaser');
+      return [].concat(teaser?.slots?.meta ?? []).join('|') === '12400';
+  - type: javascript
+    value: |-
+      return ['components/list_cell/list_cell.component.yml', 'components/list_cell/list_cell.twig',
+        'components/release_teaser/release_teaser.component.yml', 'components/release_teaser/release_teaser.twig']
+        .every(file => output.unchangedFiles.includes(file))
+  - type: javascript
+    value: JSON.stringify(output.componentIds.sort()) === JSON.stringify(output.baselineComponentIds.sort())

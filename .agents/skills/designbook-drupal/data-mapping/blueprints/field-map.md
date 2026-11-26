@@ -118,3 +118,13 @@ compiles to
 ## Supported Settings
 
 - `primary_image_field` — name of the media reference field mapped to the component's image slot with the reference-slot template above.
+- `formatters` — map `<field>: { type, settings }` in `view_modes.<vm>.settings`; overrides the formatter derived for `<field>` where it fills a slot in that view mode.
+
+```yaml
+view_modes:
+  full:
+    template: field-map
+    settings:
+      formatters:
+        field_rating: { type: number_unformatted, settings: {} }
+```

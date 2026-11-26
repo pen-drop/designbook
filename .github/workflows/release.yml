@@ -4,7 +4,8 @@ name: Release
 # - push to next: publishes <last v* tag, patch + 1>-next.<run> to npm under the `next` dist-tag.
 # - merge commit on main (the next -> main PR): the version comes from the Conventional Commits
 #   since the last v* tag (scripts/release-version.mjs). Publishes it as `latest`, tags the merged
-#   commit and creates the GitHub release; its notes are the changelog.
+#   commit and creates the GitHub release; its notes are the changelog plus the PR's
+#   `### Upgrade notes` and `### Known open issues`.
 # - pull request into next or main: the same plan and build as a dry run. Nothing is published,
 #   tagged or released; the job log shows the version and the notes.
 on:
@@ -90,4 +91,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: v${{ steps.plan.outputs.version }}
           COMMIT: ${{ steps.plan.outputs.commit }}
-        run: gh release create "$TAG" --target "$COMMIT" --title "$TAG" --notes-file "$RUNNER_TEMP/notes.md"
+        run: |
+          # The merged PR's own upgrade notes and known issues follow the changelog.
+          echo >> "$RUNNER_TEMP/notes.md"
+          gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" --jq '.[0].body // ""' \
+            | awk '/^#+ /{keep = /^### (Upgrade notes|Known open issues)[[:space:]]*$/} /^🤖/{keep = 0} keep' \
+            | tr -d '\r' >> "$RUNNER_TEMP/notes.md"
+          gh release create "$TAG" --target "$COMMIT" --title "$TAG" --notes-file "$RUNNER_TEMP/notes.md"

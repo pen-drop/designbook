@@ -1,0 +1,54 @@
+config: layout-builder.yml
+
+fixtures:
+  - vision
+  - tokens
+  - css-generate
+  - sync-formatted
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo sync-to workflow to export the node.release bundle to Drupal config.
+  Filter the export to entity_type=node. Read designbook.config.yml, the data model and
+  designbook/entity-mapping/node.release.full.jsonata, and route each config unit per the sync-to
+  transform guidance. Author the per-config-name JSONata against the prepare-fetched schema, write
+  each config YAML, validate, and run drush config:import. Do NOT ask any questions; if a decision
+  cannot be made from the data model + fixtures, fail the run.
+
+  After the import, WRITE THE EVIDENCE MARKER designbook/sync-node-formatted.yml with EXACTLY
+  these keys, read from the written config files:
+    written_config: <array of every config name sync-to wrote>
+    field_blocks: <map of each field_block configuration.id in
+      core.entity_view_display.node.release.full to its formatter.type>
+  Execute now.
+
+expected_config:
+  - node.type.release
+  - field.storage.node.field_downloads
+  - field.storage.node.field_rating
+  - field.field.node.release.field_downloads
+  - field.field.node.release.field_rating
+  - core.entity_view_display.node.release.full
+
+metric: |
+  (
+    $vpr := validate_pass_rate;
+    $er := existence_rate;
+    $base := 0.6 * $vpr + 0.4 * $er;
+    cim_ok ? $base * 100 : $base * 50
+  )
+direction: max
+
+assert:
+  - type: javascript
+    value: output.completedWorkflows['sync-to']?.state?.status === 'completed'
+  - type: javascript
+    value: output.fileContents['designbook/sync-node-formatted.yml']?.field_blocks?.['field_block:node:release:field_downloads'] === 'number_integer'
+  - type: javascript
+    value: output.fileContents['designbook/sync-node-formatted.yml']?.field_blocks?.['field_block:node:release:field_rating'] === 'number_unformatted'
+  - type: javascript
+    value: |-
+      const marker = output.fileContents['designbook/sync-node-formatted.yml'];
+      const synced = output.newFiles.filter(p => /files\/sync\//.test(p));
+      const names = [...(marker?.written_config || []), ...Object.keys(marker?.field_blocks || {}), ...synced];
+      return names.length > 0 && !names.some(n => n.includes('_formatted'));

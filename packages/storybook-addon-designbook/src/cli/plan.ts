@@ -174,9 +174,10 @@ export function register(program: Command): void {
         } catch (err: unknown) {
           return fail(err instanceof Error ? err.message : String(err));
         }
-        writePlan(target, serializePlan(built));
+        // Derive before writing: a failed build must leave no plan for a retry to duplicate.
         const tree = compositionTree(built);
         if (!tree) return;
+        writePlan(target, serializePlan(built));
         if (format === 'json') {
           print({
             ok: true,

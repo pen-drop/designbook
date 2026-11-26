@@ -677,6 +677,32 @@ describe('plan build --name', () => {
     }
   });
 
+  it('writes no plan when the composition tree cannot be derived', async () => {
+    const { dir, dataDir, configPath, tasksPath } = setupFixture();
+    const taskList = JSON.parse(readFileSync(tasksPath, 'utf8'));
+    writeFileSync(tasksPath, JSON.stringify({ ...taskList, composition: { data_model: {} } }));
+    try {
+      process.exitCode = undefined;
+      await runCli([
+        'plan',
+        'build',
+        'vision',
+        '--tasks',
+        tasksPath,
+        '--name',
+        'broken composition',
+        '--config-dir',
+        workspaceRoot,
+        '--config',
+        configPath,
+      ]).catch(() => undefined);
+      expect(existsSync(join(dataDir, 'plans'))).toBe(false);
+    } finally {
+      process.exitCode = undefined;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('rejects a --name that normalizes to an empty slug', async () => {
     const { dir, configPath, tasksPath } = setupFixture();
     try {
