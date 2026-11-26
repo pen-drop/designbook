@@ -59,16 +59,16 @@ ExportSummary:
     count:
       type: integer
       description: Total number of output files written.
-    presenter_templates:
+    theme_templates:
       type: array
       description: >
-        Paths of the presenter-template files this run wrote — one per surface
-        (`template: presenter`) whose presentation the display config cannot express. Empty when
-        every surface was declaratively bindable (`template: field-map`). The concrete markup
+        Paths of the theme template files this run wrote — one per surface
+        (`builder: theme`) whose presentation the display config cannot express. Empty when
+        every surface was declaratively bindable (`builder: entity-binding`). The concrete markup
         form and path are a backend concern — the paths here are opaque.
       items:
         type: string
-        description: Path of one written presenter-template.
+        description: Path of one written theme template.
     uncovered_units:
       type: array
       description: >
@@ -153,14 +153,14 @@ SyncUnit:
         The relevant definition object from the data model — bundle def (fields, view_modes,
         purpose, etc.) for content-derived units, or config def for config-slice units. Used by
         the generator to author the transform.
-    build_form:
+    builder:
       type: string
       description: >
         Page build form for a Scene-derived unit — the presentation surface the page's output is
-        authored against. Taken (not guessed) from the full view-mode `template` of the page
-        bundle in the data model, on the same backend-neutral `template` axis as view- and
-        form-mode templates: a free string whose allowed values come from `entity_mapping.templates`
+        authored against. Taken (not guessed) from the full view-mode `builder` of the page
+        bundle in the data model, on the same backend-neutral `builder` axis as view- and
+        form-mode builders: a free string whose allowed values come from `entity_mapping.builders`
         in `designbook.config.yml`, with the concrete technology behind each value set by the
-        active `backend` — not enum-fixed here. The `template → build_form → output` mapping (the
+        active `backend` — not enum-fixed here. The `builder → output` mapping (the
         *how* of each form) lives in the backend integration's data-mapping blueprints. Absent on
         config/data-model-derived units.

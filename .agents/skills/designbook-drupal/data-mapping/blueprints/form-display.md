@@ -39,8 +39,8 @@ at runtime, so an empty form display imports cleanly and stays out of the field-
 widget-configuration semantics that are out of scope. Drupal computes `dependencies` at import; do not
 hand-author the full dependency graph.
 
-A form is a theme-methods-only surface, so its **presentation runs through a presenter-template**
-(`template: presenter` on the form mode), generated as Twig theme markup — not authored here. This
+A form is a theme-methods-only surface, so its **presentation runs through a theme template**
+(`builder: theme` on the form mode), generated as Twig theme markup — not authored here. This
 config is only the minimal binding; hand-authoring form presentation into `core.entity_form_display.*`
 is no longer the prescribed path.
 

@@ -27,7 +27,7 @@ This blueprint self-selects for `core.entity_view_display.*` config units via `t
 
 ## View-mode template — config display vs content override
 
-This pattern authors sections only for a **`field-map`** view mode — the config-managed display
+This pattern authors sections only for an **`entity-binding`** view mode — the config-managed display
 (`allow_custom: false`, sections in `core.entity_view_display.*`). A **`layout-builder`**-template
 view mode is a per-entity content override: its sections live in the entity's `layout_builder__layout`
 base field (content, not config). For such a unit author only:

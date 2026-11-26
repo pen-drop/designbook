@@ -15,7 +15,7 @@ constrains:
 
 # Rule: image_style Config Entity
 
-`image_style` is a built-in config entity type with a special bundle structure. Bundles use `aspect_ratio` and `breakpoints` directly — no `fields`, `view_modes`, or `template`.
+`image_style` is a built-in config entity type with a special bundle structure. Bundles use `aspect_ratio` and `breakpoints` directly — no `fields` or `view_modes`.
 
 ## How to Apply
 
@@ -39,6 +39,6 @@ config:
 - Every bundle MUST have `aspect_ratio` in `W:H` format (positive integers)
 - Breakpoint names are arbitrary labels — NOT tied to CSS/design-token breakpoints
 - Breakpoints without `aspect_ratio` inherit the bundle's default ratio
-- Do NOT add `fields`, `view_modes`, or `template` to image_style bundles
+- Do NOT add `fields` or `view_modes` to image_style bundles
 - Image styles are consumed in scenes via `image:` nodes, not `entity:` nodes
 - Ratio-based bundle names MUST use the `ratio_` prefix (e.g. `ratio_16_9`, `ratio_4_3`) to avoid YAML parsing numeric-looking keys as integers

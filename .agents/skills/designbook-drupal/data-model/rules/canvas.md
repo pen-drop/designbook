@@ -15,8 +15,8 @@ Applies when the Canvas module is active. Canvas manages pages through a visual 
 All `canvas_page` bundles always have `purpose: layout-builder`:
 
 - Use `canvas_page` as the entity type — do NOT use `node` for Canvas-managed pages
-- Set `view_modes.full.template: canvas`
-- Set all other view modes (teaser, card, listing) to `template: field-map`
+- Set `view_modes.full.builder: canvas`
+- Set all other view modes (teaser, card, listing) to `builder: entity-binding`
 
 ## Rules
 

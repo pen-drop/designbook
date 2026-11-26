@@ -13,7 +13,7 @@ filter:
 
 A pager component renders the page-link controls for a paginated result set — previous/next
 navigation, an enumerated page-link list, and the current-page indicator. It is composed by its
-own presenter-template (see `data-mapping/blueprints/pager.md`); it never reconstructs its links
+own theme template (see `data-mapping/blueprints/pager.md`); it never reconstructs its links
 from raw view output itself.
 
 **Use for:** Any paginated result set's navigation controls — a view's default pager, a mini pager,

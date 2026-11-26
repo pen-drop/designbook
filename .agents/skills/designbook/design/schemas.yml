@@ -669,10 +669,10 @@ CompositionMappingSnapshot:
         form_mode: { type: string, description: Form mode when mode_kind is form. }
     component:
       type: string
-      description: Qualified target component ID of a field-map mapping. Omitted when the bundle has a component_tree field.
+      description: Qualified target component ID of an entity-binding mapping. Omitted when the bundle has a component_tree field.
     bindings:
       type: array
-      description: Declared field bindings of a field-map mapping. Omitted when the bundle has a component_tree field.
+      description: Declared field bindings of an entity-binding mapping. Omitted when the bundle has a component_tree field.
       items:
         $ref: "#/MappingBinding"
     source:

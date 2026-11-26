@@ -1,6 +1,6 @@
 ---
 type: data-mapping
-name: views
+name: list-binding
 priority: 10
 trigger:
   domain: data-mapping
@@ -19,9 +19,9 @@ blueprint also binds the view's Drupal config at `sync-to:transform` through its
 
 ## The view's build form decides its composition
 
-A view's `build_form` (the same backend-neutral `template` axis every other surface uses, sourced
-from `entity_mapping.templates`) splits into two branches. Resolve the branch first — it decides
-whether a view-presenter exists at all.
+A view's `builder` (the same backend-neutral `builder` axis every other surface uses, sourced
+from `entity_mapping.builders`) splits into two branches. Resolve the branch first — it decides
+whether a view theme template exists at all.
 
 ### Branch: Display Builder
 
@@ -30,15 +30,15 @@ the Display Builder page config — the same mechanism a Canvas or Layout-Builde
 own build form. The concrete config owner is the page's own config entity (the `page_layout`-style
 config the Display Builder build form emits), carrying the view binding inline or by reference.
 
-**No view-presenter exists in this branch.** The view wrapper, its rows, its pager, and its
+**No view theme template exists in this branch.** The view wrapper, its rows, its pager, and its
 exposed filter are all expressed through that one config owner — there is no separate Twig
 wrapper to author.
 
 ### Branch: without Display Builder
 
-Without a Display Builder build form, the view wrapper **is** a presenter-template: theme methods
-are the only way to produce the wrapper markup, so `sync-to` generates a presenter-template
-(Twig) for it. That presenter-template **composes** the view component — it does not reimplement
+Without a Display Builder build form, the view wrapper **is** a theme template: theme methods
+are the only way to produce the wrapper markup, so `sync-to` generates a theme template
+(Twig) for it. That theme template **composes** the view component — it does not reimplement
 the view — and passes each of the following through as rendered slots, each supplied by its own
 binding rather than reconstructed in the wrapper:
 
@@ -47,7 +47,7 @@ binding rather than reconstructed in the wrapper:
 - **exposed form** — the exposed-filter form markup;
 - **pager** — the pager markup.
 
-The presenter-template's only job is composition — routing each already-rendered region into its
+The theme template's only job is composition — routing each already-rendered region into its
 slot. It never rebuilds a region's markup itself.
 
 ## Row rendering is its own declarative contract
@@ -56,15 +56,15 @@ In both branches, row rendering binds through **UI Patterns**: the view's style/
 the shared `{component_id, variant_id, props, slots}` block, so each row is an SDC component
 render, not a raw view field. This is the declarative half and it stays identical across both
 branches — a view template names it once, on the row/style plugin, and neither branch's wrapper
-(presenter-template or Display Builder config) reconstructs a row component from field output.
+(theme template or Display Builder config) reconstructs a row component from field output.
 
-The row component is the one the row bundle's view mode maps to (its `field-map`); the view's own
-`config.view.<id>` `view_modes` `template` is its build form and decides only the wrapper branch.
+The row component is the one the row bundle's view mode maps to (its `entity-binding`); the view's own
+`config.view.<id>` `view_modes` `builder` is its build form and decides only the wrapper branch.
 
 ## Container ownership
 
 Exactly one owner sits beneath the view entity — the Display Builder config owner in that branch,
-or the presenter-template wrapper in the other. A Scene that renders a view as its main content
+or the theme template wrapper in the other. A Scene that renders a view as its main content
 carries the view entity **unwrapped**: the Scene node names the view; it does not itself introduce
 a second container around it. Whichever branch applies supplies the one container the rendered
 view lives in.
@@ -139,11 +139,11 @@ content — base table, row bundle/view-mode, filters, sort, and the build-form 
 Bind the view's **row output to its SDC component through the shared UI Patterns block** — the
 `{component_id, variant_id, props, slots}` mechanism (see `ui-patterns.md`): the view's row/style
 plugin carries that block, so a rendered list is a component render — the same UI-Patterns
-manifestation a `field-map` display uses — not a raw view row. The row bundle's view mode
+manifestation an `entity-binding` display uses — not a raw view row. The row bundle's view mode
 names the component the rows bind to.
 
 This authors only the **UI-Patterns half** (the row style). Which unit emits the **wrapper** —
-the Display Builder page config, or a generated presenter-template with pager and exposed filter
+the Display Builder page config, or a generated theme template with pager and exposed filter
 passed through as slots — follows the build-form branch above. A view is the combination of the
 row-style config and its wrapper; neither half is a whole view on its own.
 

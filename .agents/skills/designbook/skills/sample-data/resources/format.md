@@ -12,7 +12,7 @@ content:              config:
         field: value          field: value
 ```
 
-The generation logic is the same for both buckets. Differences between entity types come exclusively from **field types** and **`sample_template`** declarations — not from which bucket they live in.
+The generation logic is the same for both buckets. Differences between entity types come exclusively from **field types** — not from which bucket they live in.
 
 ```yaml
 content:
@@ -107,34 +107,11 @@ content:
         field_downloads_formatted: "12,400"
 ```
 
-## Field Templates
+## Field Types
 
-Fields may declare `sample_template` in `data-model.yml` to control value structure:
+The field's `type` alone selects its sample rule; a plain string is the fallback when no rule matches. A field may carry an optional `hint` in `data-model.yml` that guides the generated values (e.g. the subject of an image).
 
-```yaml
-rows:
-  type: entity_list
-  sample_template:
-    template: views
-    settings:
-      entity_type: node
-      bundle: article
-      view_mode: teaser
-```
-
-**Precedence** (highest to lowest):
-1. `sample_template.template` — explicit template → loads rule `when: template: <name>`
-2. `field_type` rule — no `sample_template` but rule exists `when: field_type: <type>` → auto-applied
-3. Plain string — fallback when no template or rule matches
-
-### Built-in templates
-
-| Template | Generates | Used for |
-|----------|-----------|----------|
-| `canvas` | Component tree with slots and props | `canvas_page` components field |
-| `layout-builder` | Region and block placements | Layout Builder page components |
-
-Backend-specific templates (e.g. `formatted-text`, `link`, `image`) are provided by backend skills such as `designbook-drupal/sample-data/`.
+Backend-specific rules (e.g. `formatted-text`, `link`, `image`) are provided by backend skills such as `designbook-drupal/sample-data/`; extension rules (e.g. `canvas`, `layout-builder`) apply when their extension is active.
 
 ## Content Guidelines
 

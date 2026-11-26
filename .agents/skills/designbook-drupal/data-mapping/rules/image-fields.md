@@ -10,7 +10,7 @@ filter:
 
 Hard constraints for mapping image and reference fields in entity-mapping JSONata expressions.
 
-For a field-map image binding, declare `field` and `slot`. The planner reads the
+For an entity-binding image binding, declare `field` and `slot`. The planner reads the
 image style from the field's `settings.image_style` and validates it against
 `config.image_style`. The compiled mapping emits ImageNodes carrying each sample
 image's `src` and `alt`; absent images yield an empty slot. Bind the whole image

@@ -5,7 +5,7 @@ filter:
   backend: drupal
 ---
 
-# Sample Template: formatted-text
+# Sample Rule: formatted-text
 
 Applies when `field_type` matching is active for `formatted_text` / `text_with_summary` / `text_long`.
 

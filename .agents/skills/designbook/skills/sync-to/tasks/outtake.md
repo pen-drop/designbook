@@ -47,9 +47,9 @@ passed in for them:
   `transform` stage results (one `output-file` result per unit produced in that stage).
 - `count` is the total number of files written, derived from the same `transform`
   stage results.
-- `presenter_templates` is the sorted list of presenter-template paths the `transform` stage
-  wrote for `template: presenter` surfaces — empty when no surface needed one. It makes the
-  contract widening (config, plus a presenter-template) visible in the summary.
+- `theme_templates` is the sorted list of theme template paths the `transform` stage
+  wrote for `builder: theme` surfaces — empty when no surface needed one. It makes the
+  contract widening (config, plus a theme template) visible in the summary.
 - `uncovered_units` is the list of unit names the `transform` stage recorded as
   blueprint-precedence stage-4 hits (authored without a matching blueprint). Empty in the normal case;
   a non-empty list is the reported signal that a unit kind lacks a covering blueprint — surface

@@ -1,6 +1,6 @@
 ---
 type: data-mapping
-name: presenter-template
+name: theme
 priority: 10
 trigger:
   domain: data-mapping
@@ -9,30 +9,29 @@ filter:
   frameworks.component: sdc
 ---
 
-# Blueprint: Presenter-Template (Twig)
+# Blueprint: Theme Template (Twig)
 
-Starting point for the Twig theme template `sync-to` writes for a `template: presenter` surface —
+Starting point for the Twig theme template `sync-to` writes for a `builder: theme` surface —
 a form or exposed filter whose presentation Drupal produces only through theme markup, not through
 UI-Patterns display config. The display config still binds the surface to its SDC (authored by the
 matching display-unit pattern); this blueprint is the theme-markup *how* that config points at. A
-UI-Patterns-bindable surface (`template: field-map`) needs no presenter-template. A pager is its own
-presenter surface — see `data-mapping/blueprints/pager.md`.
+UI-Patterns-bindable surface (`builder: entity-binding`) needs no theme template. A pager is its own
+theme surface — see `data-mapping/blueprints/pager.md`.
 
 ## Where the file lands
 
-The presenter-template is a Twig file in the active theme's templates directory, generated
+The theme template is a Twig file in the active theme's templates directory, generated
 alongside the surface's display config (not in the config-sync directory). Follow the theme's
-normal template layout — group by surface **type** under `templates/<type>/`, not under a
-`presenter/` folder, and use Drupal's **base theme-hook** name for the surface — unified, not
+normal template layout — group by surface **type** under `templates/<type>/`, and use Drupal's **base theme-hook** name for the surface — unified, not
 per-entity: `templates/forms/form.html.twig` for a form, `templates/views/views-view.html.twig` for
 a view template. Reach for the double-hyphen **suggestion**
 (`form--<form-id>.html.twig`, `views-view--<view-id>.html.twig`) only as the **exception**, when one
 specific form or view genuinely needs its own template diverging from the base. Never name a form or
-view presenter after an entity/node display.
+view theme template after an entity/node display.
 
 ## Fields render through their formatter; chrome is the Twig's job
 
-A presenter-template renders the theme-methods-only chrome — the form element ordering and markup,
+A theme template renders the theme-methods-only chrome — the form element ordering and markup,
 the exposed-filter form — and lets each field render through its own formatter output.
 Field-rendered content (rich text, body, a single `title` or `link`/CTA) is emitted as its
 rendered field markup, the same content that a read display places in a slot; the Twig never
@@ -55,7 +54,7 @@ key, an icon id, a link `url` fed to an attribute) may be read directly.
    Arrange the
    fields you place, then emit `form|without(...)` so the form's other children — the actions and
    the hidden CSRF / form_build_id / form_id inputs — are still output and the form submits. #}
-<div class="presenter-form__body">
+<div class="form__body">
   {{ form.field_title }}
   {{ form.field_body }}
 </div>
