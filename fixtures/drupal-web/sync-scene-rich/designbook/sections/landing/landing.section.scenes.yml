@@ -3,9 +3,9 @@ title: Landing
 description: >
   Landing page (Layout Builder): the shell whose content carries the page's blocks — a
   block_content hero and the landing_teasers View rendered beside it as a views_block
-  (block_plugin). Both block kinds appear in one Scene; the presenter surface here is the
+  (block_plugin). Both block kinds appear in one Scene; the theme surface here is the
   landing_teasers View's wrapper (its pager / exposed filter — theme-methods-only), not the page's
-  edit form (this bundle declares no presenter form_mode). Follows the DESIGNBOOK-38
+  edit form (this bundle declares no theme form_mode). Follows the DESIGNBOOK-38
   sync-verify-scene pattern: this is a
   Layout-Builder page-content Scene (the page node.landing is implicit — its LB-enabled full display
   has empty default sections; the seed attaches the entity override that carries these blocks and

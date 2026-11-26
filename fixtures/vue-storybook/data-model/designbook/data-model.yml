@@ -5,10 +5,10 @@ content:
       description: A title available in the Prosaic catalog
       view_modes:
         teaser:
-          template: field-map
+          builder: entity-binding
           label: Card
         full:
-          template: field-map
+          builder: entity-binding
           label: Detail
       fields:
         title:

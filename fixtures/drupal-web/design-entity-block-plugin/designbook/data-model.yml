@@ -38,4 +38,4 @@ content:
           title: Button angemeldet
       view_modes:
         full:
-          template: field-map
+          builder: entity-binding

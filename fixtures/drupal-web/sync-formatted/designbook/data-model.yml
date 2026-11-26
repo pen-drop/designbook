@@ -5,7 +5,7 @@ content:
       description: A software release with its download count and rating.
       view_modes:
         full:
-          template: field-map
+          builder: entity-binding
           settings:
             formatters:
               field_rating:

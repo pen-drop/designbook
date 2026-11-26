@@ -2,7 +2,7 @@
 # Validation state: BOTH sides live-validated end-to-end on real Drupal 11.3.13, from a clean
 # baseline (2026-08-17).
 #   - CONFIG: sync-to emitted 17 units, config:import green, stage-4 uncovered_units empty, and
-#     2 presenter-templates written for the View wrapper (views-view + pager).
+#     2 theme templates written for the View wrapper (views-view + pager).
 #   - RENDER: the synced page answers HTTP 200 and renders both block kinds plus the view listing
 #     all three seeded node.landing_page teaser rows through the list-view wrapper; sync-verify
 #     produced a ScoreReport (avg_diff_percent 0.2167, 1 check).
@@ -12,12 +12,12 @@
 # Exercises the new sync-to paths in one Layout-Builder Scene:
 #   - a block_content block (hero)               → block-decision ⇒ block_content
 #   - a block_plugin block (the view as a block) → block-decision ⇒ block_plugin
-#   - an embedded view with template: presenter  → UI-Patterns rows whose wrapper
-#     (pager / exposed filter) is theme-methods-only → presenter-template (the presenter surface here)
+#   - an embedded view with builder: theme  → UI-Patterns rows whose wrapper
+#     (pager / exposed filter) is theme-methods-only → theme template (the theme surface here)
 # The row bundle (node.landing_page teaser) supplies the view's rows.
 config:
   # The view a screen renders / a scene embeds as a block. Declared like every display:
-  # a config.view.<id> with its own view_modes.default.template: presenter (its build form).
+  # a config.view.<id> with its own view_modes.default.builder: theme (its build form).
   view:
     landing_teasers:
       label: Landing teasers
@@ -27,14 +27,14 @@ config:
         view_mode: teaser
       view_modes:
         default:
-          template: presenter
+          builder: theme
   views.view.landing_teasers:
     label: Landing teasers
     purpose: >
       Lists node.landing_page entities in the teaser view-mode. Owns a page display and can be a
       screen's route-bearing main content; here it is also placed as a block_plugin on the landing
       page. Its rows bind to their SDC component via UI Patterns; its pager/exposed-filter are
-      theme-methods-only presenter surfaces.
+      theme-methods-only theme surfaces.
     base_table: node_field_data
     row:
       entity_type: node
@@ -47,7 +47,7 @@ config:
       created: DESC
     view_modes:
       default:
-        template: presenter
+        builder: theme
   # A view rendered as a block reaches the page as a block_plugin (a plugin placement), not a route.
   # A `views_block:<view>-<display>` plugin needs the view to expose that Block display. This open
   # view config carries only `view_modes.default`; the `block_1` Block display is authored on
@@ -70,13 +70,13 @@ content:
         A Layout Builder landing page. Its full view mode uses the layout-builder template, so a
         Scene sync emits CONFIG for the LB-enabled display (empty default sections; entity
         override carries the blocks). The
-        presenter-template this case exercises comes from the landing_teasers View's wrapper (its
+        theme template this case exercises comes from the landing_teasers View's wrapper (its
         pager / exposed filter — theme-methods-only), not from the page's edit form: a page's edit
         form is reached over an edit route and is not part of the page/scene sync, so this bundle
-        declares no presenter form_mode.
+        declares no theme form_mode.
       view_modes:
         full:
-          template: layout-builder
+          builder: layout-builder
     landing_page:
       title: Landing Page
       description: The row bundle the landing_teasers view lists in its teaser view-mode.
@@ -86,7 +86,7 @@ content:
           title: Short title
       view_modes:
         teaser:
-          template: field-map
+          builder: entity-binding
   block_content:
     hero:
       title: Hero
@@ -105,4 +105,4 @@ content:
           title: Action
       view_modes:
         default:
-          template: field-map
+          builder: entity-binding

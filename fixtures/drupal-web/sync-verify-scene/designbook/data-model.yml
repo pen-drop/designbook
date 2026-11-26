@@ -12,7 +12,7 @@ content:
         test seed).
       view_modes:
         full:
-          template: layout-builder
+          builder: layout-builder
   block_content:
     hero:
       title: Hero
@@ -32,4 +32,4 @@ content:
           title: Action
       view_modes:
         default:
-          template: field-map
+          builder: entity-binding

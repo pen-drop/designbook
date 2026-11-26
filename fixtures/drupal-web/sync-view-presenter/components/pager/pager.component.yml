@@ -4,7 +4,7 @@ status: experimental
 group: Data Display
 description: >
   Pager navigation controls for a paginated result set — previous/next controls, an enumerated
-  page-link list, and the current-page indicator. Composed by its own Pager-Presenter
+  page-link list, and the current-page indicator. Composed by its own Pager theme template
   (data-mapping/blueprints/pager.md); never reconstructs its links from raw view output itself.
   This is the SDC the pager region binds to regardless of the view's build form (V-5).
 provider: test_integration_drupal

@@ -17,7 +17,7 @@ prompt: |
   website equivalent or replace the reference with an imagined layout.
   Build the data model based on the screen.
   Use the data-model skill after reading the completed vision and Recipes section.
-  The route-bearing entity is node.recipe, full view mode with field-map rendering;
+  The route-bearing entity is node.recipe, full view mode with entity-binding rendering;
   it must be a real entity mapping, not an inline Canvas page masquerading as an entity.
   Include title, recipe image, description, difficulty, servings, structured repeatable
   ingredients (quantity, unit, ingredient name) and ordered preparation steps.

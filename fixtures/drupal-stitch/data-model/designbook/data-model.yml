@@ -15,7 +15,7 @@ content:
       purpose: landing-page
       view_modes:
         full:
-          template: canvas
+          builder: canvas
       fields:
         components:
           type: component_tree
@@ -30,9 +30,9 @@ content:
       description: A documentation article with rich text content
       view_modes:
         full:
-          template: field-map
+          builder: entity-binding
         teaser:
-          template: field-map
+          builder: entity-binding
       fields:
         field_body:
           type: formatted_text
@@ -59,7 +59,7 @@ content:
       description: Documentation topic for categorization
       view_modes:
         full:
-          template: field-map
+          builder: entity-binding
       fields: {}
 
   media:
@@ -68,11 +68,11 @@ content:
       description: Image media for embedding in rich text
       view_modes:
         ratio_16_9:
-          template: field-map
+          builder: entity-binding
         ratio_4_3:
-          template: field-map
+          builder: entity-binding
         ratio_1_1:
-          template: field-map
+          builder: entity-binding
       fields:
         field_media_image:
           type: image
@@ -86,7 +86,7 @@ content:
       description: Video media for embedding in rich text
       view_modes:
         full:
-          template: field-map
+          builder: entity-binding
       fields:
         field_media_video:
           type: string

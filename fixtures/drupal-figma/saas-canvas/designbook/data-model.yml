@@ -16,7 +16,7 @@ content:
       purpose: layout-builder
       view_modes:
         full:
-          template: canvas
+          builder: canvas
       fields:
         components:
           type: component_tree
@@ -30,7 +30,7 @@ content:
       description: One product capability highlight (icon, title, summary, link).
       view_modes:
         card:
-          template: field-map
+          builder: entity-binding
       fields:
         field_icon:
           type: image
@@ -57,7 +57,7 @@ content:
       description: One subscription plan with price, call to action and included features.
       view_modes:
         card:
-          template: field-map
+          builder: entity-binding
       fields:
         field_price:
           type: string

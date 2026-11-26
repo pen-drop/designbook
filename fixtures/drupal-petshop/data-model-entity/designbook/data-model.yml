@@ -5,7 +5,7 @@ content:
       description: Animal available for adoption
       view_modes:
         teaser:
-          template: field-map
+          builder: entity-binding
       fields:
         title:
           type: string

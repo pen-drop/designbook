@@ -1,17 +1,17 @@
 # DESIGNBOOK-65 Task 9 — "with Display Builder" fixture branch (mirror of Task 8).
 #
 # The SAME paginated View as Task 8's sync-view-presenter fixture, but this time the view's own
-# build form (view_modes.default.template) is `canvas` — a Display Builder form. Per the V-4
-# build-form matrix (designbook-drupal/data-mapping/blueprints/views.md), that puts the view in
+# build form (view_modes.default.builder) is `canvas` — a Display Builder form. Per the V-4
+# build-form matrix (designbook-drupal/data-mapping/blueprints/list-binding.md), that puts the view in
 # the WITH-Display-Builder branch:
 #   - the view binds directly through the Display Builder page config (the same mechanism a
 #     Canvas/Layout-Builder page uses for its own build form) — NOT through a generated
-#     View-Presenter. No view-presenter template exists in this branch (negative assertion,
-#     AC-6). This fixture encodes ONLY the decision rule (entity_mapping.templates: canvas) —
+#     view theme template. No view theme template template exists in this branch (negative assertion,
+#     AC-6). This fixture encodes ONLY the decision rule (entity_mapping.builders: canvas) —
 #     it does not build or assert any Display-Builder config-emission mechanic, which is out of
 #     scope for this ticket;
 #   - the pager region STILL binds through its own dedicated Pager blueprint (V-5), independent
-#     of the build-form branch — a Pager-Presenter that calls the Pager SDC
+#     of the build-form branch — a Pager theme template that calls the Pager SDC
 #     (components/blueprints/pager.md), exactly as in the without-Display-Builder branch (AC-9).
 # No Layout Builder / Canvas page participates: the view IS the screen's sole route-bearing main
 # content (design-system:shell content slot). Config-only — no content units are synced (per
@@ -19,9 +19,9 @@
 # Drupal, no content provisioning, no rendered-page assertion.
 config:
   # The view a screen renders as its route-bearing main content. Declared like every display: a
-  # config.view.<id> with its own view_modes.default.template — here `canvas` (the Display
-  # Builder build form), not `presenter`. The row-style UI-Patterns binding stays identical
-  # across both build-form branches (views.md, "Row rendering is its own declarative contract").
+  # config.view.<id> with its own view_modes.default.builder — here `canvas` (the Display
+  # Builder build form), not `theme`. The row-style UI-Patterns binding stays identical
+  # across both build-form branches (list-binding.md, "Row rendering is its own declarative contract").
   view:
     articles:
       label: Articles
@@ -31,16 +31,16 @@ config:
         view_mode: teaser
       view_modes:
         default:
-          template: canvas
+          builder: canvas
   views.view.articles:
     label: Articles
     purpose: >
       Lists node.article entities in the teaser view-mode as the screen's sole route-bearing main
-      content. Its build form IS Display Builder (view_modes.default.template: canvas) — per the
+      content. Its build form IS Display Builder (view_modes.default.builder: canvas) — per the
       V-4 matrix this puts it in the with-Display-Builder branch: the view binds directly through
-      the Display Builder page config, so sync-to generates NO View-Presenter (no
+      the Display Builder page config, so sync-to generates NO view theme template (no
       views-view*.html.twig wrapper) — this fixture asserts that absence. The pager region still
-      binds through its own dedicated Pager-Presenter (V-5), build-form-independent, that calls
+      binds through its own dedicated Pager theme template (V-5), build-form-independent, that calls
       the Pager SDC.
     base_table: node_field_data
     row:
@@ -60,7 +60,7 @@ config:
       items_per_page: 2
     view_modes:
       default:
-        template: canvas
+        builder: canvas
 content:
   node:
     article:
@@ -72,4 +72,4 @@ content:
           title: Summary
       view_modes:
         teaser:
-          template: field-map
+          builder: entity-binding

@@ -36,15 +36,15 @@ assert:
   - type: javascript
     value: |
       const vm = output.fileContents['designbook/data-model.yml']?.content?.canvas_page?.page?.view_modes;
-      return vm?.full?.template === 'canvas';
+      return vm?.full?.builder === 'canvas';
   - type: javascript
     value: |
       const vm = output.fileContents['designbook/data-model.yml']?.content?.canvas_page?.page?.view_modes;
-      return vm?.teaser?.template === 'field-map';
+      return vm?.teaser?.builder === 'entity-binding';
   - type: javascript
     value: |
       const fields = output.fileContents['designbook/data-model.yml']?.content?.canvas_page?.page?.fields || {};
-      return Object.values(fields).some(f => f.type === 'component_tree' && f.sample_template?.template === 'canvas');
+      return Object.values(fields).some(f => f.type === 'component_tree');
   - type: javascript
     value: |
       const c = output.fileContents['designbook/data-model.yml']?.content;

@@ -5,6 +5,6 @@
 - id: '1'
   field_summary: Choosing the right pager configuration
 - id: '2'
-  field_summary: Composing a view wrapper as a presenter-template
+  field_summary: Composing a view wrapper as a theme template
 - id: '3'
   field_summary: Binding row output through UI Patterns
