@@ -9,7 +9,7 @@ params:
     description: >
       Scene id (SceneDef.name) to sync. When set, sync-to takes the **scene branch** — it syncs
       that Scene as a real page: the page's layout/display output in the active build form,
-      **plus a presenter-template** for any surface whose presentation the display output
+      **plus a theme template** for any surface whose presentation the display output
       cannot express. No content, no content units. Leave empty to take the data-model export
       path instead. The scene branch is selected by this scene-kind story input, not by a flag.
     default: ''

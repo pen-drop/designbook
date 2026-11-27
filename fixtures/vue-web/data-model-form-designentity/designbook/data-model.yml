@@ -20,8 +20,8 @@ content:
           title: Action
       view_modes:
         default:
-          template: field-map
+          builder: entity-binding
       form_modes:
         edit:
-          template: field-map
+          builder: entity-binding
           label: Edit

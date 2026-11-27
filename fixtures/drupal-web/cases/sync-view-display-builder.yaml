@@ -1,15 +1,15 @@
 # DESIGNBOOK-65 Task 9 — "with Display Builder" branch coverage (mirror of Task 8's
 # sync-view-presenter case).
 #
-# The SAME paginated View as Task 8, but its own build form (view_modes.default.template) is
+# The SAME paginated View as Task 8, but its own build form (view_modes.default.builder) is
 # `canvas` — a Display Builder form. Per the V-4 build-form matrix
-# (data-mapping/blueprints/views.md) this puts the view in the WITH-Display-Builder branch:
-#   - the view binds directly through the Display Builder page config — NO View-Presenter
+# (data-mapping/blueprints/list-binding.md) this puts the view in the WITH-Display-Builder branch:
+#   - the view binds directly through the Display Builder page config — NO view theme template
 #     (no views-view*.html.twig wrapper) is generated for it. This is a NEGATIVE assertion
-#     (AC-6): proof that no view-presenter template is written anywhere in the sync output.
+#     (AC-6): proof that no view theme template is written anywhere in the sync output.
 #   - the pager region still binds through its own dedicated Pager blueprint (V-5), independent
-#     of the build-form branch, as a Pager-Presenter that calls the Pager SDC (AC-9).
-# This fixture encodes ONLY the decision rule (entity_mapping.templates: canvas) — it does not
+#     of the build-form branch, as a Pager theme template that calls the Pager SDC (AC-9).
+# This fixture encodes ONLY the decision rule (entity_mapping.builders: canvas) — it does not
 # exercise or assert any Display-Builder config-emission mechanic, which is out of scope.
 # Config-only per DESIGNBOOK-6's config-only e2e decision: import + validate against a
 # ui_patterns-capable Drupal, no content provisioning, no rendered-page assertion.
@@ -30,25 +30,25 @@ prompt: |
   root. backend_cmd resolves from designbook.config.yml. It must emit config for: the
   node.article bundle + its field_summary field, and the views.view.articles config (rows bound
   to their SDC via the UI-Patterns block; a standard pager, 2 items per page). The view's own
-  build form (view_modes.default.template: canvas) IS a Display Builder form, so per the V-4
+  build form (view_modes.default.builder: canvas) IS a Display Builder form, so per the V-4
   build-form matrix:
-    - do NOT write a View-Presenter (presenter-template) for the view wrapper — the view binds
+    - do NOT write a view theme template for the view wrapper — the view binds
       directly through the Display Builder page config in this branch; no
       views-view*.html.twig (or any per-view suggestion of it) may be written anywhere in the
       sync output;
-    - STILL write a separate Pager-Presenter (presenter-template) for the pager region, calling
+    - STILL write a separate Pager theme template for the pager region, calling
       the Pager SDC (`test_integration_drupal:pager`) with typed props/slots, never re-deriving
       page-link markup from raw variables itself — the pager binds through its own dedicated
       blueprint (V-5) regardless of the view's build-form branch.
   No content units — config only.
 
-  Record the sync-to `workflow summary --json`, including `presenter_templates` (must list
-  exactly one path: the pager's — NO view-wrapper presenter-template) and `uncovered_units`
+  Record the sync-to `workflow summary --json`, including `theme_templates` (must list
+  exactly one path: the pager's — NO view-wrapper theme template) and `uncovered_units`
   (expected empty). Import config if the sync stage did not already: backend_cmd.import
   (partial cim).
 
   WRITE THE EVIDENCE MARKER designbook/sync-view-display-builder.yml with EXACTLY these keys:
-    presenter_templates: <array of the presenter-template file paths sync-to wrote>
+    theme_templates: <array of the theme template file paths sync-to wrote>
     uncovered_units_count: <integer count of stage-4 uncovered units (expected 0)>
   Execute now.
 
@@ -58,7 +58,7 @@ assert:
     value: |
       const cfg = output.newFiles.filter(p => /files\/sync\/.*\.yml$/.test(p)).join('\n');
       return /views\.view\.articles/.test(cfg);
-  # NEGATIVE PROOF (AC-6): no view-presenter template (base theme-hook `views-view`, or any
+  # NEGATIVE PROOF (AC-6): no view theme template (base theme-hook `views-view`, or any
   # per-view suggestion like `views-view--articles`) was written ANYWHERE in the sync-to output —
   # not just absent from the marker, but genuinely absent from every written file path. Scoped to
   # the actual sync-to output surfaces (theme templates + exported config under files/sync/);
@@ -73,28 +73,28 @@ assert:
       const syncOutputPaths = allPaths.filter(p =>
         /\/templates\//.test(p) || /files\/sync\//.test(p) || /\.component\.yml$/.test(p));
       return !syncOutputPaths.some(p => /views[-_]view/.test(p));
-  # The evidence marker's own presenter_templates list also carries no view-wrapper entry —
+  # The evidence marker's own theme_templates list also carries no view-wrapper entry —
   # corroborates the negative proof above from the workflow's own accounting.
   - type: javascript
     value: |
       const marker = output.fileContents['designbook/sync-view-display-builder.yml'];
-      const templates = marker?.presenter_templates || [];
+      const templates = marker?.theme_templates || [];
       return !templates.some(p => /views[-_]view/.test(p));
-  # The Pager-Presenter IS still written (AC-9, build-form-independent) — exactly one, distinct
+  # The Pager theme template IS still written (AC-9, build-form-independent) — exactly one, distinct
   # from any view wrapper.
   - type: javascript
     value: |
       const marker = output.fileContents['designbook/sync-view-display-builder.yml'];
-      const templates = marker?.presenter_templates || [];
+      const templates = marker?.theme_templates || [];
       const pagerPresenters = templates.filter(p => /pager/.test(p) && !/views[-_]view/.test(p));
       return pagerPresenters.length === 1;
-  # The Pager SDC is called from within the Pager-Presenter (not reconstructed as raw markup).
+  # The Pager SDC is called from within the Pager theme template (not reconstructed as raw markup).
   # The marker records a theme-relative path; resolve it against the actual (workspace-relative)
   # newFiles/fileContents keys by suffix match — same rigor as Task 8's pager assertion.
   - type: javascript
     value: |
       const marker = output.fileContents['designbook/sync-view-display-builder.yml'];
-      const templates = marker?.presenter_templates || [];
+      const templates = marker?.theme_templates || [];
       const pagerPath = templates.find(p => /pager/.test(p) && !/views[-_]view/.test(p));
       if (!pagerPath) return false;
       const fullPath = Object.keys(output.fileContents).find(p => p.endsWith(pagerPath));
@@ -102,14 +102,14 @@ assert:
       const content = output.fileContents[fullPath] || '';
       return /test_integration_drupal:pager\b/.test(content);
   # Exactly one container beneath the view entity (AC-8): the Display Builder config owner is
-  # the sole wrapper — no additional scene/view container nesting. With no view-presenter
+  # the sole wrapper — no additional scene/view container nesting. With no view theme template
   # written, the only container-producing unit in the sync output for this view is the pager
-  # presenter itself; assert no second container-bearing template (any views-view* wrapper) was
-  # also emitted alongside it, i.e. the presenter_templates list has exactly one entry total.
+  # theme template itself; assert no second container-bearing template (any views-view* wrapper) was
+  # also emitted alongside it, i.e. the theme_templates list has exactly one entry total.
   - type: javascript
     value: |
       const marker = output.fileContents['designbook/sync-view-display-builder.yml'];
-      const templates = marker?.presenter_templates || [];
+      const templates = marker?.theme_templates || [];
       return templates.length === 1;
   # Stage 4 stayed empty — every unit had a covering blueprint.
   - type: javascript

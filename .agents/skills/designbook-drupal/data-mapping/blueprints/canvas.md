@@ -10,7 +10,7 @@ filter:
 
 # Blueprint: Canvas — Passthrough Mapping
 
-Starting point for `map-entity` on a `canvas_page` bundle's full view mode (`template: canvas`). The page's composition is the sample tree in its `component_tree` field `components`, so the mapping passes that field through: no wrapping component, no field bindings, no entity references.
+Starting point for `map-entity` on a `canvas_page` bundle's full view mode (`builder: canvas`). The page's composition is the sample tree in its `component_tree` field `components`, so the mapping passes that field through: no wrapping component, no field bindings, no entity references.
 
 ## JSONata Pattern
 
@@ -43,7 +43,7 @@ components:
 ## Config expansion (sync-to Scene sync)
 
 Starting point for the config unit `sync-to` emits when a Scene's page uses
-`build_form: canvas`. A Scene resolves to **config only** — never a `canvas_page` content
+`builder: canvas`. A Scene resolves to **config only** — never a `canvas_page` content
 entity, never a content payload, never a backend content step:
 
 - **Page layout config** — a single `page_layout` config entity carrying the Scene's component

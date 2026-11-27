@@ -61,9 +61,9 @@ content:
             target_bundles: [landing_page_types]
       view_modes:
         teaser:
-          template: field-map
+          builder: entity-binding
         card:
-          template: field-map
+          builder: entity-binding
           label: Card
     article:
       title: Article
@@ -74,7 +74,7 @@ content:
           title: Body
       view_modes:
         full:
-          template: field-map
+          builder: entity-binding
   taxonomy_term:
     landing_page_types:
       title: Seitentypen
@@ -85,11 +85,11 @@ content:
       description: Image media
       view_modes:
         ratio_16_9:
-          template: field-map
+          builder: entity-binding
         ratio_4_3:
-          template: field-map
+          builder: entity-binding
         ratio_1_1:
-          template: field-map
+          builder: entity-binding
   block_content:
     hero:
       title: Hero
@@ -109,7 +109,7 @@ content:
           title: Action
       view_modes:
         default:
-          template: field-map
+          builder: entity-binding
   paragraph:
     signage:
       title: Wegweiser

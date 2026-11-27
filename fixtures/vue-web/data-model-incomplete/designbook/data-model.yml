@@ -8,7 +8,7 @@ config:
         view_mode: teaser
       view_modes:
         default:
-          template: field-map
+          builder: entity-binding
   views.view.landing_teasers:
     label: Landing teasers
     purpose: >
@@ -27,7 +27,7 @@ config:
       created: DESC
     view_modes:
       default:
-        template: field-map
+        builder: entity-binding
 content:
   node:
     landing_page:
@@ -55,9 +55,9 @@ content:
               - landing_page_types
       view_modes:
         teaser:
-          template: field-map
+          builder: entity-binding
         card:
-          template: field-map
+          builder: entity-binding
           label: Card
     article:
       title: Article
@@ -68,7 +68,7 @@ content:
           title: Body
       view_modes:
         full:
-          template: field-map
+          builder: entity-binding
   taxonomy_term:
     landing_page_types:
       title: Seitentypen
@@ -79,11 +79,11 @@ content:
       description: Image media
       view_modes:
         ratio_16_9:
-          template: field-map
+          builder: entity-binding
         ratio_4_3:
-          template: field-map
+          builder: entity-binding
         ratio_1_1:
-          template: field-map
+          builder: entity-binding
   block_content:
     hero:
       title: Hero
@@ -103,7 +103,7 @@ content:
           title: Action
       view_modes:
         default:
-          template: field-map
+          builder: entity-binding
   paragraph:
     signage:
       title: Wegweiser
@@ -124,13 +124,13 @@ content:
             target_bundle: signage_item
       view_modes:
         full:
-          template: field-map
+          builder: entity-binding
     signage_item:
       title: Wegweiser Element
       description: One navigation item within a Wegweiser — icon, title, description, links, and CTA buttons
       view_modes:
         full:
-          template: field-map
+          builder: entity-binding
       fields:
         field_title:
           type: string

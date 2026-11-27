@@ -26,7 +26,7 @@ describe.each([
 });
 
 // SDC/UI-Patterns mapping blueprints must not load for a Vue + Drupal project.
-const SDC_MAPPING = ['field-map', 'ui-patterns', 'views', 'layout-builder-display', 'presenter-template', 'pager'];
+const SDC_MAPPING = ['entity-binding', 'ui-patterns', 'list-binding', 'layout-builder-display', 'theme', 'pager'];
 describe('data-mapping blueprint resolution per component framework (drupal backend)', () => {
   const AGENTS = resolve(ROOT, '..');
   const resolveFor = (component: string) =>
@@ -42,15 +42,15 @@ describe('data-mapping blueprint resolution per component framework (drupal back
       ['data-mapping'],
     ).map((p) => relative(ROOT, p));
 
-  it('vue gets the Vue field-map and none of the SDC mapping blueprints', () => {
+  it('vue gets the Vue entity-binding and none of the SDC mapping blueprints', () => {
     const files = resolveFor('vue');
-    expect(files).toContain('designbook-vue/data-mapping/blueprints/field-map.md');
+    expect(files).toContain('designbook-vue/data-mapping/blueprints/entity-binding.md');
     for (const name of SDC_MAPPING) expect(files).not.toContain(`designbook-drupal/data-mapping/blueprints/${name}.md`);
   });
 
-  it('sdc still gets the SDC mapping blueprints and not the Vue field-map', () => {
+  it('sdc still gets the SDC mapping blueprints and not the Vue entity-binding', () => {
     const files = resolveFor('sdc');
     for (const name of SDC_MAPPING) expect(files).toContain(`designbook-drupal/data-mapping/blueprints/${name}.md`);
-    expect(files).not.toContain('designbook-vue/data-mapping/blueprints/field-map.md');
+    expect(files).not.toContain('designbook-vue/data-mapping/blueprints/entity-binding.md');
   });
 });

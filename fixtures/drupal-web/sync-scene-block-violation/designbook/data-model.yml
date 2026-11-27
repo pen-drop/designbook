@@ -11,7 +11,7 @@ content:
         A Layout Builder landing page. Its full view mode uses the layout-builder template.
       view_modes:
         full:
-          template: layout-builder
+          builder: layout-builder
     promo:
       title: Promo
       description: >
@@ -24,7 +24,7 @@ content:
           title: Headline
       view_modes:
         teaser:
-          template: field-map
+          builder: entity-binding
   block_content:
     hero:
       title: Hero
@@ -35,4 +35,4 @@ content:
           title: Title
       view_modes:
         default:
-          template: field-map
+          builder: entity-binding

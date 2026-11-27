@@ -484,20 +484,20 @@ export function deriveComposition(plan: Plan): { tree: CompositionTree; errors: 
     }
     if (rec.mode_kind !== 'form') {
       const modeDef = viewModes(bundle)[mode];
-      const template = isObj(modeDef) ? asString(modeDef.template) : '';
-      if (template && template !== 'field-map') {
+      const builder = isObj(modeDef) ? asString(modeDef.builder) : '';
+      if (builder && builder !== 'entity-binding') {
         errors.push(
-          `${prefix('mapping')}: ${rec.entity_type}.${rec.bundle}:${mode} uses unsupported structure ${template}`,
+          `${prefix('mapping')}: ${rec.entity_type}.${rec.bundle}:${mode} uses unsupported builder ${builder}`,
         );
         continue;
       }
     }
     if (!rec.component) {
-      errors.push(`${prefix('component')}: field-map mapping requires a component`);
+      errors.push(`${prefix('component')}: entity-binding mapping requires a component`);
       continue;
     }
     if (!Array.isArray(rec.task.params.bindings)) {
-      errors.push(`${prefix('bindings')}: field-map mapping requires bindings`);
+      errors.push(`${prefix('bindings')}: entity-binding mapping requires bindings`);
     }
     const comp = components.get(rec.component);
     if (!comp) {

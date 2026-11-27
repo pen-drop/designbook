@@ -5,9 +5,9 @@ filter:
   backend: drupal
 ---
 
-# Sample Template: image
+# Sample Rule: image
 
-Applies when a field has `sample_template.template: image`, or when `field_type` matching is active for `image`.
+Applies to a field of type `image`.
 
 ## Output Structure
 
@@ -28,11 +28,11 @@ field_hero_image:
 
 When no `src` is provided, the image provider (configured in `designbook.config.yml`) generates placeholder images automatically at render time.
 
-## Settings
+## Field hint
 
 | Key    | Default | Description                                                                          |
 |--------|---------|--------------------------------------------------------------------------------------|
-| `hint` | —       | Context for the image subject (e.g. `"hero"`, `"product thumbnail"`, `"avatar"`). Used to generate descriptive alt text. |
+| `hint` | —       | The field's `hint` in the data model: context for the image subject (e.g. `"hero"`, `"product thumbnail"`, `"avatar"`). Used to generate descriptive alt text. |
 
 ## Rules
 

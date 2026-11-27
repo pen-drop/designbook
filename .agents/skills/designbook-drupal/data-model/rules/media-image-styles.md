@@ -23,11 +23,11 @@ content:
     image:
       view_modes:
         ratio_16_9:
-          template: field-map
+          builder: entity-binding
         ratio_4_3:
-          template: field-map
+          builder: entity-binding
         ratio_1_1:
-          template: field-map
+          builder: entity-binding
       fields:
         field_media_image:
           type: image

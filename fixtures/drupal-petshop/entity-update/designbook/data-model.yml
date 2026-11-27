@@ -5,9 +5,9 @@ content:
       description: Animal available for adoption
       view_modes:
         teaser:
-          template: field-map
+          builder: entity-binding
         full:
-          template: field-map
+          builder: entity-binding
       fields:
         title:
           type: string
@@ -48,7 +48,7 @@ content:
           title: Photo URL
       form_modes:
         default:
-          template: field-map
+          builder: entity-binding
     shelter:
       title: Shelter
       description: Animal shelter or rescue organization
@@ -71,7 +71,7 @@ content:
           title: About
       view_modes:
         teaser:
-          template: field-map
+          builder: entity-binding
     adoption_application:
       title: Adoption Application
       description: Application from a potential adopter

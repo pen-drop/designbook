@@ -16,7 +16,7 @@ content:
           title: Body
       form_modes:
         default:
-          template: form
+          builder: theme
         compact:
-          template: form
+          builder: theme
           label: Compact

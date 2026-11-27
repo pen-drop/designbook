@@ -22,7 +22,7 @@ already prescribes. The image still renders through the configured image style
 (correct derivative, aspect ratio, responsive breakpoints) via the image-style
 builder — never a raw original-file `<img>`.
 
-Direct `type: image` field-map bindings follow [image-fields.md](image-fields.md).
+Direct `type: image` entity-binding bindings follow [image-fields.md](image-fields.md).
 A media `type: reference` slot uses the EntityNode mapping when `entity` is
 specified; pulling a nested media image into its parent's slot is outside that
 binding contract. Scene `items` may also include ImageNodes.

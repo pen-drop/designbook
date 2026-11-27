@@ -4,13 +4,13 @@ Change one overridable starting point. Leave hard rules intact. Load [designbook
 
 **You need:** skill-creator loaded, a legal blueprint to copy, and a project config that already selects the parent integration.
 
-1. Pick a blueprint, not a rule. Drupal's field-map starting point is `.agents/skills/designbook-drupal/data-mapping/blueprints/field-map.md` (`template: field-map`). Cardinality and image-field files under `data-mapping/rules/` are hard constraints.
+1. Pick a blueprint, not a rule. Drupal's entity-binding starting point is `.agents/skills/designbook-drupal/data-mapping/blueprints/entity-binding.md` (`builder: entity-binding`). Cardinality and image-field files under `data-mapping/rules/` are hard constraints.
 
 **AI prompt**
 
 ```text
 Load designbook-skill-creator. I want a project-local blueprint that overrides
-the Drupal field-map starting point. Do not edit any rules. Follow
+the Drupal entity-binding starting point. Do not edit any rules. Follow
 blueprint-files.md and common-rules.md. Show me the new file path and the
 unchanged rule paths.
 ```

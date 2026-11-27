@@ -25,10 +25,6 @@ assert:
       const loaded = output.completedWorkflows['data-model']?.definition?.context || {};
       return Object.values(loaded).some(s => s.source?.endsWith('field-type-constraints.md'));
   - type: javascript
-    value: |
-      const loaded = output.completedWorkflows['data-model']?.definition?.context || {};
-      return Object.values(loaded).some(s => s.source?.endsWith('sample-template-mapping.md'));
-  - type: javascript
     value: Object.keys(output.pendingWorkflows).length === 0
   - type: javascript
     value: output.definitionUnchanged === true

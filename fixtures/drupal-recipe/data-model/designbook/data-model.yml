@@ -2,16 +2,16 @@ content:
   node:
     recipe:
       purpose: >-
-        Route-bearing recipe detail page (node.recipe full view, field-map
+        Route-bearing recipe detail page (node.recipe full view, entity-binding
         rendering) as captured in Figma frame 58:2 (Lemon Garlic Roasted
         Chicken). Total time shown in the metadata row is derived as
         field_prep_minutes + field_cook_minutes; there is no stored total-time
         field. The teaser view mode renders the visible "Similar recipes" cards.
       view_modes:
         full:
-          template: field-map
+          builder: entity-binding
         teaser:
-          template: field-map
+          builder: entity-binding
           label: Teaser
       fields:
         title:
@@ -140,7 +140,7 @@ content:
         recipe.
       view_modes:
         default:
-          template: field-map
+          builder: entity-binding
       fields:
         field_quantity:
           type: string
@@ -159,7 +159,7 @@ content:
         image.
       view_modes:
         default:
-          template: field-map
+          builder: entity-binding
       fields:
         field_step_title:
           type: string
@@ -183,7 +183,7 @@ content:
         prep".
       view_modes:
         default:
-          template: field-map
+          builder: entity-binding
       fields:
         name:
           type: string
@@ -193,7 +193,7 @@ content:
       purpose: Category label shown as the pill above the recipe title.
       view_modes:
         default:
-          template: field-map
+          builder: entity-binding
       fields:
         name:
           type: string
@@ -203,7 +203,7 @@ content:
       purpose: Recipe author shown in the author card (name, bio, portrait).
       view_modes:
         default:
-          template: field-map
+          builder: entity-binding
       fields:
         name:
           type: string

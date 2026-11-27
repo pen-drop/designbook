@@ -15,7 +15,7 @@
  *    (view.landing_teasers.default.jsonata → list-view wrapper → card rows).
  *
  * sync-to synchronises CONFIG only: node.landing.full has LB enabled + empty default
- * sections (template: layout-builder = content override). Visible section composition
+ * sections (builder: layout-builder = content override). Visible section composition
  * is therefore seeded here, not authored into core.entity_view_display.*.yml.
  *
  * Idempotent: reuses the existing landing node when one is already present; rewrites

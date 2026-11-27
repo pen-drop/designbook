@@ -4,13 +4,13 @@ content:
       purpose: Route-bearing recipe detail content for the Recipes section.
       view_modes:
         default:
-          template: field-map
+          builder: entity-binding
         full:
-          template: field-map
+          builder: entity-binding
           label: Full recipe detail
       form_modes:
         default:
-          template: field-map
+          builder: entity-binding
       fields:
         title:
           type: text

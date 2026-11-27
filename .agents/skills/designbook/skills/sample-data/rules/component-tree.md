@@ -5,7 +5,7 @@ trigger:
 
 # Rule: Component-Tree Sample Fields
 
-A data-model field of type `component_tree` carries its bundle's composition. The field type alone selects this contract; the field name, entity type and view-mode template play no part. A bundle declares at most one such field.
+A data-model field of type `component_tree` carries its bundle's composition. The field type alone selects this contract; the field name, entity type and view-mode builder play no part. A bundle declares at most one such field.
 
 Every planned record carries that field under its machine name as a `ComponentNode[]`; an empty array is valid. At every depth of the tree:
 

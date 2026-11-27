@@ -10,7 +10,7 @@ filter:
 
 # Blueprint: Layout Builder — Passthrough Mapping
 
-Applies when `map-entity` runs for a view mode with `template: layout-builder` (i.e. a node bundle's full view mode that uses Layout Builder). The current plan-param contract is a single target component plus field bindings; a layout-builder section list cannot be expressed there, so `plan build` rejects that selected mapping with the target and unsupported structure.
+Applies when `map-entity` runs for a view mode with `builder: layout-builder` (i.e. a node bundle's full view mode that uses Layout Builder). The current plan-param contract is a single target component plus field bindings; a layout-builder section list cannot be expressed there, so `plan build` rejects that selected mapping with the target and unsupported builder.
 
 ## Behavior
 
@@ -31,7 +31,7 @@ $.layout_builder__layout
 ## Config expansion (sync-to Scene sync)
 
 Starting point for the config units `sync-to` emits when a Scene's page uses
-`build_form: layout-builder` / view-mode `template: layout-builder`. A Scene resolves to
+`builder: layout-builder` / view-mode `builder: layout-builder`. A Scene resolves to
 **config only** — never a content entity, never a content payload, never a backend content step:
 
 - **Page layout config** — `core.entity_view_display.<et>.<bundle>.<full>` with Layout Builder

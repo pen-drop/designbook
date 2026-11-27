@@ -64,7 +64,7 @@ provides:
               fields:
                 additionalProperties:
                   properties:
-                    sample_template: { type: object }
+                    hint: { type: string }
 ---
 ```
 

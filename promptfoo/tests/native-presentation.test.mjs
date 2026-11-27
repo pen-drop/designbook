@@ -190,7 +190,7 @@ test("design intakes use CLI context without duplicating shared planning", () =>
   const fieldMap = readFileSync(
     join(
       repo,
-      ".agents/skills/designbook-drupal/data-mapping/blueprints/field-map.md",
+      ".agents/skills/designbook-drupal/data-mapping/blueprints/entity-binding.md",
     ),
     "utf8",
   );

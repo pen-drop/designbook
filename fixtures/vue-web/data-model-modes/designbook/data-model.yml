@@ -9,14 +9,14 @@ content:
           title: Body
       view_modes:
         full:
-          template: field-map
+          builder: entity-binding
         teaser:
-          template: field-map
+          builder: entity-binding
       form_modes:
         default:
-          template: form
+          builder: theme
         edit:
-          template: form
+          builder: theme
           label: Edit
     basic_page:
       title: Basic Page
@@ -32,4 +32,4 @@ config:
       description: A view listing recent articles.
       view_modes:
         default:
-          template: field-map
+          builder: entity-binding

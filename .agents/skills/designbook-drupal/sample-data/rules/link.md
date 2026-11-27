@@ -5,7 +5,7 @@ filter:
   backend: drupal
 ---
 
-# Sample Template: link
+# Sample Rule: link
 
 Applies when a when `field_type` matching is active for `link`.
 

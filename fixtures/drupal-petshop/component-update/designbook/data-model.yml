@@ -40,9 +40,9 @@ content:
             target_bundle: pet_category
       view_modes:
         teaser:
-          template: field-map
+          builder: entity-binding
         avatar:
-          template: field-map
+          builder: entity-binding
     shelter:
       title: Shelter
       description: Animal shelter or rescue organization
@@ -90,7 +90,7 @@ content:
       title: Homepage
       view_modes:
         full:
-          template: field-map
+          builder: entity-binding
       fields:
         title:
           type: string

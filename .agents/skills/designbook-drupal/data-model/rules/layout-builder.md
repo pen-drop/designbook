@@ -8,12 +8,12 @@ filter:
 
 # Rule: Layout Builder Extension
 
-Applies when the Layout Builder module is active. Layout Builder assembles a display from UI-Patterns component sections. A view mode's `template` decides whether those sections are **config-managed** (exported in `core.entity_view_display.*`) or a **per-entity content override** (stored in the entity's `layout_builder__layout` field).
+Applies when the Layout Builder module is active. Layout Builder assembles a display from UI-Patterns component sections. A view mode's `builder` decides whether those sections are **config-managed** (exported in `core.entity_view_display.*`) or a **per-entity content override** (stored in the entity's `layout_builder__layout` field).
 
 ## Template semantics under Layout Builder
 
-- `template: field-map` → a **config-managed** display: `allow_custom: false`, sections authored into `core.entity_view_display.*`, identical for every entity. `sync-to` authors these (the `layout-builder-display` mapping).
-- `template: layout-builder` → a **per-entity content override**: `allow_custom: true`, sections live per entity in the `layout_builder__layout` field. This is content, not config — `sync-to` does not author its sections, but it MUST author the field they live in (next section).
+- `builder: entity-binding` → a **config-managed** display: `allow_custom: false`, sections authored into `core.entity_view_display.*`, identical for every entity. `sync-to` authors these (the `layout-builder-display` mapping).
+- `builder: layout-builder` → a **per-entity content override**: `allow_custom: true`, sections live per entity in the `layout_builder__layout` field. This is content, not config — `sync-to` does not author its sections, but it MUST author the field they live in (next section).
 
 ## An overridable display must ship its override field
 
@@ -34,15 +34,15 @@ Both carry `translatable: false`, matching what Drupal's own `addSectionField` w
 `translatable: true` storage diverges from every Drupal-created override field.
 
 Order them before the display unit that turns `allow_custom` on, like every other
-field-before-display dependency. A `field-map` (config-managed, `allow_custom: false`) display stores
+field-before-display dependency. An `entity-binding` (config-managed, `allow_custom: false`) display stores
 nothing per entity and emits neither.
 
 ## Purpose: landing-page
 
 When a bundle has `purpose: landing-page`:
 
-- Set `view_modes.full.template: field-map` for a config-managed Layout Builder display; reserve `template: layout-builder` for a view mode whose layout is edited per entity (a content override)
-- Set all other view modes (teaser, card, listing, etc.) to `template: field-map`
+- Set `view_modes.full.builder: entity-binding` for a config-managed Layout Builder display; reserve `builder: layout-builder` for a view mode whose layout is edited per entity (a content override)
+- Set all other view modes (teaser, card, listing, etc.) to `builder: entity-binding`
 - Always include the `layout_builder__layout` field on the bundle
 
 ## Rules
@@ -50,6 +50,6 @@ When a bundle has `purpose: landing-page`:
 - `layout_builder__layout` carries no `field_` prefix. It is a **configurable** field
   (`FieldConfig` + `FieldStorageConfig`, created by layout_builder rather than declared as base
   field info) — which is why it has the two config objects the section above requires
-- `block_content` bundles always use `view_modes.default.template: field-map` — regardless of purpose
+- `block_content` bundles always use `view_modes.default.builder: entity-binding` — regardless of purpose
 - `block_content` sections are **one layer deep only** — no nested block_content references
-- On export, only a `field-map` view mode under an active `layout_builder` extension renders as a UI-Patterns-section display (the `layout-builder-display` mapping); a `layout-builder`-template view mode is a content override and gets no authored sections
+- On export, only an `entity-binding` view mode under an active `layout_builder` extension renders as a UI-Patterns-section display (the `layout-builder-display` mapping); a `layout-builder` view mode is a content override and gets no authored sections

@@ -5,7 +5,7 @@ content:
       description: A Canvas-managed page whose content is an inline component tree.
       view_modes:
         full:
-          template: canvas
+          builder: canvas
       fields:
         title:
           type: string

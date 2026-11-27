@@ -5,7 +5,7 @@ group: Data Display
 description: >
   View-listing wrapper — renders enumerated row-bundle records in a rows slot. Each row renders
   through its row bundle's view mode; the view's pager/exposed-filter wrapper is the
-  theme-methods-only presenter-template.
+  theme-methods-only theme template.
 provider: test_integration_drupal
 thirdPartySettings:
   sdcStorybook:

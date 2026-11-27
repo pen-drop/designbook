@@ -12,19 +12,19 @@ filter:
 # Blueprint: Pager Mapping
 
 Starting point for binding a view's pager region to its own Pager SDC component, independent of
-the view's `build_form`. A view's wrapper may live behind a Display Builder page config or behind a
-generated presenter-template — either way, the pager binds through this same dedicated binding, not
+the view's `builder`. A view's wrapper may live behind a Display Builder page config or behind a
+generated theme template — either way, the pager binds through this same dedicated binding, not
 through the view wrapper's own markup.
 
 ## The Pager Is Its Own Presenter
 
 The generic Drupal `pager` theme hook is the only way to produce pager markup — no UI-Patterns
 display config renders a pager's page-link list. So the pager path is always: generic `pager`
-theme hook → Pager presenter-template (the theme-markup composition, per
-`presenter-template.md`) → Pager SDC component (`components/blueprints/pager.md`), passed typed
+theme hook → Pager theme template (the theme-markup composition, per
+`theme.md`) → Pager SDC component (`components/blueprints/pager.md`), passed typed
 props and slots rather than reconstructed markup.
 
-The presenter-template composes the Pager component; it never re-derives a page-link list from raw
+The theme template composes the Pager component; it never re-derives a page-link list from raw
 variables itself. Each page-link, the previous/next controls, and the current-page indicator route
 into the component's props/slots as already-resolved values.
 

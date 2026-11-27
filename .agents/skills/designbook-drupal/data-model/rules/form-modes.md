@@ -38,7 +38,7 @@ none is needed — model the comment form as a `form_modes` entry on the `commen
 
 Scope is **which component renders the form**. The full `core.entity_form_display` field semantics — which
 fields appear, in what order, and each field's widget configuration — are out of scope. Do not add a
-`widgets:` or field-selection member to a form mode; a form mode carries only `template`, `label`, and
+`widgets:` or field-selection member to a form mode; a form mode carries only `builder`, `label`, and
 `settings`, the same shape as a view mode.
 
 ## Multiple form modes are core reality

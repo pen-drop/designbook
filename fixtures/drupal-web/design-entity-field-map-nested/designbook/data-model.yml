@@ -5,7 +5,7 @@ content:
       description: A software release with its version shown as a toned badge.
       view_modes:
         teaser:
-          template: field-map
+          builder: entity-binding
       fields:
         title:
           type: string

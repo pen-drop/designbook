@@ -21,7 +21,7 @@ for (const entry of readdirSync(join(theme, 'components'), { withFileTypes: true
 const model = parse(read('designbook/data-model.yml'));
 const canvas = model.content.canvas_page.landing_page;
 assert.equal(canvas.purpose, 'layout-builder');
-assert.equal(canvas.view_modes.full.template, 'canvas');
+assert.equal(canvas.view_modes.full.builder, 'canvas');
 assert.equal(canvas.fields.components.type, 'component_tree');
 assert.equal(model.content.node.landing, undefined);
 assert.deepEqual(readdirSync(join(theme, 'designbook/sections')), ['saas-demo']);

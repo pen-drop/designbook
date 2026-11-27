@@ -34,9 +34,9 @@ alongside the addon.
 
 Mapping for a Drupal backend in the `map-entity` stage (`when: backend: drupal`).
 
-- [data-mapping/blueprints/field-map.md](data-mapping/blueprints/field-map.md) — Blueprint for
-  `template: field-map`; binds Drupal fields to a Vue component's camelCase props and slots;
-  view rows render through their row bundle's `field-map`
+- [data-mapping/blueprints/entity-binding.md](data-mapping/blueprints/entity-binding.md) — Blueprint for
+  `builder: entity-binding`; binds Drupal fields to a Vue component's camelCase props and slots;
+  view rows render through their row bundle's `entity-binding`
 
 ## Setup
 

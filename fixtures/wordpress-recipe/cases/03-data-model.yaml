@@ -18,7 +18,7 @@ prompt: |
   Build the data model based on the screen.
   Use the data-model skill after reading the completed vision and Recipes section.
   The route-bearing entity is post.recipe (a custom post type), full view mode with
-  field-map rendering; it must be a real entity mapping, not an inline page.
+  entity-binding rendering; it must be a real entity mapping, not an inline page.
   Include title, recipe image, description, difficulty, servings, structured repeatable
   ingredients (quantity, unit, ingredient name) as a repeater field named ingredients and
   ordered preparation steps as a repeater field named steps.
